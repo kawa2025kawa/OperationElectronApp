@@ -1,0 +1,95 @@
+# ==============================
+# Logs
+# ==============================
+
+logs/
+*.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+
+# ==============================
+# Dependencies
+# ==============================
+
+node_modules/
+
+
+# ==============================
+# Build output
+# ==============================
+
+dist/
+dist-ssr/
+dist-electron/
+out/
+release/
+*.local
+
+
+# ==============================
+# Environment
+# ==============================
+
+.env
+.env.*
+!.env.example
+
+
+# ==============================
+# Electron
+# ==============================
+
+electron-builder.yml
+electron-builder.yaml
+
+# generated resources
+resources/*.json
+
+
+# ==============================
+# Rust / Tauri (if used later)
+# ==============================
+
+src-tauri/target/
+
+
+# ==============================
+# Editor
+# ==============================
+
+.vscode/*
+!.vscode/extensions.json
+
+.idea/
+
+.DS_Store
+
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+
+# ==============================
+# OS
+# ==============================
+
+Thumbs.db
+Desktop.ini
+
+
+# ==============================
+# Temporary
+# ==============================
+
+*.tmp
+*.temp
+*.bak
+
+# Playwright browser binaries
+resources/playwright/

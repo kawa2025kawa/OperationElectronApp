@@ -1,0 +1,17 @@
+//tsconfig.base.json
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "paths": {
+      "@renderer/*": ["./src/renderer/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@electron/*": ["./electron/*"],
+      "@styles/*": ["./src/renderer/styles/*"],
+      "@resources/*": ["./resources/*"]
+    }
+  }
+}

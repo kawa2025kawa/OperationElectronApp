@@ -1,0 +1,282 @@
+[
+  {
+    "kanriNo": "E1",
+    "cycle1": "週次",
+    "cycle2": "月",
+    "workName": "17時青果EOB棚順データ作成",
+    "manual": true,
+    "link": {
+      "作成ツール": "//S0088210情報システムチェックリスト/05_作業マニュアルオペレーション関連EOB棚順データ作成",
+      "保存先フォルダ": "\\mdsyuhai01.BELC01.belc.localIFEOB棚割SND"
+    }
+  },
+  {
+    "kanriNo": "E60",
+    "cycle1": "週次",
+    "cycle2": "月",
+    "workName": "前週の障害、例外OP確認",
+    "manual": true
+  },
+  {
+    "kanriNo": "E2",
+    "cycle1": "週次",
+    "cycle2": "火",
+    "scheduledTime": "17:00",
+    "workName": "17時青果EOB棚順データ投入",
+    "manual": true,
+    "link": {
+      "保存先フォルダ": "\\mdsyuhai01.BELC01.belc.localIFEOB棚割SND"
+    }
+  },
+  {
+    "kanriNo": "E4",
+    "cycle1": "週次",
+    "cycle2": "金",
+    "scheduledTime": "AM",
+    "workName": "オーダーブック作成",
+    "manual": true
+  },
+  {
+    "kanriNo": "E5",
+    "cycle1": "週次",
+    "cycle2": "金",
+    "scheduledTime": "PM",
+    "workName": "仕入原価リストデータ作成",
+    "manual": true,
+    "script": true,
+    "autoStart": false
+  },
+  {
+    "kanriNo": "E6",
+    "cycle1": "週次",
+    "cycle2": "日",
+    "scheduledTime": "AM",
+    "workName": "ファイル使用率チェック",
+    "manual": true,
+    "link": {
+      "保存先フォルダ": "https://drive.google.com/drive/folders/1Ts-BpDl2I2heRy12-ci1LN3C_NPjlE9-"
+    }
+  },
+  {
+    "kanriNo": "E7",
+    "cycle1": "週次",
+    "cycle2": "日",
+    "scheduledTime": "AM",
+    "workName": "各マスタ送信（200～202）",
+    "manual": true
+  },
+  {
+    "kanriNo": "E8",
+    "cycle1": "週次",
+    "cycle2": "日",
+    "scheduledTime": "17:00",
+    "workName": "シェルフラベル発注",
+    "manual": true,
+    "link": {
+      "PrimeDrive": "https://primedrive.jp/v2/browse"
+    }
+  },
+  {
+    "kanriNo": "E9",
+    "cycle1": "週次",
+    "cycle2": "日",
+    "scheduledTime": "17：00",
+    "workName": "各種ポップラベル発注",
+    "manual": true
+  },
+  {
+    "kanriNo": "E12",
+    "cycle1": "月次",
+    "cycle2": "1",
+    "scheduledTime": "AM",
+    "workName": "デシジョンBOX",
+    "manual": true
+  },
+  {
+    "kanriNo": "E14",
+    "cycle1": "月次",
+    "cycle2": "1",
+    "scheduledTime": "AM",
+    "workName": "TV売上集計&メール",
+    "script": true,
+    "autoStart": false,
+    "manual": true
+  },
+  {
+    "kanriNo": "E15",
+    "cycle1": "月次",
+    "cycle2": "1",
+    "scheduledTime": "AM",
+    "workName": "サーバ室エアコン切替",
+    "manual": true
+  },
+  {
+    "kanriNo": "E17",
+    "cycle1": "月次",
+    "cycle2": "1",
+    "scheduledTime": "17：00",
+    "workName": "井ノ瀬運送PC再起動",
+    "manual": true
+  },
+  {
+    "kanriNo": "E36",
+    "cycle1": "月次",
+    "cycle2": "2",
+    "scheduledTime": "AM",
+    "workName": "300/301作成&送信(AM)",
+    "manual": true
+  },
+  {
+    "kanriNo": "E51",
+    "cycle1": "月次",
+    "cycle2": "5",
+    "scheduledTime": "18：15",
+    "workName": "MD帳票サーバ再起動",
+    "manual": true
+  },
+  {
+    "kanriNo": "E23",
+    "cycle1": "月次",
+    "cycle2": "7",
+    "workName": "欠品実績作成",
+    "manual": true
+  },
+  {
+    "kanriNo": "E24",
+    "cycle1": "月次",
+    "cycle2": "10",
+    "workName": "発注停止入力チェック期限",
+    "manual": true
+  },
+  {
+    "kanriNo": "E27",
+    "cycle1": "月次",
+    "cycle2": "20",
+    "scheduledTime": "AM",
+    "workName": "生鮮陳列情報作成",
+    "manual": true
+  },
+  {
+    "kanriNo": "E28",
+    "cycle1": "月次",
+    "cycle2": "21",
+    "scheduledTime": "AM",
+    "workName": "生鮮陳列情報印刷",
+    "manual": true
+  },
+  {
+    "kanriNo": "E29",
+    "cycle1": "月次",
+    "cycle2": "25",
+    "scheduledTime": "AM",
+    "workName": "日割予算売上取込（AM）",
+    "script": true,
+    "autoStart": false,
+    "manual": true
+  },
+  {
+    "kanriNo": "E30",
+    "cycle1": "月次",
+    "cycle2": "26",
+    "workName": "DWH予算データ確認",
+    "script": true,
+    "autoStart": false,
+    "manual": true
+  },
+  {
+    "kanriNo": "E20",
+    "cycle1": "月次",
+    "cycle2": "27",
+    "workName": "棚卸チェックシート依頼",
+    "manual": true
+  },
+  {
+    "kanriNo": "E16",
+    "cycle1": "月次",
+    "cycle2": "1",
+    "scheduledTime": "AM",
+    "workName": "ログサーバログ退避（toDVD）",
+    "manual": true
+  },
+  {
+    "kanriNo": "E37",
+    "cycle1": "月次",
+    "cycle2": "月末",
+    "scheduledTime": "PM",
+    "workName": "300/301作成&送信(PM)",
+    "manual": true
+  },
+  {
+    "kanriNo": "E42",
+    "cycle1": "年次",
+    "cycle2": "03/01",
+    "workName": "スマベルクビーコン電池交換確認",
+    "manual": true
+  },
+  {
+    "kanriNo": "E43",
+    "cycle1": "年次",
+    "cycle2": "04/01",
+    "workName": "[荒]酒棚卸",
+    "manual": true
+  },
+  {
+    "kanriNo": "E47",
+    "cycle1": "年次",
+    "cycle2": "10/01",
+    "workName": "MD銀行休日設定",
+    "manual": true
+  },
+  {
+    "kanriNo": "E53",
+    "cycle1": "年次",
+    "cycle2": "06/15",
+    "workName": "温度湿度計調整1",
+    "manual": true
+  },
+  {
+    "kanriNo": "E54",
+    "cycle1": "年次",
+    "cycle2": "11/30",
+    "workName": "温度湿度計調整2",
+    "manual": true
+  },
+  {
+    "kanriNo": "E34",
+    "cycle1": "年次",
+    "cycle2": "11/30",
+    "workName": "[隅]ストマネリスナーログ削除",
+    "manual": true
+  },
+  {
+    "kanriNo": "E50",
+    "cycle1": "年次",
+    "cycle2": "12/20",
+    "workName": "smabelc短縮営業設定",
+    "manual": true
+  },
+  {
+    "kanriNo": "E39",
+    "cycle1": "依頼発生時",
+    "cycle2": "依頼発生時",
+    "workName": "棚卸データ確認（物流センター）",
+    "manual": true,
+    "script": true,
+    "autoStart": false,
+    "link": {
+      "操作マニュアル": "//192.88.100.1/diskD/execute/log"
+    }
+  },
+  {
+    "kanriNo": "E41",
+    "cycle1": "依頼発生時",
+    "cycle2": "依頼発生時",
+    "workName": "ギフトデータMD転送",
+    "manual": true,
+    "script": true,
+    "autoStart": false,
+    "link": {
+      "操作マニュアル": "//192.88.100.1/diskD/execute/log"
+    }
+  }
+]

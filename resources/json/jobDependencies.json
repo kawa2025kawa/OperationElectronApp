@@ -1,0 +1,176 @@
+{
+  "dependencies": {
+    "N21": {
+      "dependsOn": ["57"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "N27": {
+      "dependsOn": ["75", "76"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "N28": {
+      "dependsOn": ["75", "76"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "N25": {
+      "dependsOn": ["76"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "N31": {
+      "dependsOn": ["N27"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "N33": {
+      "dependsOn": ["67"],
+      "requiredStatus": ["完了"],
+      "condition": "every",
+      "afterTime": "17:30"
+    },
+    "N12": {
+      "dependsOn": ["N11"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "N37": {
+      "dependsOn": ["45"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "114": {
+      "dependsOn": ["14"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "20": {
+      "dependsOn": ["19"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "25": {
+      "dependsOn": ["24"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "30": {
+      "dependsOn": ["29"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "37": {
+      "dependsOn": ["36"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "39": {
+      "dependsOn": ["38"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "45": {
+      "dependsOn": ["44"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "48": {
+      "dependsOn": ["47"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "49": {
+      "dependsOn": ["N12"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "54": {
+      "dependsOn": ["52"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "55": {
+      "dependsOn": ["54"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "61": {
+      "dependsOn": ["60"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "62": {
+      "dependsOn": ["61"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "N18": {
+      "dependsOn": ["49"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "63": {
+      "dependsOn": ["62"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "64": {
+      "dependsOn": ["63"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "65": {
+      "dependsOn": ["64"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "66": {
+      "dependsOn": ["65"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "67": {
+      "dependsOn": ["55", "65", "66"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "68": {
+      "dependsOn": ["67"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "77": {
+      "dependsOn": ["73"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "75": {
+      "dependsOn": ["49", "69", "70", "67"],
+      "requiredStatus": {
+        "49": ["完了"],
+        "69": ["完了"],
+        "70": ["完了"],
+        "67": ["完了", "実行中"]
+      },
+      "condition": "every"
+    },
+    "76": {
+      "dependsOn": ["49", "55", "65"],
+      "requiredStatus": ["完了"],
+      "condition": "every",
+      "requiresActive": ["is1CActive", "is2CActive", "is3CActive"]
+    },
+    "80": {
+      "dependsOn": ["79"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    },
+    "E5": {
+      "dependsOn": ["49"],
+      "requiredStatus": ["完了"],
+      "condition": "every"
+    }
+  }
+}
