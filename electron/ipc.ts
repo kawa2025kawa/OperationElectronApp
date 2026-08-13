@@ -1,7 +1,6 @@
 ﻿// electron/ipc.ts
 
 import { setupAuthHandlers } from "./handlers/authHandlers";
-import { setupJobHandlers } from "./handlers/jobHandlers";
 import { setupOperationHandlers } from "./handlers/operationHandlers";
 import { setupRdpHandlers } from "./handlers/rdpHandlers";
 import { setupSystemHandlers } from "./handlers/systemHandlers";
@@ -12,7 +11,6 @@ type IpcHandlerSetup = () => void;
 
 const ipcHandlers: IpcHandlerSetup[] = [
   setupAuthHandlers,
-  setupJobHandlers,
   setupOperationHandlers,
   setupStatusHandlers,
   setupRdpHandlers,
@@ -23,7 +21,7 @@ const ipcHandlers: IpcHandlerSetup[] = [
 let initialized = false;
 
 /**
- * IPC handler登録
+ * IPCハンドラー登録
  *
  * main.ts 起動時に1回だけ実行
  */

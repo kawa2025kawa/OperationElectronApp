@@ -1,5 +1,6 @@
 // src/renderer/features/spreadSheet/components/modal/contents/kokyuhyo/KokyuhyoModalContent.tsx
 import React from "react";
+import { commands } from "@shared/api/commands";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import type { Kokyuhyo } from "@shared/types/spreadsheetTypes";
 import { useKokyuhyoModalLogic } from "./useKokyuhyoModalLogic";
@@ -26,7 +27,7 @@ export const KokyuhyoModalContent: React.FC<{
           <button
             type="button"
             className={styles.scheduleLinkButton}
-            onClick={() => void window.electronAPI.openExternal?.(scheduleLink)}
+            onClick={() => void commands.openExternal(scheduleLink)}
           >
             スケジュール
           </button>

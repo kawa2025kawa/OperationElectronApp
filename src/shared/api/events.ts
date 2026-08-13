@@ -1,18 +1,24 @@
-﻿import type { OperationStatusEvent } from "@shared/types/statusType";
+﻿// src/shared/api/events.ts
+
+import type { OperationItem } from "@shared/types/operationType";
 
 export const events = {
-  operationStatusUpdatedEvent: {
-    listen(callback: (event: { payload: OperationStatusEvent }) => void) {
+  operationStatusUpdated: {
+    listen(
+      callback: (event: { payload: { status: OperationItem } }) => void,
+    ): () => void {
       const remove = window.electronAPI.on(
         "operationStatusUpdated",
         (...args: unknown[]) => {
           callback({
-            payload: args[0] as OperationStatusEvent,
+            payload: {
+              status: args[0] as OperationItem,
+            },
           });
         },
       );
 
-      return Promise.resolve(remove);
+      return remove;
     },
   },
 };

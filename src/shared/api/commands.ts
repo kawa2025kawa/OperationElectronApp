@@ -1,99 +1,104 @@
-﻿// src/shared/api/commands.ts
-
-import type { OAuthToken } from "@shared/types/authTypes";
+﻿import type { AuthSession } from "@shared/types/authTypes";
+import type { OperationItem } from "@shared/types/operationType";
 import type { RdpTarget } from "@shared/types/rdpTypes";
-import type { OperationStatusUpdatePayload } from "@shared/types/statusType";
 
 // =====================================================
-// Operation Job Status
+// Types
 // =====================================================
 
-export interface JobStatusResponse {
-  kanriNo: string;
-
-  status?: string;
-
-  startTime?: string;
-  endTime?: string;
-
-  expectedStartTime?: string;
-  expectedEndTime?: string;
-
-  comment?: string;
-
-  substatus?: string[];
-
-  info?: string;
-
+export type JobStatusResponse = Pick<
+  OperationItem,
+  | "kanriNo"
+  | "status"
+  | "startTime"
+  | "endTime"
+  | "expectedStartTime"
+  | "expectedEndTime"
+  | "comment"
+  | "substatus"
+  | "info"
+> & {
   updatedAt: string;
-}
+};
 
-export interface FetchJobStatusResult {
-  success: boolean;
-
-  data?: JobStatusResponse;
-
-  error?: string;
+export interface OpenFileDialogOptions {
+  properties?: string[];
+  filters?: Array<{
+    name: string;
+    extensions: string[];
+  }>;
 }
 
 // =====================================================
 // System / Status
 // =====================================================
 
-export async function initializeStatus(): Promise<Record<string, unknown>> {
-  return window.electronAPI.invoke<Record<string, unknown>>("initializeStatus");
+export async function initializeStatus(): Promise<
+  Record<string, OperationItem>
+> {
+  return window.electronAPI.invoke<Record<string, OperationItem>>(
+    "initializeStatus",
+  );
 }
 
 export async function updateJobStatus(
   kanriNo: string,
-  status: string,
-): Promise<null> {
-  return window.electronAPI.invoke<null>("updateJobStatus", {
+  status: OperationItem["status"],
+  comment?: string,
+): Promise<void> {
+  await window.electronAPI.invoke("updateJobStatus", {
     kanriNo,
     status,
+    comment,
   });
 }
 
-export async function deleteAllJobStatuses(): Promise<null> {
-  return window.electronAPI.invoke<null>("deleteAllJobStatuses");
+export async function deleteAllJobStatuses(): Promise<void> {
+  await window.electronAPI.invoke("deleteAllJobStatuses");
 }
+
+// =====================================================
+// Application
+// =====================================================
 
 export async function getAppVersion(): Promise<string> {
   return window.electronAPI.invoke<string>("getAppVersion");
 }
 
-export async function showMainWindow(): Promise<null> {
-  return window.electronAPI.invoke<null>("showMainWindow");
+export async function showMainWindow(): Promise<void> {
+  await window.electronAPI.invoke("showMainWindow");
 }
 
-export async function quitApp(): Promise<null> {
-  return window.electronAPI.invoke<null>("quitApp");
+export async function quitApp(): Promise<void> {
+  await window.electronAPI.invoke("quitApp");
+}
+
+// =====================================================
+// File Dialog
+// =====================================================
+
+export async function showOpenDialog(
+  options: OpenFileDialogOptions,
+): Promise<string[] | null> {
+  return window.electronAPI.invoke<string[] | null>("showOpenDialog", options);
 }
 
 // =====================================================
 // Operation
 // =====================================================
 
-export async function registerTargets(
-  items: OperationStatusUpdatePayload[],
-): Promise<null> {
-  return window.electronAPI.invoke<null>("registerTargets", {
+export async function registerTargets(items: OperationItem[]): Promise<void> {
+  await window.electronAPI.invoke("registerTargets", {
     items,
   });
 }
 
-/**
- * JC Job Status取得
- */
 export async function fetchSingleJobStatus(
   kanriNo: string,
-): Promise<FetchJobStatusResult> {
-  return window.electronAPI.invoke<FetchJobStatusResult>(
-    "fetchSingleJobStatus",
-    {
-      kanriNo,
-    },
-  );
+): Promise<JobStatusResponse> {
+  return window.electronAPI.invoke<JobStatusResponse>("fetchSingleJobStatus", {
+    kanriNo,
+  });
 }
 
 export async function executeScript(scriptId: string): Promise<string> {
@@ -102,18 +107,16 @@ export async function executeScript(scriptId: string): Promise<string> {
   });
 }
 
-export async function getJobStatus(jobId: string): Promise<string> {
-  return window.electronAPI.invoke<string>("getJobStatus", {
-    jobId,
-  });
+// =====================================================
+// Polling
+// =====================================================
+
+export async function startPolling(): Promise<void> {
+  await window.electronAPI.invoke("startPolling");
 }
 
-export async function startPolling(): Promise<null> {
-  return window.electronAPI.invoke<null>("startPolling");
-}
-
-export async function stopPolling(): Promise<null> {
-  return window.electronAPI.invoke<null>("stopPolling");
+export async function stopPolling(): Promise<void> {
+  await window.electronAPI.invoke("stopPolling");
 }
 
 // =====================================================
@@ -124,8 +127,8 @@ export async function getRdpTargets(): Promise<RdpTarget[]> {
   return window.electronAPI.invoke<RdpTarget[]>("getRdpTargets");
 }
 
-export async function startRdpSession(id: string): Promise<null> {
-  return window.electronAPI.invoke<null>("startRdpSession", {
+export async function startRdpSession(id: string): Promise<void> {
+  await window.electronAPI.invoke("startRdpSession", {
     payload: {
       id,
     },
@@ -139,8 +142,8 @@ export async function startRdpSession(id: string): Promise<null> {
 export async function tempomaticUploadDocument(
   filePaths: string[],
   expireDate: string,
-): Promise<string> {
-  return window.electronAPI.invoke<string>("tempomaticUploadDocument", {
+): Promise<void> {
+  await window.electronAPI.invoke("tempomaticUploadDocument", {
     filePaths,
     expireDate,
   });
@@ -150,40 +153,24 @@ export async function tempomaticUploadDocument(
 // Auth
 // =====================================================
 
-export async function hasGoogleCredentials(): Promise<boolean> {
-  return window.electronAPI.invoke<boolean>("hasGoogleCredentials");
+export async function login(): Promise<AuthSession> {
+  return window.electronAPI.invoke<AuthSession>("googleAuth:login");
 }
 
-export async function getGoogleClientId(): Promise<string> {
-  return window.electronAPI.invoke<string>("getGoogleClientId");
+export async function loadAuthSession(): Promise<AuthSession | null> {
+  return window.electronAPI.invoke<AuthSession | null>(
+    "googleAuth:loadSession",
+  );
 }
 
-export async function startOAuthListener(port = 8888): Promise<{
-  code: string;
-  state: string;
-}> {
-  return window.electronAPI.invoke<{
-    code: string;
-    state: string;
-  }>("startOAuthListener", {
-    port,
+export async function logout(): Promise<void> {
+  await window.electronAPI.invoke("googleAuth:logout");
+}
+
+export async function openExternal(urlOrPath: string): Promise<void> {
+  await window.electronAPI.invoke("openExternal", {
+    urlOrPath,
   });
-}
-
-export async function saveAuthSession(token: OAuthToken): Promise<null> {
-  return window.electronAPI.invoke<null>("saveAuthSession", token);
-}
-
-export async function checkAuthSession(): Promise<boolean> {
-  return window.electronAPI.invoke<boolean>("checkAuthSession");
-}
-
-export async function refreshGoogleOauthCredentials(): Promise<string> {
-  return window.electronAPI.invoke<string>("refreshGoogleOauthCredentials");
-}
-
-export async function clearAuthSession(): Promise<null> {
-  return window.electronAPI.invoke<null>("clearAuthSession");
 }
 
 // =====================================================
@@ -192,46 +179,28 @@ export async function clearAuthSession(): Promise<null> {
 
 export const commands = {
   initializeStatus,
-
   updateJobStatus,
-
   deleteAllJobStatuses,
 
   getAppVersion,
-
   showMainWindow,
-
   quitApp,
 
+  showOpenDialog,
+  openExternal,
   registerTargets,
-
   fetchSingleJobStatus,
-
   executeScript,
 
-  getJobStatus,
-
   startPolling,
-
   stopPolling,
 
   getRdpTargets,
-
   startRdpSession,
 
   tempomaticUploadDocument,
 
-  hasGoogleCredentials,
-
-  getGoogleClientId,
-
-  startOAuthListener,
-
-  saveAuthSession,
-
-  checkAuthSession,
-
-  refreshGoogleOauthCredentials,
-
-  clearAuthSession,
+  login,
+  loadAuthSession,
+  logout,
 };

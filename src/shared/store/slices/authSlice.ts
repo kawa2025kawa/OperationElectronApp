@@ -1,11 +1,19 @@
-﻿import { toast } from "sonner";
+﻿// src/shared/store/slices/authSlice.ts
+
+import { toast } from "sonner";
 import type { StateCreator } from "zustand";
+
+import { loadAuthSession, logout as logoutCommand } from "@shared/api/commands";
 import type { AppState } from "@shared/store/index";
+
+// =====================================================
+// Types
+// =====================================================
 
 export interface AuthSession {
   accessToken: string;
-  refreshToken: string;
-  expiresAt: number;
+  refreshToken: string | null;
+  expiresAt: number | null;
 }
 
 export interface AuthSlice {
@@ -24,40 +32,85 @@ export interface AuthSlice {
   logout: () => Promise<void>;
 }
 
+// =====================================================
+// Slice
+// =====================================================
+
 export const createAuthSlice: StateCreator<
   AppState,
   [["zustand/immer", never]],
   [],
   AuthSlice
 > = (set, get) => ({
+  // ===================================================
+  // State
+  // ===================================================
+
   isAuthenticated: false,
   isChecking: false,
   isLoginProcessing: false,
   accessToken: null,
 
-  setIsAuthenticated: (auth) => set((s) => { s.isAuthenticated = auth; }),
-  setIsChecking: (check) => set((s) => { s.isChecking = check; }),
-  setIsLoginProcessing: (proc) => set((s) => { s.isLoginProcessing = proc; }),
-  setAccessToken: (token) => set((s) => { s.accessToken = token; }),
+  // ===================================================
+  // Setters
+  // ===================================================
+
+  setIsAuthenticated: (auth) =>
+    set((state) => {
+      state.isAuthenticated = auth;
+    }),
+
+  setIsChecking: (check) =>
+    set((state) => {
+      state.isChecking = check;
+    }),
+
+  setIsLoginProcessing: (proc) =>
+    set((state) => {
+      state.isLoginProcessing = proc;
+    }),
+
+  setAccessToken: (token) =>
+    set((state) => {
+      state.accessToken = token;
+    }),
+
+  // ===================================================
+  // Session Check
+  // ===================================================
 
   checkAuthStatus: async () => {
     get().setIsChecking(true);
+
     try {
-      const session = await window.electronAPI.invoke<AuthSession | null>("googleAuth:loadSession");
+      const session = await loadAuthSession();
+
       if (!session?.accessToken) {
-        await get().logout();
+        get().setIsAuthenticated(false);
+        get().setAccessToken(null);
+
         return false;
       }
+
       get().setAccessToken(session.accessToken);
       get().setIsAuthenticated(true);
+
       return true;
-    } catch {
+    } catch (error) {
+      console.error("[Auth] Session check failed:", error);
+
       get().setIsAuthenticated(false);
+      get().setAccessToken(null);
+
       return false;
     } finally {
       get().setIsChecking(false);
     }
   },
+
+  // ===================================================
+  // Login Success
+  // ===================================================
 
   handleLoginSuccess: async (accessToken) => {
     get().setAccessToken(accessToken);
@@ -65,29 +118,37 @@ export const createAuthSlice: StateCreator<
     get().setIsLoginProcessing(false);
 
     toast.success("Googleログインに成功しました");
+
     void get().prefetchSheets(accessToken);
 
     const pendingView = get().pendingView;
+
     if (pendingView) {
       get().setCurrentView(pendingView);
       get().setPendingView(null);
     }
   },
 
+  // ===================================================
+  // Logout
+  // ===================================================
+
   logout: async () => {
     try {
-      await window.electronAPI.invoke("googleAuth:logout");
-      set((s) => {
-        Object.assign(s, {
-          isAuthenticated: false,
-          isChecking: false,
-          isLoginProcessing: false,
-          accessToken: null,
-          pendingView: null,
-        });
+      await logoutCommand();
+
+      set((state) => {
+        state.isAuthenticated = false;
+        state.isChecking = false;
+        state.isLoginProcessing = false;
+        state.accessToken = null;
+        state.pendingView = null;
       });
+
       toast.success("ログアウトしました");
     } catch (error) {
+      console.error("[Auth] Logout failed:", error);
+
       toast.error(error instanceof Error ? error.message : "ログアウト失敗");
     }
   },

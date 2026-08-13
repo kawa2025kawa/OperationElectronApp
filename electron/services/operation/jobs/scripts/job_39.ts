@@ -1,29 +1,61 @@
 ﻿// electron/services/operation/jobs/scripts/job_39.ts
-import fs from "fs-extra";
-import path from "path";
-import { isSameDay } from "date-fns";
 
-const TARGET_FILES = ["htsf0060", "Okurikomi_toMD"] as const;
+import fs from "fs-extra";
+import { format } from "date-fns";
+
+const BEFORE_NOON_DIR = "\\\\172.25.101.51\\if\\MASTER\\RCV";
+const AFTER_NOON_DIR = "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV";
+
+const TARGET_KEYWORDS = ["htsf0060", "Okurikomi_toMD"] as const;
+
+function selectTargetDirectory(): string {
+  return new Date().getHours() < 12 ? BEFORE_NOON_DIR : AFTER_NOON_DIR;
+}
 
 export async function runJob39(): Promise<string> {
-  const hour = new Date().getHours();
-  const folder = hour < 12 ? "\\\\172.25.101.51\\if\\MASTER\\RCV" : "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV";
+  const targetDir = selectTargetDirectory();
+  const today = format(new Date(), "yyyyMMdd");
 
-  if (!(await fs.pathExists(folder))) throw new Error(`ディレクトリが存在しません: ${folder}`);
+  if (!(await fs.pathExists(targetDir))) {
+    throw new Error(`ディレクトリが存在しません: ${targetDir}`);
+  }
 
-  const today = new Date();
-  const files = await fs.readdir(folder);
-  let missing: string[] = [...TARGET_FILES];
+  const files = await fs.readdir(targetDir);
+
+  let hasHtsf0060 = false;
+  let hasOkurikomi = false;
 
   for (const file of files) {
-    const filePath = path.join(folder, file);
-    const stats = await fs.stat(filePath);
-    if (isSameDay(stats.mtime, today)) {
-      missing = missing.filter((kw) => !file.includes(kw));
-      if (missing.length === 0) break;
+    if (!file.includes(today)) {
+      continue;
+    }
+
+    if (!hasHtsf0060 && file.includes(TARGET_KEYWORDS[0])) {
+      hasHtsf0060 = true;
+    }
+
+    if (!hasOkurikomi && file.includes(TARGET_KEYWORDS[1])) {
+      hasOkurikomi = true;
+    }
+
+    if (hasHtsf0060 && hasOkurikomi) {
+      break;
     }
   }
 
-  if (missing.length === 0) return `全ファイル受信確認 (${folder})`;
-  throw new Error(`欠損ファイル: ${missing.join(", ")} (${folder})`);
+  if (hasHtsf0060 && hasOkurikomi) {
+    return "正常終了";
+  }
+
+  const missing: string[] = [];
+
+  if (!hasHtsf0060) {
+    missing.push(TARGET_KEYWORDS[0]);
+  }
+
+  if (!hasOkurikomi) {
+    missing.push(TARGET_KEYWORDS[1]);
+  }
+
+  throw new Error(`欠損ファイル: ${missing.join(", ")}`);
 }

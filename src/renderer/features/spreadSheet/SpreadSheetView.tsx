@@ -11,8 +11,7 @@ import { useSpreadSheetViewLogic } from "./useSpreadSheetViewLogic";
 import { SpreadSheetTable } from "./components/table/SpreadSheetTable";
 import * as styles from "./spreadSheetView.css";
 
-import { KokyuhyoModalContent } from "./components/modal/contents/kokyuhyo/KokyuhyoModalContent";
-import { JugyoinModalContent } from "./components/modal/contents/jugyoin/JugyoinModalContent";
+import { JugyoinKokyuhyoModalContent } from "./components/modal/contents/common/JugyoinKokyuhyoModalContent";
 import { ShopModalContent } from "./components/modal/contents/shop/ShopModalContent";
 import { TantouModalContent } from "./components/modal/contents/tantou/TantouModalContent";
 
@@ -25,10 +24,10 @@ const MODAL_RENDERERS: {
   ) => React.ReactNode;
 } = {
   [SHEET_IDS.KOKYUHYO]: (data, title, onClose) => (
-    <KokyuhyoModalContent data={data} title={title} onClose={onClose} />
+    <JugyoinKokyuhyoModalContent data={data} title={title} onClose={onClose} />
   ),
   [SHEET_IDS.JUGYOIN]: (data, title, onClose) => (
-    <JugyoinModalContent data={data} title={title} onClose={onClose} />
+    <JugyoinKokyuhyoModalContent data={data} title={title} onClose={onClose} />
   ),
   [SHEET_IDS.SHOP]: (data, title, onClose) => (
     <ShopModalContent data={data} title={title} onClose={onClose} />

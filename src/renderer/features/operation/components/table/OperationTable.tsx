@@ -1,8 +1,8 @@
 // src/renderer/features/operation/components/table/OperationTable.tsx
+
 import React, { useCallback } from "react";
 import type { OperationItem } from "@shared/types/operationType";
 import type { Column } from "@shared/types/tableType";
-import type { ViewMode } from "@shared/types/uiType";
 import { useAppStore } from "@shared/store";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { StatusContextMenu } from "@renderer/features/operation/components/contextMenu/StatusContextMenu";
@@ -13,24 +13,24 @@ interface UnifiedTableRowProps {
   kanriNo: string;
   columns: Column<OperationItem>[];
   isSelected: boolean;
-  currentMode: ViewMode;
   onRowClick: (kanriNo: string) => void;
 }
 
 const UnifiedTableRow: React.FC<UnifiedTableRowProps> = React.memo(
-  ({ kanriNo, columns, isSelected, currentMode, onRowClick }) => {
+  ({ kanriNo, columns, isSelected, onRowClick }) => {
     const item = useAppStore(
-      (s) =>
-        (s.operationEntities[kanriNo] ?? s.irregularEntities[kanriNo]) as
-          | OperationItem
-          | undefined,
+      (state) =>
+        (state.operationEntities[kanriNo] ??
+          state.irregularEntities[kanriNo]) as OperationItem | undefined,
     );
 
     const handleClick = useCallback(() => {
       onRowClick(kanriNo);
     }, [kanriNo, onRowClick]);
 
-    if (!item) return null;
+    if (!item) {
+      return null;
+    }
 
     const rowStateClass = isSelected
       ? styles.tableRowStates.selected
@@ -41,8 +41,16 @@ const UnifiedTableRow: React.FC<UnifiedTableRowProps> = React.memo(
         className={`${styles.tableRowBase} ${rowStateClass}`}
         onClick={handleClick}
       >
-        {columns.map((col) => {
-          if (col.key === "status" && currentMode === "operation") {
+        {columns.map((column) => {
+          /**
+           * Status列は専用コンポーネントで描画する。
+           *
+           * Status列自体を表示するかどうかは
+           * useOperationTable.ts の columns 定義側で決定する。
+           *
+           * したがってここでは currentMode を判定しない。
+           */
+          if (column.key === "status") {
             return (
               <td
                 key="status"
@@ -57,15 +65,13 @@ const UnifiedTableRow: React.FC<UnifiedTableRowProps> = React.memo(
             );
           }
 
-          const rawValue = col.key
-            ? item[col.key as keyof OperationItem]
-            : undefined;
-          const alignKey = col.align ?? "left";
+          const rawValue = item[column.key as keyof OperationItem];
+          const alignKey = column.align ?? "left";
           const alignClass = styles.tdAlignVariants[alignKey] ?? "";
 
           return (
             <td
-              key={String(col.key)}
+              key={String(column.key)}
               className={`${styles.tdBase} ${alignClass}`}
             >
               <span className={styles.cellText}>
@@ -82,8 +88,7 @@ const UnifiedTableRow: React.FC<UnifiedTableRowProps> = React.memo(
 UnifiedTableRow.displayName = "UnifiedTableRow";
 
 export const UnifiedTable: React.FC = React.memo(() => {
-  const { currentMode, rowIds, columns, selectedId, handleRowClick } =
-    useOperationTable();
+  const { rowIds, columns, selectedId, handleRowClick } = useOperationTable();
 
   const renderRow = useCallback(
     (id: string) => (
@@ -92,11 +97,10 @@ export const UnifiedTable: React.FC = React.memo(() => {
         kanriNo={id}
         columns={columns}
         isSelected={selectedId === id}
-        currentMode={currentMode}
         onRowClick={handleRowClick}
       />
     ),
-    [columns, selectedId, currentMode, handleRowClick],
+    [columns, selectedId, handleRowClick],
   );
 
   return (
@@ -105,21 +109,23 @@ export const UnifiedTable: React.FC = React.memo(() => {
         <table className={styles.tableStyle}>
           <thead>
             <tr>
-              {columns.map((col) => {
-                const alignKey = col.align ?? "left";
+              {columns.map((column) => {
+                const alignKey = column.align ?? "left";
                 const alignClass = styles.thAlignVariants[alignKey] ?? "";
+
                 return (
                   <th
-                    key={String(col.key)}
+                    key={String(column.key)}
                     className={`${styles.thBase} ${alignClass}`}
-                    style={{ width: col.width }}
+                    style={{ width: column.width }}
                   >
-                    {col.label}
+                    {column.label}
                   </th>
                 );
               })}
             </tr>
           </thead>
+
           <tbody>{rowIds.map(renderRow)}</tbody>
         </table>
       </div>
@@ -128,4 +134,5 @@ export const UnifiedTable: React.FC = React.memo(() => {
 });
 
 UnifiedTable.displayName = "UnifiedTable";
+
 export default UnifiedTable;

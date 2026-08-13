@@ -1,96 +1,65 @@
 // src/renderer/features/spreadSheet/components/modal/contents/shop/useShopModalLogic.ts
-import { useState, useMemo } from "react";
-import { getValueByPath } from "@shared/utils/getValueByPath";
 import type { Shop } from "@shared/types/spreadsheetTypes";
+import {
+  useTabbedModalLogic,
+  type TabGroupConfig,
+} from "../common/useTabbedModalLogic";
 
-export const SHOP_MODAL_GROUPS = [
+export const SHOP_MODAL_GROUPS: readonly TabGroupConfig[] = [
   {
     title: "基本情報",
-    keywords: ["businessHours", "phoneNumber", "idoHanbai", "address"],
-  },
-  {
-    title: "担当者情報",
-    keywords: [
-      "managerName",
-      "subManagerName1",
-      "area",
-      "areaManagerName",
-      "centerName",
+    items: [
+      { key: "businessHours", label: "営業時間" },
+      { key: "phoneNumber", label: "電話番号" },
+      { key: "idoHanbai", label: "移動販売" },
+      { key: "address", label: "住所" },
     ],
   },
   {
-    title: "プリンターK",
-    keywords: [
-      "printerK.model",
-      "printerK.serial",
-      "printerK.callTarget",
-      "printerK.weekendSupport",
-      "printerK.contractId",
+    title: "担当者",
+    items: [
+      { key: "managerName", label: "店長" },
+      { key: "subManagerName1", label: "副店長1" },
+      { key: "area", label: "エリア" },
+      { key: "areaManagerName", label: "エリアMGR" },
+      { key: "centerName", label: "センター" },
     ],
   },
   {
-    title: "プリンターB",
-    keywords: [
-      "printerB.model",
-      "printerB.serial",
-      "printerB.callTarget",
-      "printerB.weekendSupport",
-      "printerB.contractId",
+    title: "プリンター(K)",
+    items: [
+      { key: "printerK.model", label: "K型番" },
+      { key: "printerK.serial", label: "Kシリアル" },
+      { key: "printerK.callTarget", label: "K連絡先" },
+      { key: "printerK.weekendSupport", label: "K休日対応" },
+      { key: "printerK.contractId", label: "K契約ID" },
     ],
   },
   {
-    title: "プリンターO",
-    keywords: [
-      "printerO.model",
-      "printerO.serial",
-      "printerO.callTarget",
-      "printerO.weekendSupport",
-      "printerO.contractId",
+    title: "プリンター(B)",
+    items: [
+      { key: "printerB.model", label: "B型番" },
+      { key: "printerB.serial", label: "Bシリアル" },
+      { key: "printerB.callTarget", label: "B連絡先" },
+      { key: "printerB.weekendSupport", label: "B休日対応" },
+      { key: "printerB.contractId", label: "B契約ID" },
+    ],
+  },
+  {
+    title: "プリンター(O)",
+    items: [
+      { key: "printerO.model", label: "O型番" },
+      { key: "printerO.serial", label: "Oシリアル" },
+      { key: "printerO.callTarget", label: "O連絡先" },
+      { key: "printerO.weekendSupport", label: "O休日対応" },
+      { key: "printerO.contractId", label: "O契約ID" },
     ],
   },
 ] as const;
 
-export const SHOP_LABEL_MAP: Record<string, string> = {
-  phoneNumber: "電話番号",
-  address: "住所",
-  businessHours: "営業時間",
-  idoHanbai: "移動販売",
-  managerName: "店長名",
-  subManagerName1: "副店長名",
-  area: "エリア",
-  areaManagerName: "AM名",
-  centerName: "センター名",
-  "printerK.model": "Kモデル",
-  "printerK.serial": "Kシリアル",
-  "printerK.callTarget": "K連絡先",
-  "printerK.weekendSupport": "K休日対応",
-  "printerK.contractId": "K契約ID",
-  "printerB.model": "Bモデル",
-  "printerB.serial": "Bシリアル",
-  "printerB.callTarget": "B連絡先",
-  "printerB.weekendSupport": "B休日対応",
-  "printerB.contractId": "B契約ID",
-  "printerO.model": "Oモデル",
-  "printerO.serial": "Oシリアル",
-  "printerO.callTarget": "O連絡先",
-  "printerO.weekendSupport": "O休日対応",
-  "printerO.contractId": "O契約ID",
-};
-
 export function useShopModalLogic(data: Shop) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  const groups = useMemo(() => {
-    return SHOP_MODAL_GROUPS.map((group) => ({
-      title: group.title,
-      items: group.keywords.map((kw) => ({
-        label: SHOP_LABEL_MAP[kw] || kw,
-        value: getValueByPath(data as unknown as Record<string, unknown>, kw),
-      })),
-    }));
-  }, [data]);
-
-  const displayItems = groups[selectedIndex]?.items ?? [];
-
-  return { groups, selectedIndex, setSelectedIndex, displayItems };
+  return useTabbedModalLogic(
+    data as unknown as Record<string, unknown>,
+    SHOP_MODAL_GROUPS,
+  );
 }

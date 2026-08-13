@@ -1,24 +1,28 @@
-// src\renderer\components\ui\button\hamburgerButton\HamburgerButton.tsx
-import React from "react";
+// src/renderer/components/ui/button/hamburgerButton/HamburgerButton.tsx
+
+import React, { useCallback } from "react";
+import { useAppStore } from "@shared/store";
 import * as styles from "./hamburgerButton.css";
 
-interface HamburgerButtonProps {
-  onClick: () => void;
-}
+export const HamburgerButton: React.FC = () => {
+  const toggleSidebar = useAppStore((s) => s.toggleSidebar);
 
-export const HamburgerButton: React.FC<HamburgerButtonProps> = ({
-  onClick,
-}) => {
+  const handleClick = useCallback(() => {
+    toggleSidebar();
+  }, [toggleSidebar]);
+
   return (
     <button
+      type="button"
       className={styles.button}
-      onClick={onClick}
+      onClick={handleClick}
       aria-label="メニューを開く"
     >
-      {/* 🎯 修正: 三本線のハンバーガーアイコンを綺麗に描写 */}
       <div className={styles.line} />
       <div className={styles.line} />
       <div className={styles.line} />
     </button>
   );
 };
+
+export default HamburgerButton;

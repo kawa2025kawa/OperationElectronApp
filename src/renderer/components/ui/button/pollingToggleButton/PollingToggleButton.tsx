@@ -1,37 +1,43 @@
+// src/renderer/components/ui/button/pollingToggleButton/PollingToggleButton.tsx
+
 import React, { useCallback } from "react";
 import { useAppStore } from "@shared/store";
+import { useShallow } from "zustand/react/shallow";
 import { showToast } from "@shared/utils/toastUtils";
-import * as styles from "@renderer/components/ui/button/pollingToggleButton/pollingToggleButton.css";
+import * as styles from "./pollingToggleButton.css";
 
-export interface PollingToggleButtonProps {
-  /** true: 監視中（online）/ false: 停止中（offline） */
-  active: boolean;
+export const PollingToggleButton: React.FC = () => {
+  // 🎯 必要な状態とアクションをすべて自力で取得
+  const { isPolling, startPolling, stopPolling, resetAllOperationStatuses } =
+    useAppStore(
+      useShallow((state) => ({
+        isPolling: state.isPolling,
+        startPolling: state.startPolling,
+        stopPolling: state.stopPolling,
+        resetAllOperationStatuses: state.resetAllOperationStatuses,
+      })),
+    );
 
-  /** 左クリック時のトグル処理 */
-  onClick: () => void;
-}
+  // 左クリック: ポーリングの開始/停止
+  const handleClick = useCallback(async () => {
+    if (isPolling) {
+      await stopPolling();
+    } else {
+      await startPolling();
+    }
+  }, [isPolling, startPolling, stopPolling]);
 
-export const PollingToggleButton: React.FC<PollingToggleButtonProps> = ({
-  active,
-  onClick,
-}) => {
-  // 🎯 単一のアクション関数は直列セレクターで取得（不要なオブジェクト作成を回避）
-  const resetAllOperationStatuses = useAppStore(
-    (s) => s.resetAllOperationStatuses,
-  );
-
+  // 右クリック: ステータスリセット
   const handleContextMenu = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
 
-      if (active) return;
+      if (isPolling) return;
 
       const confirmed = window.confirm("ステータスを一括リセットしますか？");
-
       if (!confirmed) return;
 
       try {
-        showToast("ステータスを削除中...", "info");
         await resetAllOperationStatuses();
       } catch (error) {
         console.error("Failed to reset operation statuses:", error);
@@ -39,10 +45,10 @@ export const PollingToggleButton: React.FC<PollingToggleButtonProps> = ({
         showToast(`ステータスリセットエラー: ${message}`, "error");
       }
     },
-    [active, resetAllOperationStatuses],
+    [isPolling, resetAllOperationStatuses],
   );
 
-  const title = active
+  const title = isPolling
     ? "システム稼働中"
     : "左クリック: 監視開始 / 右クリック: 全データを「予定」へリセット";
 
@@ -50,14 +56,14 @@ export const PollingToggleButton: React.FC<PollingToggleButtonProps> = ({
     <button
       type="button"
       className={styles.button}
-      data-active={active}
-      aria-pressed={active}
-      aria-label={active ? "システム監視中" : "システム監視停止中"}
+      data-active={isPolling}
+      aria-pressed={isPolling}
+      aria-label={isPolling ? "システム監視中" : "システム監視停止中"}
       title={title}
-      onClick={onClick}
+      onClick={handleClick}
       onContextMenu={handleContextMenu}
     >
-      {active ? "System Online" : "System Offline"}
+      {isPolling ? "System Online" : "System Offline"}
     </button>
   );
 };

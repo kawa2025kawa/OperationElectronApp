@@ -2,7 +2,6 @@
 
 import React, { useCallback } from "react";
 import { APP_VIEW_IDS } from "@shared/types/uiType";
-import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { TantouButton } from "@renderer/components/ui/button/tantouButton/TantouButton";
 import { HamburgerButton } from "@renderer/components/ui/button/hamburgerButton/HamburgerButton";
 import { SearchField } from "@renderer/components/ui/searchField/SearchField";
@@ -11,8 +10,6 @@ import { PollingToggleButton } from "@renderer/components/ui/button/pollingToggl
 import { useNavbarLogic } from "./useNavbarLogic";
 
 import { OperationModal } from "@renderer/features/operation/components/modal/OperationModal";
-import { TantouModalContent } from "@renderer/features/spreadSheet/components/modal/contents/tantou/TantouModalContent";
-
 import * as styles from "./navbar.css";
 
 export const Navbar: React.FC = () => {
@@ -21,7 +18,6 @@ export const Navbar: React.FC = () => {
     searchTerm,
     summary,
     isInitialLoaded,
-    isPolling,
     navbarTitle,
     isOperation,
     isIrregular,
@@ -29,15 +25,11 @@ export const Navbar: React.FC = () => {
     searchPlaceholder,
     searchWrapperStyle,
     getSummaryData,
-    fetchTantouModalData,
-    handlePollingClick,
     handleSearchChange,
-    toggleSidebar,
     openGlobalModal,
     closeGlobalModal,
   } = useNavbarLogic();
 
-  // JSXを組み立てて表示する処理を View 側に配置
   const handleSummaryClick = useCallback(
     (label: string) => {
       const data = getSummaryData(label);
@@ -59,28 +51,10 @@ export const Navbar: React.FC = () => {
     [getSummaryData, openGlobalModal, closeGlobalModal],
   );
 
-  // JSXを組み立てて表示する処理を View 側に配置
-  const handleTantouClick = useCallback(async () => {
-    const { tantouData, tantouConfig } = await fetchTantouModalData();
-
-    if (tantouData) {
-      openGlobalModal(
-        <TantouModalContent
-          data={tantouData}
-          title={getAppViewConfig(APP_VIEW_IDS.TANTOU).title}
-          onClose={closeGlobalModal}
-        />,
-        {
-          width: tantouConfig?.modalSize.width ?? "800px",
-          height: tantouConfig?.modalSize.height ?? "600px",
-        },
-      );
-    }
-  }, [fetchTantouModalData, openGlobalModal, closeGlobalModal]);
-
   return (
     <nav className={styles.container}>
-      <HamburgerButton onClick={toggleSidebar} />
+      {/* 🎯 Props不要（Smart Component化） */}
+      <HamburgerButton />
 
       <div className={styles.logoText}>{navbarTitle}</div>
 
@@ -118,11 +92,11 @@ export const Navbar: React.FC = () => {
       </div>
 
       <div className={styles.rightGroup}>
-        {currentView === APP_VIEW_IDS.KOKYUHYO && (
-          <TantouButton onClick={handleTantouClick} />
-        )}
+        {/* 🎯 Props不要（Smart Component化） */}
+        {currentView === APP_VIEW_IDS.KOKYUHYO && <TantouButton />}
 
-        <PollingToggleButton active={isPolling} onClick={handlePollingClick} />
+        {/* 🎯 Props不要（Smart Component化） */}
+        <PollingToggleButton />
       </div>
     </nav>
   );

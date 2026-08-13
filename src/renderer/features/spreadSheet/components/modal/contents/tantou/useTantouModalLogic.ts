@@ -1,55 +1,43 @@
 // src/renderer/features/spreadSheet/components/modal/contents/tantou/useTantouModalLogic.ts
-import { useState, useMemo } from "react";
-import { getValueByPath } from "@shared/utils/getValueByPath";
 import type { Tantou } from "@shared/types/spreadsheetTypes";
+import {
+  useTabbedModalLogic,
+  type TabGroupConfig,
+} from "../common/useTabbedModalLogic";
 
-export const TANTOU_MODAL_GROUPS = [
-  { title: "本日", period: "today" },
-  { title: "明日", period: "tomorrow" },
+const TANTOU_FIELDS = [
+  { key: "hayaban", label: "早番" },
+  { key: "shikai", label: "司会" },
+  { key: "uketsuke", label: "受付" },
+  { key: "denwa", label: "電話" },
+  { key: "nimotsu", label: "荷物" },
+  { key: "2F", label: "2F担当" },
+  { key: "3F", label: "3F担当" },
+  { key: "tensou", label: "転送" },
+  { key: "amAttendanceRate", label: "AM出勤率" },
+  { key: "pmAttendanceRate", label: "PM出勤率" },
+];
+
+export const TANTOU_MODAL_GROUPS: readonly TabGroupConfig[] = [
+  {
+    title: "本日",
+    items: TANTOU_FIELDS.map((f) => ({
+      key: `today.${f.key}`,
+      label: f.label,
+    })),
+  },
+  {
+    title: "明日",
+    items: TANTOU_FIELDS.map((f) => ({
+      key: `tomorrow.${f.key}`,
+      label: f.label,
+    })),
+  },
 ] as const;
 
-export const TANTOU_LABEL_MAP: Record<string, string> = {
-  hayaban: "早番",
-  shikai: "司会",
-  uketsuke: "受付",
-  denwa: "電話",
-  nimotsu: "荷物",
-  "2F": "2Fフロア",
-  "3F": "3Fフロア",
-  tensou: "転送",
-  amAttendanceRate: "AM出勤",
-  pmAttendanceRate: "PM出勤",
-};
-
 export function useTantouModalLogic(data: Tantou) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  const displayItems = useMemo(() => {
-    if (!data) return [];
-    const currentPeriod = TANTOU_MODAL_GROUPS[selectedIndex].period;
-    return Object.entries(TANTOU_LABEL_MAP).map(([fieldName, label]) => {
-      const targetPath = `${currentPeriod}.${fieldName}`;
-      const rawVal = getValueByPath(
-        data as unknown as Record<string, unknown>,
-        targetPath,
-      );
-      return {
-        label,
-        value:
-          rawVal !== "" && rawVal !== null && rawVal !== undefined
-            ? rawVal
-            : "-",
-      };
-    });
-  }, [data, selectedIndex]);
-
-  return useMemo(
-    () => ({
-      groups: TANTOU_MODAL_GROUPS,
-      selectedIndex,
-      setSelectedIndex,
-      displayItems,
-    }),
-    [selectedIndex, displayItems],
+  return useTabbedModalLogic(
+    data as unknown as Record<string, unknown>,
+    TANTOU_MODAL_GROUPS,
   );
 }

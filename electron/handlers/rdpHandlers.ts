@@ -1,4 +1,6 @@
-﻿import { ipcMain } from "electron";
+﻿// electron/handlers/rdpHandlers.ts
+
+import { ipcMain } from "electron";
 import { exec } from "node:child_process";
 import util from "node:util";
 import type { RdpTarget } from "@shared/types/rdpTypes";
@@ -16,10 +18,12 @@ const RDP_TARGETS: RdpTarget[] = [
 ];
 
 export function setupRdpHandlers(): void {
-  ipcMain.handle("get_rdp_targets", () => RDP_TARGETS);
+  // 修正: "get_rdp_targets" -> "getRdpTargets"
+  ipcMain.handle("getRdpTargets", () => RDP_TARGETS);
 
+  // 修正: "start_rdp_session" -> "startRdpSession"
   ipcMain.handle(
-    "start_rdp_session",
+    "startRdpSession",
     async (_e, { payload }: { payload: { id: string } }) => {
       const target = RDP_TARGETS.find((t) => t.id === payload.id);
       if (!target) throw new Error("RDP target not found");

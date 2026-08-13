@@ -1,4 +1,4 @@
-﻿// electron/services/operation/jobs/scripts/job_114.ts
+// electron/services/operation/jobs/scripts/job_114.ts
 import fs from "fs-extra";
 import path from "path";
 import iconv from "iconv-lite";
@@ -21,8 +21,10 @@ export async function runJob114(): Promise<string> {
   const buffer = await fs.readFile(fullPath);
   const logText = iconv.decode(buffer, "Shift_JIS");
 
-  if (logText.includes(REQUIRED_KEYWORD)) {
-    return `正常 '${targetFile}' に '${REQUIRED_KEYWORD}' が含まれています`;
+  const match = logText.match(/READ=([^\s\r\n,]+)/);
+  if (match) {
+    const parsed = parseInt(match[1], 10);
+    return `${Number.isNaN(parsed) ? match[1] : parsed}`;
   }
 
   throw new Error(`エラー (${targetFile}): '${REQUIRED_KEYWORD}' が見つかりません`);

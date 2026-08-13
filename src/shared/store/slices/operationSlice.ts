@@ -1,30 +1,43 @@
-// src/shared/store/slices/operationSlice.ts
+﻿// src/shared/store/slices/operationSlice.ts
 
 import type { StateCreator } from "zustand";
 
 import type { AppState } from "@shared/store";
-import type { StatusSummary } from "@shared/types/uiType";
 import type {
   JobDependenciesJson,
   OperationItem,
 } from "@shared/types/operationType";
+import type { StatusSummary } from "@shared/types/uiType";
 
+import { commands } from "@shared/api/commands";
 import { isIrregularToday } from "@shared/utils/isIrregularToday";
 
 import {
-  INITIAL_SUMMARY,
   calculateSummary,
+  INITIAL_SUMMARY,
   mapRawEntities,
 } from "./helpers/operationSummary";
 
-import { csvService, type ImportCsvResult } from "./services/csvService";
-import { externalService } from "./services/externalService";
+import {
+  getAllEntities,
+  findEntityByKanriNo,
+} from "./helpers/operationEntities";
+
+import {
+  checkJobDependencies,
+  getDependentKanriNos,
+} from "./helpers/dependencyHelper";
+
+import { mergeStatus } from "./helpers/statusFactory";
+import { applyPersistedStatuses } from "./helpers/persistedStatus";
+import { resetAllEntityStatuses } from "./helpers/resetOperationStatus";
+
 import { jcService } from "./services/jcService";
 import { scriptService } from "./services/scriptService";
-import {
-  statusService,
-  type UpdateJobStatusParams,
-} from "./services/statusService";
+
+// ============================================================
+// Types
+// ============================================================
 
 export interface OperationSlice {
   operationIds: string[];
@@ -48,69 +61,125 @@ export interface OperationSlice {
 
   updateItemStatus: (update: OperationItem) => void;
 
+  updateJobStatus: (params: {
+    kanriNo: string;
+    status: OperationItem["status"];
+    comment?: string;
+  }) => Promise<void>;
+
   recalculateSummary: () => void;
-
-  refreshJobStatus: (kanriNo: string) => Promise<unknown>;
-
-  updateJobStatus: (params: UpdateJobStatusParams) => Promise<void>;
 
   resetAllOperationStatuses: () => Promise<void>;
 
   runScriptJob: (kanriNo: string) => Promise<void>;
 
   runJcJob: (kanriNo: string) => Promise<void>;
-
-  openExternalLink: (url: string) => Promise<void>;
-
-  importCsv: (files: File[]) => Promise<ImportCsvResult[]>;
 }
 
-const mergeString = (
-  next?: string | null,
-  current?: string | null,
-): string | null => (next && next.trim() !== "" ? next : (current ?? null));
+// ============================================================
+// Helpers
+// ============================================================
 
-const updateSummary = (state: AppState): void => {
-  state.summary = calculateSummary({
-    ...state.operationEntities,
-    ...state.irregularEntities,
-  });
+const refreshSummary = (state: AppState): void => {
+  state.summary = calculateSummary(getAllEntities(state));
 };
 
-const updateEntityStatus = (
-  entity: OperationItem,
-  update: OperationItem,
-): void => {
-  entity.status = update.status ?? entity.status ?? "scheduled";
-
-  if (update.comment != null) {
-    entity.comment =
-      update.comment.trim() !== "" ? update.comment : (entity.comment ?? "");
-  }
-
-  entity.startTime = mergeString(update.startTime, entity.startTime);
-
-  entity.endTime = mergeString(update.endTime, entity.endTime);
-
-  entity.expectedStartTime = mergeString(
-    update.expectedStartTime,
-    entity.expectedStartTime,
-  );
-
-  entity.expectedEndTime = mergeString(
-    update.expectedEndTime,
-    entity.expectedEndTime,
-  );
-
-  if (update.substatus?.length) {
-    entity.substatus = update.substatus;
-  }
-};
-
-const getAllEntities = (state: AppState): Record<string, OperationItem> => ({
-  ...state.operationEntities,
-  ...state.irregularEntities,
+const getOperationContext = (state: AppState) => ({
+  entities: getAllEntities(state),
+  dependencies: state.jobDependencies,
+  updateStatus: state.updateItemStatus,
 });
+
+/**
+ * Status変更後に依存関係を再評価する。
+ *
+ * 例:
+ *
+ * 57 -> N21 -> N31
+ *
+ * 57 が success
+ *   ↓
+ * N21 を ready
+ *   ↓
+ * N31 を再評価
+ *
+ * というように依存関係を下流へ伝播させる。
+ */
+const refreshDependentStatuses = (
+  state: AppState,
+  changedKanriNo: string,
+): void => {
+  if (!state.jobDependencies) {
+    return;
+  }
+
+  const queue: string[] = [String(changedKanriNo)];
+  const processed = new Set<string>();
+
+  while (queue.length > 0) {
+    const currentKanriNo = queue.shift();
+
+    if (!currentKanriNo) {
+      continue;
+    }
+
+    if (processed.has(currentKanriNo)) {
+      continue;
+    }
+
+    processed.add(currentKanriNo);
+
+    const dependentKanriNos = getDependentKanriNos(
+      currentKanriNo,
+      state.jobDependencies,
+    );
+
+    for (const dependentKanriNo of dependentKanriNos) {
+      const dependentEntity = findEntityByKanriNo(state, dependentKanriNo);
+
+      if (!dependentEntity) {
+        continue;
+      }
+
+      const dependencyResult = checkJobDependencies(
+        dependentKanriNo,
+        getAllEntities(state),
+        state.jobDependencies,
+      );
+
+      const currentStatus = dependentEntity.status;
+
+      /**
+       * 依存関係によって自動制御するのは
+       * waiting / ready のJOBだけ。
+       *
+       * 実行中・完了・エラーのJOBを
+       * 依存関係チェックだけで上書きしない。
+       */
+      if (currentStatus !== "waiting" && currentStatus !== "ready") {
+        continue;
+      }
+
+      const nextStatus = dependencyResult.ok ? "ready" : "waiting";
+
+      if (currentStatus === nextStatus) {
+        continue;
+      }
+
+      dependentEntity.status = nextStatus;
+
+      /**
+       * このJOB自身のStatusが変わったので、
+       * さらに下流の依存JOBも再評価する。
+       */
+      queue.push(dependentKanriNo);
+    }
+  }
+};
+
+// ============================================================
+// Slice
+// ============================================================
 
 export const createOperationSlice: StateCreator<
   AppState,
@@ -139,11 +208,17 @@ export const createOperationSlice: StateCreator<
     set((state) => {
       state.operationIds = operations.map(({ kanriNo }) => String(kanriNo));
 
-      state.operationEntities = mapRawEntities(operations, statuses);
+      state.operationEntities = applyPersistedStatuses(
+        mapRawEntities(operations),
+        statuses,
+      );
 
       state.irregularIds = irregulars.map(({ kanriNo }) => String(kanriNo));
 
-      state.irregularEntities = mapRawEntities(irregulars, statuses);
+      state.irregularEntities = applyPersistedStatuses(
+        mapRawEntities(irregulars),
+        statuses,
+      );
 
       state.todayIds = irregulars
         .filter(isIrregularToday)
@@ -151,82 +226,118 @@ export const createOperationSlice: StateCreator<
 
       state.jobDependencies = jobDependencies;
 
-      updateSummary(state);
+      refreshSummary(state);
     }),
 
+  /**
+   * Status更新の唯一の入口。
+   *
+   * ここでStatusが実際に変わった場合、
+   * そのJOBを参照している依存JOBを再評価する。
+   */
   updateItemStatus: (update) =>
     set((state) => {
-      const id = String(update.kanriNo);
+      const kanriNo = String(update.kanriNo);
 
       let updated = false;
+      let statusChanged = false;
 
       for (const entities of [
         state.operationEntities,
         state.irregularEntities,
       ]) {
-        const entity = entities[id];
+        const entity = entities[kanriNo];
 
         if (!entity) {
           continue;
         }
 
-        updateEntityStatus(entity, update);
+        const previousStatus = entity.status;
+
+        mergeStatus(entity, update);
 
         updated = true;
+
+        if (previousStatus !== entity.status) {
+          statusChanged = true;
+        }
       }
 
-      if (updated) {
-        updateSummary(state);
+      if (!updated) {
+        return;
       }
+
+      /**
+       * Statusが変わった場合だけ依存関係を再評価する。
+       */
+      if (statusChanged) {
+        refreshDependentStatuses(state, kanriNo);
+      }
+
+      refreshSummary(state);
     }),
 
-  recalculateSummary: () => set(updateSummary),
+  updateJobStatus: async ({ kanriNo, status, comment }) => {
+    await commands.updateJobStatus(kanriNo, status, comment);
+  },
 
-  refreshJobStatus: (kanriNo) => jcService.refreshJobStatus(kanriNo),
-
-  updateJobStatus: (params) => statusService.updateJobStatus(params),
+  recalculateSummary: () =>
+    set((state) => {
+      refreshSummary(state);
+    }),
 
   resetAllOperationStatuses: async () => {
-    await statusService.resetAllStatuses();
+    await commands.deleteAllJobStatuses();
 
     set((state) => {
-      state.operationEntities = mapRawEntities(
-        Object.values(state.operationEntities),
-        {},
-      );
-
-      state.irregularEntities = mapRawEntities(
-        Object.values(state.irregularEntities),
-        {},
-      );
-
-      updateSummary(state);
+      resetAllEntityStatuses(state);
+      refreshSummary(state);
     });
   },
 
   runScriptJob: async (kanriNo) => {
     const state = get();
 
-    await scriptService.executeScript(
-      kanriNo,
-      getAllEntities(state),
-      state.jobDependencies,
-      state.updateItemStatus,
+    const target = findEntityByKanriNo(state, kanriNo);
+
+    state.setGlobalProcessing(
+      true,
+      "スクリプト実行中...",
+      target?.workName ?? null,
     );
+
+    try {
+      const context = getOperationContext(state);
+
+      await scriptService.executeScript(
+        kanriNo,
+        context.entities,
+        context.dependencies,
+        context.updateStatus,
+      );
+    } finally {
+      state.setGlobalProcessing(false);
+    }
   },
 
   runJcJob: async (kanriNo) => {
     const state = get();
 
-    await jcService.executeJcJob(
-      kanriNo,
-      getAllEntities(state),
-      state.jobDependencies,
-      state.updateItemStatus,
-    );
+    const target = findEntityByKanriNo(state, kanriNo);
+
+    state.setGlobalProcessing(true, "JC処理中...", target?.jobId ?? null);
+
+    try {
+      const context = getOperationContext(state);
+
+      await jcService.executeJcJob(
+        kanriNo,
+        context.entities,
+        context.dependencies,
+        context.updateStatus,
+      );
+    } finally {
+      state.setGlobalProcessing(false);
+    }
   },
-
-  openExternalLink: (url) => externalService.openExternalLink(url),
-
-  importCsv: (files) => csvService.importCsv(files),
 });

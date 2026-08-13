@@ -2,58 +2,67 @@
 
 import type { OperationItem } from "@shared/types/operationType";
 
-/**
- * Tracker API監視対象
- *
- * Tauri:
- * AppSyncState.api_targets
- */
+// ============================================================
+// State
+// ============================================================
+
 const apiTargets = new Map<string, OperationItem>();
 
+// ============================================================
+// Registration
+// ============================================================
+
 /**
- * 監視対象登録
+ * Tracker APIの監視対象を登録する。
  *
- * register_targets()
+ * 登録時点の対象一覧で置き換えるため、
+ * 既存の監視対象はすべてクリアしてから登録する。
  */
 export function registerTargets(items: OperationItem[]): void {
   apiTargets.clear();
 
   for (const item of items) {
-    if (!item.kanriNo) {
+    const kanriNo = String(item.kanriNo);
+
+    if (!kanriNo) {
       continue;
     }
 
-    apiTargets.set(item.kanriNo, item);
+    apiTargets.set(kanriNo, item);
   }
 
-  console.log("[TargetManager] registered", {
+  console.log("[TargetManager] Targets registered:", {
     count: apiTargets.size,
   });
 }
 
+// ============================================================
+// Read
+// ============================================================
+
 /**
- * 管理No検索
- *
- * kanriNo
- * ↓
- * OperationItem
+ * 管理Noから監視対象を取得する。
  */
 export function getTargetByKanriNo(kanriNo: string): OperationItem | undefined {
-  return apiTargets.get(kanriNo);
+  return apiTargets.get(String(kanriNo));
 }
 
 /**
- * 全監視対象取得
+ * 現在登録されている全監視対象を取得する。
  */
 export function getAllTargets(): OperationItem[] {
   return [...apiTargets.values()];
 }
 
+// ============================================================
+// Clear
+// ============================================================
+
 /**
- * 登録解除
+ * 監視対象をすべて解除する。
  */
 export function clearTargets(): void {
   apiTargets.clear();
 
-  console.log("[TargetManager] cleared");
+  console.log("[TargetManager] Targets cleared");
 }

@@ -4,14 +4,14 @@ import type { AppViewDefinition } from "@renderer/registry/appRegistry";
 import { SPREADSHEET_CONFIGS } from "@shared/config/spreadsheetConfig";
 import { SHEET_IDS, type Shop } from "@shared/types/spreadsheetTypes";
 import { APP_VIEW_IDS } from "@shared/types/uiType";
-import { formatDayWithWeekday, getOffsetDate } from "@shared/utils/dateUtils";
+import { formatDateForHeader, getOffsetDate } from "@shared/utils/dateUtils";
 
 // -------------------------------------------------------------
 // 共通ヘルパー: 日付ラベル生成 (Jugyoin / Kokyuhyo で共通利用)
 // -------------------------------------------------------------
 const dateLabels = {
-  today: formatDayWithWeekday(new Date()),
-  tomorrow: formatDayWithWeekday(getOffsetDate(1)),
+  today: formatDateForHeader(new Date()),
+  tomorrow: formatDateForHeader(getOffsetDate(1)),
 };
 
 // -------------------------------------------------------------

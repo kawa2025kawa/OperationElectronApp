@@ -1,6 +1,7 @@
 // src/renderer/features/spreadSheet/components/modal/contents/jugyoin/JugyoinModalContent.tsx
 
 import React from "react";
+import { commands } from "@shared/api/commands";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import type { Jugyoin } from "@shared/types/spreadsheetTypes";
 import { useJugyoinModalLogic } from "./useJugyoinModalLogic";
@@ -27,7 +28,7 @@ export const JugyoinModalContent: React.FC<{
           <button
             type="button"
             className={styles.scheduleLinkButton}
-            onClick={() => void window.electronAPI.openExternal?.(scheduleLink)}
+            onClick={() => void commands.openExternal(scheduleLink)}
           >
             スケジュール
           </button>

@@ -1,19 +1,27 @@
+// src/shared/store/slices/services/pollingService.ts
+
 import { toast } from "sonner";
+
 import { commands } from "@shared/api/commands";
-import { unwrapResult } from "@shared/utils/apiUtils";
 
 export const pollingService = {
-  /** Polling 開始 */
   async startPolling(): Promise<void> {
-    const res = await commands.startPolling();
-    unwrapResult(res, "ポーリングの開始に失敗しました");
-    toast.success("ポーリングを開始しました");
+    try {
+      await commands.startPolling();
+      toast.success("ポーリングを開始しました");
+    } catch (error) {
+      console.error("[pollingService.startPolling] Failed:", error);
+      throw error;
+    }
   },
 
-  /** Polling 停止 */
   async stopPolling(): Promise<void> {
-    const res = await commands.stopPolling();
-    unwrapResult(res, "ポーリングの停止に失敗しました");
-    toast.success("ポーリングを停止しました");
+    try {
+      await commands.stopPolling();
+      toast.success("ポーリングを停止しました");
+    } catch (error) {
+      console.error("[pollingService.stopPolling] Failed:", error);
+      throw error;
+    }
   },
 };

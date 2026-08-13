@@ -9,12 +9,14 @@ import { useAppLogic } from "@renderer/hooks/useAppLogic";
 
 export const App: React.FC = () => {
   useIpcManager();
+
   const {
     theme,
     initStatus,
     showAppLoader,
     isGlobalProcessing,
     overlayMessage,
+    processingTarget,
   } = useAppLogic();
 
   if (showAppLoader) {
@@ -38,7 +40,11 @@ export const App: React.FC = () => {
       />
       <MainView />
       <GlobalModalManager />
-      <LoadingOverlay isOpen={isGlobalProcessing} message={overlayMessage} />
+      <LoadingOverlay
+        isOpen={isGlobalProcessing}
+        message={overlayMessage}
+        processingTarget={processingTarget}
+      />
     </>
   );
 };

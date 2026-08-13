@@ -1,159 +1,205 @@
 // src/shared/store/slices/uiSlice.ts
+
 import type { ReactNode } from "react";
 import type { StateCreator } from "zustand";
+
 import type { AppState } from "@shared/store";
 import type { ViewMode, GlobalModalConfig } from "@shared/types/uiType";
-import { INITIAL_INIT_STATUS, type InitStatus } from "@shared/types/initializationTypes";
+import {
+  INITIAL_INIT_STATUS,
+  type InitStatus,
+} from "@shared/types/initializationTypes";
+
+type SelectedIds = Record<ViewMode, string | null>;
 
 export interface UiSlice {
   theme: "dark" | "light";
+
   currentView: string;
   pendingView: string | null;
   currentMode: ViewMode;
+
   searchTerm: string;
+
   isSidebarOpen: boolean;
+
+  /**
+   * 全体処理Overlay
+   */
   isGlobalProcessing: boolean;
+  overlayMessage: string;
+
+  /**
+   * JC / Script実行中の対象表示
+   */
+  processingTarget: string | null;
+
   isLoading: boolean;
   isInitialLoaded: boolean;
-  overlayMessage: string;
 
   initStatus: InitStatus;
 
-  // モーダル状態
   modalContent: ReactNode | null;
   modalConfig: GlobalModalConfig | null;
 
-  // 選択ID（UI状態）
-  selectedOperationId: string | null;
-  selectedIrregularId: string | null;
+  selectedIds: SelectedIds;
 
-  // Actions
   setTheme: (theme: "dark" | "light") => void;
   toggleTheme: () => void;
+
   setCurrentView: (view: string) => void;
   setPendingView: (view: string | null) => void;
+
   setMode: (mode: ViewMode) => void;
+
   setSearchTerm: (term: string) => void;
+
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
-  setGlobalProcessing: (isProcessing: boolean, message?: string) => void;
-  setIsLoading: (isLoading: boolean) => void;
-  setIsInitialLoaded: (isInitialLoaded: boolean) => void;
-  setInitStatus: (
-    update: Partial<InitStatus> | ((prev: InitStatus) => Partial<InitStatus> | void),
+
+  /**
+   * 処理Overlay制御
+   *
+   * target:
+   * JC / Script等、処理対象を表示する場合に渡す
+   */
+  setGlobalProcessing: (
+    isProcessing: boolean,
+    message?: string,
+    target?: string | null,
   ) => void;
-  setSelectedOperationId: (id: string | null) => void;
-  setSelectedIrregularId: (id: string | null) => void;
+
+  setIsLoading: (isLoading: boolean) => void;
+
+  setIsInitialLoaded: (isInitialLoaded: boolean) => void;
+
+  setInitStatus: (
+    update:
+      | Partial<InitStatus>
+      | ((prev: InitStatus) => Partial<InitStatus> | void),
+  ) => void;
+
+  setSelectedId: (mode: ViewMode, id: string | null) => void;
 
   openGlobalModal: (content: ReactNode, config?: GlobalModalConfig) => void;
+
   closeGlobalModal: () => void;
 }
 
-export const createUiSlice: StateCreator<AppState, [["zustand/immer", never]], [], UiSlice> = (
-  set,
-) => ({
+export const createUiSlice: StateCreator<
+  AppState,
+  [["zustand/immer", never]],
+  [],
+  UiSlice
+> = (set) => ({
   theme: "dark",
+
   currentView: "operation",
   pendingView: null,
   currentMode: "operation",
+
   searchTerm: "",
+
   isSidebarOpen: false,
+
   isGlobalProcessing: false,
+  overlayMessage: "",
+  processingTarget: null,
+
   isLoading: false,
   isInitialLoaded: false,
-  overlayMessage: "",
 
-  initStatus: { ...INITIAL_INIT_STATUS },
+  initStatus: {
+    ...INITIAL_INIT_STATUS,
+  },
 
   modalContent: null,
   modalConfig: null,
 
-  selectedOperationId: null,
-  selectedIrregularId: null,
+  selectedIds: {
+    operation: null,
+    irregular: null,
+    today: null,
+  },
 
-  setTheme: (theme: "dark" | "light") =>
-    set((s: AppState) => {
-      s.theme = theme;
+  setTheme: (theme) =>
+    set((state) => {
+      state.theme = theme;
     }),
 
   toggleTheme: () =>
-    set((s: AppState) => {
-      s.theme = s.theme === "dark" ? "light" : "dark";
+    set((state) => {
+      state.theme = state.theme === "dark" ? "light" : "dark";
     }),
 
-  setCurrentView: (view: string) =>
-    set((s: AppState) => {
-      s.currentView = view;
+  setCurrentView: (view) =>
+    set((state) => {
+      state.currentView = view;
     }),
 
-  setPendingView: (view: string | null) =>
-    set((s: AppState) => {
-      s.pendingView = view;
+  setPendingView: (view) =>
+    set((state) => {
+      state.pendingView = view;
     }),
 
-  setMode: (mode: ViewMode) =>
-    set((s: AppState) => {
-      s.currentMode = mode;
-      s.selectedOperationId = null;
-      s.selectedIrregularId = null;
+  setMode: (mode) =>
+    set((state) => {
+      state.currentMode = mode;
     }),
 
-  setSearchTerm: (term: string) =>
-    set((s: AppState) => {
-      s.searchTerm = term;
+  setSearchTerm: (term) =>
+    set((state) => {
+      state.searchTerm = term;
     }),
 
   toggleSidebar: () =>
-    set((s: AppState) => {
-      s.isSidebarOpen = !s.isSidebarOpen;
+    set((state) => {
+      state.isSidebarOpen = !state.isSidebarOpen;
     }),
 
-  setSidebarOpen: (open: boolean) =>
-    set((s: AppState) => {
-      s.isSidebarOpen = open;
+  setSidebarOpen: (open) =>
+    set((state) => {
+      state.isSidebarOpen = open;
     }),
 
-  setGlobalProcessing: (isProcessing: boolean, message: string = "") =>
-    set((s: AppState) => {
-      s.isGlobalProcessing = isProcessing;
-      s.overlayMessage = message;
+  setGlobalProcessing: (isProcessing, message = "", target = null) =>
+    set((state) => {
+      state.isGlobalProcessing = isProcessing;
+      state.overlayMessage = message;
+      state.processingTarget = isProcessing ? target : null;
     }),
 
-  setIsLoading: (isLoading: boolean) =>
-    set((s: AppState) => {
-      s.isLoading = isLoading;
+  setIsLoading: (isLoading) =>
+    set((state) => {
+      state.isLoading = isLoading;
     }),
 
-  setIsInitialLoaded: (isInitialLoaded: boolean) =>
-    set((s: AppState) => {
-      s.isInitialLoaded = isInitialLoaded;
+  setIsInitialLoaded: (isInitialLoaded) =>
+    set((state) => {
+      state.isInitialLoaded = isInitialLoaded;
     }),
 
-  setInitStatus: (
-    update: Partial<InitStatus> | ((prev: InitStatus) => Partial<InitStatus> | void),
-  ) =>
-    set((s: AppState) => {
+  setInitStatus: (update) =>
+    set((state) => {
       if (typeof update === "function") {
-        const res = update(s.initStatus);
-        if (res) {
-          Object.assign(s.initStatus, res);
+        const result = update(state.initStatus);
+
+        if (result) {
+          Object.assign(state.initStatus, result);
         }
-      } else {
-        Object.assign(s.initStatus, update);
+
+        return;
       }
+
+      Object.assign(state.initStatus, update);
     }),
 
-  setSelectedOperationId: (id: string | null) =>
-    set((s: AppState) => {
-      s.selectedOperationId = id;
+  setSelectedId: (mode, id) =>
+    set((state) => {
+      state.selectedIds[mode] = id;
     }),
 
-  setSelectedIrregularId: (id: string | null) =>
-    set((s: AppState) => {
-      s.selectedIrregularId = id;
-    }),
-
-  openGlobalModal: (content: ReactNode, config?: GlobalModalConfig) =>
+  openGlobalModal: (content, config) =>
     set({
       modalContent: content,
       modalConfig: config ?? null,

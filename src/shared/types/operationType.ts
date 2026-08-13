@@ -1,8 +1,5 @@
 // src/shared/types/operationType.ts
 
-/**
- * Operation Job Status
- */
 export type JobStatus =
   | "scheduled"
   | "running"
@@ -12,24 +9,28 @@ export type JobStatus =
   | "waiting"
   | "error";
 
-/**
- * フロントエンド全体で利用する統一 OperationItem 型
- */
 export interface OperationItem {
   kanriNo: string;
   workName: string;
+
   jobId?: string | null;
+
   scheduledTime?: string | null;
   kanshiTime?: string | null;
+
   manual?: boolean | null;
   script?: boolean | null;
   autoStart?: boolean | null;
-  requiresFile?: boolean | null;
+
   link?: Record<string, string> | null;
   url?: Record<string, string> | null;
+
   cycle1?: string | null;
   cycle2?: string | null;
+
   type?: string | null;
+
+  // Status
   status?: JobStatus | null;
   comment?: string | null;
   startTime?: string | null;
@@ -40,28 +41,26 @@ export interface OperationItem {
   info?: string | null;
 }
 
-/**
- * ジョブ依存関係構造型
- */
-export type JobDependency = {
-  dependsOn?: string[];
-  [key: string]: unknown;
-};
+export type DependencyCondition = "every" | "some";
 
-export type JobDependenciesJson = {
-  dependencies: Record<string, string[] | JobDependency>;
-  [key: string]: unknown;
-};
+export interface JobDependency {
+  dependsOn: string[];
+  requiredStatus?: string[] | Record<string, string[]>;
+  condition?: DependencyCondition;
+  afterTime?: string;
+  requiresActive?: string[];
+}
 
-/**
- * ジョブステータス定数定義
- */
+export interface JobDependenciesJson {
+  dependencies: Record<string, JobDependency>;
+}
+
 export const JOB_STATUS = {
   SCHEDULED: "scheduled",
   WAITING: "waiting",
   READY: "ready",
   RUNNING: "running",
-  scriptRunning: "scriptRunning",
+  SCRIPT_RUNNING: "scriptRunning",
   SUCCESS: "success",
   ERROR: "error",
 } as const satisfies Record<string, JobStatus>;

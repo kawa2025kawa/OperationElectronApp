@@ -1,3 +1,5 @@
+//src\renderer\components\ui\button\footerActionButton\FooterActionButton.tsx
+
 import React from "react";
 import { clsx } from "clsx";
 import * as styles from "./footerActionButton.css";
@@ -17,7 +19,10 @@ export const FooterActionButton: React.FC<FooterActionButtonProps> = ({
 }) => {
   return (
     <button
-      className={clsx(styles.actionButton, isPill ? styles.pillShape : styles.circleShape)}
+      className={clsx(
+        styles.actionButton,
+        isPill ? styles.pillShape : styles.circleShape,
+      )}
       data-active={isActive}
       onClick={onClick}
       type="button"

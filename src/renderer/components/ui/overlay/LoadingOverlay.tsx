@@ -1,4 +1,4 @@
-// src\renderer\components\ui\overlay\LoadingOverlay.tsx
+// src/renderer/components/ui/overlay/LoadingOverlay.tsx
 import React from "react";
 import { LoadingContent } from "./Overlay";
 import type { InitStatus } from "@shared/types/initializationTypes";
@@ -9,6 +9,7 @@ export interface LoadingOverlayProps {
   message?: string;
   statusMessage?: string;
   dataStatus?: InitStatus;
+  processingTarget?: string | null;
 }
 
 const PANEL_LABELS: Record<keyof InitStatus, string> = {
@@ -21,39 +22,53 @@ const PANEL_LABELS: Record<keyof InitStatus, string> = {
   tantou: "Duty Roster",
 };
 
+const getStatusTone = (value: string) => {
+  if (value === "OK" || value === "CONNECTED") {
+    return styles.tone.ok;
+  }
+
+  if (value === "LOADING") {
+    return styles.tone.info;
+  }
+
+  return styles.tone.ng;
+};
+
 const LoadingOverlayComponent: React.FC<LoadingOverlayProps> = ({
   isOpen,
   message = "SYSTEM INITIALIZING",
   statusMessage = "INITIALIZING SYSTEM CORE",
   dataStatus,
+  processingTarget,
 }) => {
+  const loaderState = isOpen ? "active" : "inactive";
+
   return (
     <div
-      className={`${styles.fullScreenLoaderBase} ${
-        styles.fullScreenLoaderStates[isOpen ? "active" : "inactive"]
-      }`}
+      className={`${styles.fullScreenLoaderBase} ${styles.fullScreenLoaderStates[loaderState]}`}
     >
       <LoadingContent message={message} statusMessage={statusMessage} />
+
+      {processingTarget && (
+        <div className={styles.processingTargetPanel}>
+          <span className={styles.processingTargetLabel}>
+            PROCESSING TARGET
+          </span>
+          <span className={styles.processingTargetValue}>
+            {processingTarget}
+          </span>
+        </div>
+      )}
 
       {dataStatus && (
         <div className={styles.statusPanel}>
           {(Object.entries(dataStatus) as [keyof InitStatus, string][]).map(
-            ([key, value]) => {
-              const isOk = value === "OK" || value === "CONNECTED";
-              const isLoading = value === "LOADING";
-              const statusTone = isOk
-                ? styles.tone.ok
-                : isLoading
-                  ? styles.tone.info
-                  : styles.tone.ng;
-
-              return (
-                <div className={styles.statusRow} key={String(key)}>
-                  <span>{PANEL_LABELS[key]}:</span>
-                  <span className={statusTone}>{value}</span>
-                </div>
-              );
-            },
+            ([key, value]) => (
+              <div className={styles.statusRow} key={String(key)}>
+                <span>{PANEL_LABELS[key]}:</span>
+                <span className={getStatusTone(value)}>{value}</span>
+              </div>
+            ),
           )}
         </div>
       )}
@@ -62,4 +77,5 @@ const LoadingOverlayComponent: React.FC<LoadingOverlayProps> = ({
 };
 
 export const LoadingOverlay = React.memo(LoadingOverlayComponent);
+
 export default LoadingOverlay;

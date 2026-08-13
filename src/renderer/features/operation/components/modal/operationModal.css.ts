@@ -1,10 +1,13 @@
 // src/renderer/features/operation/components/modal/operationModal.css.ts
+
 import { style } from "@vanilla-extract/css";
-import { tokens, themeTransition } from "@renderer/styles/tokens";
+
+import { themeTransition, tokens } from "@renderer/styles/tokens";
 
 /* =======================================
  * 1. 共通基調スタイル
  * ======================================= */
+
 export const pressedSection = style([
   themeTransition,
   {
@@ -18,8 +21,9 @@ export const pressedSection = style([
 ]);
 
 /* =======================================
- * 2. モーダル全体レイアウト (外枠・コンテナ)
+ * 2. モーダル全体レイアウト
  * ======================================= */
+
 export const container = style({
   display: "grid",
   gridTemplateRows: "auto 1fr",
@@ -62,6 +66,7 @@ export const centerContent = style({
 /* =======================================
  * 3. 共通コンテンツラッパー
  * ======================================= */
+
 export const contentFlexContainer = style({
   display: "flex",
   flexDirection: "column",
@@ -90,8 +95,9 @@ export const sectionTitle = style({
 });
 
 /* =======================================
- * 4. アクションボタン (フッター)
+ * 4. アクションボタン
  * ======================================= */
+
 export const actionContainer = style({
   display: "flex",
   alignItems: "center",
@@ -102,7 +108,8 @@ export const actionContainer = style({
   paddingTop: "1vmin",
 });
 
-const buttonBase = style([
+// src/renderer/features/operation/components/modal/operationModal.css.ts
+export const button = style([
   themeTransition,
   {
     display: "inline-flex",
@@ -117,14 +124,18 @@ const buttonBase = style([
     minWidth: "120px",
     boxSizing: "border-box",
     transition: tokens.transition.fast,
+    backgroundColor: tokens.color.bg.base,
+    color: tokens.color.text.base,
+    border: `1px solid ${tokens.color.border.default}`,
+    boxShadow: tokens.shadow.raised.low,
     selectors: {
       "&:hover:not(:disabled)": {
-        boxShadow: tokens.shadow.raised.md,
-        transform: "translateY(-1px)",
+        borderColor: tokens.color.accent.neonCyan,
+        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+        color: tokens.color.text.onAccent,
       },
       "&:active:not(:disabled)": {
         boxShadow: tokens.shadow.pressed.low,
-        transform: "translateY(0)",
       },
       "&:disabled": {
         opacity: 0.4,
@@ -132,42 +143,6 @@ const buttonBase = style([
         boxShadow: "none",
         backgroundColor: tokens.color.bg.inset,
         borderColor: tokens.color.border.subtle,
-      },
-    },
-  },
-]);
-
-export const secondaryButton = style([
-  buttonBase,
-  {
-    backgroundColor: tokens.color.bg.base,
-    color: tokens.color.text.base,
-    border: `1px solid ${tokens.color.border.default}`,
-    boxShadow: tokens.shadow.raised.low,
-    selectors: {
-      "&:hover:not(:disabled)": {
-        color: tokens.color.text.hover,
-        borderColor: tokens.color.border.default,
-      },
-    },
-  },
-]);
-
-export const primaryButton = style([
-  buttonBase,
-  {
-    backgroundColor: tokens.color.bg.base,
-    color: tokens.color.accent.neonCyan,
-    border: `1px solid ${tokens.color.border.accent}`,
-    boxShadow: tokens.shadow.raised.low,
-    textShadow: `0 0 8px ${tokens.color.accent.neonCyan}66`,
-    selectors: {
-      "&:hover:not(:disabled)": {
-        borderColor: tokens.color.accent.neonCyan,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-        color: tokens.color.text.onAccent,
-      },
-      "&:disabled": {
         color: tokens.color.text.base,
         textShadow: "none",
       },

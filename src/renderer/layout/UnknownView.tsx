@@ -1,4 +1,5 @@
 // src/renderer/layout/UnknownView.tsx
+
 import React from "react";
 
 type Props = {

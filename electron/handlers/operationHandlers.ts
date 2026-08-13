@@ -1,75 +1,118 @@
-﻿import { ipcMain } from "electron";
+﻿// electron/handlers/operationHandlers.ts
 
-import type { OperationItem, JobStatus } from "@shared/types/operationType";
+import { ipcMain } from "electron";
+import type { JobStatus, OperationItem } from "@shared/types/operationType";
 
-import { registerTargets } from "../services/operation/targetManager";
+import {
+  registerTargets as registerOperationTargets,
+  getTargetByKanriNo,
+} from "../services/operation/targetManager";
 
-import { updateManualStatus } from "../services/statusManager";
+import {
+  registerTargets as registerStatusTargets,
+  updateManualStatus,
+  deleteAllStatuses,
+} from "../services/statusManager";
+
+import { fetchTrackerByJobId } from "../services/operation/tracker";
+import { startPolling, stopPolling } from "../services/operation/polling";
+import { executeJob } from "../services/operation/jobRunner";
 
 export function setupOperationHandlers(): void {
-  /**
-   * 監視対象登録
-   *
-   * Tauri:
-   *
-   * register_targets()
-   *
-   * 相当
-   */
   ipcMain.handle(
     "registerTargets",
-    async (
-      _event,
-      args: {
-        items?: OperationItem[];
-      },
-    ) => {
+    async (_event, args: { items?: OperationItem[] }) => {
       const items = args?.items ?? [];
 
-      console.log("[registerTargets]", {
-        count: items.length,
-        targets: items.map((item) => ({
-          kanriNo: item.kanriNo,
-
-          jobId: item.jobId,
-
-          scheduledTime: item.scheduledTime,
-
-          kanshiTime: item.kanshiTime,
-        })),
-      });
-
-      registerTargets(items);
-
-      return {
-        success: true,
-      };
+      registerOperationTargets(items);
+      registerStatusTargets(items);
     },
   );
 
-  /**
-   * 手動ステータス更新
-   *
-   * Tauri:
-   *
-   * update_job_status()
-   *
-   * 相当
-   */
   ipcMain.handle(
-    "updateManualStatus",
+    "updateJobStatus",
     async (
       _event,
       args: {
         kanriNo: string;
         status: JobStatus;
-        comment: string;
+        comment?: string;
       },
     ) => {
-      updateManualStatus(args.kanriNo, args.status, args.comment);
+      const kanriNo = String(args?.kanriNo ?? "");
+      const status = args?.status;
+      const comment = args?.comment ?? "";
+
+      if (!kanriNo || !status) {
+        throw new Error("Invalid parameters");
+      }
+
+      updateManualStatus(kanriNo, status, comment);
+    },
+  );
+
+  ipcMain.handle("deleteAllJobStatuses", async () => {
+    await deleteAllStatuses();
+  });
+
+  ipcMain.handle(
+    "executeScript",
+    async (_event, args: { scriptId: string }) => {
+      if (!args?.scriptId) {
+        throw new Error("scriptId is required");
+      }
+
+      return executeJob(args.scriptId);
+    },
+  );
+
+  ipcMain.handle("startPolling", () => {
+    startPolling();
+  });
+
+  ipcMain.handle("stopPolling", () => {
+    stopPolling();
+  });
+
+  ipcMain.handle(
+    "fetchSingleJobStatus",
+    async (_event, args?: { kanriNo?: string }) => {
+      const kanriNo = args?.kanriNo;
+
+      if (!kanriNo) {
+        throw new Error("kanriNo is required");
+      }
+
+      const target = getTargetByKanriNo(kanriNo);
+
+      if (!target) {
+        throw new Error(`Target not found (kanriNo=${kanriNo})`);
+      }
+
+      const jobId = target.jobId;
+
+      if (!jobId || jobId === "-") {
+        throw new Error(`Invalid jobId (kanriNo=${kanriNo})`);
+      }
+
+      const [tracker] = await fetchTrackerByJobId(target);
+
+      if (!tracker) {
+        throw new Error("Tracker data not found");
+      }
 
       return {
-        success: true,
+        kanriNo,
+        jobId,
+        status: tracker.status,
+        startTime: tracker.startTime,
+        endTime: tracker.endTime,
+        expectedStartTime: tracker.expectedStartTime,
+        expectedEndTime: tracker.expectedEndTime,
+        comment: tracker.comment,
+        substatus: tracker.substatus,
+        info: tracker.info,
+        updatedAt: new Date().toISOString(),
       };
     },
   );

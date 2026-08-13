@@ -9,10 +9,11 @@ interface OverlayProps {
 }
 
 export const Overlay: React.FC<OverlayProps> = ({ isOpen, onClick }) => {
+  const state = isOpen ? "open" : "closed";
+
   return (
     <motion.div
-      // ★ 修正: fullScreenLoaderBase (1200) ではなく backdropBase (900) を使用する
-      className={`${styles.backdropBase} ${styles.backdropStates[isOpen ? "open" : "closed"]}`}
+      className={`${styles.backdropBase} ${styles.backdropStates[state]}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: isOpen ? 1 : 0 }}
       transition={{ duration: 0.2 }}
@@ -39,8 +40,12 @@ export const LoadingContent: React.FC<LoadingContentProps> = ({
         <div className={styles.content}>
           <div className={styles.title}>{message}</div>
           <div className={styles.dots}>
-            {DOT_DELAYS.map((delay, i) => (
-              <span key={i} className={styles.dot} style={{ animationDelay: `${delay}s` }} />
+            {DOT_DELAYS.map((delay) => (
+              <span
+                key={delay}
+                className={styles.dot}
+                style={{ animationDelay: `${delay}s` }}
+              />
             ))}
           </div>
           <div className={styles.status}>{statusMessage}</div>

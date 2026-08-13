@@ -1,157 +1,317 @@
-﻿import type { OperationItem, JobStatus } from "@shared/types/operationType";
+﻿// electron/services/operation/polling.ts
 
-import {
-  getAllStatuses,
-  getStatus,
-  updateStatus,
-} from "@electron/services/statusManager";
+import type { OperationItem } from "@shared/types/operationType";
 
-import { fetchTrackerByJobId, applyTrackerItem } from "./tracker";
-
+import { getStatus, updateStatus } from "../statusManager";
 import { executeJob } from "./jobRunner";
+import { getAllTargets } from "./targetManager";
+import { applyTrackerItem, fetchTrackerByJobId } from "./tracker";
 
-let pollingTimer: NodeJS.Timeout | null = null;
+let timer: NodeJS.Timeout | null = null;
+let running = false;
 
-let polling = false;
+// ============================================================
+// Public
+// ============================================================
 
-const POLLING_INTERVAL = 60_000;
-
-/**
- * ポーリング開始
- *
- * Tauri:
- * polling::start()
- */
 export function startPolling(): void {
-  if (polling) {
+  if (running) {
     console.warn("[Polling] already running");
-
     return;
   }
 
-  polling = true;
+  running = true;
 
   console.log("[Polling] started");
 
-  void runPollingLoop();
+  void pollingLoop();
 }
 
-/**
- * ポーリング停止
- *
- * Tauri:
- * polling::stop()
- */
 export function stopPolling(): void {
-  polling = false;
-
-  if (pollingTimer) {
-    clearTimeout(pollingTimer);
-
-    pollingTimer = null;
+  if (!running) {
+    return;
   }
+
+  running = false;
+  clearTimer();
 
   console.log("[Polling] stopped");
 }
 
-/**
- * メインループ
- */
-async function runPollingLoop(): Promise<void> {
-  while (polling) {
+// ============================================================
+// Polling
+// ============================================================
+
+async function pollingLoop(): Promise<void> {
+  while (running) {
+    const startedAt = Date.now();
+
+    console.log("[Polling] 1分間隔監視 START", {
+      startedAt: new Date(startedAt).toLocaleString("ja-JP", {
+        timeZone: "Asia/Tokyo",
+        hour12: false,
+      }),
+    });
+
     try {
-      const targets = getAllStatuses();
-
-      await updateTrackerStatuses(targets);
-
-      await executeAutoStartJobs(targets);
+      await runCycle();
     } catch (error) {
-      console.error("[Polling Error]", error);
+      console.error("[Polling] cycle failed", error);
     }
 
-    await sleep(POLLING_INTERVAL);
+    if (!running) {
+      return;
+    }
+
+    const now = new Date();
+    const nextMinute = new Date(now);
+
+    nextMinute.setSeconds(0, 0);
+    nextMinute.setMinutes(nextMinute.getMinutes() + 1);
+
+    await sleep(nextMinute.getTime() - now.getTime());
   }
 }
 
-/**
- * API監視ターゲット更新
- *
- * Tauri:
- * tracker::fetch_and_apply_status()
- */
-async function updateTrackerStatuses(targets: OperationItem[]): Promise<void> {
-  const activeTargets = targets.filter((target) => {
-    const status = getStatus(target.kanriNo)?.status;
+async function runCycle(): Promise<void> {
+  const startedAt = Date.now();
 
-    return !!target.jobId && target.jobId !== "-" && !isCompleted(status);
+  console.log("[Polling] runCycle START");
+
+  const targets = getAllTargets();
+
+  console.log("[Polling] targets", {
+    count: targets.length,
   });
 
-  await Promise.all(
-    activeTargets.map(async (target) => {
-      try {
-        const trackers = await fetchTrackerByJobId(target);
+  if (targets.length === 0) {
+    console.log("[Polling] runCycle SKIP: no targets");
+    return;
+  }
 
-        const tracker = trackers[0];
+  console.log("[Polling] updateTrackers START");
 
-        if (!tracker) {
-          console.debug("[Polling] Tracker data empty", {
-            kanriNo: target.kanriNo,
+  const trackerPromise = updateTrackers(targets);
 
-            jobId: target.jobId,
-          });
+  console.log("[Polling] updateScheduledReady START");
 
-          return;
-        }
+  const scheduledPromise = updateScheduledReady(targets);
 
-        updateStatus(applyTrackerItem(tracker, target));
-      } catch (error) {
-        console.error("[Polling] Tracker update failed", {
-          kanriNo: target.kanriNo,
+  await Promise.all([trackerPromise, scheduledPromise]);
 
-          jobId: target.jobId,
+  console.log("[Polling] tracker/scheduled COMPLETE", {
+    elapsedMs: Date.now() - startedAt,
+  });
 
-          error,
-        });
-      }
-    }),
-  );
+  console.log("[Polling] executeAutoStart START");
+
+  await executeAutoStart(targets);
+
+  console.log("[Polling] executeAutoStart COMPLETE");
+
+  console.log("[Polling] runCycle END", {
+    elapsedMs: Date.now() - startedAt,
+  });
 }
 
-/**
- * 自動実行ジョブ
- *
- * Tauri:
- * engine::execute_script()
- */
-async function executeAutoStartJobs(targets: OperationItem[]): Promise<void> {
-  const jobs = targets.filter((target) => {
-    const current = getStatus(target.kanriNo);
+// ============================================================
+// Tracker
+// ============================================================
 
-    return (
-      target.autoStart === true && !!current && !isCompleted(current.status)
-    );
+async function updateTrackers(targets: OperationItem[]): Promise<void> {
+  const trackerTargets = targets.filter(isTrackerTarget);
+
+  console.log("[Polling] tracker targets", {
+    count: trackerTargets.length,
+  });
+
+  await Promise.all(trackerTargets.map(updateTracker));
+
+  console.log("[Polling] updateTrackers END");
+}
+
+async function updateTracker(target: OperationItem): Promise<void> {
+  const startedAt = Date.now();
+
+  console.log("[Polling] Tracker START", {
+    kanriNo: target.kanriNo,
+    jobId: target.jobId,
+  });
+
+  try {
+    const [tracker] = await fetchTrackerByJobId(target);
+
+    if (!tracker) {
+      console.log("[Polling] Tracker EMPTY", {
+        kanriNo: target.kanriNo,
+        jobId: target.jobId,
+        elapsedMs: Date.now() - startedAt,
+      });
+
+      return;
+    }
+
+    const item = applyTrackerItem(tracker, target);
+
+    updateStatus({
+      kanriNo: target.kanriNo,
+      status: item.status,
+      comment: item.comment,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      expectedStartTime: item.expectedStartTime,
+      expectedEndTime: item.expectedEndTime,
+      substatus: item.substatus,
+      info: item.info,
+    });
+
+    console.log("[Polling] Tracker END", {
+      kanriNo: target.kanriNo,
+      jobId: target.jobId,
+      status: item.status,
+      elapsedMs: Date.now() - startedAt,
+    });
+  } catch (error) {
+    console.error("[Polling] Tracker FAILED", {
+      kanriNo: target.kanriNo,
+      jobId: target.jobId,
+      elapsedMs: Date.now() - startedAt,
+      error,
+    });
+  }
+}
+
+function isTrackerTarget(target: OperationItem): boolean {
+  return hasJobId(target) && !isCompleted(getStatus(target.kanriNo)?.status);
+}
+
+// ============================================================
+// Scheduled
+// ============================================================
+
+async function updateScheduledReady(targets: OperationItem[]): Promise<void> {
+  const now = new Date();
+
+  let updatedCount = 0;
+
+  for (const target of targets) {
+    if (!isScheduledReadyTarget(target, now)) {
+      continue;
+    }
+
+    updateStatus({
+      kanriNo: target.kanriNo,
+      status: "ready",
+    });
+
+    updatedCount++;
+  }
+
+  console.log("[Polling] updateScheduledReady END", {
+    updatedCount,
+  });
+}
+
+function isScheduledReadyTarget(target: OperationItem, now: Date): boolean {
+  if (target.jobId || target.script === true || !target.scheduledTime) {
+    return false;
+  }
+
+  const status = getStatus(target.kanriNo)?.status;
+
+  if (status && status !== "scheduled" && status !== "waiting") {
+    return false;
+  }
+
+  const [hour, minute] = target.scheduledTime.split(":").map(Number);
+
+  if (
+    !Number.isInteger(hour) ||
+    !Number.isInteger(minute) ||
+    hour < 0 ||
+    hour > 23 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    return false;
+  }
+
+  const scheduled = new Date(now);
+
+  scheduled.setHours(hour, minute, 0, 0);
+
+  return now >= scheduled;
+}
+
+// ============================================================
+// Auto Start
+// ============================================================
+
+async function executeAutoStart(targets: OperationItem[]): Promise<void> {
+  const jobs = targets.filter(
+    (target) =>
+      target.autoStart === true &&
+      !isCompleted(getStatus(target.kanriNo)?.status),
+  );
+
+  console.log("[Polling] auto-start jobs", {
+    count: jobs.length,
   });
 
   for (const job of jobs) {
-    await executeJob(job.kanriNo);
+    if (!running) {
+      return;
+    }
+
+    console.log("[Polling] Auto-start START", {
+      kanriNo: job.kanriNo,
+    });
+
+    try {
+      await executeJob(job.kanriNo);
+
+      console.log("[Polling] Auto-start END", {
+        kanriNo: job.kanriNo,
+      });
+    } catch (error) {
+      console.error("[Polling] Auto-start FAILED", {
+        kanriNo: job.kanriNo,
+        error,
+      });
+    }
   }
 }
 
-/**
- * 完了判定
- *
- * Tauri:
- * JobStatus::is_completed()
- */
-function isCompleted(status?: JobStatus | null): boolean {
+// ============================================================
+// Helpers
+// ============================================================
+
+function hasJobId(target: OperationItem): boolean {
+  return (
+    typeof target.jobId === "string" &&
+    target.jobId.trim() !== "" &&
+    target.jobId !== "-"
+  );
+}
+
+function isCompleted(status?: string | null): boolean {
   return status === "success" || status === "error";
 }
 
-/**
- * 待機
- */
+function clearTimer(): void {
+  if (timer === null) {
+    return;
+  }
+
+  clearTimeout(timer);
+  timer = null;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
-    pollingTimer = setTimeout(resolve, ms);
+    timer = setTimeout(() => {
+      timer = null;
+      resolve();
+    }, ms);
   });
 }

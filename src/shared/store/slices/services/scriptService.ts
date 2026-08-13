@@ -1,20 +1,64 @@
 // src/shared/store/slices/services/scriptService.ts
 
 import { toast } from "sonner";
+
 import { commands } from "@shared/api/commands";
 import type {
-  OperationItem,
   JobDependenciesJson,
+  OperationItem,
 } from "@shared/types/operationType";
-import { unwrapResult } from "@shared/utils/apiUtils";
 
-import { checkJobDependencies } from "../helpers/dependencyHelper";
-import { validateJob114Log } from "../helpers/logValidator";
+import {
+  checkJobDependencies,
+  type MissingDependency,
+} from "../helpers/dependencyHelper";
 import {
   createErrorStatus,
   createRunningStatus,
   createSuccessStatus,
 } from "../helpers/statusFactory";
+
+const NO_DEPENDENCY_MESSAGE = "前提条件を満たしていないため実行できません。";
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const getStatusLabel = (
+  status: NonNullable<MissingDependency["status"]>,
+): string => {
+  switch (status) {
+    case "scheduled":
+      return "予定";
+    case "running":
+    case "scriptRunning":
+      return "実行中";
+    case "ready":
+      return "実行待ち";
+    case "waiting":
+      return "待機中";
+    case "success":
+      return "完了";
+    case "error":
+      return "エラー";
+    default:
+      return status;
+  }
+};
+
+const createDependencyErrorComment = (
+  dependencies: MissingDependency[],
+): string => {
+  if (dependencies.length === 0) {
+    return NO_DEPENDENCY_MESSAGE;
+  }
+
+  const details = dependencies.map(({ kanriNo, status }) => {
+    const label = status ? getStatusLabel(status) : "未登録";
+    return `${kanriNo}（現在: ${label}）`;
+  });
+
+  return `前提条件未達: ${details.join("、")}`;
+};
 
 export const scriptService = {
   async executeScript(
@@ -26,58 +70,47 @@ export const scriptService = {
     const item = allEntities[kanriNo];
 
     if (!item) {
-      throw new Error(`対象データがありません: ${kanriNo}`);
+      const message = `対象が存在しません: ${kanriNo}`;
+
+      toast.error(message);
+      throw new Error(message);
     }
 
-    const dependencyOk = checkJobDependencies(
+    const dependencyResult = checkJobDependencies(
       kanriNo,
       allEntities,
       jobDependencies ?? { dependencies: {} },
     );
 
-    if (!dependencyOk) {
-      const errorMessage = "依存ジョブが未完了です";
+    if (!dependencyResult.ok) {
+      const comment = createDependencyErrorComment(
+        dependencyResult.missingDependencies,
+      );
 
-      updateStatus(createErrorStatus(kanriNo, item, errorMessage));
+      updateStatus({
+        ...item,
+        comment,
+      });
 
-      toast.error(errorMessage);
-      throw new Error(errorMessage);
+      toast.warning(comment);
+      return;
     }
 
-    updateStatus(createRunningStatus(kanriNo, item, "スクリプト実行中..."));
+    updateStatus(createRunningStatus(kanriNo, item, "実行中..."));
 
     try {
-      const result = await commands.executeScript(kanriNo);
+      const resultMessage = await commands.executeScript(kanriNo);
 
-      const logText = unwrapResult(result, "スクリプト実行に失敗しました");
-
-      if (logText) {
-        const validation = validateJob114Log(logText);
-
-        if (!validation.isValid) {
-          const errorMessage = `ログ判定エラー: ${validation.message}`;
-
-          updateStatus(createErrorStatus(kanriNo, item, errorMessage));
-
-          toast.error(errorMessage);
-          throw new Error(errorMessage);
-        }
-
-        updateStatus(
-          createSuccessStatus(kanriNo, item, `完了 (${validation.message})`),
-        );
-
-        return;
-      }
-
-      updateStatus(createSuccessStatus(kanriNo, item, "スクリプト実行完了"));
+      updateStatus(
+        createSuccessStatus(kanriNo, item, resultMessage || "実行完了"),
+      );
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
+      const comment = `エラー: ${message}`;
 
-      updateStatus(createErrorStatus(kanriNo, item, `実行エラー: ${message}`));
+      updateStatus(createErrorStatus(kanriNo, item, comment));
 
-      toast.error(`スクリプト実行エラー: ${message}`);
-
+      toast.error(comment);
       throw error;
     }
   },

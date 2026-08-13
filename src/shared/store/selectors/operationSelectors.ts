@@ -1,109 +1,138 @@
-// src/shared/store/selectors/operationSelectors.ts
-
 import type { AppState } from "@shared/store";
-import type { OperationItem } from "@shared/types/operationType";
-import { JOB_STATUS } from "@shared/types/operationType";
+import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
 import { STATUS_LABEL } from "@shared/types/uiType";
 
-/* =====================================================
- * 1. Base Selectors
- * ===================================================== */
 export const selectCurrentMode = (state: AppState) => state.currentMode;
-export const selectSearchTerm = (state: AppState) => state.searchTerm;
-export const selectSummary = (state: AppState) => state.summary;
 
 export const selectSelectedOperationId = (state: AppState) =>
-  state.selectedOperationId;
-export const selectSelectedIrregularId = (state: AppState) =>
-  state.selectedIrregularId;
+  state.selectedIds.operation;
 
-/* =====================================================
- * 2. Helper
- * ===================================================== */
-const getMappedData = (
+export const selectSelectedIrregularId = (state: AppState) =>
+  state.selectedIds.irregular;
+
+export const selectSelectedTodayId = (state: AppState) =>
+  state.selectedIds.today;
+
+const mapEntitiesByIds = (
   ids: string[],
   entities: Record<string, OperationItem>,
-) =>
-  ids
+): OperationItem[] => {
+  return ids
     .map((id) => entities[id])
     .filter((item): item is OperationItem => Boolean(item));
+};
 
-/* =====================================================
- * 3. Table Data Selectors
- * ===================================================== */
+const normalizeSearchTerm = (value: string): string => {
+  return value.trim().toLowerCase();
+};
 
-// ■ Operation テーブル用
+const includesValue = (
+  value: string | null | undefined,
+  searchTerm: string,
+): boolean => {
+  return value?.toLowerCase().includes(searchTerm) ?? false;
+};
+
+const matchesAny = (
+  values: Array<string | null | undefined>,
+  searchTerm: string,
+): boolean => {
+  return values.some((value) => includesValue(value, searchTerm));
+};
+
+const matchesOperation = (item: OperationItem, searchTerm: string): boolean => {
+  return matchesAny(
+    [
+      item.workName,
+      item.jobId,
+      item.kanriNo,
+      item.status,
+      item.status ? STATUS_LABEL[item.status] : undefined,
+    ],
+    searchTerm,
+  );
+};
+
+const matchesIrregular = (item: OperationItem, searchTerm: string): boolean => {
+  return matchesAny(
+    [item.workName, item.kanriNo, item.cycle1, item.cycle2],
+    searchTerm,
+  );
+};
+
+const filterItems = (
+  items: OperationItem[],
+  searchTerm: string,
+  matcher: (item: OperationItem, searchTerm: string) => boolean,
+): OperationItem[] => {
+  if (!searchTerm) {
+    return items;
+  }
+
+  return items.filter((item) => matcher(item, searchTerm));
+};
+
 export const selectOperationTableData = (state: AppState): OperationItem[] => {
-  const search = state.searchTerm.trim().toLowerCase();
-  const data = getMappedData(state.operationIds, state.operationEntities);
-
-  if (!search) return data;
-  return data.filter(
-    (item) =>
-      item.workName?.toLowerCase().includes(search) ||
-      item.jobId?.toLowerCase().includes(search) ||
-      item.kanriNo?.toLowerCase().includes(search) ||
-      (item.status ?? "").toLowerCase().includes(search) ||
-      (item.status ? (STATUS_LABEL[item.status] ?? "") : "")
-        .toLowerCase()
-        .includes(search),
+  return filterItems(
+    mapEntitiesByIds(state.operationIds, state.operationEntities),
+    normalizeSearchTerm(state.searchTerm),
+    matchesOperation,
   );
 };
 
-// ■ Irregular テーブル用（全件）
 export const selectIrregularTableData = (state: AppState): OperationItem[] => {
-  const search = state.searchTerm.trim().toLowerCase();
-  const data = getMappedData(state.irregularIds, state.irregularEntities);
-
-  if (!search) return data;
-  return data.filter(
-    (item) =>
-      item.workName?.toLowerCase().includes(search) ||
-      item.kanriNo?.toLowerCase().includes(search) ||
-      item.cycle1?.toLowerCase().includes(search) ||
-      item.cycle2?.toLowerCase().includes(search),
+  return filterItems(
+    mapEntitiesByIds(state.irregularIds, state.irregularEntities),
+    normalizeSearchTerm(state.searchTerm),
+    matchesIrregular,
   );
 };
 
-// ■ TODAY テーブル用（Irregularデータの中から当日分のみ）
 export const selectTodayTableData = (state: AppState): OperationItem[] => {
-  const search = state.searchTerm.trim().toLowerCase();
-  // irregularEntities から todayIds で抽出
-  const data = getMappedData(state.todayIds, state.irregularEntities);
-
-  if (!search) return data;
-  return data.filter(
-    (item) =>
-      item.workName?.toLowerCase().includes(search) ||
-      item.kanriNo?.toLowerCase().includes(search) ||
-      item.cycle1?.toLowerCase().includes(search) ||
-      item.cycle2?.toLowerCase().includes(search),
+  return filterItems(
+    mapEntitiesByIds(state.todayIds, state.irregularEntities),
+    normalizeSearchTerm(state.searchTerm),
+    matchesIrregular,
   );
 };
 
-export const selectFilteredOperationIds = (state: AppState) =>
-  selectOperationTableData(state).map((i) => i.kanriNo);
+export const selectFilteredOperationIds = (state: AppState): string[] => {
+  return selectOperationTableData(state).map((item) => item.kanriNo);
+};
 
-export const selectFilteredIrregularIds = (state: AppState) =>
-  selectIrregularTableData(state).map((i) => i.kanriNo);
+export const selectFilteredIrregularIds = (state: AppState): string[] => {
+  return selectIrregularTableData(state).map((item) => item.kanriNo);
+};
 
-export const selectFilteredTodayIds = (state: AppState) =>
-  selectTodayTableData(state).map((i) => i.kanriNo);
+export const selectFilteredTodayIds = (state: AppState): string[] => {
+  return selectTodayTableData(state).map((item) => item.kanriNo);
+};
 
-/* =====================================================
- * 4. Active Item Selectors（選択行の判定）
- * ===================================================== */
 export const selectActiveSelectedItem = (
   state: AppState,
 ): OperationItem | undefined => {
-  // TODAY モード・Irregular モードともに irregularEntities から取得
-  if (state.currentMode === "irregular" || state.currentMode === "today") {
-    return state.selectedIrregularId
-      ? state.irregularEntities[state.selectedIrregularId]
-      : undefined;
+  switch (state.currentMode) {
+    case "operation": {
+      const id = state.selectedIds.operation;
+
+      return id ? state.operationEntities[id] : undefined;
+    }
+
+    case "irregular": {
+      const id = state.selectedIds.irregular;
+
+      return id ? state.irregularEntities[id] : undefined;
+    }
+
+    case "today": {
+      const id = state.selectedIds.today;
+
+      return id ? state.irregularEntities[id] : undefined;
+    }
+
+    default:
+      return undefined;
   }
-  const id = state.selectedOperationId;
-  return id ? state.operationEntities[id] : undefined;
 };
 
 export const selectActiveItemStatusFlags = (state: AppState) => {
@@ -114,7 +143,7 @@ export const selectActiveItemStatusFlags = (state: AppState) => {
     item,
     status,
     isExecuting:
-      status === JOB_STATUS.RUNNING || status === JOB_STATUS.scriptRunning,
+      status === JOB_STATUS.RUNNING || status === JOB_STATUS.SCRIPT_RUNNING,
     isError: status === JOB_STATUS.ERROR,
     isSuccess: status === JOB_STATUS.SUCCESS,
     isWaiting: status === JOB_STATUS.WAITING,

@@ -1,8 +1,9 @@
 // src/renderer/features/operation/components/buttonPanel/useButtonPanel.ts
-import { useCallback } from "react";
+
+import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { operationViewConfig } from "@renderer/features/operation/config/operationView";
-import { useAppStore } from "@shared/store/index";
+import { useAppStore } from "@shared/store";
 import { selectActiveItemStatusFlags } from "@shared/store/selectors/operationSelectors";
 import { JOB_STATUS } from "@shared/types/operationType";
 import type { ViewMode } from "@shared/types/uiType";
@@ -11,42 +12,41 @@ export const useButtonPanel = () => {
   const { item: selectedItem, status } = useAppStore(
     useShallow(selectActiveItemStatusFlags),
   );
-  const {
-    currentMode,
-    rawSetMode,
-    setSelectedOperationId,
-    setSelectedIrregularId,
-    openGlobalModal,
-    closeGlobalModal,
-  } = useAppStore(
-    useShallow((s) => ({
-      currentMode: s.currentMode,
-      rawSetMode: s.setMode,
-      setSelectedOperationId: s.setSelectedOperationId,
-      setSelectedIrregularId: s.setSelectedIrregularId,
-      openGlobalModal: s.openGlobalModal,
-      closeGlobalModal: s.closeGlobalModal,
-    })),
-  );
+
+  const { currentMode, setMode, openGlobalModal, closeGlobalModal } =
+    useAppStore(
+      useShallow((s) => ({
+        currentMode: s.currentMode,
+        setMode: s.setMode,
+        openGlobalModal: s.openGlobalModal,
+        closeGlobalModal: s.closeGlobalModal,
+      })),
+    );
 
   const handleModeChange = useCallback(
     (mode: ViewMode) => {
-      rawSetMode(mode);
-      setSelectedOperationId(null);
-      setSelectedIrregularId(null);
+      setMode(mode);
     },
-    [rawSetMode, setSelectedOperationId, setSelectedIrregularId],
+    [setMode],
   );
 
-  const isScriptRunning = status === JOB_STATUS.scriptRunning;
-  const configuredActions = operationViewConfig.actions ?? [];
+  const isScriptRunning = status === JOB_STATUS.SCRIPT_RUNNING;
+
+  const configuredActions = useMemo(
+    () => operationViewConfig.actions ?? [],
+    [],
+  );
 
   const executeAction = useCallback(
     (key: string) => {
-      const action = configuredActions.find((a) => a.key === key);
-      if (action && selectedItem) {
-        action.execute(selectedItem, { openGlobalModal, closeGlobalModal });
-      }
+      const action = configuredActions.find((action) => action.key === key);
+
+      if (!action || !selectedItem) return;
+
+      action.execute(selectedItem, {
+        openGlobalModal,
+        closeGlobalModal,
+      });
     },
     [configuredActions, selectedItem, openGlobalModal, closeGlobalModal],
   );
@@ -54,7 +54,9 @@ export const useButtonPanel = () => {
   const checkIsDisabled = useCallback(
     (key: string) => {
       if (isScriptRunning || !selectedItem) return true;
-      const action = configuredActions.find((a) => a.key === key);
+
+      const action = configuredActions.find((action) => action.key === key);
+
       return action ? !action.isActive(selectedItem) : true;
     },
     [configuredActions, selectedItem, isScriptRunning],

@@ -1,8 +1,14 @@
 ﻿// src/shared/store/slices/pdfUploadSlice.ts
+
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
+
 import type { AppState } from "@shared/store/index";
-import { unwrapResult } from "@shared/utils/apiUtils";
+import { pdfUploadService } from "@shared/store/slices/services/pdfUploadService";
+
+// ============================================================
+// Types
+// ============================================================
 
 export interface ValidatedPdf {
   name: string;
@@ -21,38 +27,77 @@ export interface PdfUploadState {
 
 export interface PdfUploadSlice {
   pdfUpload: PdfUploadState;
+
   updatePdfUpload(update: Partial<PdfUploadState>): void;
   resetPdfUpload(): void;
+
   mergePdfFiles(incomingPaths: string[]): void;
   reorderPdfFiles(fromIndex: number, toIndex: number): void;
+
   uploadPdfFiles(): Promise<void>;
   runPdfUploadJob(): Promise<void>;
 }
 
-const calculateExpireDate = (offsetDays = 7): string => {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().slice(0, 10).replace(/-/g, "/");
+// ============================================================
+// Constants
+// ============================================================
+
+const DEFAULT_EXPIRE_OFFSET_DAYS = 7;
+
+// ============================================================
+// Helpers
+// ============================================================
+
+const calculateExpireDate = (
+  offsetDays = DEFAULT_EXPIRE_OFFSET_DAYS,
+): string => {
+  const date = new Date();
+
+  date.setDate(date.getDate() + offsetDays);
+
+  return date.toISOString().slice(0, 10).replace(/-/g, "/");
 };
 
-const validateAndFormatPdfs = (incomingPaths: string[]): ValidatedPdf[] => {
-  return incomingPaths
-    .filter((path) => path.toLowerCase().endsWith(".pdf"))
-    .map((path) => ({
-      name: path.split(/[/\\]/).pop() ?? path,
-      path,
+const getFileName = (filePath: string): string =>
+  filePath.split(/[/\\]/).pop() ?? filePath;
+
+const validateAndFormatPdfs = (incomingPaths: string[]): ValidatedPdf[] =>
+  incomingPaths
+    .filter((filePath) => filePath.toLowerCase().endsWith(".pdf"))
+    .map((filePath) => ({
+      name: getFileName(filePath),
+      path: filePath,
     }));
-};
 
-const INITIAL_PDF_UPLOAD: PdfUploadState = {
+const createInitialPdfUploadState = (): PdfUploadState => ({
   step: "dnd",
   resultState: "idle",
   errorMessage: "",
   files: [],
   isProcessing: false,
   isDragging: false,
-  expireDate: calculateExpireDate(7),
+  expireDate: calculateExpireDate(),
+});
+
+const createUniquePaths = (
+  currentPaths: string[],
+  incomingPaths: string[],
+): string[] => Array.from(new Set([...currentPaths, ...incomingPaths]));
+
+const logUploadOrder = (label: string, files: ValidatedPdf[]): void => {
+  console.log(
+    `[PdfUpload] ${label}:`,
+    files.map((file, index) => ({
+      index: index + 1,
+      name: file.name,
+      path: file.path,
+    })),
+  );
 };
+
+// ============================================================
+// Slice
+// ============================================================
 
 export const createPdfUploadSlice: StateCreator<
   AppState,
@@ -60,42 +105,51 @@ export const createPdfUploadSlice: StateCreator<
   [],
   PdfUploadSlice
 > = (set, get) => ({
-  pdfUpload: INITIAL_PDF_UPLOAD,
+  pdfUpload: createInitialPdfUploadState(),
 
-  updatePdfUpload: (update: Partial<PdfUploadState>) =>
-    set((s: AppState) => {
-      Object.assign(s.pdfUpload, update);
+  // ----------------------------------------------------------
+  // State
+  // ----------------------------------------------------------
+
+  updatePdfUpload: (update) =>
+    set((state) => {
+      Object.assign(state.pdfUpload, update);
     }),
 
   resetPdfUpload: () =>
-    set((s: AppState) => {
-      s.pdfUpload = {
-        ...INITIAL_PDF_UPLOAD,
-        expireDate: calculateExpireDate(7),
-      };
+    set((state) => {
+      state.pdfUpload = createInitialPdfUploadState();
     }),
 
-  mergePdfFiles: (incomingPaths: string[]) => {
-    const uniquePaths = Array.from(
-      new Set([
-        ...get().pdfUpload.files.map((f: ValidatedPdf) => f.path),
-        ...incomingPaths,
-      ]),
-    );
-    set((s: AppState) => {
-      Object.assign(s.pdfUpload, {
+  // ----------------------------------------------------------
+  // File management
+  // ----------------------------------------------------------
+
+  mergePdfFiles: (incomingPaths) => {
+    const currentPaths = get().pdfUpload.files.map((file) => file.path);
+
+    const mergedPaths = createUniquePaths(currentPaths, incomingPaths);
+
+    const files = validateAndFormatPdfs(mergedPaths);
+
+    logUploadOrder("merged file order", files);
+
+    set((state) => {
+      Object.assign(state.pdfUpload, {
         resultState: "idle",
         isProcessing: false,
+        errorMessage: "",
         step: "dnd",
-        files: validateAndFormatPdfs(uniquePaths),
-        expireDate: calculateExpireDate(7),
+        files,
+        expireDate: calculateExpireDate(),
       });
     });
   },
 
-  reorderPdfFiles: (fromIndex: number, toIndex: number) => {
-    set((s: AppState) => {
-      const files = s.pdfUpload.files;
+  reorderPdfFiles: (fromIndex, toIndex) =>
+    set((state) => {
+      const files = state.pdfUpload.files;
+
       if (
         fromIndex < 0 ||
         fromIndex >= files.length ||
@@ -104,17 +158,45 @@ export const createPdfUploadSlice: StateCreator<
       ) {
         return;
       }
-      const [movedItem] = files.splice(fromIndex, 1);
-      files.splice(toIndex, 0, movedItem);
-    });
-  },
+
+      if (fromIndex === toIndex) {
+        return;
+      }
+
+      const [movedFile] = files.splice(fromIndex, 1);
+
+      if (!movedFile) {
+        return;
+      }
+
+      files.splice(toIndex, 0, movedFile);
+
+      logUploadOrder("reordered file order", files);
+    }),
+
+  // ----------------------------------------------------------
+  // Upload
+  // ----------------------------------------------------------
 
   uploadPdfFiles: async () => {
-    const { files, expireDate } = get().pdfUpload;
-    if (files.length === 0) return;
+    const { files, expireDate, isProcessing } = get().pdfUpload;
 
-    set((s: AppState) => {
-      Object.assign(s.pdfUpload, {
+    if (files.length === 0) {
+      return;
+    }
+
+    if (isProcessing) {
+      console.warn("[PdfUpload] upload is already processing.");
+
+      return;
+    }
+
+    const uploadFiles = [...files];
+
+    logUploadOrder("final upload order", uploadFiles);
+
+    set((state) => {
+      Object.assign(state.pdfUpload, {
         resultState: "processing",
         isProcessing: true,
         errorMessage: "",
@@ -122,35 +204,40 @@ export const createPdfUploadSlice: StateCreator<
     });
 
     try {
-      const res = await window.electronAPI.invoke<unknown>(
-        "tempomaticUploadDocument",
-        {
-          filePaths: files.map((f: ValidatedPdf) => f.path),
-          expireDate,
-        },
-      );
-      unwrapResult(res, "PDFアップロード処理に失敗しました");
-      toast.success("PDFアップロード完了");
+      await pdfUploadService.upload(uploadFiles, expireDate);
 
-      set((s: AppState) => {
-        s.pdfUpload.resultState = "success";
+      set((state) => {
+        state.pdfUpload.resultState = "success";
       });
+
+      toast.success("PDFアップロード完了");
     } catch (error: unknown) {
-      set((s: AppState) => {
-        Object.assign(s.pdfUpload, {
+      const message = error instanceof Error ? error.message : String(error);
+
+      console.error("[PdfUpload] upload failed:", error);
+
+      set((state) => {
+        Object.assign(state.pdfUpload, {
           resultState: "error",
-          errorMessage: error instanceof Error ? error.message : String(error),
+          errorMessage: message,
         });
       });
+
       toast.error(
         "PDFアップロードに失敗しました。F12コンソールを確認してください。",
       );
+
+      throw error;
     } finally {
-      set((s: AppState) => {
-        s.pdfUpload.isProcessing = false;
+      set((state) => {
+        state.pdfUpload.isProcessing = false;
       });
     }
   },
+
+  // ----------------------------------------------------------
+  // Job
+  // ----------------------------------------------------------
 
   runPdfUploadJob: () => get().uploadPdfFiles(),
 });

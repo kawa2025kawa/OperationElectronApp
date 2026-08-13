@@ -1,42 +1,104 @@
-﻿// electron/auth/credentials.ts
+﻿// electron/services/auth/credentials.ts
 
+import { app } from "electron";
 import { existsSync, readFileSync } from "node:fs";
-import * as path from "node:path";
+import path from "node:path";
+
+// =====================================================
+// Constants
+// =====================================================
 
 const CREDENTIAL_FILE = "google-oauth-credentials.json";
 
+// =====================================================
+// Types
+// =====================================================
+
+export interface GoogleCredentials {
+  clientId: string;
+  clientSecret?: string;
+}
+
+interface GoogleCredentialsJson {
+  installed?: {
+    client_id?: string;
+    client_secret?: string;
+  };
+
+  web?: {
+    client_id?: string;
+    client_secret?: string;
+  };
+}
+
+// =====================================================
+// Path
+// =====================================================
+
 function getCredentialPath(): string {
-  return path.join(process.resourcesPath, CREDENTIAL_FILE);
-}
-
-export function hasGoogleCredentials(): boolean {
-  return existsSync(getCredentialPath());
-}
-
-export function getGoogleCredentialsJson(): string {
-  const file = getCredentialPath();
-
-  if (!existsSync(file)) {
-    throw new Error("Google OAuth credentials not found");
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, CREDENTIAL_FILE);
   }
 
-  return readFileSync(file, "utf-8");
+  return path.join(process.cwd(), "resources", CREDENTIAL_FILE);
 }
+
+// =====================================================
+// Load JSON
+// =====================================================
+
+function loadCredentialsJson(): GoogleCredentialsJson {
+  const filePath = getCredentialPath();
+
+  if (!existsSync(filePath)) {
+    throw new Error(`Google OAuth credentials not found: ${filePath}`);
+  }
+
+  try {
+    return JSON.parse(readFileSync(filePath, "utf-8")) as GoogleCredentialsJson;
+  } catch (error) {
+    throw new Error(
+      `Failed to parse Google OAuth credentials: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      {
+        cause: error,
+      },
+    );
+  }
+}
+
+// =====================================================
+// Credentials
+// =====================================================
+
+export function getGoogleCredentials(): GoogleCredentials {
+  const json = loadCredentialsJson();
+
+  const config = json.installed ?? json.web;
+
+  if (!config?.client_id) {
+    throw new Error("Google OAuth client_id not found");
+  }
+
+  return {
+    clientId: config.client_id,
+    clientSecret: config.client_secret,
+  };
+}
+
+// =====================================================
+// Client ID
+// =====================================================
 
 export function getGoogleClientId(): string {
-  const json = JSON.parse(getGoogleCredentialsJson());
-
-  const clientId = json.installed?.client_id ?? json.web?.client_id;
-
-  if (!clientId) {
-    throw new Error("Google client id not found");
-  }
-
-  return clientId;
+  return getGoogleCredentials().clientId;
 }
 
-export function getGoogleClientSecret(): string | undefined {
-  const json = JSON.parse(getGoogleCredentialsJson());
+// =====================================================
+// Client Secret
+// =====================================================
 
-  return json.installed?.client_secret ?? json.web?.client_secret;
+export function getGoogleClientSecret(): string | undefined {
+  return getGoogleCredentials().clientSecret;
 }

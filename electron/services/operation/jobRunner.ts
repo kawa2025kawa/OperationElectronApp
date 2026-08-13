@@ -1,64 +1,72 @@
 ﻿// electron/services/operation/jobRunner.ts
-import { dispatchScript } from "@electron/services/operation/jobs/scripts/index";
-import { getStatus, updateStatus } from "@electron/services/statusManager";
+
+import type { JobStatus } from "@shared/types/operationType";
+
+import { updateStatus } from "../statusManager";
+import { dispatchScript } from "./jobs/scripts";
 
 const runningJobs = new Set<string>();
 
-export async function executeJob(kanriNo: string): Promise<string> {
+export async function executeJob(rawKanriNo: string | number): Promise<string> {
+  const kanriNo = String(rawKanriNo).trim();
+
+  if (!kanriNo) {
+    throw new Error("kanriNo is required");
+  }
+
   if (runningJobs.has(kanriNo)) {
-    console.warn(`[JobRunner] already running ${kanriNo}`);
+    console.warn(`[JobRunner] already running: ${kanriNo}`);
     return "Already running";
   }
 
-  const target = getStatus(kanriNo);
-  if (!target) {
-    throw new Error(`Target not found: ${kanriNo}`);
-  }
-
-  if (!target.script) {
-    console.warn(`[JobRunner] script disabled ${kanriNo}`);
-    return "Script disabled";
-  }
-
   runningJobs.add(kanriNo);
+  const startTime = new Date().toISOString();
 
   try {
-    updateStatus({
-      ...target,
-      status: "scriptRunning",
-      startTime: new Date().toISOString(),
-      comment: "実行中",
-    });
+    updateJobStatus(kanriNo, "scriptRunning", "実行中", { startTime });
 
-    // TS7006: 暗黙のanyエラーを解消するため message: string を明示
-    const result = await dispatchScript(kanriNo, (message: string) => {
-      const latest = getStatus(kanriNo);
-      updateStatus({
-        ...(latest ?? target),
-        status: "scriptRunning",
-        comment: message,
-      });
-    });
+    const result = await dispatchScript(kanriNo);
 
-    const latest = getStatus(kanriNo);
-    updateStatus({
-      ...(latest ?? target),
-      status: "success",
-      comment: result,
+    updateJobStatus(kanriNo, "success", result, {
+      startTime,
       endTime: new Date().toISOString(),
     });
+
+    console.log(`[JobRunner] completed: ${kanriNo}`);
 
     return result;
   } catch (error) {
-    const latest = getStatus(kanriNo);
-    updateStatus({
-      ...(latest ?? target),
-      status: "error",
-      comment: error instanceof Error ? error.message : String(error),
-      endTime: new Date().toISOString(),
-    });
+    updateJobStatus(
+      kanriNo,
+      "error",
+      error instanceof Error ? error.message : String(error),
+      {
+        startTime,
+        endTime: new Date().toISOString(),
+      },
+    );
+
+    console.error(`[JobRunner] failed: ${kanriNo}`, error);
+
     throw error;
   } finally {
     runningJobs.delete(kanriNo);
   }
+}
+
+function updateJobStatus(
+  kanriNo: string,
+  status: JobStatus,
+  comment: string,
+  options: {
+    startTime?: string;
+    endTime?: string;
+  } = {},
+): void {
+  updateStatus({
+    kanriNo,
+    status,
+    comment,
+    ...options,
+  });
 }

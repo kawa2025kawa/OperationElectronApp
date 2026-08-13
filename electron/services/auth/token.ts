@@ -1,69 +1,77 @@
-﻿//electron\auth\token.ts
+﻿// electron/services/auth/token.ts
 
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
-import { app } from "electron";
+import keytar from "keytar";
 
-import type { OAuthToken, StoredToken } from "@shared/types/authTypes";
+import type { AuthSession, OAuthToken } from "@shared/types/authTypes";
 
-const STORE_FILE = "auth.json";
+// =====================================================
+// Constants
+// =====================================================
 
-function getStorePath(): string {
-  return path.join(app.getPath("userData"), STORE_FILE);
+const SERVICE_NAME = "OperationApp_GoogleOAuth";
+const ACCOUNT_NAME = "session";
+
+// =====================================================
+// Token → Session
+// =====================================================
+
+function createAuthSession(token: OAuthToken): AuthSession {
+  return {
+    accessToken: token.accessToken,
+    refreshToken: token.refreshToken,
+    expiresAt:
+      token.expiresIn !== null ? Date.now() + token.expiresIn * 1000 : null,
+  };
 }
+
+// =====================================================
+// Save
+// =====================================================
 
 export async function saveToken(token: OAuthToken): Promise<void> {
-  const stored: StoredToken = {
-    accessToken: token.accessToken,
+  const session = createAuthSession(token);
 
-    refreshToken: token.refreshToken,
-
-    expiresAt: token.expiresIn ? Date.now() + token.expiresIn * 1000 : null,
-  };
-
-  await fs.writeFile(getStorePath(), JSON.stringify(stored, null, 2), "utf-8");
+  await keytar.setPassword(SERVICE_NAME, ACCOUNT_NAME, JSON.stringify(session));
 }
 
-export async function loadToken(): Promise<StoredToken | null> {
-  try {
-    const json = await fs.readFile(getStorePath(), "utf-8");
+// =====================================================
+// Load
+// =====================================================
 
-    return JSON.parse(json);
-  } catch {
+export async function loadToken(): Promise<AuthSession | null> {
+  const raw = await keytar.getPassword(SERVICE_NAME, ACCOUNT_NAME);
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as AuthSession;
+  } catch (error) {
+    console.error("[GoogleOAuth] invalid stored session", error);
+
+    await clearToken();
+
     return null;
   }
 }
 
+// =====================================================
+// Clear
+// =====================================================
+
 export async function clearToken(): Promise<void> {
-  try {
-    await fs.unlink(getStorePath());
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw error;
-    }
-  }
+  await keytar.deletePassword(SERVICE_NAME, ACCOUNT_NAME);
 }
 
-export async function restoreSession(): Promise<boolean> {
-  const token = await loadToken();
+// =====================================================
+// Expiration
+// =====================================================
 
-  if (!token) {
+export function isTokenExpired(session: AuthSession): boolean {
+  if (session.expiresAt === null) {
     return false;
   }
 
-  if (!isExpired(token) || token.refreshToken) {
-    return true;
-  }
-
-  await clearToken();
-
-  return false;
-}
-
-function isExpired(token: StoredToken): boolean {
-  if (!token.expiresAt) {
-    return false;
-  }
-
-  return Date.now() >= token.expiresAt;
+  return Date.now() >= session.expiresAt;
 }
