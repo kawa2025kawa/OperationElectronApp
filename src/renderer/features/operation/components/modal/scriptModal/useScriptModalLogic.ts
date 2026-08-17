@@ -1,10 +1,8 @@
-//src\renderer\features\operation\components\modal\scriptModal\useScriptModalLogic.ts
-
 import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@shared/store";
-import { selectActiveItemStatusFlags } from "@shared/store/selectors/operationSelectors";
+import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/operationSelectors";
 
 export const useScriptModalLogic = () => {
   const { item, runScriptJob } = useAppStore(

@@ -2,7 +2,7 @@
 import { useShallow } from "zustand/react/shallow";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { useAppStore, type AppState } from "@shared/store";
-import { selectFilteredSheetRows } from "@shared/store/slices/spreadsheetSlice";
+import { selectFilteredSheetRows } from "./store/spreadsheetSlice";
 import { type SheetId } from "@shared/types/spreadsheetTypes";
 
 const EMPTY_ARRAY = [] as const;

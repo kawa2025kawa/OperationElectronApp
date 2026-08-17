@@ -1,9 +1,7 @@
-// src/renderer/features/spreadSheet/components/table/SpreadSheetTable.tsx
-
 import React, { useCallback, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { getValueByPath } from "@shared/utils/getValueByPath";
 import type { Column } from "@shared/types/tableType";
+import { getValueByPath } from "@shared/utils/getValueByPath";
 import * as styles from "./spreadSheetTable.css";
 
 export interface SpreadSheetTableProps<T> {
@@ -100,6 +98,7 @@ export const SpreadSheetTableComponent = <T extends object>({
 }: SpreadSheetTableProps<T>) => {
   const parentRef = useRef<HTMLDivElement>(null);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: data ? data.length : 0,
     getScrollElement: () => parentRef.current,
@@ -114,7 +113,6 @@ export const SpreadSheetTableComponent = <T extends object>({
     <div className={styles.container}>
       <div ref={parentRef} className={styles.bodyWrapper}>
         <table className={styles.tableStyle}>
-          {/* 🎯 sticky固定ヘッダー（データ行と同一のFlex-tr構造） */}
           <thead className={styles.stickyHeader}>
             <tr className={styles.tableHeaderRow}>
               {columns.map((col) => {

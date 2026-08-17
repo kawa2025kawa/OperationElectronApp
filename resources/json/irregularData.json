@@ -3,6 +3,7 @@
     "kanriNo": "E1",
     "cycle1": "週次",
     "cycle2": "月",
+    "scheduledTime": "17:00",
     "workName": "17時青果EOB棚順データ作成",
     "manual": true,
     "link": {

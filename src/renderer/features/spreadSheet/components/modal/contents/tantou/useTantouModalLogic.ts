@@ -1,5 +1,4 @@
-// src/renderer/features/spreadSheet/components/modal/contents/tantou/useTantouModalLogic.ts
-import type { Tantou } from "@shared/types/spreadsheetTypes";
+import type { Tantou } from "../../../../types/spreadsheetTypes";
 import {
   useTabbedModalLogic,
   type TabGroupConfig,

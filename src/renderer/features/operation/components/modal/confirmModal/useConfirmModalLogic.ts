@@ -1,6 +1,4 @@
-﻿// src/renderer/features/operation/components/modal/confirmModal/useConfirmModalLogic.ts
-
-import { useEffect, useMemo } from "react";
+﻿import { useEffect, useMemo } from "react";
 
 interface UseConfirmModalLogicParams {
   url?: string | null;
@@ -14,10 +12,7 @@ export const useConfirmModalLogic = ({
   registerPrimaryAction,
 }: UseConfirmModalLogicParams) => {
   const finalUrl = useMemo(() => {
-    if (!url) {
-      return "";
-    }
-
+    if (!url) return "";
     return baseUrl ? `${baseUrl}${encodeURIComponent(url)}` : url;
   }, [url, baseUrl]);
 
@@ -31,7 +26,6 @@ export const useConfirmModalLogic = ({
           }
         : undefined,
     );
-
     return () => {
       registerPrimaryAction(undefined);
     };

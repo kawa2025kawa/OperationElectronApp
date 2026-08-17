@@ -1,8 +1,9 @@
-// src/renderer/features/operation/components/buttonPanel/ButtonPanel.tsx
+//src\renderer\features\operation\components\buttonPanel\ButtonPanel.tsx
+
 import React from "react";
 import type { ViewMode } from "@shared/types/uiType";
-import { useButtonPanel } from "./useButtonPanel";
 import * as styles from "./ButtonPanel.css";
+import { useButtonPanel } from "./useButtonPanel";
 
 const MODES: ViewMode[] = ["operation", "irregular", "today"];
 
@@ -26,6 +27,7 @@ const ModeSwitcher: React.FC<{
     ))}
   </div>
 ));
+
 ModeSwitcher.displayName = "ModeSwitcher";
 
 const ButtonPanelComponent: React.FC = () => {
@@ -41,7 +43,6 @@ const ButtonPanelComponent: React.FC = () => {
   return (
     <div className={styles.actionsCard}>
       <ModeSwitcher currentMode={currentMode} onModeChange={handleModeChange} />
-
       <div className={styles.buttonGrid}>
         {configuredActions.map((action) => (
           <button
@@ -64,4 +65,5 @@ const ButtonPanelComponent: React.FC = () => {
 
 export const ButtonPanel = React.memo(ButtonPanelComponent);
 ButtonPanel.displayName = "ButtonPanel";
+
 export default ButtonPanel;

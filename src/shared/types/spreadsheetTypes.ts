@@ -1,7 +1,10 @@
+//src\shared\types\spreadsheetTypes.ts
+
 /* =====================================================
    1. Sheet IDs & Domain Types
    ===================================================== */
-export const MASTER_SPREADSHEET_ID = "1TFQ0qoXvr1PW80BBNbYZ2dyVDusQCarknrrqJi50HBc";
+export const MASTER_SPREADSHEET_ID =
+  "1TFQ0qoXvr1PW80BBNbYZ2dyVDusQCarknrrqJi50HBc";
 
 export const SHEET_IDS = {
   SHOP: "StoreMasterData",

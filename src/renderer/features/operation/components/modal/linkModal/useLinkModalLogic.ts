@@ -1,14 +1,10 @@
-﻿// src/renderer/features/operation/components/modal/linkModal/useLinkModalLogic.ts
-
-import { useCallback } from "react";
-
+﻿import { useCallback } from "react";
 import { commands } from "@shared/api/commands";
 import { useAppStore } from "@shared/store";
-import { selectActiveSelectedItem } from "@shared/store/selectors/operationSelectors";
+import { selectActiveSelectedItem } from "@renderer/features/operation/store/operationSelectors";
 
 export const useLinkModalLogic = () => {
   const selectedItem = useAppStore(selectActiveSelectedItem);
-
   const links = selectedItem?.link ?? {};
   const linkEntries = Object.entries(links);
 
@@ -18,7 +14,6 @@ export const useLinkModalLogic = () => {
         window.open(url, "_blank");
         return;
       }
-
       await commands.openExternal(url);
     } catch (error) {
       console.error(

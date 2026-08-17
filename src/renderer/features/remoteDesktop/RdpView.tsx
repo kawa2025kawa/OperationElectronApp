@@ -1,10 +1,8 @@
-// src/renderer/features/remoteDesktop/RdpView.tsx
-
 import React, { useEffect } from "react";
 import { clsx } from "clsx";
-import { useAppStore, type AppState } from "@shared/store/index";
 import { useShallow } from "zustand/react/shallow";
-import { animateFadeIn } from "@renderer/styles/tokens/index";
+import { useAppStore, type AppState } from "@shared/store";
+import { animateFadeIn } from "@renderer/styles/tokens";
 import type { RdpTarget } from "@shared/types/rdpTypes";
 import * as styles from "./rdpView.css";
 

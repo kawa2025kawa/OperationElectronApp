@@ -1,4 +1,3 @@
-// src/renderer/features/spreadSheet/components/modal/contents/common/scheduleUtils.ts
 import { format, getDay } from "date-fns";
 import { ja } from "date-fns/locale";
 

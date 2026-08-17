@@ -1,4 +1,5 @@
-// src/shared/types/appRegistryType.ts
+//src\shared\types\appRegistryType.ts
+
 import type { ComponentType, ReactNode } from "react";
 import type { SheetId } from "@shared/types/spreadsheetTypes";
 import type { Column } from "@shared/types/tableType";
@@ -14,7 +15,7 @@ export interface ActionStoreContext {
   closeGlobalModal: () => void;
 }
 
-export interface ViewActionDefinition<TItem = any> {
+export interface ViewActionDefinition<TItem = unknown> {
   key: string;
   label: string;
   type: "modal" | "external" | "custom";
@@ -27,7 +28,7 @@ export interface ViewActionDefinition<TItem = any> {
 export interface AppViewDefinition {
   id: AppViewId;
   title: string;
-  component?: ComponentType<any> | null;
+  component?: ComponentType<Record<string, unknown>> | null;
   isProtected?: boolean;
   sidebarMenu?: {
     show: boolean;
@@ -42,7 +43,7 @@ export interface AppViewDefinition {
   modalConfig?: {
     modalType: string;
     modalSize: ModalSize;
-    component?: ComponentType<any>;
+    component?: ComponentType<Record<string, unknown>>;
   };
   columns?: readonly Column<unknown>[];
   actions?: readonly ViewActionDefinition[];
@@ -51,7 +52,7 @@ export interface AppViewDefinition {
 export interface ExtraModalDefinition {
   modalType: string;
   modalSize: ModalSize;
-  component?: ComponentType<any>;
+  component?: ComponentType<Record<string, unknown>>;
   columns?: readonly Column<unknown>[];
   execute?: (store: ActionStoreContext) => void;
 }

@@ -1,8 +1,7 @@
-// src/renderer/features/operation/OperationView.tsx
 import React from "react";
-import { UnifiedTable } from "@renderer/features/operation/components/table/OperationTable";
-import { InfoPanel } from "@renderer/features/operation/components/infoPanel/InfoPanel";
 import { ButtonPanel } from "@renderer/features/operation/components/buttonPanel/ButtonPanel";
+import { InfoPanel } from "@renderer/features/operation/components/infoPanel/InfoPanel";
+import { UnifiedTable } from "@renderer/features/operation/components/table/OperationTable";
 import * as styles from "./operationView.css";
 
 export const OperationView: React.FC = React.memo(() => {
@@ -24,4 +23,5 @@ export const OperationView: React.FC = React.memo(() => {
 });
 
 OperationView.displayName = "OperationView";
+
 export default OperationView;

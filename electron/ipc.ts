@@ -1,21 +1,19 @@
 ﻿// electron/ipc.ts
 
-import { setupAuthHandlers } from "./handlers/authHandlers";
-import { setupOperationHandlers } from "./handlers/operationHandlers";
-import { setupRdpHandlers } from "./handlers/rdpHandlers";
-import { setupSystemHandlers } from "./handlers/systemHandlers";
-import { setupTempomaticHandlers } from "./handlers/tempomaticHandlers";
-import { setupStatusHandlers } from "./handlers/statusHandlers";
+import { registerAuthIpc } from "@electron/features/auth/authIpc";
+import { registerOperationIpc } from "@electron/features/operation/operationIpc";
+import { registerRdpIpc } from "@electron/features/rdp/rdpIpc";
+import { registerSystemIpc } from "@electron/features/system/systemIpc";
+import { registerTempomaticIpc } from "@electron/features/tempomatic/tempomaticIpc";
 
 type IpcHandlerSetup = () => void;
 
 const ipcHandlers: IpcHandlerSetup[] = [
-  setupAuthHandlers,
-  setupOperationHandlers,
-  setupStatusHandlers,
-  setupRdpHandlers,
-  setupSystemHandlers,
-  setupTempomaticHandlers,
+  registerAuthIpc,
+  registerOperationIpc,
+  registerRdpIpc,
+  registerSystemIpc,
+  registerTempomaticIpc,
 ];
 
 let initialized = false;

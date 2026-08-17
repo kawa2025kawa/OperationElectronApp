@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import type { StateCreator } from "zustand";
-
 import type { AppState } from "@shared/store";
 import type { ViewMode, GlobalModalConfig } from "@shared/types/uiType";
 import {
@@ -14,55 +13,33 @@ type SelectedIds = Record<ViewMode, string | null>;
 
 export interface UiSlice {
   theme: "dark" | "light";
-
   currentView: string;
   pendingView: string | null;
   currentMode: ViewMode;
-
   searchTerm: string;
-
   isSidebarOpen: boolean;
 
-  /**
-   * 全体処理Overlay
-   */
+  /** 全体処理Overlay */
   isGlobalProcessing: boolean;
   overlayMessage: string;
 
-  /**
-   * JC / Script実行中の対象表示
-   */
+  /** JC / Script実行中の対象表示 */
   processingTarget: string | null;
-
   isLoading: boolean;
   isInitialLoaded: boolean;
-
   initStatus: InitStatus;
-
   modalContent: ReactNode | null;
   modalConfig: GlobalModalConfig | null;
-
   selectedIds: SelectedIds;
-
   setTheme: (theme: "dark" | "light") => void;
   toggleTheme: () => void;
-
   setCurrentView: (view: string) => void;
   setPendingView: (view: string | null) => void;
-
   setMode: (mode: ViewMode) => void;
-
   setSearchTerm: (term: string) => void;
-
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
 
-  /**
-   * 処理Overlay制御
-   *
-   * target:
-   * JC / Script等、処理対象を表示する場合に渡す
-   */
   setGlobalProcessing: (
     isProcessing: boolean,
     message?: string,
@@ -70,9 +47,7 @@ export interface UiSlice {
   ) => void;
 
   setIsLoading: (isLoading: boolean) => void;
-
   setIsInitialLoaded: (isInitialLoaded: boolean) => void;
-
   setInitStatus: (
     update:
       | Partial<InitStatus>
@@ -80,9 +55,7 @@ export interface UiSlice {
   ) => void;
 
   setSelectedId: (mode: ViewMode, id: string | null) => void;
-
   openGlobalModal: (content: ReactNode, config?: GlobalModalConfig) => void;
-
   closeGlobalModal: () => void;
 }
 
@@ -93,29 +66,19 @@ export const createUiSlice: StateCreator<
   UiSlice
 > = (set) => ({
   theme: "dark",
-
   currentView: "operation",
   pendingView: null,
   currentMode: "operation",
-
   searchTerm: "",
-
   isSidebarOpen: false,
-
   isGlobalProcessing: false,
   overlayMessage: "",
   processingTarget: null,
-
   isLoading: false,
   isInitialLoaded: false,
-
-  initStatus: {
-    ...INITIAL_INIT_STATUS,
-  },
-
+  initStatus: INITIAL_INIT_STATUS,
   modalContent: null,
   modalConfig: null,
-
   selectedIds: {
     operation: null,
     irregular: null,
@@ -123,91 +86,85 @@ export const createUiSlice: StateCreator<
   },
 
   setTheme: (theme) =>
-    set((state) => {
+    set((state: AppState) => {
       state.theme = theme;
     }),
 
   toggleTheme: () =>
-    set((state) => {
+    set((state: AppState) => {
       state.theme = state.theme === "dark" ? "light" : "dark";
     }),
 
   setCurrentView: (view) =>
-    set((state) => {
+    set((state: AppState) => {
       state.currentView = view;
     }),
 
   setPendingView: (view) =>
-    set((state) => {
+    set((state: AppState) => {
       state.pendingView = view;
     }),
 
   setMode: (mode) =>
-    set((state) => {
+    set((state: AppState) => {
       state.currentMode = mode;
     }),
 
   setSearchTerm: (term) =>
-    set((state) => {
+    set((state: AppState) => {
       state.searchTerm = term;
     }),
 
   toggleSidebar: () =>
-    set((state) => {
+    set((state: AppState) => {
       state.isSidebarOpen = !state.isSidebarOpen;
     }),
 
   setSidebarOpen: (open) =>
-    set((state) => {
+    set((state: AppState) => {
       state.isSidebarOpen = open;
     }),
 
   setGlobalProcessing: (isProcessing, message = "", target = null) =>
-    set((state) => {
+    set((state: AppState) => {
       state.isGlobalProcessing = isProcessing;
       state.overlayMessage = message;
       state.processingTarget = isProcessing ? target : null;
     }),
 
   setIsLoading: (isLoading) =>
-    set((state) => {
+    set((state: AppState) => {
       state.isLoading = isLoading;
     }),
 
   setIsInitialLoaded: (isInitialLoaded) =>
-    set((state) => {
+    set((state: AppState) => {
       state.isInitialLoaded = isInitialLoaded;
     }),
 
   setInitStatus: (update) =>
-    set((state) => {
-      if (typeof update === "function") {
-        const result = update(state.initStatus);
-
-        if (result) {
-          Object.assign(state.initStatus, result);
-        }
-
-        return;
+    set((state: AppState) => {
+      const next =
+        typeof update === "function" ? update(state.initStatus) : update;
+      if (next) {
+        Object.assign(state.initStatus, next);
       }
-
-      Object.assign(state.initStatus, update);
     }),
 
   setSelectedId: (mode, id) =>
-    set((state) => {
+    set((state: AppState) => {
       state.selectedIds[mode] = id;
     }),
 
   openGlobalModal: (content, config) =>
-    set({
-      modalContent: content,
-      modalConfig: config ?? null,
+    set((state: AppState) => {
+      state.modalContent = content;
+      state.modalConfig = config ?? null;
     }),
 
   closeGlobalModal: () =>
-    set({
-      modalContent: null,
-      modalConfig: null,
+    set((state: AppState) => {
+      state.modalContent = null;
+      state.modalConfig = null;
     }),
 });

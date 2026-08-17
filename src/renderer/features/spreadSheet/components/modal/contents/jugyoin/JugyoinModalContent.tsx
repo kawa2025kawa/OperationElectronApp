@@ -1,11 +1,9 @@
-// src/renderer/features/spreadSheet/components/modal/contents/jugyoin/JugyoinModalContent.tsx
-
 import React from "react";
-import { commands } from "@shared/api/commands";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-import type { Jugyoin } from "@shared/types/spreadsheetTypes";
-import { useJugyoinModalLogic } from "./useJugyoinModalLogic";
+import { commands } from "@shared/api/commands";
 import * as styles from "@renderer/features/spreadSheet/components/modal/spreadSheetModal.css";
+import type { Jugyoin } from "../../../../types/spreadsheetTypes";
+import { useJugyoinModalLogic } from "../common/useJugyoinKokyuhyoModalContent";
 
 export const JugyoinModalContent: React.FC<{
   data: Jugyoin;
@@ -20,9 +18,9 @@ export const JugyoinModalContent: React.FC<{
       <div className={styles.modalHeader}>
         <h2 className={styles.modalTitle}>{title}</h2>
         <div className={styles.contactInfo}>
-          <span>内線 : {data.contact?.extension ?? "-"}</span>
-          <span>携帯(短) : {data.contact?.mobileShort ?? "-"}</span>
-          <span>携帯 : {data.contact?.mobile ?? "-"}</span>
+          <span>内線: {data.contact?.extension ?? "-"}</span>
+          <span>携帯(短): {data.contact?.mobileShort ?? "-"}</span>
+          <span>携帯: {data.contact?.mobile ?? "-"}</span>
         </div>
         {scheduleLink && (
           <button
@@ -74,10 +72,10 @@ export const JugyoinModalContent: React.FC<{
           </div>
         </div>
 
-        {/* 翌日 */}
+        {/* 明日 */}
         <div className={styles.scheduleRow}>
           <div className={styles.dateLabelBlock}>
-            <div>翌日</div>
+            <div>明日</div>
             <div className={styles.dateSubLabel}>
               {tomorrowFormatted.text}
               <span style={tomorrowFormatted.dayStyle}>

@@ -1,5 +1,4 @@
-// src/renderer/features/spreadSheet/components/modal/contents/shop/useShopModalLogic.ts
-import type { Shop } from "@shared/types/spreadsheetTypes";
+import type { Shop } from "../../../../types/spreadsheetTypes";
 import {
   useTabbedModalLogic,
   type TabGroupConfig,
@@ -16,19 +15,19 @@ export const SHOP_MODAL_GROUPS: readonly TabGroupConfig[] = [
     ],
   },
   {
-    title: "担当者",
+    title: "担当者情報",
     items: [
       { key: "managerName", label: "店長" },
       { key: "subManagerName1", label: "副店長1" },
       { key: "area", label: "エリア" },
       { key: "areaManagerName", label: "エリアMGR" },
-      { key: "centerName", label: "センター" },
+      { key: "centerName", label: "担当センター" },
     ],
   },
   {
     title: "プリンター(K)",
     items: [
-      { key: "printerK.model", label: "K型番" },
+      { key: "printerK.model", label: "K機種" },
       { key: "printerK.serial", label: "Kシリアル" },
       { key: "printerK.callTarget", label: "K連絡先" },
       { key: "printerK.weekendSupport", label: "K休日対応" },
@@ -38,7 +37,7 @@ export const SHOP_MODAL_GROUPS: readonly TabGroupConfig[] = [
   {
     title: "プリンター(B)",
     items: [
-      { key: "printerB.model", label: "B型番" },
+      { key: "printerB.model", label: "B機種" },
       { key: "printerB.serial", label: "Bシリアル" },
       { key: "printerB.callTarget", label: "B連絡先" },
       { key: "printerB.weekendSupport", label: "B休日対応" },
@@ -48,7 +47,7 @@ export const SHOP_MODAL_GROUPS: readonly TabGroupConfig[] = [
   {
     title: "プリンター(O)",
     items: [
-      { key: "printerO.model", label: "O型番" },
+      { key: "printerO.model", label: "O機種" },
       { key: "printerO.serial", label: "Oシリアル" },
       { key: "printerO.callTarget", label: "O連絡先" },
       { key: "printerO.weekendSupport", label: "O休日対応" },

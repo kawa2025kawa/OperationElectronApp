@@ -1,8 +1,9 @@
-// src/renderer/features/operation/components/contextMenu/StatusContextMenu.tsx
+//src\renderer\features\operation\components\contextMenu\StatusContextMenu.tsx
+
 import React, { useCallback } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import clsx from "clsx";
-import { useAppStore } from "@shared/store/index";
+import { useAppStore } from "@shared/store";
 import { STATUS_LABEL, STATUS_ORDER } from "@shared/types/uiType";
 import type { JobStatus } from "@shared/types/operationType";
 import * as styles from "./statusContextMenu.css";
@@ -20,7 +21,7 @@ export const StatusContextMenu: React.FC<Props> = ({ children, kanriNo }) => {
       await updateJobStatus({
         kanriNo,
         status,
-        comment: "コンテキストメニューからの更新",
+        comment: "",
       });
     },
     [kanriNo, updateJobStatus],
@@ -29,18 +30,15 @@ export const StatusContextMenu: React.FC<Props> = ({ children, kanriNo }) => {
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger asChild>{children}</ContextMenu.Trigger>
-
       <ContextMenu.Portal>
         <ContextMenu.Content className={styles.content}>
           <div className={styles.header}>
             <span className={styles.headerTitle}>Status</span>
           </div>
-
           {STATUS_ORDER.map((status) => {
             const cssVariantKey =
               status.toUpperCase() as keyof typeof styles.itemVariants;
             const toneClass = styles.itemVariants[cssVariantKey] ?? {};
-
             return (
               <ContextMenu.Item
                 key={status}

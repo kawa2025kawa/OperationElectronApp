@@ -1,13 +1,11 @@
-// src/renderer/features/operation/components/table/OperationTable.tsx
-
 import React, { useCallback } from "react";
-import type { OperationItem } from "@shared/types/operationType";
-import type { Column } from "@shared/types/tableType";
-import { useAppStore } from "@shared/store";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
+import { useAppStore } from "@shared/store";
+import type { Column } from "@shared/types/tableType";
 import { StatusContextMenu } from "@renderer/features/operation/components/contextMenu/StatusContextMenu";
-import { useOperationTable } from "./useOperationTable";
+import type { OperationItem } from "@shared/types/operationType";
 import * as styles from "./operationTable.css";
+import { useOperationTable } from "./useOperationTable";
 
 interface UnifiedTableRowProps {
   kanriNo: string;
@@ -28,9 +26,7 @@ const UnifiedTableRow: React.FC<UnifiedTableRowProps> = React.memo(
       onRowClick(kanriNo);
     }, [kanriNo, onRowClick]);
 
-    if (!item) {
-      return null;
-    }
+    if (!item) return null;
 
     const rowStateClass = isSelected
       ? styles.tableRowStates.selected
@@ -42,14 +38,6 @@ const UnifiedTableRow: React.FC<UnifiedTableRowProps> = React.memo(
         onClick={handleClick}
       >
         {columns.map((column) => {
-          /**
-           * Status列は専用コンポーネントで描画する。
-           *
-           * Status列自体を表示するかどうかは
-           * useOperationTable.ts の columns 定義側で決定する。
-           *
-           * したがってここでは currentMode を判定しない。
-           */
           if (column.key === "status") {
             return (
               <td
@@ -112,7 +100,6 @@ export const UnifiedTable: React.FC = React.memo(() => {
               {columns.map((column) => {
                 const alignKey = column.align ?? "left";
                 const alignClass = styles.thAlignVariants[alignKey] ?? "";
-
                 return (
                   <th
                     key={String(column.key)}
@@ -125,7 +112,6 @@ export const UnifiedTable: React.FC = React.memo(() => {
               })}
             </tr>
           </thead>
-
           <tbody>{rowIds.map(renderRow)}</tbody>
         </table>
       </div>

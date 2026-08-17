@@ -86,7 +86,7 @@ export const tableRowStates = styleVariants({
   },
   selected: {
     vars: {
-      [rowBgColor]: tokens.color.bg.inset,
+      [rowBgColor]: tokens.color.bg.base,
       [rowShadow]: tokens.shadow.pressed.md,
       [rowTextColor]: "transparent",
     },

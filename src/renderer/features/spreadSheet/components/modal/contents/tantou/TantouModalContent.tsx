@@ -1,9 +1,8 @@
-// src/renderer/features/spreadSheet/components/modal/contents/tantou/TantouModalContent.tsx
 import React from "react";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-import type { Tantou } from "@shared/types/spreadsheetTypes";
-import { useTantouModalLogic } from "./useTantouModalLogic";
 import * as styles from "@renderer/features/spreadSheet/components/modal/spreadSheetModal.css";
+import type { Tantou } from "../../../../types/spreadsheetTypes";
+import { useTantouModalLogic } from "./useTantouModalLogic";
 
 export interface TantouModalContentProps {
   data: Tantou;

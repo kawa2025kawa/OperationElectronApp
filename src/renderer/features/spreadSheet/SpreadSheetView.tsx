@@ -1,21 +1,20 @@
 import React, { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
+import { useAppStore } from "@shared/store";
+
+import { JugyoinKokyuhyoModalContent } from "./components/modal/contents/common/JugyoinKokyuhyoModalContent";
+import { ShopModalContent } from "./components/modal/contents/shop/ShopModalContent";
+import { TantouModalContent } from "./components/modal/contents/tantou/TantouModalContent";
+import { SpreadSheetTable } from "./components/table/SpreadSheetTable";
+import * as styles from "./spreadSheetView.css";
 import {
   SHEET_IDS,
   type SheetId,
   type SheetRowMap,
 } from "@shared/types/spreadsheetTypes";
-import { useAppStore } from "@shared/store";
 import { useSpreadSheetViewLogic } from "./useSpreadSheetViewLogic";
-import { SpreadSheetTable } from "./components/table/SpreadSheetTable";
-import * as styles from "./spreadSheetView.css";
 
-import { JugyoinKokyuhyoModalContent } from "./components/modal/contents/common/JugyoinKokyuhyoModalContent";
-import { ShopModalContent } from "./components/modal/contents/shop/ShopModalContent";
-import { TantouModalContent } from "./components/modal/contents/tantou/TantouModalContent";
-
-// 🎯 if文の連鎖を排除するためのコンポーネントマッピング定義
 const MODAL_RENDERERS: {
   [K in SheetId]?: (
     data: SheetRowMap[K],

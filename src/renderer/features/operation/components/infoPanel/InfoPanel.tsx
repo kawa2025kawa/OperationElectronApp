@@ -1,11 +1,10 @@
-// src/renderer/features/operation/components/infoPanel/InfoPanel.tsx
 import React, { useMemo } from "react";
-import { clsx } from "clsx";
+import clsx from "clsx";
 import { useShallow } from "zustand/react/shallow";
-import { useAppStore } from "@shared/store/index";
-import { formatToJapaneseDateTime } from "@shared/utils/dateUtils";
-import { selectActiveItemStatusFlags } from "@shared/store/selectors/operationSelectors";
+import { useAppStore } from "@shared/store";
 import { getStatusLabel } from "@shared/types/uiType";
+import { formatToJapaneseDateTime } from "@shared/utils/dateUtils";
+import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/operationSelectors";
 import * as styles from "./InfoPanel.css";
 
 type InfoRowProps = {
@@ -14,8 +13,7 @@ type InfoRowProps = {
 };
 
 const InfoRow = React.memo(({ label, value }: InfoRowProps) => {
-  // 「コメント」や「備考」など、複数行になる可能性がある項目を判定
-  const variant = label === "コメント" ? "remarks" : "standard";
+  const variant = label === "備考" ? "remarks" : "standard";
   return (
     <div className={clsx(styles.row, styles.rowVariants[variant])}>
       <span className={styles.infoLabel}>{label}</span>
@@ -30,6 +28,7 @@ const InfoRow = React.memo(({ label, value }: InfoRowProps) => {
     </div>
   );
 });
+
 InfoRow.displayName = "InfoRow";
 
 const InfoPanelComponent: React.FC = () => {
@@ -43,18 +42,17 @@ const InfoPanelComponent: React.FC = () => {
     }),
   );
 
-  // 表示する項目を配列として定義
   const infoRows = useMemo(
     () => [
-      { label: "管理No", value: selectedItem?.kanriNo },
-      { label: "ジョブ名", value: selectedItem?.workName },
-      { label: "ステータス", value: getStatusLabel(status) },
+      { label: "管理 No", value: selectedItem?.kanriNo },
+      { label: "作業名", value: selectedItem?.workName },
+      { label: "状態", value: getStatusLabel(status) },
       {
-        label: "開始日時",
+        label: "開始時刻",
         value: formatToJapaneseDateTime(selectedItem?.startTime),
       },
       {
-        label: "終了日時",
+        label: "終了時刻",
         value: formatToJapaneseDateTime(selectedItem?.endTime),
       },
       {
@@ -71,7 +69,7 @@ const InfoPanelComponent: React.FC = () => {
           ? selectedItem.substatus.join(", ")
           : "-",
       },
-      { label: "コメント", value: selectedItem?.comment },
+      { label: "備考", value: selectedItem?.comment },
     ],
     [selectedItem, status],
   );
@@ -89,4 +87,5 @@ const InfoPanelComponent: React.FC = () => {
 
 export const InfoPanel = React.memo(InfoPanelComponent);
 InfoPanel.displayName = "InfoPanel";
+
 export default InfoPanel;

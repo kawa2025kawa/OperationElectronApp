@@ -1,16 +1,10 @@
 ﻿// src/shared/store/slices/services/appService.ts
 
+import irregularData from "@resources/json/irregularData.json";
+import operationData from "@resources/json/operationData.json";
 import { commands } from "@shared/api/commands";
 import { useAppStore } from "@shared/store";
-
-import type {
-  JobDependenciesJson,
-  OperationItem,
-} from "@shared/types/operationType";
-
-import irregularData from "@resources/json/irregularData.json";
-import jobDependenciesData from "@resources/json/jobDependencies.json";
-import operationData from "@resources/json/operationData.json";
+import type { OperationItem } from "@shared/types/operationType";
 
 // ============================================================
 // Initial Data
@@ -18,8 +12,6 @@ import operationData from "@resources/json/operationData.json";
 
 const operations = operationData as OperationItem[];
 const irregulars = irregularData as OperationItem[];
-
-const initialJobDependencies = jobDependenciesData as JobDependenciesJson;
 
 // ============================================================
 // Constants
@@ -62,12 +54,10 @@ async function initializeSheets(isAuthenticated: boolean): Promise<void> {
       kokyuhyo: "PENDING",
       tantou: "PENDING",
     });
-
     return;
   }
 
   store.setInitStatus({ auth: "OK" });
-
   await store.prefetchSheets(store.accessToken || undefined);
 }
 
@@ -105,7 +95,6 @@ function handleInitializationError(error: unknown): void {
     "[appService] Failed to initialize app:",
     getErrorMessage(error),
   );
-
   setInitializationError();
 }
 
@@ -122,14 +111,7 @@ async function loadInitialData(): Promise<void> {
     initializeSheets(isAuthenticated),
   ]);
 
-  // jobDependencies.json はここで一度だけ読み込み、
-  // 以降は Store の jobDependencies を参照する。
-  store.setInitialRawData(
-    operations,
-    irregulars,
-    savedStatuses,
-    initialJobDependencies,
-  );
+  store.setInitialRawData(operations, irregulars, savedStatuses);
 }
 
 function markInitializationCompleted(): void {
@@ -139,7 +121,6 @@ function markInitializationCompleted(): void {
     operation: "OK",
     irregular: "OK",
   });
-
   store.setIsInitialLoaded(true);
 }
 
@@ -150,16 +131,12 @@ function markInitializationCompleted(): void {
 export const appService = {
   async initializeApp(): Promise<void> {
     const store = useAppStore.getState();
-
     store.setIsLoading(true);
 
     try {
       await showMainWindow();
-
       store.setInitStatus(INITIAL_LOADING_STATUS);
-
       await loadInitialData();
-
       markInitializationCompleted();
     } catch (error) {
       handleInitializationError(error);

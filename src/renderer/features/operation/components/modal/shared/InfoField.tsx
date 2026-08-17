@@ -1,3 +1,5 @@
+//src\renderer\features\operation\components\modal\shared\InfoField.tsx
+
 import React from "react";
 import * as styles from "./infoField.css";
 
@@ -18,7 +20,9 @@ export const InfoField: React.FC<InfoFieldProps> = React.memo(
   ({ label, value, span, isComment }) => (
     <div className={spanClassMap[span]}>
       <span className={styles.cardLabel}>{label}</span>
-      <span className={isComment ? styles.commentValue : styles.cardValue}>{value ?? "-"}</span>
+      <span className={isComment ? styles.commentValue : styles.cardValue}>
+        {value ?? "-"}
+      </span>
     </div>
   ),
 );

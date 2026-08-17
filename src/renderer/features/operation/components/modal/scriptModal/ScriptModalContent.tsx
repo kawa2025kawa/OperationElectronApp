@@ -1,18 +1,17 @@
-import React, { useEffect } from "react";
+//src\renderer\features\operation\components\modal\scriptModal\ScriptModalContent.tsx
 
+import React, { useEffect } from "react";
 import { getStatusLabel } from "@shared/types/uiType";
 import { formatToJapaneseDateTime } from "@shared/utils/dateUtils";
-
-import type { ModalContentProps } from "../useOperationModalLogic";
 import { InfoField } from "../shared/InfoField";
-
-import { useScriptModalLogic } from "./useScriptModalLogic";
+import type { ModalContentProps } from "../useOperationModalLogic";
 import * as styles from "./scriptModalContent.css";
+import { useScriptModalLogic } from "./useScriptModalLogic";
 
 export const ScriptModalContent: React.FC<ModalContentProps> = React.memo(
-  ({ registerPrimaryAction }) => {
+  ({ setTitle, registerPrimaryAction }) => {
     const { item, handleExecute } = useScriptModalLogic();
-
+    // プライマリアクションの登録
     useEffect(() => {
       registerPrimaryAction(() => {
         void handleExecute();
@@ -22,17 +21,17 @@ export const ScriptModalContent: React.FC<ModalContentProps> = React.memo(
       };
     }, [handleExecute, registerPrimaryAction]);
 
+    // モーダルのタイトル（ヘッダーメッセージ）を更新
+    useEffect(() => {
+      setTitle(item?.workName ?? "");
+    }, [item?.workName, setTitle]);
+
     return (
       <div className={styles.container}>
-        <p className={styles.mainMessage}>{`対象: ${item?.workName ?? ""}`}</p>
+        {/* メッセージ表示をヘッダーへ移動したため削除 */}
 
         <div className={styles.gridBox}>
-          <InfoField label="管理No" value={item?.kanriNo} span={2} />
-
-          <InfoField label="Job ID" value={item?.jobId} span={2} />
-
-          <InfoField label="ジョブ名" value={item?.workName} span={2} />
-
+          <InfoField label="管理No" value={item?.kanriNo} span={6} />
           <InfoField
             label="開始日時"
             value={formatToJapaneseDateTime(item?.startTime)}

@@ -1,10 +1,9 @@
-﻿// src/renderer/features/spreadSheet/components/modal/contents/common/JugyoinKokyuhyoModalContent.tsx
-import React from "react";
-import { commands } from "@shared/api/commands";
+﻿import React from "react";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-import type { Jugyoin, Kokyuhyo } from "@shared/types/spreadsheetTypes";
-import { useJugyoinModalLogic } from "../jugyoin/useJugyoinModalLogic";
+import { commands } from "@shared/api/commands";
 import * as styles from "@renderer/features/spreadSheet/components/modal/spreadSheetModal.css";
+import type { Jugyoin, Kokyuhyo } from "../../../../types/spreadsheetTypes";
+import { useJugyoinModalLogic } from "./useJugyoinKokyuhyoModalContent";
 
 export interface JugyoinKokyuhyoModalContentProps {
   data: Jugyoin | Kokyuhyo;

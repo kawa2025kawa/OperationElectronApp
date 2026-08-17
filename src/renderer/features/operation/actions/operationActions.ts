@@ -1,105 +1,64 @@
 // src/renderer/features/operation/actions/operationActions.ts
 
-import { showToast } from "@shared/utils/toastUtils";
 import { useAppStore, type AppState } from "@shared/store";
-
-import { checkJobDependencies } from "@shared/store/slices/helpers/dependencyHelper";
-import {
-  selectOperationTableData,
-  selectIrregularTableData,
-  selectActiveSelectedItem,
-} from "@shared/store/selectors/operationSelectors";
-
+import { showToast } from "@shared/utils/toastUtils";
 import { operationViewConfig } from "@renderer/features/operation/config/operationView";
+import { checkJobDependencies } from "@renderer/features/operation/helpers/dependencyHelper";
+import {
+  selectActiveSelectedItem,
+  selectIrregularTableData,
+  selectOperationTableData,
+} from "@renderer/features/operation/store/operationSelectors";
+import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
 
-import type { OperationItem } from "@shared/types/operationType";
-
-/**
- * Zustand state取得
- */
 const getState = (): AppState => useAppStore.getState();
 
-/**
- * 現在モードに応じた選択コンテキスト取得
- */
 const getSelectionContext = (state: AppState) => {
-  const isIrregular = state.currentMode === "irregular";
-
+  const mode = state.currentMode;
   return {
-    data: isIrregular
-      ? selectIrregularTableData(state)
-      : selectOperationTableData(state),
-
-    currentId: isIrregular
-      ? state.selectedIrregularId
-      : state.selectedOperationId,
-
-    setSelectedId: isIrregular
-      ? state.setSelectedIrregularId
-      : state.setSelectedOperationId,
+    data:
+      mode === "irregular"
+        ? selectIrregularTableData(state)
+        : selectOperationTableData(state),
+    currentId: state.selectedIds[mode],
+    setSelectedId: (id: string | null) => state.setSelectedId(mode, id),
   };
 };
 
-/**
- * 行選択
- */
 export function selectOperation(item: OperationItem): void {
   const { setSelectedId } = getSelectionContext(getState());
-
   setSelectedId(item.kanriNo);
 }
 
-/**
- * 下方向へ選択移動
- */
 export function moveSelectionDown(): void {
   const { data, currentId, setSelectedId } = getSelectionContext(getState());
-
   if (data.length === 0) return;
-
   const currentIndex = currentId
     ? data.findIndex((item) => item.kanriNo === currentId)
     : -1;
-
   const nextIndex = Math.min(currentIndex + 1, data.length - 1);
-
   setSelectedId(data[Math.max(0, nextIndex)].kanriNo);
 }
 
-/**
- * 上方向へ選択移動
- */
 export function moveSelectionUp(): void {
   const { data, currentId, setSelectedId } = getSelectionContext(getState());
-
   if (data.length === 0) return;
-
   const currentIndex = currentId
     ? data.findIndex((item) => item.kanriNo === currentId)
     : data.length;
-
   const prevIndex = Math.max(0, currentIndex - 1);
-
   setSelectedId(data[prevIndex].kanriNo);
 }
 
-/**
- * View Action 実行
- */
 export function executeOperationAction(actionKey: string): void {
   const state = getState();
-
   const selectedItem = selectActiveSelectedItem(state);
-
   if (!selectedItem) return;
 
   const action = operationViewConfig.actions?.find(
     (item) => item.key === actionKey,
   );
-
-  if (!action) return;
-
-  if (!action.isActive(selectedItem)) return;
+  if (!action || !action.isActive(selectedItem)) return;
 
   action.execute(selectedItem, {
     openGlobalModal: state.openGlobalModal,
@@ -107,36 +66,37 @@ export function executeOperationAction(actionKey: string): void {
   });
 }
 
-/**
- * Enterキー完了処理
- */
 export async function completeSelectedOperation(): Promise<void> {
   const state = getState();
-
   const selectedItem = selectActiveSelectedItem(state);
-
   if (!selectedItem) return;
 
-  const dependencyOk = checkJobDependencies(
+  // 🎯 ストアからアクティブフラグを取得して統合
+  const activeFlags = {
+    is1CActive: state.is1CActive,
+    is2CActive: state.is2CActive,
+    is3CActive: state.is3CActive,
+  };
+
+  const depResult = checkJobDependencies(
     selectedItem.kanriNo,
     {
       ...state.operationEntities,
       ...state.irregularEntities,
     },
-    state.jobDependencies ?? {
-      dependencies: {},
-    },
+    activeFlags,
   );
 
-  if (!dependencyOk) {
-    showToast("前提ジョブが未完了です", "error");
-
+  if (!depResult.ok) {
+    showToast("前提作業が完了していません", "error");
     return;
   }
 
   await state.updateJobStatus({
     kanriNo: selectedItem.kanriNo,
-    status: "success",
+    status: JOB_STATUS.SUCCESS,
     comment: "",
   });
+
+  showToast(`作業 [No.${selectedItem.kanriNo}] を完了しました`, "success");
 }

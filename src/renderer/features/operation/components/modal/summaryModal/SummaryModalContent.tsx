@@ -1,5 +1,3 @@
-// src/renderer/features/operation/components/modal/summaryModal/SummaryModalContent.tsx
-
 import React from "react";
 
 import type { OperationItem } from "@shared/types/operationType";
@@ -10,7 +8,6 @@ import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 
 import type { ModalContentProps } from "../useOperationModalLogic";
 
-import useSummaryModalLogic from "./useSummaryModalLogic";
 import * as styles from "./summaryModalContent.css";
 
 interface SummaryModalContentProps extends ModalContentProps {
@@ -43,15 +40,9 @@ const SUMMARY_COLUMNS: Column<OperationItem>[] = [
 
 export const SummaryModalContent: React.FC<SummaryModalContentProps> =
   React.memo(({ items }) => {
-    const { summaryItems } = useSummaryModalLogic(items);
-
     return (
       <div className={styles.container}>
-        <DataTable
-          data={summaryItems}
-          columns={SUMMARY_COLUMNS}
-          rowKey="kanriNo"
-        />
+        <DataTable data={items} columns={SUMMARY_COLUMNS} rowKey="kanriNo" />
       </div>
     );
   });

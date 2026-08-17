@@ -75,43 +75,48 @@ const createVariantStyle = (
   },
 });
 
-/** 🎯 各ステータスごとのバッジスタイルを静的に定義 */
+/** 🎯 各ステータスごとのバッジスタイルを小文字キーで定義 */
 export const valueBadgeVariants = styleVariants({
-  PROGRESS: createVariantStyle(
+  progress: createVariantStyle(
     tokens.color.status.total,
     tokens.shadow.glow.total,
   ),
-  TOTAL: createVariantStyle(
+  total: createVariantStyle(
     tokens.color.status.total,
     tokens.shadow.glow.total,
   ),
 
-  SUCCESS: (() => {
+  success: (() => {
     const t = getStatusTheme("success");
     return createVariantStyle(t.color, t.glow);
   })(),
 
-  RUNNING: (() => {
+  running: (() => {
     const t = getStatusTheme("running");
     return createVariantStyle(t.color, t.glow);
   })(),
 
-  WAITING: (() => {
+  scriptRunning: (() => {
+    const t = getStatusTheme("scriptRunning");
+    return createVariantStyle(t.color, t.glow);
+  })(),
+
+  waiting: (() => {
     const t = getStatusTheme("waiting");
     return createVariantStyle(t.color, t.glow);
   })(),
 
-  SCHEDULED: (() => {
+  scheduled: (() => {
     const t = getStatusTheme("scheduled");
     return createVariantStyle(t.color, t.glow);
   })(),
 
-  READY: (() => {
+  ready: (() => {
     const t = getStatusTheme("ready");
     return createVariantStyle(t.color, t.glow);
   })(),
 
-  ERROR: (() => {
+  error: (() => {
     const t = getStatusTheme("error");
     return createVariantStyle(t.color, t.glow);
   })(),

@@ -1,10 +1,8 @@
-// src/renderer/features/spreadSheet/config/spreadsheetViewConfigs.ts
-
 import type { AppViewDefinition } from "@renderer/registry/appRegistry";
-import { SPREADSHEET_CONFIGS } from "@shared/config/spreadsheetConfig";
-import { SHEET_IDS, type Shop } from "@shared/types/spreadsheetTypes";
 import { APP_VIEW_IDS } from "@shared/types/uiType";
 import { formatDateForHeader, getOffsetDate } from "@shared/utils/dateUtils";
+import { SHEET_IDS, type Shop } from "@shared/types/spreadsheetTypes";
+import { SPREADSHEET_CONFIGS } from "./spreadsheetConfig";
 
 // -------------------------------------------------------------
 // 共通ヘルパー: 日付ラベル生成 (Jugyoin / Kokyuhyo で共通利用)
@@ -47,7 +45,7 @@ export const jugyoinViewConfig: AppViewDefinition = {
 };
 
 // -------------------------------------------------------------
-// 2. 恒久表 (Kokyuhyo) View Config
+// 2. 局休表 (Kokyuhyo) View Config
 // -------------------------------------------------------------
 const kokyuhyoColumns = SPREADSHEET_CONFIGS[SHEET_IDS.KOKYUHYO].columns.map(
   (col) => ({

@@ -1,23 +1,14 @@
-﻿import type { AuthSession } from "@shared/types/authTypes";
-import type { OperationItem } from "@shared/types/operationType";
+﻿//src\shared\api\commands.ts
+
+import type { AuthSession } from "@shared/types/authTypes";
+import type { OperationItem, ScriptResult } from "@shared/types/operationType";
 import type { RdpTarget } from "@shared/types/rdpTypes";
 
 // =====================================================
 // Types
 // =====================================================
 
-export type JobStatusResponse = Pick<
-  OperationItem,
-  | "kanriNo"
-  | "status"
-  | "startTime"
-  | "endTime"
-  | "expectedStartTime"
-  | "expectedEndTime"
-  | "comment"
-  | "substatus"
-  | "info"
-> & {
+export type JobStatusResponse = ScriptResult & {
   updatedAt: string;
 };
 

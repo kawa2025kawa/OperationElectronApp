@@ -2,7 +2,7 @@
 import { useShallow } from "zustand/react/shallow";
 
 import { login } from "@shared/api/commands";
-import { useAppStore } from "@shared/store/index";
+import { useAppStore } from "@shared/store";
 
 export const useAuth = () => {
   const {

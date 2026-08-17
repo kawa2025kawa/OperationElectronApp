@@ -6,7 +6,6 @@ import { useShallow } from "zustand/react/shallow";
 import { APP_REGISTRY, getAppViewConfig } from "@renderer/registry/appRegistry";
 import { APP_VIEW_IDS, STATUS_LABEL } from "@shared/types/uiType";
 import { SHEET_IDS, type Tantou } from "@shared/types/spreadsheetTypes";
-import type { OperationItem, JobStatus } from "@shared/types/operationType";
 import { useAppStore, type AppState } from "@shared/store";
 
 export const useNavbarLogic = () => {
@@ -66,26 +65,16 @@ export const useNavbarLogic = () => {
     }
   }, []);
 
+  // 🎯 Store 側に集約したフィルタリング関数を呼び出すだけに変更
   const getSummaryData = useCallback((label: string) => {
-    if (label === "PROGRESS") return null;
+    const lowerLabel = label.toLowerCase();
+    if (lowerLabel === "progress") return null;
 
-    const { operationEntities, irregularEntities } = useAppStore.getState();
-
-    const allItems: OperationItem[] = [
-      ...Object.values(operationEntities),
-      ...Object.values(irregularEntities),
-    ];
-
-    const filteredItems =
-      label === "TOTAL"
-        ? allItems
-        : allItems.filter(
-            (item) => item.status === (label.toLowerCase() as JobStatus),
-          );
+    const items = useAppStore.getState().getFilteredSummaryItems(label);
 
     return {
-      title: `${STATUS_LABEL[label as keyof typeof STATUS_LABEL] ?? label} 一覧`,
-      items: filteredItems,
+      title: `${STATUS_LABEL[lowerLabel as keyof typeof STATUS_LABEL] ?? label} 一覧`,
+      items,
     };
   }, []);
 

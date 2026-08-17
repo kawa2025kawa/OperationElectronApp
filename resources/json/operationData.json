@@ -97,6 +97,11 @@
     "autoStart": true,
     "link": {
       "file": "//192.88.100.1/diskD/execute/log"
+    },
+    "dependency": {
+      "dependsOn": ["14"],
+      "requiredStatus": ["success"],
+      "condition": "every"
     }
   },
   {
@@ -148,6 +153,11 @@
     "autoStart": true,
     "link": {
       "チェックフォルダ": "//172.25.101.51/if/AUTOORD/RCV/SV"
+    },
+    "dependency": {
+      "dependsOn": ["19"],
+      "requiredStatus": ["success"],
+      "condition": "every"
     }
   },
   {
@@ -185,6 +195,11 @@
     "autoStart": true,
     "link": {
       "チェックフォルダ": "//172.25.101.51/if/MASTER/RCV/SV"
+    },
+    "dependency": {
+      "dependsOn": ["24"],
+      "requiredStatus": ["success"],
+      "condition": "every"
     }
   },
   {
@@ -213,14 +228,18 @@
     "workName": "【No.1発注】EOBオフライン状態確認",
     "manual": true
   },
-
   {
     "kanriNo": "30",
     "jobId": "ZHA8010",
     "scheduledTime": "9:22",
     "kanshiTime": "1:00",
     "workName": "【No.1発注】店舗PC受信データ振分",
-    "manual": true
+    "manual": true,
+    "dependency": {
+      "dependsOn": ["29"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "31",
@@ -272,7 +291,12 @@
     "scheduledTime": "11:02",
     "kanshiTime": "1:00",
     "workName": "【No.2発注】店舗PC受信データ振分",
-    "manual": true
+    "manual": true,
+    "dependency": {
+      "dependsOn": ["36"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "38",
@@ -289,6 +313,11 @@
     "autoStart": true,
     "link": {
       "チェックフォルダ": "//172.25.101.51/if/MASTER/RCV"
+    },
+    "dependency": {
+      "dependsOn": ["38"],
+      "requiredStatus": ["success"],
+      "condition": "every"
     }
   },
   {
@@ -329,13 +358,23 @@
     "scheduledTime": "13:02",
     "kanshiTime": "1:00",
     "workName": "【No.3発注】店舗PC受信データ振分",
-    "manual": true
+    "manual": true,
+    "dependency": {
+      "dependsOn": ["44"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "N37",
     "kanshiTime": "1:00",
     "workName": "事前確定",
-    "manual": true
+    "manual": true,
+    "dependency": {
+      "dependsOn": ["45"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "46",
@@ -369,7 +408,12 @@
     "scheduledTime": "14:22",
     "kanshiTime": "1:00",
     "workName": "【No.4発注】店舗PC受信データ振分",
-    "manual": true
+    "manual": true,
+    "dependency": {
+      "dependsOn": ["47"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "N11",
@@ -385,6 +429,11 @@
     "autoStart": false,
     "link": {
       "操作マニュアル": "//172.25.101.51/if/WMSSLIP/RCV"
+    },
+    "dependency": {
+      "dependsOn": ["N11"],
+      "requiredStatus": ["success"],
+      "condition": "every"
     }
   },
   {
@@ -392,7 +441,12 @@
     "jobId": "DSI8020",
     "scheduledTime": "15:00",
     "kanshiTime": "3:00",
-    "workName": "【仕入①】センター経由確定データ取込"
+    "workName": "【仕入①】センター経由確定データ取込",
+    "dependency": {
+      "dependsOn": ["N12"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "50",
@@ -428,20 +482,34 @@
     "scheduledTime": "16:02",
     "kanshiTime": "1:00",
     "workName": "【No.5発注】店舗PC受信データ振分",
-    "manual": true
+    "manual": true,
+    "dependency": {
+      "dependsOn": ["52"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "55",
     "jobId": "DHA8120",
     "kanshiTime": "1:00",
-    "workName": "センター納品予定データ送信"
+    "workName": "センター納品予定データ送信",
+    "dependency": {
+      "dependsOn": ["54"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "N18",
     "workName": "本部計上金額チェック",
-    "manual": true
+    "manual": true,
+    "dependency": {
+      "dependsOn": ["49"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
-
   {
     "kanriNo": "60",
     "scheduledTime": "16:30",
@@ -451,7 +519,12 @@
   {
     "kanriNo": "61",
     "workName": "マスタメンテデータ抽出",
-    "manual": true
+    "manual": true,
+    "dependency": {
+      "dependsOn": ["60"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "62",
@@ -461,13 +534,23 @@
     "autoStart": false,
     "link": {
       "操作マニュアル": "//172.25.101.51/if/MASTER/RCV"
+    },
+    "dependency": {
+      "dependsOn": ["61"],
+      "requiredStatus": ["success"],
+      "condition": "every"
     }
   },
   {
     "kanriNo": "63",
     "jobId": "NMA8000",
     "kanshiTime": "1:00",
-    "workName": "MD-商品・特売マスタ更新"
+    "workName": "MD-商品・特売マスタ更新",
+    "dependency": {
+      "dependsOn": ["62"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "64",
@@ -477,24 +560,44 @@
     "autoStart": false,
     "link": {
       "操作マニュアル": "//172.25.101.51/if/LOG/DCMMD"
+    },
+    "dependency": {
+      "dependsOn": ["63"],
+      "requiredStatus": ["success"],
+      "condition": "every"
     }
   },
   {
     "kanriNo": "65",
     "jobId": "NMA8100",
     "kanshiTime": "1:00",
-    "workName": "新MM集配信マスタ更新"
+    "workName": "新MM集配信マスタ更新",
+    "dependency": {
+      "dependsOn": ["64"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "66",
     "workName": "マスタメンテシステム LOCK解除",
-    "manual": true
+    "manual": true,
+    "dependency": {
+      "dependsOn": ["65"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "67",
     "jobId": "NMA8200",
     "kanshiTime": "1:00",
-    "workName": "外部連携マスタ日次出力"
+    "workName": "外部連携マスタ日次出力",
+    "dependency": {
+      "dependsOn": ["55", "65", "66"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "58",
@@ -545,19 +648,40 @@
     "kanriNo": "75",
     "jobId": "NSI8020",
     "kanshiTime": "1:00",
-    "workName": "仕入日次IF出力"
+    "workName": "仕入日次IF出力",
+    "dependency": {
+      "dependsOn": ["49", "69", "70", "67"],
+      "requiredStatus": {
+        "49": ["success"],
+        "69": ["success"],
+        "70": ["success"],
+        "67": ["success", "running", "scriptRunning"]
+      },
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "76",
     "jobId": "BENIF0001_外部システム向けマスタＩＦ",
     "kanshiTime": "1:00",
-    "workName": "外部システム向けマスタIF"
+    "workName": "外部システム向けマスタIF",
+    "dependency": {
+      "dependsOn": ["49", "55", "65"],
+      "requiredStatus": ["success"],
+      "condition": "every",
+      "requiresActive": ["is1CActive", "is2CActive", "is3CActive"]
+    }
   },
   {
     "kanriNo": "N21",
     "kanshiTime": "1:00",
     "workName": "請求データエラー確認",
-    "manual": true
+    "manual": true,
+    "dependency": {
+      "dependsOn": ["57"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "N32",
@@ -565,7 +689,6 @@
     "workName": "井ノ瀬運送PC確認",
     "manual": true
   },
-
   {
     "kanriNo": "71",
     "jobId": "NUR8021",
@@ -591,17 +714,32 @@
     "kanriNo": "77",
     "jobId": "JIDOH_N_001",
     "kanshiTime": "1:00",
-    "workName": "自動発注関連マスタ生成"
+    "workName": "自動発注関連マスタ生成",
+    "dependency": {
+      "dependsOn": ["73"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "N27",
     "workName": "WebLogic再起動",
-    "manual": true
+    "manual": true,
+    "dependency": {
+      "dependsOn": ["75", "76"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "N28",
-    "workName": "リベートサーバ　バックアップ",
-    "manual": true
+    "workName": "リベートサーバ バックアップ",
+    "manual": true,
+    "dependency": {
+      "dependsOn": ["75", "76"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "68",
@@ -611,24 +749,42 @@
     "autoStart": true,
     "link": {
       "チェックフォルダ": "//172.25.101.51/if/LOG/DCMEOB1"
+    },
+    "dependency": {
+      "dependsOn": ["67"],
+      "requiredStatus": ["success"],
+      "condition": "every"
     }
   },
   {
     "kanriNo": "N33",
     "scheduledTime": "17:30",
-    "workName": "VINX向けPOS配信データ　格納済み確認",
+    "workName": "VINX向けPOS配信データ 格納済み確認",
     "manual": true,
     "script": true,
     "autoStart": false,
-    "link": { "url": "http://172.31.1.4:28080/mc/login" }
+    "link": {
+      "url": "http://172.31.1.4:28080/mc/login"
+    },
+    "dependency": {
+      "dependsOn": ["67"],
+      "requiredStatus": ["success"],
+      "condition": "every",
+      "afterTime": "17:30"
+    }
   },
   {
     "kanriNo": "N25",
     "workName": "WMS日付確認",
     "manual": true,
     "link": {
-      "操作マニュアル": "\\serverpathmanual",
-      "チェックフォルダ": "\\serverpathcheck"
+      "操作マニュアル": "\\\\serverpathmanual",
+      "チェックフォルダ": "\\\\serverpathcheck"
+    },
+    "dependency": {
+      "dependsOn": ["76"],
+      "requiredStatus": ["success"],
+      "condition": "every"
     }
   },
   {
@@ -636,7 +792,14 @@
     "workName": "WEB-EDI動作確認",
     "manual": true,
     "script": true,
-    "link": { "url": "https://www2.belc.co.jp:8002/webedi/belcwebedi.html" }
+    "link": {
+      "url": "https://www2.belc.co.jp:8002/webedi/belcwebedi.html"
+    },
+    "dependency": {
+      "dependsOn": ["N27"],
+      "requiredStatus": ["success"],
+      "condition": "every"
+    }
   },
   {
     "kanriNo": "79",
@@ -653,6 +816,11 @@
     "autoStart": true,
     "link": {
       "操作マニュアル": "//172.25.101.51/if/MASTER/RCV/SV"
+    },
+    "dependency": {
+      "dependsOn": ["79"],
+      "requiredStatus": ["success"],
+      "condition": "every"
     }
   },
   {

@@ -1,4 +1,4 @@
-// src/shared/types/rdpTypes.ts
+//src\shared\types\rdpTypes.ts
 
 /**
  * フロントエンドで利用するRDP接続先

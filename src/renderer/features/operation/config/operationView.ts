@@ -5,9 +5,9 @@ import type {
   AppViewDefinition,
   ViewActionDefinition,
 } from "@shared/types/appRegistryType";
-import { APP_VIEW_IDS, type OperationModalType } from "@shared/types/uiType";
-import type { OperationItem } from "@shared/types/operationType";
+import { APP_VIEW_IDS, type ExtraModalType } from "@shared/types/uiType";
 import { OperationModal } from "@renderer/features/operation/components/modal/OperationModal";
+import type { OperationItem } from "@shared/types/operationType";
 
 const DEFAULT_MODAL_SIZE = {
   width: "min(80vw, 800px)",
@@ -15,7 +15,7 @@ const DEFAULT_MODAL_SIZE = {
 };
 
 const createOperationAction = (
-  type: OperationModalType,
+  type: ExtraModalType,
   label: string,
   isActive: (item: OperationItem) => boolean,
   modalSize = DEFAULT_MODAL_SIZE,
@@ -26,7 +26,7 @@ const createOperationAction = (
   modalType: type,
   modalSize,
 
-  isActive: (item) => Boolean(item && isActive(item)),
+  isActive: (item) => Boolean(item && isActive(item as OperationItem)),
 
   execute: (_item, store) => {
     store.openGlobalModal(
@@ -61,7 +61,7 @@ export const operationViewConfig: AppViewDefinition = {
     createOperationAction(
       "jc",
       "JC",
-      (item) => Boolean(item.jobId && item.jobId !== "-"),
+      (item) => Boolean("jobId" in item && item.jobId && item.jobId !== "-"),
       {
         width: "min(80vw, 950px)",
         height: "min(70vh, 550px)",
@@ -70,10 +70,6 @@ export const operationViewConfig: AppViewDefinition = {
 
     createOperationAction("link", "Link", (item) =>
       Boolean(item.link && Object.keys(item.link).length > 0),
-    ),
-
-    createOperationAction("url", "URL", (item) =>
-      Boolean(item.url && Object.keys(item.url).length > 0),
     ),
 
     createOperationAction("manual", "Manual", (item) => Boolean(item.kanriNo), {

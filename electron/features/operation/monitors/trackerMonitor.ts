@@ -1,0 +1,93 @@
+﻿// electron/features/operation/monitors/trackerMonitor.ts
+import type { OperationItem } from "@shared/types/operationType";
+import { JOB_STATUS } from "@shared/types/operationType";
+import {
+  getStatus,
+  updateStatus,
+} from "@electron/features/operation/statusManager";
+import {
+  applyTrackerItem,
+  fetchTrackerByJobId,
+} from "@electron/features/operation/tracker";
+
+/**
+ * Target オブジェクトが有効な JobID を保持しているか判定
+ */
+export function hasJobId(target: OperationItem): boolean {
+  return (
+    "jobId" in target &&
+    typeof target.jobId === "string" &&
+    target.jobId.trim() !== "" &&
+    target.jobId !== "-"
+  );
+}
+
+/**
+ * ステータスが完了状態（成功またはエラー）か判定
+ */
+export function isCompleted(status?: string | null): boolean {
+  return status === JOB_STATUS.SUCCESS || status === JOB_STATUS.ERROR;
+}
+
+/**
+ * Tracker API 監視対象のターゲットか判定
+ * 1. 有効な JobID を保持している
+ * 2. 完了状態（success / error）ではない
+ * 3. ready / running / scriptRunning のいずれかである
+ */
+export function isTrackerTarget(target: OperationItem): boolean {
+  if (!hasJobId(target)) {
+    return false;
+  }
+  const currentStatus = getStatus(target.kanriNo)?.status;
+  if (isCompleted(currentStatus)) {
+    return false;
+  }
+  return (
+    currentStatus === JOB_STATUS.READY ||
+    currentStatus === JOB_STATUS.RUNNING ||
+    currentStatus === JOB_STATUS.SCRIPT_RUNNING
+  );
+}
+
+/**
+ * 単一ターゲットの Tracker API 状態を取得して同期更新
+ */
+export async function updateTracker(target: OperationItem): Promise<void> {
+  try {
+    const [tracker] = await fetchTrackerByJobId(target);
+    if (!tracker) return;
+
+    const item = applyTrackerItem(tracker, target);
+    updateStatus({
+      kanriNo: target.kanriNo,
+      status: item.status,
+      comment: item.comment,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      expectedStartTime: item.expectedStartTime,
+      expectedEndTime: item.expectedEndTime,
+      substatus: item.substatus,
+      info: item.info,
+    });
+  } catch (error) {
+    console.error("[TrackerMonitor] Tracker FAILED", {
+      kanriNo: target.kanriNo,
+      jobId: "jobId" in target ? target.jobId : undefined,
+      error,
+    });
+  }
+}
+
+/**
+ * 監視対象となる全ターゲットの Tracker API ステータスを並列同期
+ */
+export async function syncTrackerStatuses(
+  targets: OperationItem[],
+): Promise<void> {
+  const trackerTargets = targets.filter(isTrackerTarget);
+  console.log("[TrackerMonitor] tracker targets", {
+    count: trackerTargets.length,
+  });
+  await Promise.all(trackerTargets.map(updateTracker));
+}

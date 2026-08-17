@@ -1,4 +1,6 @@
-﻿export interface OAuthToken {
+﻿//src\shared\types\authTypes.ts
+
+export interface OAuthToken {
   accessToken: string;
   refreshToken: string | null;
   expiresIn: number | null;

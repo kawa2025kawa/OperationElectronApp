@@ -1,12 +1,7 @@
-// src/renderer/features/operation/components/modal/confirmModal/ConfirmModalContent.tsx
-
 import React from "react";
-
-import type { ModalContentProps } from "../useOperationModalLogic";
-
-import { useConfirmModalLogic } from "./useConfirmModalLogic";
-
+import type { ModalContentProps } from "@renderer/features/operation/components/modal/useOperationModalLogic";
 import * as styles from "./confirmModalContent.css";
+import { useConfirmModalLogic } from "./useConfirmModalLogic";
 
 interface ConfirmModalContentProps extends ModalContentProps {
   url?: string | null;
@@ -25,12 +20,11 @@ export const ConfirmModalContent: React.FC<ConfirmModalContentProps> =
     return (
       <div className={styles.container}>
         <p className={styles.mainMessage}>{label}</p>
-
         <div className={styles.urlDisplayBox}>
           {hasUrl ? (
             <p className={styles.urlText}>{finalUrl}</p>
           ) : (
-            <p className={styles.urlText}>{label}が設定されていません</p>
+            <p className={styles.urlText}>{label}未設定</p>
           )}
         </div>
       </div>

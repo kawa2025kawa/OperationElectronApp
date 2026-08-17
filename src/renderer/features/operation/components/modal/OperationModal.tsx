@@ -1,10 +1,9 @@
+// src/renderer/features/operation/components/modal/OperationModal.tsx
+
 import React, { useMemo } from "react";
-
-import type { OperationItem } from "@shared/types/operationType";
-import type { OperationModalType } from "@shared/types/uiType";
-
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-
+import type { OperationItem } from "@shared/types/operationType";
+import type { ExtraModalType } from "@shared/types/uiType";
 import { ConfirmModalContent } from "./confirmModal/ConfirmModalContent";
 import { JcModalContent } from "./jcModal/JcModalContent";
 import { LinkModalContent } from "./linkModal/LinkModalContent";
@@ -19,7 +18,7 @@ import {
 import * as styles from "./operationModal.css";
 
 interface OperationModalProps {
-  type: OperationModalType;
+  type: ExtraModalType;
   items?: OperationItem[];
   onClose: () => void;
 }
@@ -29,7 +28,6 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
     const {
       title,
       selectedItem,
-      urlValue,
       isExecuted,
       setTitle,
       registerPrimaryAction,
@@ -65,11 +63,6 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
 
         case "link":
           return <LinkModalContent {...commonProps} />;
-
-        case "url":
-          return (
-            <ConfirmModalContent {...commonProps} url={urlValue} label="URL" />
-          );
 
         case "manual":
           return (
@@ -115,13 +108,16 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
                 閉じる
               </button>
 
-              <button
-                type="button"
-                className={styles.button}
-                onClick={handlePrimaryClick}
-              >
-                実行
-              </button>
+              {/* 🎯 summary 以外のモーダルの時だけ実行ボタンを表示 */}
+              {type !== "summary" && (
+                <button
+                  type="button"
+                  className={styles.button}
+                  onClick={handlePrimaryClick}
+                >
+                  実行
+                </button>
+              )}
             </>
           )}
         </footer>

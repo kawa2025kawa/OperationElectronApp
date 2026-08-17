@@ -17,7 +17,6 @@ export const infoCard = style([
     selectors: {
       "&:hover": {
         boxShadow: tokens.shadow.glow.cyan,
-        transform: "translateY(-1px)",
       },
     },
   },

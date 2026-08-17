@@ -1,9 +1,8 @@
-//src\renderer\features\auth\AuthView.tsx
-
 import React from "react";
 import { clsx } from "clsx";
-import { useAuth } from "./hooks/useAuth";
+
 import * as styles from "./authView.css";
+import { useAuth } from "./hooks/useAuth";
 
 const Card = ({
   children,
