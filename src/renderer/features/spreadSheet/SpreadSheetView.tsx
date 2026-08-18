@@ -12,28 +12,50 @@ import {
   SHEET_IDS,
   type SheetId,
   type SheetRowMap,
+  type Jugyoin,
+  type Kokyuhyo,
+  type Shop,
+  type Tantou,
 } from "@shared/types/spreadsheetTypes";
 import { useSpreadSheetViewLogic } from "./useSpreadSheetViewLogic";
 
-const MODAL_RENDERERS: {
-  [K in SheetId]?: (
-    data: SheetRowMap[K],
-    title: string,
-    onClose: () => void,
-  ) => React.ReactNode;
-} = {
-  [SHEET_IDS.KOKYUHYO]: (data, title, onClose) => (
-    <JugyoinKokyuhyoModalContent data={data} title={title} onClose={onClose} />
-  ),
-  [SHEET_IDS.JUGYOIN]: (data, title, onClose) => (
-    <JugyoinKokyuhyoModalContent data={data} title={title} onClose={onClose} />
-  ),
-  [SHEET_IDS.SHOP]: (data, title, onClose) => (
-    <ShopModalContent data={data} title={title} onClose={onClose} />
-  ),
-  [SHEET_IDS.TANTOU]: (data, title, onClose) => (
-    <TantouModalContent data={data} title={title} onClose={onClose} />
-  ),
+// --------------------------------------------------------------------------
+// モーダル生成ヘルパー
+// --------------------------------------------------------------------------
+const renderModalContent = <K extends SheetId>(
+  sheetId: K,
+  data: SheetRowMap[K],
+  title: string,
+  onClose: () => void,
+): React.ReactNode => {
+  switch (sheetId) {
+    case SHEET_IDS.KOKYUHYO:
+    case SHEET_IDS.JUGYOIN:
+      return (
+        <JugyoinKokyuhyoModalContent
+          data={data as Jugyoin | Kokyuhyo}
+          title={title}
+          onClose={onClose}
+        />
+      );
+
+    case SHEET_IDS.SHOP:
+      return (
+        <ShopModalContent data={data as Shop} title={title} onClose={onClose} />
+      );
+
+    case SHEET_IDS.TANTOU:
+      return (
+        <TantouModalContent
+          data={data as Tantou}
+          title={title}
+          onClose={onClose}
+        />
+      );
+
+    default:
+      return null;
+  }
 };
 
 export const SpreadSheetView: React.FC = React.memo(() => {
@@ -59,13 +81,23 @@ export const SpreadSheetView: React.FC = React.memo(() => {
       const modalConfig = config?.modalConfig;
       if (!modalConfig || !sheetId) return;
 
-      const renderer = MODAL_RENDERERS[sheetId];
-      if (!renderer) return;
-
       const raw = row as unknown as Record<string, unknown>;
-      const title = typeof raw.name === "string" ? raw.name : config.title;
 
-      const modalContent = renderer(row as never, title, closeGlobalModal);
+      // ⭕ フォールバック付きの完全なタイトル抽出 (氏名 -> 店舗名 -> 設定タイトル)
+      const title =
+        (typeof raw.name === "string" && raw.name) ||
+        (typeof raw.shopName === "string" && raw.shopName) ||
+        config.title ||
+        "詳細情報";
+
+      const modalContent = renderModalContent(
+        sheetId,
+        row,
+        title,
+        closeGlobalModal,
+      );
+
+      if (!modalContent) return;
 
       openGlobalModal(modalContent, {
         width: modalConfig.modalSize.width,

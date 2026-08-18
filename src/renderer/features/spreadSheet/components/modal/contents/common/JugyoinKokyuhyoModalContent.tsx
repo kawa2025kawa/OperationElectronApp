@@ -2,7 +2,7 @@
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import { commands } from "@shared/api/commands";
 import * as styles from "@renderer/features/spreadSheet/components/modal/spreadSheetModal.css";
-import type { Jugyoin, Kokyuhyo } from "../../../../types/spreadsheetTypes";
+import type { Jugyoin, Kokyuhyo } from "@shared/types/spreadsheetTypes";
 import { useJugyoinModalLogic } from "./useJugyoinKokyuhyoModalContent";
 
 export interface JugyoinKokyuhyoModalContentProps {
@@ -36,6 +36,7 @@ export const JugyoinKokyuhyoModalContent: React.FC<JugyoinKokyuhyoModalContentPr
           )}
           <CloseButton onClick={onClose} />
         </div>
+
         <div className={styles.modalContentContainer}>
           {/* 本日 */}
           <div className={styles.scheduleRow}>
@@ -73,7 +74,8 @@ export const JugyoinKokyuhyoModalContent: React.FC<JugyoinKokyuhyoModalContentPr
               </div>
             </div>
           </div>
-          {/* 明日 */}
+
+          {/* 明日 (ラベルを AM2/PM2 に最適化) */}
           <div className={styles.scheduleRow}>
             <div className={styles.dateLabelBlock}>
               <div>明日</div>
@@ -85,25 +87,25 @@ export const JugyoinKokyuhyoModalContent: React.FC<JugyoinKokyuhyoModalContentPr
               </div>
             </div>
             <div className={styles.infoBlock}>
-              <div className={styles.infoLabel}>AM1</div>
+              <div className={styles.infoLabel}>AM2</div>
               <div className={styles.infoValue}>
                 {data.tomorrow?.amStatus ?? "-"}
               </div>
             </div>
             <div className={styles.infoBlock}>
-              <div className={styles.infoLabel}>AM1詳細</div>
+              <div className={styles.infoLabel}>AM2詳細</div>
               <div className={styles.infoValue}>
                 {data.tomorrow?.amDetail ?? "-"}
               </div>
             </div>
             <div className={styles.infoBlock}>
-              <div className={styles.infoLabel}>PM1</div>
+              <div className={styles.infoLabel}>PM2</div>
               <div className={styles.infoValue}>
                 {data.tomorrow?.pmStatus ?? "-"}
               </div>
             </div>
             <div className={styles.infoBlock}>
-              <div className={styles.infoLabel}>PM1詳細</div>
+              <div className={styles.infoLabel}>PM2詳細</div>
               <div className={styles.infoValue}>
                 {data.tomorrow?.pmDetail ?? "-"}
               </div>

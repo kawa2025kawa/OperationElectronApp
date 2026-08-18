@@ -1,6 +1,4 @@
-﻿﻿// src/shared/store/slices/services/pdfUploadService.ts
-
-import { commands } from "@shared/api/commands";
+﻿﻿import { commands } from "@shared/api/commands";
 
 import type { ValidatedPdf } from "../pdfUploadSlice";
 
@@ -57,9 +55,13 @@ export const pdfUploadService = {
 
     logUploadSequence(request.filePaths);
 
+    // 1. Mainプロセスのメモリ領域にパラメータをセット
     await commands.tempomaticUploadDocument(
       request.filePaths,
       request.expireDate,
     );
+
+    // 2. 他ジョブと同様に executeScript を経由して実行
+    await commands.executeScript("30");
   },
 };

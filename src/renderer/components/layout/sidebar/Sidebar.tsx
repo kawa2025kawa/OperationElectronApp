@@ -1,20 +1,15 @@
-//src\renderer\components\layout\sidebar\Sidebar.tsx
+// src/renderer/components/layout/sidebar/Sidebar.tsx
 
 import { clsx } from "clsx";
-import { useShallow } from "zustand/react/shallow";
 
-import { useAppStore } from "@shared/store/index";
 import { Overlay } from "@renderer/components/ui/overlay/Overlay";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 
-import { useSidebarLogic } from "./hooks/useSidebarLogic";
-// ⭕ 修正: @shared ではなく @renderer/registry/appRegistry からインポート
+import { useSidebarLogic } from "./useSidebarLogic";
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";
 
 import * as styles from "./sidebar.css";
 
-// レジストリからサイドバー表示対象を抽出し、並び順（order）でソート
-// レジストリからサイドバー表示対象を抽出し、並び順（order）でソート
 const ORDERED_MENU_ITEMS = Object.values(APP_REGISTRY)
   .filter((item) => item.sidebarMenu?.show)
   .sort((a, b) => (a.sidebarMenu?.order ?? 0) - (b.sidebarMenu?.order ?? 0));
@@ -27,18 +22,8 @@ export const Sidebar = () => {
     toggleSidebar,
     setSidebarOpen,
     toggleTheme,
-  } = useAppStore(
-    useShallow((s) => ({
-      currentView: s.currentView,
-      isSidebarOpen: s.isSidebarOpen,
-      theme: s.theme,
-      toggleSidebar: s.toggleSidebar,
-      setSidebarOpen: s.setSidebarOpen,
-      toggleTheme: s.toggleTheme,
-    })),
-  );
-
-  const { handleItemClick } = useSidebarLogic();
+    handleItemClick,
+  } = useSidebarLogic();
 
   return (
     <>
@@ -71,13 +56,10 @@ export const Sidebar = () => {
           <span className={styles.footerLabel}>Dark Mode</span>
 
           <button
+            type="button"
             className={styles.toggleTrack}
             onClick={toggleTheme}
             aria-label="テーマ切り替え"
-            style={{
-              border: "none",
-              padding: 0,
-            }}
           >
             <div className={styles.toggleThumb} data-state={theme} />
           </button>
@@ -86,5 +68,7 @@ export const Sidebar = () => {
     </>
   );
 };
+
+Sidebar.displayName = "Sidebar";
 
 export default Sidebar;

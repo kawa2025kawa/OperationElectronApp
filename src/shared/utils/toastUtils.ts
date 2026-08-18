@@ -1,22 +1,28 @@
 // src/shared/utils/toastUtils.ts
 
-// src/shared/utils/toastUtils.ts
+import {
+  useToastStore,
+  type ToastType,
+} from "@renderer/components/ui/toast/toastStore";
 
-import { toast } from "sonner";
+export type { ToastType };
 
-export type ToastType = "success" | "error" | "info" | "warning";
-
+/**
+ * アプリ共通のトースト通知呼び出し関数
+ */
 export const showToast = (
   message: string,
   type: ToastType = "info",
-  duration = 10000,
+  duration = 4000,
 ): void => {
-  const toastDuration = type === "error" ? Infinity : duration;
-
-  // sonner の各タイプ(toast.error, toast.success等)を呼び出す
-  toast[type](message, { duration: toastDuration });
+  // エラー時は自動消去時間を長め（8秒）に設定、それ以外は4秒
+  const toastDuration = type === "error" ? 8000 : duration;
+  useToastStore.getState().addToast(message, type, toastDuration);
 };
 
+/**
+ * エラー通知用ショートカット関数
+ */
 export const showErrorToast = (error: unknown, prefix?: string): void => {
   const message = error instanceof Error ? error.message : String(error);
   const finalMessage = prefix ? `${prefix}: ${message}` : message;

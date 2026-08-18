@@ -1,7 +1,9 @@
-import { style } from "@vanilla-extract/css";
-import { tokens } from "@renderer/styles/tokens";
+// src/renderer/components/ui/toast/toast.css.ts
 
-/** 🎯 通知パネル全体のコンテナ（画面右上の固定枠） */
+import { style, styleVariants } from "@vanilla-extract/css";
+import { tokens, themeTransition } from "@renderer/styles/tokens";
+
+/** 🎯 通知パネルコンテナ (statusContextMenu の content と同じ質感) */
 export const notificationPanelWrapper = style({
   position: "fixed",
   top: "110px",
@@ -12,18 +14,19 @@ export const notificationPanelWrapper = style({
 
   display: "flex",
   flexDirection: "column",
-  gap: "1.5vmin",
+  gap: tokens.space.xs,
 
   zIndex: tokens.zIndex.toast,
-  padding: "2vmin",
+  padding: tokens.space.xs,
   borderRadius: tokens.radius.lg,
 
-  backgroundColor: "rgba(18, 18, 20, 0.65)",
-  backdropFilter: "blur(16px)",
-  WebkitBackdropFilter: "blur(16px)",
-
-  border: "1px solid rgba(255, 255, 255, 0.1)",
+  /* StatusContextMenu (content) と同じ背景・枠線・ブラー */
+  backgroundColor: "rgba(0, 0, 0, 0.45)",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+  border: "2px solid rgba(0, 0, 0, 0.6)",
   boxShadow: tokens.shadow.raised.high,
+  isolation: "isolate",
 
   overflowY: "auto",
   scrollbarWidth: "none",
@@ -35,81 +38,120 @@ export const notificationPanelWrapper = style({
   },
 });
 
-/** 🎯 パネルヘッダー配置枠 */
+/** 🎯 パネルヘッダー (statusContextMenu の header と同じ) */
 export const headerWrapper = style({
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  paddingInline: "0.5vmin",
+  padding: `${tokens.space.xs} ${tokens.space.sm}`,
+  borderBottom: `1px solid ${tokens.color.border.default}`,
+  marginBottom: tokens.space.xs,
+  gap: tokens.space.md,
   flexShrink: 0,
 });
 
-/** 🎯 パネルヘッダータイトル */
+/** 🎯 ヘッダータイトル (statusContextMenu の headerTitle と同じ) */
 export const panelHeader = style({
-  fontSize: "clamp(11px, 1.8vmin, 14px)",
-  fontWeight: 700,
-  letterSpacing: "0.08em",
-  opacity: 0.7,
-  textTransform: "uppercase",
-  color: tokens.color.text.onAccent,
+  fontSize: tokens.font.size.sm,
+  fontWeight: tokens.font.weight.bold,
+  color: tokens.color.text.base,
+  whiteSpace: "nowrap",
 });
 
-/** 🎯 トーストカード一覧のラッパー */
 export const toastList = style({
   display: "flex",
   flexDirection: "column",
-  gap: "1.2vmin",
-  minHeight: 0,
+  gap: tokens.space.xs,
+  width: "100%",
 });
 
-/** 🎯 個別トーストカードのベーススタイル */
-export const toastBase = style({
-  position: "relative",
-  padding: "1.2vmin 1.6vmin",
-  borderRadius: tokens.radius.md,
+/** 🎯 トーストカードベース (statusContextMenu の itemBase と同じ質感・アニメーション) */
+export const toastBase = style([
+  themeTransition,
+  {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    width: "100%",
+    gap: tokens.space.md,
+    padding: `${tokens.space.sm} ${tokens.space.md}`,
+    borderRadius: tokens.radius.sm,
+    fontSize: tokens.font.size.sm,
+    fontWeight: tokens.font.weight.bold,
+    boxSizing: "border-box",
 
+    backgroundColor: "transparent",
+    border: `1px solid ${tokens.color.border.subtle}`,
+    boxShadow: tokens.shadow.raised.low,
+
+    transition: `
+      box-shadow ${tokens.transition.ease},
+      color ${tokens.transition.ease},
+      background-color ${tokens.transition.ease},
+      transform ${tokens.transition.fast}
+    `,
+
+    selectors: {
+      "&:hover": {
+        backgroundColor: tokens.color.bg.inset,
+        transform: "translateX(2px)",
+        boxShadow: tokens.shadow.raised.md,
+      },
+    },
+  },
+]);
+
+/** 🎯 閉じるボタン */
+export const closeBadgeButton = style({
+  appearance: "none",
+  border: "none",
+  outline: "none",
+  background: "transparent",
+  color: tokens.color.text.base,
+  opacity: 0.6,
+  cursor: "pointer",
+  padding: tokens.space.xs,
+  fontSize: tokens.font.size.sm,
   display: "flex",
   alignItems: "center",
-  gap: "1.2vmin",
-
-  fontSize: "clamp(12px, 1.8vmin, 14px)",
-  fontWeight: 600,
-  lineHeight: 1.4,
-
-  flexShrink: 0,
-  overflow: "hidden",
-
-  backgroundColor: tokens.color.bg.base,
-  boxShadow: tokens.shadow.raised.md,
-  border: `1px solid ${tokens.color.border.subtle}`,
-  transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+  justifyContent: "center",
+  transition: `opacity ${tokens.transition.fast}`,
 
   selectors: {
     "&:hover": {
-      transform: "translateY(-2px)",
-      boxShadow: tokens.shadow.raised.high,
-      borderColor: tokens.color.border.accent,
+      opacity: 1,
     },
   },
 });
 
-/** 🎯 ステータスアイコン枠 */
+/** 🎯 アイコン */
 export const toastIcon = style({
-  display: "flex",
+  display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   flexShrink: 0,
-  width: "2vmin",
-  height: "2vmin",
-  minWidth: "18px",
-  minHeight: "18px",
-  fontSize: "1.1em",
+  fontSize: tokens.font.size.md,
 });
 
-/** 🎯 通知テキストエリア */
 export const toastMessage = style({
   flex: 1,
+  color: "inherit",
   whiteSpace: "pre-wrap",
   wordBreak: "break-word",
-  color: tokens.color.text.base,
+});
+
+/** 🎯 StatusContextMenu (itemVariants) と完全に一致するカラーバリエーション */
+export const toastTone = styleVariants({
+  success: {
+    color: tokens.color.status.success,
+  },
+  error: {
+    color: tokens.color.status.error,
+  },
+  warning: {
+    color: tokens.color.status.waiting,
+  },
+  info: {
+    color: tokens.color.status.ready,
+  },
 });

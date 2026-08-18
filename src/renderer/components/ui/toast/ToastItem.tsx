@@ -1,36 +1,62 @@
+﻿// src/renderer/components/ui/toast/ToastItem.tsx
+
 import React from "react";
-import { toast } from "sonner";
-import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
+import { useToastStore, type ToastData } from "./toastStore";
 import * as styles from "./toast.css";
-import { toastTone } from "./toastTone.css";
 
-export type ToastType = "success" | "error" | "info" | "warning";
-
-interface ToastItemProps {
-  id: string | number;
-  message: string;
-  type: ToastType;
-}
-
-const renderIcon = (type: ToastType) => {
+const renderIconText = (type: ToastData["type"]) => {
   switch (type) {
     case "success":
-      return <span style={{ color: "var(--color-success, #22c55e)" }}>✓</span>;
+      return "✓";
     case "error":
-      return <span style={{ color: "var(--color-error, #ef4444)" }}>✕</span>;
+      return "✕";
     case "warning":
-      return <span style={{ color: "var(--color-warning, #f59e0b)" }}>⚠</span>;
+      return "!";
     case "info":
-      return <span style={{ color: "var(--color-info, #3b82f6)" }}>ℹ</span>;
+      return "i";
   }
 };
 
-export const ToastItem: React.FC<ToastItemProps> = ({ id, message, type }) => {
-  return (
-    <div className={`${styles.toastBase} ${toastTone[type]}`}>
-      <div className={styles.toastIcon}>{renderIcon(type)}</div>
-      <span className={styles.toastMessage}>{message}</span>
-      <CloseButton variant="ghost" onClick={() => toast.dismiss(id)} />
-    </div>
-  );
+const renderIconBgColor = (type: ToastData["type"]) => {
+  switch (type) {
+    case "success":
+      return "#041e10";
+    case "error":
+      return "#230a0a";
+    case "warning":
+      return "#23190a";
+    case "info":
+      return "#0a1423";
+  }
 };
+
+export const ToastItem: React.FC<ToastData> = React.memo(
+  ({ id, message, type }) => {
+    const removeToast = useToastStore((state) => state.removeToast);
+
+    return (
+      <div className={`${styles.toastBase} ${styles.toastTone[type]}`}>
+        {/* 左上の丸い閉じるボタン */}
+        <button
+          type="button"
+          className={styles.closeBadgeButton}
+          onClick={() => removeToast(id)}
+        >
+          ✕
+        </button>
+
+        {/* アイコン */}
+        <div className={styles.toastIcon}>
+          <span style={{ color: renderIconBgColor(type) }}>
+            {renderIconText(type)}
+          </span>
+        </div>
+
+        {/* 通知テキスト */}
+        <span className={styles.toastMessage}>{message}</span>
+      </div>
+    );
+  },
+);
+
+ToastItem.displayName = "ToastItem";

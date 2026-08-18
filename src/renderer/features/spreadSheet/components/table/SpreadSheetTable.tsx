@@ -1,33 +1,54 @@
-import React, { useCallback, useRef } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import React, { useCallback } from "react";
 import type { Column } from "@shared/types/tableType";
+import type {
+  SpreadSheetTableProps,
+  TableRowProps,
+} from "@shared/types/spreadsheetTypes";
 import { getValueByPath } from "@shared/utils/getValueByPath";
 import * as styles from "./spreadSheetTable.css";
+import { areRowPropsEqual, useSpreadSheetTable } from "./useSpreadSheetTable";
 
-export interface SpreadSheetTableProps<T> {
-  data: T[];
-  columns: readonly Column<T>[];
-  rowKey: keyof T;
-  onRowClick?: (item: T) => void;
-  selectedId?: string | number | null;
-}
+// --------------------------------------------------------------------------
+// TableHeader
+// --------------------------------------------------------------------------
 
-interface TableRowProps<T> {
-  item: T;
+const TableHeader = <T extends object>({
+  columns,
+}: {
   columns: readonly Column<T>[];
-  isSelected: boolean;
-  onRowClick?: ((item: T) => void) | undefined;
-  measureRef?: (element: HTMLTableRowElement | null) => void;
-  dataIndex?: number;
-  style?: React.CSSProperties;
-}
+}) => (
+  <div className={styles.headerRow}>
+    {columns.map((col) => {
+      const alignKey = col.align ?? "left";
+      const alignClass = styles.thAlignVariants[alignKey] ?? "";
+      const widthVal = col.width ?? "150px";
+
+      return (
+        <div
+          key={String(col.key)}
+          className={`${styles.thBase} ${alignClass}`}
+          style={{
+            width: widthVal,
+            minWidth: widthVal,
+            maxWidth: widthVal,
+          }}
+        >
+          {col.label}
+        </div>
+      );
+    })}
+  </div>
+);
+
+// --------------------------------------------------------------------------
+// TableRow
+// --------------------------------------------------------------------------
 
 const TableRowInner = <T extends object>({
   item,
   columns,
   isSelected,
   onRowClick,
-  measureRef,
   dataIndex,
   style,
 }: TableRowProps<T>) => {
@@ -38,56 +59,53 @@ const TableRowInner = <T extends object>({
   }, [onRowClick, item]);
 
   return (
-    <tr
-      ref={measureRef}
-      data-index={dataIndex}
-      onClick={handleClick}
-      style={style}
-      className={`${styles.tableRowBase} ${styles.tableRowStates[state]}`}
-    >
-      {columns.map((col) => {
-        const keyStr = String(col.key);
-        const align = col.align || "left";
-        const alignClass = styles.tdAlignVariants[align] ?? "";
-        const rawValue = col.render
-          ? col.render(item)
-          : getValueByPath(item as Record<string, unknown>, keyStr);
+    <div data-index={dataIndex} style={style} className={styles.tableRowSlot}>
+      <div
+        onClick={handleClick}
+        className={`${styles.tableRowBase} ${styles.tableRowStates[state]}`}
+      >
+        {columns.map((col) => {
+          const keyStr = String(col.key);
+          const align = col.align ?? "left";
+          const alignClass = styles.tdAlignVariants[align] ?? "";
 
-        const widthVal = col.width ?? "150px";
+          const rawValue = col.render
+            ? col.render(item)
+            : getValueByPath(item as Record<string, unknown>, keyStr);
 
-        return (
-          <td
-            key={keyStr}
-            style={{
-              width: widthVal,
-              minWidth: widthVal,
-              maxWidth: widthVal,
-              flexShrink: 0,
-              flexGrow: 0,
-            }}
-            className={`${styles.tdBase} ${alignClass}`}
-          >
-            <span className={styles.cellText}>
-              {rawValue != null && typeof rawValue === "object"
-                ? (rawValue as React.ReactNode)
-                : String(rawValue ?? "-")}
-            </span>
-          </td>
-        );
-      })}
-    </tr>
+          const widthVal = col.width ?? "150px";
+
+          return (
+            <div
+              key={keyStr}
+              className={`${styles.tdBase} ${alignClass}`}
+              style={{
+                width: widthVal,
+                minWidth: widthVal,
+                maxWidth: widthVal,
+              }}
+            >
+              <span className={styles.cellText}>
+                {rawValue != null && typeof rawValue === "object"
+                  ? (rawValue as React.ReactNode)
+                  : String(rawValue ?? "-")}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 
 const TableRow = React.memo(
   TableRowInner,
-  (prev, next) =>
-    prev.isSelected === next.isSelected &&
-    prev.item === next.item &&
-    prev.onRowClick === next.onRowClick &&
-    prev.dataIndex === next.dataIndex &&
-    prev.style?.transform === next.style?.transform,
+  areRowPropsEqual,
 ) as typeof TableRowInner;
+
+// --------------------------------------------------------------------------
+// SpreadSheetTable
+// --------------------------------------------------------------------------
 
 export const SpreadSheetTableComponent = <T extends object>({
   data,
@@ -96,93 +114,61 @@ export const SpreadSheetTableComponent = <T extends object>({
   onRowClick,
   selectedId,
 }: SpreadSheetTableProps<T>) => {
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const rowVirtualizer = useVirtualizer({
-    count: data ? data.length : 0,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 72,
-    overscan: 5,
-  });
-
-  const virtualItems = rowVirtualizer.getVirtualItems();
-  const totalSize = rowVirtualizer.getTotalSize();
+  // ⭕ measureElement の分割代入を削除
+  const { parentRef, virtualItems, totalSize } = useSpreadSheetTable({ data });
 
   return (
     <div className={styles.container}>
+      {/* ------------------------------------------------------------------ */}
+      {/* Header                                                             */}
+      {/* ------------------------------------------------------------------ */}
+
+      <div className={styles.headerWrapper}>
+        <TableHeader columns={columns} />
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Body                                                               */}
+      {/* ------------------------------------------------------------------ */}
+
       <div ref={parentRef} className={styles.bodyWrapper}>
-        <table className={styles.tableStyle}>
-          <thead className={styles.stickyHeader}>
-            <tr className={styles.tableHeaderRow}>
-              {columns.map((col) => {
-                const alignKey = col.align ?? "left";
-                const alignClass = styles.thAlignVariants[alignKey] ?? "";
-                const widthVal = col.width ?? "150px";
+        <div
+          className={styles.virtualBody}
+          style={{
+            height: `${totalSize}px`,
+          }}
+        >
+          {!data || data.length === 0 ? (
+            <div className={styles.emptyText}>データが存在しません</div>
+          ) : (
+            virtualItems.map((virtualRow) => {
+              const item = data[virtualRow.index];
 
-                return (
-                  <th
-                    key={String(col.key)}
-                    className={`${styles.thBase} ${alignClass}`}
-                    style={{
-                      width: widthVal,
-                      minWidth: widthVal,
-                      maxWidth: widthVal,
-                      flexShrink: 0,
-                      flexGrow: 0,
-                    }}
-                  >
-                    {col.label}
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody
-            style={{
-              height: `${totalSize}px`,
-              position: "relative",
-              display: "block",
-            }}
-          >
-            {!data || data.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={columns.length}
-                  style={{ textAlign: "center", padding: "32px" }}
-                >
-                  データが存在しません
-                </td>
-              </tr>
-            ) : (
-              virtualItems.map((virtualRow) => {
-                const item = data[virtualRow.index];
-                const id = String(item[rowKey] ?? "");
-                const isSelected =
-                  selectedId != null && String(selectedId) === id;
+              const id = String(item[rowKey] ?? "");
 
-                return (
-                  <TableRow
-                    key={id}
-                    item={item}
-                    columns={columns}
-                    isSelected={isSelected}
-                    onRowClick={onRowClick}
-                    measureRef={rowVirtualizer.measureElement}
-                    dataIndex={virtualRow.index}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      transform: `translateY(${virtualRow.start}px)`,
-                    }}
-                  />
-                );
-              })
-            )}
-          </tbody>
-        </table>
+              const isSelected =
+                selectedId != null && String(selectedId) === id;
+
+              return (
+                <TableRow
+                  key={id}
+                  item={item}
+                  columns={columns}
+                  isSelected={isSelected}
+                  onRowClick={onRowClick}
+                  dataIndex={virtualRow.index}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                />
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

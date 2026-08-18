@@ -11,7 +11,7 @@ export const INITIAL_SUMMARY: StatusSummary = { ...EMPTY_STATUS_SUMMARY };
 const VALID_STATUSES = new Set<string>(STATUS_ORDER);
 
 /**
- * OperationItem 配列またはオブジェクトから、kanriNo をキーにしたマップを作成
+ * OperationItem 配列またはオブジェクトから kanriNo をキーにしたマップを作成
  */
 export const mapRawEntities = (
   items: OperationItem[] | Record<string, OperationItem>,
@@ -27,12 +27,18 @@ export const mapRawEntities = (
 };
 
 /**
- * AppState から全エンティティを配列形式で取得
+ * AppState から「通常作業 + 本日分のイレギュラー作業」のみを配列形式で取得
  */
 export function getAllEntities(state: AppState): OperationItem[] {
   const ops = Object.values(state.operationEntities ?? {});
-  const irs = Object.values(state.irregularEntities ?? {});
-  return [...ops, ...irs];
+
+  // イレギュラーデータは todayIds に含まれるもの（本日分）のみ抽出
+  const todayIdsSet = new Set(state.todayIds ?? []);
+  const todayIrregulars = Object.values(state.irregularEntities ?? {}).filter(
+    (item) => todayIdsSet.has(String(item.kanriNo)),
+  );
+
+  return [...ops, ...todayIrregulars];
 }
 
 /**
@@ -46,7 +52,6 @@ export function calculateSummary(
   const items = Array.isArray(input) ? input : Object.values(input ?? {});
   const allEntitiesMap = mapRawEntities(items);
 
-  // 初期値のコピー（total は配列の要素数）
   const summary: StatusSummary = {
     ...INITIAL_SUMMARY,
     total: items.length,
@@ -59,7 +64,6 @@ export function calculateSummary(
       ? (String(item.status).toLowerCase() as JobStatus)
       : undefined;
 
-    // 依存関係・時刻・アクティブフラグを考慮した動的ステータスの算出
     const computedStatus = calculateNextStatus(
       item,
       rawStatus,

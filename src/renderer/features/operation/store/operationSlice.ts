@@ -1,21 +1,18 @@
-﻿// src/renderer/features/operation/store/operationSlice.ts
-
-import type { StateCreator } from "zustand";
+﻿import type { StateCreator } from "zustand";
 import { commands } from "@shared/api/commands";
 import type { AppState } from "@shared/store";
 import type { StatusSummary } from "@shared/types/uiType";
 import { buildInitialOperationData } from "@renderer/features/operation/helpers/operationDataFactory";
 import {
   findEntityByKanriNo,
-  getAllEntities as getAllEntitiesMap, // 🎯 マップ型(Record)を返す関数としてエイリアス
+  getAllEntities as getAllEntitiesMap,
   resetAllEntityStatuses,
   updateEntityInState,
 } from "@renderer/features/operation/helpers/operationEntities";
 import {
   calculateSummary,
-  getAllEntities as getAllEntitiesArray, // 🎯 配列(OperationItem[])を返す関数としてエイリアス
+  getAllEntities as getAllEntitiesArray,
   INITIAL_SUMMARY,
-  mapRawEntities,
 } from "@renderer/features/operation/helpers/operationSummary";
 import {
   calculateNextStatus,
@@ -171,9 +168,8 @@ export const createOperationSlice: StateCreator<
     const lowerLabel = label.toLowerCase();
     if (lowerLabel === "progress") return [];
 
-    // 🎯 配列(OperationItem[])を返す関数を使用
-    const allItems: OperationItem[] = getAllEntitiesArray(state);
-    if (lowerLabel === "total") return allItems;
+    const targetItems: OperationItem[] = getAllEntitiesArray(state);
+    if (lowerLabel === "total") return targetItems;
 
     const activeFlags = {
       is1CActive: Boolean(state.is1CActive),
@@ -181,9 +177,9 @@ export const createOperationSlice: StateCreator<
       is3CActive: Boolean(state.is3CActive),
     };
 
-    const allEntitiesMap = mapRawEntities(allItems);
+    const allEntitiesMap = getAllEntitiesMap(state);
 
-    return allItems.filter((item: OperationItem) => {
+    return targetItems.filter((item: OperationItem) => {
       const currentStatus = (
         item.status ? String(item.status).toLowerCase() : ""
       ) as JobStatus;

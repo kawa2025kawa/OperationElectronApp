@@ -1,6 +1,4 @@
-﻿//src\shared\api\commands.ts
-
-import type { AuthSession } from "@shared/types/authTypes";
+﻿import type { AuthSession } from "@shared/types/authTypes";
 import type { OperationItem, ScriptResult } from "@shared/types/operationType";
 import type { RdpTarget } from "@shared/types/rdpTypes";
 

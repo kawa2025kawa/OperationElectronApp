@@ -33,39 +33,21 @@ export function checkJobDependencies(
   const rule = targetEntity?.dependency;
   if (!rule) return success();
 
-  // 🎯 デバッグログ：全体の開始情報と判定対象フラグの確認
-  console.group(`[JobDependencyCheck] ジョブ管理番号: ${targetKey}`);
-  console.log("対象ジョブ設定:", rule);
-  console.log("渡された activeFlags:", activeFlags);
-
   // requiresActive (is1CActive 等) のチェック
   if (rule.requiresActive && rule.requiresActive.length > 0) {
     if (!activeFlags) {
-      console.warn(
-        "❌ [ActiveFlags NG] activeFlags が渡されていないため判定失敗",
-      );
-      console.groupEnd();
       return { ok: false, missingDependencies: [] };
     }
-    const activeMet = rule.requiresActive.every((flagKey) => {
-      const isOk = Boolean(activeFlags[flagKey]);
-      if (!isOk) {
-        console.warn(
-          `❌ [ActiveFlag NG] フラグ '${flagKey}' が false または未定義です`,
-        );
-      }
-      return isOk;
-    });
+    const activeMet = rule.requiresActive.every((flagKey) =>
+      Boolean(activeFlags[flagKey]),
+    );
     if (!activeMet) {
-      console.groupEnd();
       return { ok: false, missingDependencies: [] };
     }
   }
 
   const dependsOn = getDependsOn(rule);
   if (!dependsOn.length) {
-    console.log("⭕ 依存ジョブなし (requiresActive チェックのみ通過)");
-    console.groupEnd();
     return success();
   }
 
@@ -85,21 +67,6 @@ export function checkJobDependencies(
       required.some((req) => req.toLowerCase() === currentStatus),
     );
 
-    // 🎯 デバッグログ：各前提ジョブの個別の判定結果
-    if (!depEntity) {
-      console.warn(
-        `❌ [DepJob NG] 前提ジョブ '${depKanriNo}' が entities 内に存在しません`,
-      );
-    } else if (!isMet) {
-      console.warn(
-        `❌ [DepJob NG] 前提ジョブ '${depKanriNo}' のステータス不一致. 現在: '${currentStatus}', 期待値: [${required.join(", ")}]`,
-      );
-    } else {
-      console.log(
-        `⭕ [DepJob OK] 前提ジョブ '${depKanriNo}' (status: ${currentStatus})`,
-      );
-    }
-
     return {
       ok: isMet,
       missing: {
@@ -114,9 +81,6 @@ export function checkJobDependencies(
     rule.condition === "some"
       ? results.some((r) => r.ok)
       : results.every((r) => r.ok);
-
-  console.log(`判定結果: ${ok ? "⭕ 完了 (OK)" : "❌ 未完了 (NG)"}`);
-  console.groupEnd();
 
   return ok
     ? success()

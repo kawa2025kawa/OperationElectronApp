@@ -5,6 +5,7 @@ export interface ColumnDef {
   label: string;
   width?: string;
   group?: "today" | "tomorrow";
+  headerGroup?: { groupKey: string; label: string }; // ⭕ 追加
 }
 
 export interface SheetDataConfig {
@@ -184,55 +185,107 @@ export const buildKeyMap = (
 };
 
 /* ============================================================================
- * 2. 一元管理マスターを参照する共通カラム定義
+ * 2. 一元管理マスターを参照する共通カラム定義 (局休表ベース: 計80%割り当て)
  * ============================================================================ */
-const SCHEDULE_COLUMNS: ColumnDef[] = [
+const SCHEDULE_COLUMNS_KOKYUHYO: ColumnDef[] = [
   {
     key: SHEET_KEY_MASTER.SCHEDULE.TODAY_AM_STATUS.targetPath,
     label: "AM1",
-    width: "80px",
+    width: "8%",
     group: "today",
   },
   {
     key: SHEET_KEY_MASTER.SCHEDULE.TODAY_AM_DETAIL.targetPath,
     label: "AM1詳細",
-    width: "120px",
+    width: "12%",
     group: "today",
   },
   {
     key: SHEET_KEY_MASTER.SCHEDULE.TODAY_PM_STATUS.targetPath,
     label: "PM1",
-    width: "80px",
+    width: "8%",
     group: "today",
   },
   {
     key: SHEET_KEY_MASTER.SCHEDULE.TODAY_PM_DETAIL.targetPath,
     label: "PM1詳細",
-    width: "120px",
+    width: "12%",
     group: "today",
   },
   {
     key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_AM_STATUS.targetPath,
     label: "AM2",
-    width: "80px",
+    width: "8%",
     group: "tomorrow",
   },
   {
     key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_AM_DETAIL.targetPath,
     label: "AM2詳細",
-    width: "120px",
+    width: "12%",
     group: "tomorrow",
   },
   {
     key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_PM_STATUS.targetPath,
     label: "PM2",
-    width: "80px",
+    width: "8%",
     group: "tomorrow",
   },
   {
     key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_PM_DETAIL.targetPath,
     label: "PM2詳細",
-    width: "120px",
+    width: "12%",
+    group: "tomorrow",
+  },
+];
+
+/* 共通スケジュールカラム定義 (従業員ベース: 計70%割り当て) */
+const SCHEDULE_COLUMNS_JUGYOIN: ColumnDef[] = [
+  {
+    key: SHEET_KEY_MASTER.SCHEDULE.TODAY_AM_STATUS.targetPath,
+    label: "AM1",
+    width: "7%",
+    group: "today",
+  },
+  {
+    key: SHEET_KEY_MASTER.SCHEDULE.TODAY_AM_DETAIL.targetPath,
+    label: "AM1詳細",
+    width: "10.5%",
+    group: "today",
+  },
+  {
+    key: SHEET_KEY_MASTER.SCHEDULE.TODAY_PM_STATUS.targetPath,
+    label: "PM1",
+    width: "7%",
+    group: "today",
+  },
+  {
+    key: SHEET_KEY_MASTER.SCHEDULE.TODAY_PM_DETAIL.targetPath,
+    label: "PM1詳細",
+    width: "10.5%",
+    group: "today",
+  },
+  {
+    key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_AM_STATUS.targetPath,
+    label: "AM2",
+    width: "7%",
+    group: "tomorrow",
+  },
+  {
+    key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_AM_DETAIL.targetPath,
+    label: "AM2詳細",
+    width: "10.5%",
+    group: "tomorrow",
+  },
+  {
+    key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_PM_STATUS.targetPath,
+    label: "PM2",
+    width: "7%",
+    group: "tomorrow",
+  },
+  {
+    key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_PM_DETAIL.targetPath,
+    label: "PM2詳細",
+    width: "10.5%",
     group: "tomorrow",
   },
 ];
@@ -241,7 +294,7 @@ const SCHEDULE_COLUMNS: ColumnDef[] = [
  * 3. スプレッドシート別データ構成
  * ============================================================================ */
 export const SPREADSHEET_CONFIGS: Record<SheetId, SheetDataConfig> = {
-  // 1. 店舗マスター (A列 ～ AE列)
+  // 1. 店舗マスター (合計 100%)
   [SHEET_IDS.SHOP]: {
     tabName: "StoreMasterData",
     headerRow: 1,
@@ -252,20 +305,20 @@ export const SPREADSHEET_CONFIGS: Record<SheetId, SheetDataConfig> = {
       {
         key: SHEET_KEY_MASTER.SHOP.CODE.targetPath,
         label: "店番",
-        width: "80px",
+        width: "10%",
       },
       {
         key: SHEET_KEY_MASTER.SHOP.NAME.targetPath,
         label: "店舗名",
-        width: "150px",
+        width: "20%",
       },
-      { key: "phoneNumber", label: "電話番号", width: "120px" },
-      { key: "postalCode", label: "郵便番号", width: "100px" },
-      { key: "address", label: "住所", width: "250px" },
+      { key: "phoneNumber", label: "電話番号", width: "15%" },
+      { key: "postalCode", label: "郵便番号", width: "15%" },
+      { key: "address", label: "住所", width: "40%" },
     ],
   },
 
-  // 2. 局休表マスター (A列 ～ M列)
+  // 2. 局休表マスター (氏名 20% + スケジュール 80% = 合計 100%)
   [SHEET_IDS.KOKYUHYO]: {
     tabName: "KokyuhyoMasterData",
     headerRow: 3,
@@ -285,12 +338,12 @@ export const SPREADSHEET_CONFIGS: Record<SheetId, SheetDataConfig> = {
       SHEET_KEY_MASTER.CONTACT.MOBILE,
     ]),
     columns: [
-      { key: "name", label: "氏名", width: "120px" },
-      ...SCHEDULE_COLUMNS,
+      { key: "name", label: "氏名", width: "20%" },
+      ...SCHEDULE_COLUMNS_KOKYUHYO,
     ],
   },
 
-  // 3. 従業員マスター (A列 ～ N列)
+  // 3. 従業員マスター (部署 15% + 氏名 15% + スケジュール 70% = 合計 100%)
   [SHEET_IDS.JUGYOIN]: {
     tabName: "JugyoinMasterData",
     headerRow: 3,
@@ -311,29 +364,29 @@ export const SPREADSHEET_CONFIGS: Record<SheetId, SheetDataConfig> = {
       SHEET_KEY_MASTER.CONTACT.MOBILE,
     ]),
     columns: [
-      { key: "department", label: "部署", width: "120px" },
-      { key: "name", label: "氏名", width: "120px" },
-      ...SCHEDULE_COLUMNS,
+      { key: "department", label: "部署", width: "15%" },
+      { key: "name", label: "氏名", width: "15%" },
+      ...SCHEDULE_COLUMNS_JUGYOIN,
     ],
   },
 
-  // 4. 担当表マスター (A列 ～ J列)
+  // 4. 担当表マスター (各列 10.4%〜10.5% × 10列 = 合計 100%)
   [SHEET_IDS.TANTOU]: {
     tabName: "KokyuhyoTantouMasterData",
     headerRow: 2,
     startColumn: "A",
     endColumn: "J",
     columns: [
-      { key: "today.hayaban", label: "早番", width: "100px" },
-      { key: "today.shikai", label: "司会", width: "100px" },
-      { key: "today.uketsuke", label: "受付", width: "100px" },
-      { key: "today.denwa", label: "電話", width: "100px" },
-      { key: "today.nimotsu", label: "荷物", width: "100px" },
-      { key: "today.floor2f", label: "2F", width: "80px" },
-      { key: "today.floor3f", label: "3F", width: "80px" },
-      { key: "today.tensou", label: "転送", width: "100px" },
-      { key: "today.amAttendance", label: "AM出勤率", width: "100px" },
-      { key: "today.pmAttendance", label: "PM出勤率", width: "100px" },
+      { key: "today.hayaban", label: "早番", width: "10.5%" },
+      { key: "today.shikai", label: "司会", width: "10.5%" },
+      { key: "today.uketsuke", label: "受付", width: "10.5%" },
+      { key: "today.denwa", label: "電話", width: "10.5%" },
+      { key: "today.nimotsu", label: "荷物", width: "10.5%" },
+      { key: "today.floor2f", label: "2F", width: "8.5%" },
+      { key: "today.floor3f", label: "3F", width: "8.5%" },
+      { key: "today.tensou", label: "転送", width: "10.5%" },
+      { key: "today.amAttendance", label: "AM出勤率", width: "10%" },
+      { key: "today.pmAttendance", label: "PM出勤率", width: "10%" },
     ],
   },
 };

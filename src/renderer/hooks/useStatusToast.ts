@@ -1,7 +1,7 @@
 ﻿// src/renderer/hooks/useStatusToast.ts
 
 import { useEffect, useRef } from "react";
-import { toast } from "sonner";
+import { showToast, type ToastType } from "@shared/utils/toastUtils";
 import { useAppStore } from "@shared/store/index";
 import type { JobStatus } from "@shared/types/operationType";
 import type { OperationItem } from "@shared/types/operationType";
@@ -106,15 +106,23 @@ export const useStatusToast = () => {
   }, [isPolling]);
 };
 
+// --------------------------------------------------------------------------
+// ⭕ showToast に差し替えた通知バッチ処理
+// --------------------------------------------------------------------------
 const flush = (list: PendingToast[]) => {
   if (list.length === 0) return;
 
   if (list.length === 1) {
     const t = list[0];
     const message = `${t.kanriNo}.${t.displayName}  ${t.status}`;
-    if (t.status === "success") toast.success(message);
-    else if (t.status === "error") toast.error(message);
-    else toast.info(message);
+    const type: ToastType =
+      t.status === "success"
+        ? "success"
+        : t.status === "error"
+          ? "error"
+          : "info";
+
+    showToast(message, type);
     return;
   }
 
@@ -122,6 +130,5 @@ const flush = (list: PendingToast[]) => {
   const first = list[0];
   const message = `${first.kanriNo}.${first.displayName} 他 ${list.length - 1} 件`;
 
-  if (hasError) toast.error(message);
-  else toast.success(message);
+  showToast(message, hasError ? "error" : "success");
 };

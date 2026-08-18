@@ -1,101 +1,80 @@
-// src/renderer/components/layout/navbar/Navbar.tsx
-
 import React, { useCallback } from "react";
-import { APP_VIEW_IDS } from "@shared/types/uiType";
+
 import { TantouButton } from "@renderer/components/ui/button/tantouButton/TantouButton";
 import { HamburgerButton } from "@renderer/components/ui/button/hamburgerButton/HamburgerButton";
-import { SearchField } from "@renderer/components/ui/searchField/SearchField";
 import { StatusSummary } from "@renderer/components/ui/statusSummary/StatusSummary";
 import { PollingToggleButton } from "@renderer/components/ui/button/pollingToggleButton/PollingToggleButton";
-import { useNavbarLogic } from "./useNavbarLogic";
-
 import { OperationModal } from "@renderer/features/operation/components/modal/OperationModal";
+
+import { useAppStore } from "@shared/store";
+import { STATUS_LABEL } from "@shared/types/uiType";
+
+import { SUMMARY_MODAL_SIZE } from "./navbar.css";
+import { useNavbarLogic } from "./useNavbarLogic";
 import * as styles from "./navbar.css";
 
 export const Navbar: React.FC = () => {
   const {
-    currentView,
-    searchTerm,
     summary,
-    isInitialLoaded,
     navbarTitle,
-    isOperation,
-    isIrregular,
-    isShowSummary,
-    searchPlaceholder,
-    searchWrapperStyle,
-    getSummaryData,
-    handleSearchChange,
-    openGlobalModal,
-    closeGlobalModal,
+    summaryDisplayType,
+    isKokyuhyo,
+    getSummaryModalData,
   } = useNavbarLogic();
 
+  const openGlobalModal = useAppStore((state) => state.openGlobalModal);
+  const closeGlobalModal = useAppStore((state) => state.closeGlobalModal);
   const handleSummaryClick = useCallback(
     (label: string) => {
-      const data = getSummaryData(label);
-      if (!data) return;
+      const modalData = getSummaryModalData(label);
+
+      if (!modalData) {
+        return;
+      }
+
+      const { lowerLabel, items } = modalData;
+
+      const title = `${
+        STATUS_LABEL[lowerLabel as keyof typeof STATUS_LABEL] ?? label
+      } 一覧`;
 
       openGlobalModal(
         <OperationModal
           type="summary"
-          items={data.items}
+          items={items}
           onClose={closeGlobalModal}
         />,
         {
-          title: data.title,
-          width: "min(80vw, 850px)",
-          height: "min(75vh, 600px)",
+          title,
+          width: SUMMARY_MODAL_SIZE.width,
+          height: SUMMARY_MODAL_SIZE.height,
         },
       );
     },
-    [getSummaryData, openGlobalModal, closeGlobalModal],
+    [getSummaryModalData, openGlobalModal, closeGlobalModal],
   );
 
   return (
     <nav className={styles.container}>
-      {/* 🎯 Props不要（Smart Component化） */}
       <HamburgerButton />
 
       <div className={styles.logoText}>{navbarTitle}</div>
 
       <div className={styles.centerItem}>
-        {isOperation && (
-          <>
-            {isShowSummary && isInitialLoaded ? (
-              <div className={styles.centerSummaryWrapper}>
-                <StatusSummary
-                  data={summary}
-                  onItemClick={handleSummaryClick}
-                />
-              </div>
-            ) : isIrregular ? null : (
-              <div
-                className={styles.centerSummaryWrapper}
-                style={{ height: "48px" }}
-              />
-            )}
-          </>
+        {summaryDisplayType === "summary" && (
+          <div className={styles.centerSummaryWrapper}>
+            <StatusSummary data={summary} onItemClick={handleSummaryClick} />
+          </div>
         )}
 
-        {searchPlaceholder && (
-          <div
-            className={styles.centerSearchWrapper}
-            style={searchWrapperStyle}
-          >
-            <SearchField
-              value={searchTerm}
-              onChange={handleSearchChange}
-              placeholder={searchPlaceholder}
-            />
-          </div>
+        {summaryDisplayType === "placeholder" && (
+          <div className={styles.summaryPlaceholder} />
         )}
       </div>
 
       <div className={styles.rightGroup}>
-        {/* 🎯 Props不要（Smart Component化） */}
-        {currentView === APP_VIEW_IDS.KOKYUHYO && <TantouButton />}
+        {isKokyuhyo && <TantouButton />}
 
-        {/* 🎯 Props不要（Smart Component化） */}
         <PollingToggleButton />
       </div>
     </nav>

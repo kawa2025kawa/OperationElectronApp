@@ -235,6 +235,8 @@
     "kanshiTime": "1:00",
     "workName": "【No.1発注】店舗PC受信データ振分",
     "manual": true,
+    "script": true,
+    "autoStart": false,
     "dependency": {
       "dependsOn": ["29"],
       "requiredStatus": ["success"],
@@ -292,6 +294,8 @@
     "kanshiTime": "1:00",
     "workName": "【No.2発注】店舗PC受信データ振分",
     "manual": true,
+    "script": true,
+    "autoStart": false,
     "dependency": {
       "dependsOn": ["36"],
       "requiredStatus": ["success"],
@@ -359,6 +363,8 @@
     "kanshiTime": "1:00",
     "workName": "【No.3発注】店舗PC受信データ振分",
     "manual": true,
+    "script": true,
+    "autoStart": false,
     "dependency": {
       "dependsOn": ["44"],
       "requiredStatus": ["success"],
@@ -409,6 +415,8 @@
     "kanshiTime": "1:00",
     "workName": "【No.4発注】店舗PC受信データ振分",
     "manual": true,
+    "script": true,
+    "autoStart": false,
     "dependency": {
       "dependsOn": ["47"],
       "requiredStatus": ["success"],
@@ -483,6 +491,8 @@
     "kanshiTime": "1:00",
     "workName": "【No.5発注】店舗PC受信データ振分",
     "manual": true,
+    "script": true,
+    "autoStart": false,
     "dependency": {
       "dependsOn": ["52"],
       "requiredStatus": ["success"],

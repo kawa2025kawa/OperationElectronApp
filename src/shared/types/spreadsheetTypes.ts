@@ -1,4 +1,4 @@
-//src\shared\types\spreadsheetTypes.ts
+// src/shared/types/spreadsheetTypes.ts
 
 /* =====================================================
    1. Sheet IDs & Domain Types
@@ -127,4 +127,31 @@ export type SheetRowMap = {
 export interface SheetDataResponse {
   sheetType: SheetType;
   data: unknown[];
+}
+
+/* =====================================================
+   4. Table UI Types (追加)
+   ===================================================== */
+import type React from "react";
+import type { Column } from "@shared/types/tableType";
+
+export type SpreadSheetEntity = Shop | Kokyuhyo | Jugyoin | Tantou;
+
+export interface SpreadSheetTableProps<T extends object = SpreadSheetEntity> {
+  data: T[];
+  columns: readonly Column<T>[];
+  rowKey: keyof T;
+  onRowClick?: (item: T) => void;
+  selectedId?: string | number | null;
+}
+
+export interface TableRowProps<T extends object = SpreadSheetEntity> {
+  item: T;
+  columns: readonly Column<T>[];
+  isSelected: boolean;
+  onRowClick?: (item: T) => void;
+  // ⭕ HTMLTableRowElement から HTMLElement に変更
+  measureRef?: (element: HTMLElement | null) => void;
+  dataIndex?: number;
+  style?: React.CSSProperties;
 }

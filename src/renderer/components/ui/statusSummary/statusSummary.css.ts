@@ -48,7 +48,7 @@ export const valueBadge = style([
 ]);
 
 export const label = style({
-  fontSize: "0.65rem",
+  fontSize: "0.80rem",
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.base,
   textTransform: "uppercase",

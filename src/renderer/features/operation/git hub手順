@@ -1,0 +1,5 @@
+﻿git add .               （変更を準備）
+  ↓
+git commit -m "..."     （ローカルに記録）
+  ↓
+git push                （GitHubへ送信） ← 今ここが完了！

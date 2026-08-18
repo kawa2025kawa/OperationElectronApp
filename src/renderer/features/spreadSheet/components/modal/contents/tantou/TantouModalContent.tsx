@@ -1,8 +1,44 @@
+// src/renderer/features/spreadSheet/components/modal/contents/tantou/TantouModalContent.tsx
+
 import React from "react";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
+import type { Tantou } from "@shared/types/spreadsheetTypes";
 import * as styles from "@renderer/features/spreadSheet/components/modal/spreadSheetModal.css";
-import type { Tantou } from "../../../../types/spreadsheetTypes";
-import { useTantouModalLogic } from "./useTantouModalLogic";
+import {
+  useTabbedModalLogic,
+  type TabGroupConfig,
+} from "../common/useTabbedModalLogic";
+
+const TANTOU_FIELDS = [
+  { key: "hayaban", label: "早番" },
+  { key: "shikai", label: "司会" },
+  { key: "uketsuke", label: "受付" },
+  { key: "denwa", label: "電話" },
+  { key: "nimotsu", label: "荷物" },
+  { key: "2F", label: "2F担当" },
+  { key: "3F", label: "3F担当" },
+  { key: "tensou", label: "転送" },
+  { key: "amAttendanceRate", label: "AM出勤率" },
+  { key: "pmAttendanceRate", label: "PM出勤率" },
+];
+
+// ⭕ export を外してファイル内ローカル定数に変更
+const TANTOU_MODAL_GROUPS: readonly TabGroupConfig[] = [
+  {
+    title: "本日",
+    items: TANTOU_FIELDS.map((f) => ({
+      key: `today.${f.key}`,
+      label: f.label,
+    })),
+  },
+  {
+    title: "明日",
+    items: TANTOU_FIELDS.map((f) => ({
+      key: `tomorrow.${f.key}`,
+      label: f.label,
+    })),
+  },
+] as const;
 
 export interface TantouModalContentProps {
   data: Tantou;
@@ -13,7 +49,10 @@ export interface TantouModalContentProps {
 export const TantouModalContent: React.FC<TantouModalContentProps> = React.memo(
   ({ data, title, onClose }) => {
     const { groups, selectedIndex, setSelectedIndex, displayItems } =
-      useTantouModalLogic(data);
+      useTabbedModalLogic(
+        data as unknown as Record<string, unknown>,
+        TANTOU_MODAL_GROUPS,
+      );
 
     return (
       <div className={styles.modalWrapper}>

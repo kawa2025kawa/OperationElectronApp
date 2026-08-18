@@ -1,6 +1,6 @@
 // src/renderer/App.tsx
 import React from "react";
-import { Toaster } from "sonner";
+import { ToastContainer } from "@renderer/components/ui/toast/ToastContainer"; // ⭕ 追加
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { GlobalModalManager } from "@renderer/components/ui/modal/GlobalModalManager";
 import { MainView } from "@renderer/layout/MainView";
@@ -11,7 +11,6 @@ export const App: React.FC = () => {
   useIpcManager();
 
   const {
-    theme,
     initStatus,
     showAppLoader,
     isGlobalProcessing,
@@ -32,13 +31,8 @@ export const App: React.FC = () => {
 
   return (
     <>
-      <Toaster
-        theme={theme === "dark" ? "dark" : "light"}
-        position="top-right"
-        richColors
-        closeButton
-      />
       <MainView />
+      <ToastContainer /> {/* ⭕ 旧 <Toaster> の代わりにここに配置 */}
       <GlobalModalManager />
       <LoadingOverlay
         isOpen={isGlobalProcessing}
