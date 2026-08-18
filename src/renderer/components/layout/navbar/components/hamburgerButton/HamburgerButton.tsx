@@ -1,4 +1,4 @@
-// src/renderer/components/ui/button/hamburgerButton/HamburgerButton.tsx
+﻿// src/renderer/components/layout/nav/components/HamburgerButton.tsx
 
 import React, { useCallback } from "react";
 import { useAppStore } from "@shared/store";

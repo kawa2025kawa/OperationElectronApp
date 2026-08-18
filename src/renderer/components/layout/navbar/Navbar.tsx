@@ -1,11 +1,11 @@
+// C:\Users\C3088091\Desktop\OperationElectronApp\src\renderer\components\layout\navbar\Navbar.tsx
+
 import React, { useCallback } from "react";
-
-import { TantouButton } from "@renderer/components/ui/button/tantouButton/TantouButton";
-import { HamburgerButton } from "@renderer/components/ui/button/hamburgerButton/HamburgerButton";
+import { TantouButton } from "./components/tantouButton/TantouButton";
 import { StatusSummary } from "@renderer/components/ui/statusSummary/StatusSummary";
-import { PollingToggleButton } from "@renderer/components/ui/button/pollingToggleButton/PollingToggleButton";
 import { OperationModal } from "@renderer/features/operation/components/modal/OperationModal";
-
+import { HamburgerButton } from "./components/hamburgerButton/HamburgerButton";
+import { PollingToggleButton } from "./components/pollingToggleButton/PollingToggleButton";
 import { useAppStore } from "@shared/store";
 import { STATUS_LABEL } from "@shared/types/uiType";
 

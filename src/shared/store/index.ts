@@ -18,27 +18,51 @@ import {
   createSpreadSheetSlice,
   type SpreadSheetSlice,
 } from "@renderer/features/spreadSheet/store/spreadsheetSlice";
-import { createUiSlice, type UiSlice } from "@shared/store/slices/uiSlice";
+
+// 🎯 uiSlice の代わりに分割した 5 つの Slice をインポート
+import {
+  createThemeSlice,
+  type ThemeSlice,
+} from "@shared/store/slices/themeSlice";
+import {
+  createNavigationSlice,
+  type NavigationSlice,
+} from "@shared/store/slices/navigationSlice";
+import {
+  createOverlaySlice,
+  type OverlaySlice,
+} from "@shared/store/slices/overlaySlice";
+import {
+  createModalSlice,
+  type ModalSlice,
+} from "@shared/store/slices/modalSlice";
+import {
+  createInitSlice,
+  type InitSlice,
+} from "@shared/store/slices/initSlice";
+
 import {
   createPdfUploadSlice,
   type PdfUploadSlice,
 } from "@shared/store/slices/pdfUploadSlice";
-// 🎯 追加: PollingSlice のインポート
 import {
   createPollingSlice,
   type PollingSlice,
 } from "@shared/store/slices/pollingSlice";
-
 import { createCenterSlice, type CenterSlice } from "./slices/centerSlice";
 
 export type AppState = AuthSlice &
   OperationSlice &
   RdpSlice &
   SpreadSheetSlice &
-  UiSlice &
+  ThemeSlice &
+  NavigationSlice &
+  OverlaySlice &
+  ModalSlice &
+  InitSlice &
   PdfUploadSlice &
   PollingSlice &
-  CenterSlice; // 🎯 CenterSlice を追加
+  CenterSlice;
 
 export const useAppStore = create<AppState>()(
   subscribeWithSelector(
@@ -47,10 +71,15 @@ export const useAppStore = create<AppState>()(
       ...createOperationSlice(...a),
       ...createRdpSlice(...a),
       ...createSpreadSheetSlice(...a),
-      ...createUiSlice(...a),
+      // 🎯 分割した Slice を展開
+      ...createThemeSlice(...a),
+      ...createNavigationSlice(...a),
+      ...createOverlaySlice(...a),
+      ...createModalSlice(...a),
+      ...createInitSlice(...a),
       ...createPdfUploadSlice(...a),
       ...createPollingSlice(...a),
-      ...createCenterSlice(...a), // 🎯 Slice の展開
+      ...createCenterSlice(...a),
     })),
   ),
 );

@@ -10,6 +10,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@radix-ui/react-dropdown-menu": "^2.1.24",
     "axios": "^1.19.0",
     "axios-cookiejar-support": "^7.0.0",
     "crypto": "^1.0.1",

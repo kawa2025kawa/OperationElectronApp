@@ -1,4 +1,4 @@
-// src/renderer/components/ui/button/pollingToggleButton/pollingToggleButton.css.ts
+// src/renderer/components/layout/navbar/components/tantouButton/tantouButton.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens";
@@ -12,12 +12,9 @@ export const button = style({
   borderRadius: tokens.radius.full,
   cursor: "pointer",
   whiteSpace: "nowrap",
-
   fontSize: tokens.font.size.md,
   fontWeight: tokens.font.weight.bold,
-
   transition: `all ${tokens.transition.ease}`,
-
   backgroundColor: tokens.color.bg.base,
   color: tokens.color.text.base,
   boxShadow: tokens.shadow.raised.md,
@@ -34,17 +31,7 @@ export const button = style({
   selectors: {
     "&:hover": {
       boxShadow: tokens.shadow.glow.cyan,
-    },
-
-    "&[aria-pressed='true']": {
-      boxShadow: tokens.shadow.glow.cyan,
-
-      // 文字をグラデーションネオン化
-      backgroundImage: tokens.gradient.brand,
-      backgroundClip: "text",
-      WebkitBackgroundClip: "text",
-      color: "transparent",
-      WebkitTextFillColor: "transparent",
+      color: tokens.color.text.hover,
     },
   },
 });

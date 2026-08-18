@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-
 import { useAppStore } from "@shared/store";
 
 type ViewKey = "dnd" | "success" | "error";
@@ -104,11 +103,11 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
     }
 
     try {
+      // 内部で executeScript("30") が呼ばれ、他ジョブ同様のLOADING表示＆dispatchScript("30")の実行が行われる
       await uploadPdfFiles();
       setCurrentViewKey("success");
     } catch (error) {
       console.error("[usePdfUploadModalLogic] upload failed", error);
-
       setCurrentViewKey("error");
     }
   }, [isProcessing, storeFiles.length, uploadPdfFiles]);
@@ -129,11 +128,7 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
     fileCount,
     isProcessing,
     errorMessage,
-
     currentViewKey,
-
-    // 現状 DropArea 側から drag state を受け取る構造ではないため固定値。
-    // 必要になった時点で DnD state をこの hook に集約する。
     isHovering: false,
 
     handleFilesSelect,

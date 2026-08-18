@@ -2,12 +2,9 @@ import React from "react";
 
 import type { OperationItem } from "@shared/types/operationType";
 import type { Column } from "@shared/types/tableType";
-
 import { DataTable } from "@renderer/components/ui/table/DataTable";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
-
 import type { ModalContentProps } from "../useOperationModalLogic";
-
 import * as styles from "./summaryModalContent.css";
 
 interface SummaryModalContentProps extends ModalContentProps {

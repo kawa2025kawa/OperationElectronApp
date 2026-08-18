@@ -77,6 +77,21 @@ export const operationViewConfig: AppViewDefinition = {
       height: "min(75vh, 600px)",
     }),
 
+    // 🎯 店舗maticアップロードのアクション登録
+    createOperationAction(
+      "pdfUpload",
+      "店舗maticアップロード",
+      (item) =>
+        Boolean(
+          item.kanriNo &&
+          ["30", "37", "45", "54"].includes(String(item.kanriNo).trim()),
+        ),
+      {
+        width: "min(80vw, 850px)",
+        height: "min(75vh, 650px)",
+      },
+    ),
+
     createOperationAction("script", "script", (item) => item.script === true),
   ],
 };

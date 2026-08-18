@@ -1,6 +1,7 @@
+// src/renderer/features/operation/OperationView.tsx
+
 import React from "react";
-import { ButtonPanel } from "@renderer/features/operation/components/buttonPanel/ButtonPanel";
-import { InfoPanel } from "@renderer/features/operation/components/infoPanel/InfoPanel";
+import { SidePanel } from "@renderer/features/operation/components/sidePanel/SidePanel";
 import { UnifiedTable } from "@renderer/features/operation/components/table/OperationTable";
 import * as styles from "./operationView.css";
 
@@ -13,10 +14,7 @@ export const OperationView: React.FC = React.memo(() => {
         </div>
       </div>
       <aside className={styles.panelArea}>
-        <div className={styles.panelContainer}>
-          <ButtonPanel />
-          <InfoPanel />
-        </div>
+        <SidePanel />
       </aside>
     </div>
   );

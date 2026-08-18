@@ -1,3 +1,5 @@
+﻿// src/renderer/components/layout/footer/components/footerActionButton.css.ts
+
 import { style } from "@vanilla-extract/css";
 import { tokens, themeTransition } from "@renderer/styles/tokens";
 
@@ -7,13 +9,14 @@ export const actionButton = style([
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    width: "42px",
+    height: "42px",
     borderRadius: tokens.radius.full,
     border: "none",
     outline: "none",
     cursor: "pointer",
     backgroundColor: tokens.color.bg.base,
     boxShadow: tokens.shadow.raised.md,
-    height: "42px",
     selectors: {
       "&[data-active='false']:hover": {
         boxShadow: `${tokens.shadow.glow.brand}, ${tokens.shadow.raised.md}`,
@@ -29,18 +32,6 @@ export const actionButton = style([
     },
   },
 ]);
-
-// 円形ボタン（1C, 2C, 3C）用
-export const circleShape = style({
-  width: "42px",
-});
-
-// 横長ピル型ボタン（PDF処理など）用
-export const pillShape = style({
-  width: "auto",
-  padding: `0 ${tokens.space.lg}`,
-  borderRadius: tokens.radius.md,
-});
 
 export const actionButtonText = style({
   fontSize: tokens.font.size.xs,

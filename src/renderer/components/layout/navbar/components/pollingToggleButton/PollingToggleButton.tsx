@@ -1,4 +1,4 @@
-// src/renderer/components/ui/button/pollingToggleButton/PollingToggleButton.tsx
+﻿// src/renderer/components/layout/navbar/components/pollingToggleButton/PollingToggleButton.tsx
 
 import React, { useCallback } from "react";
 import { useAppStore } from "@shared/store";
@@ -7,7 +7,6 @@ import { showToast } from "@shared/utils/toastUtils";
 import * as styles from "./pollingToggleButton.css";
 
 export const PollingToggleButton: React.FC = () => {
-  // 🎯 必要な状態とアクションをすべて自力で取得
   const { isPolling, startPolling, stopPolling, resetAllOperationStatuses } =
     useAppStore(
       useShallow((state) => ({
@@ -18,7 +17,6 @@ export const PollingToggleButton: React.FC = () => {
       })),
     );
 
-  // 左クリック: ポーリングの開始/停止
   const handleClick = useCallback(async () => {
     if (isPolling) {
       await stopPolling();
@@ -27,7 +25,6 @@ export const PollingToggleButton: React.FC = () => {
     }
   }, [isPolling, startPolling, stopPolling]);
 
-  // 右クリック: ステータスリセット
   const handleContextMenu = useCallback(
     async (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();

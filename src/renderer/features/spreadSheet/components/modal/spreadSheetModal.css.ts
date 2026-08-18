@@ -1,4 +1,3 @@
-// src/renderer/features/spreadSheet/components/modal/spreadSheetModal.css.ts
 import { style } from "@vanilla-extract/css";
 import { tokens, themeTransition } from "@renderer/styles/tokens";
 
@@ -7,7 +6,7 @@ export const modalContainer = style({
   top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
-  zIndex: tokens.zIndex.modal, // 画面の最前面に固定 (例: 1000 や 1100)
+  zIndex: tokens.zIndex.modal,
   width: "80vw",
   maxWidth: "800px",
   maxHeight: "85vh",
@@ -143,10 +142,14 @@ export const modalContentContainer = style([
 export const gridContainer = style({
   display: "grid",
   gridTemplateColumns: "repeat(3, 1fr)",
+  gridAutoRows: "1fr",
   gap: "2vmin",
   width: "100%",
+  height: "100%",
+  flex: 1,
 });
 
+// 🎯 モーダル内のカード要素のベーススタイル（共通定義）
 export const infoBlock = style({
   display: "flex",
   flexDirection: "column",
@@ -157,6 +160,8 @@ export const infoBlock = style({
   borderRadius: tokens.radius.md,
   boxShadow: tokens.shadow.raised.md,
   transition: tokens.transition.fast,
+  height: "100%", // 🎯 親要素の高さにジャストフィット
+  boxSizing: "border-box", // 🎯 padding によるハミ出し防止
   selectors: {
     "&:hover": {
       boxShadow: tokens.shadow.glow.cyan,
@@ -168,6 +173,18 @@ export const fullWidthBlock = style([
   infoBlock,
   {
     gridColumn: "1 / -1",
+  },
+]);
+
+// 🎯 scheduleRow は infoBlock を継承し、固有の5列グリッドのレイアウト差分のみを定義
+export const scheduleRow = style([
+  infoBlock,
+  {
+    display: "grid",
+    gridTemplateColumns: "1.2fr 1.5fr 3fr 1.5fr 3fr",
+    gap: "2vmin",
+    padding: "2.5vmin",
+    alignItems: "stretch",
   },
 ]);
 
@@ -186,17 +203,6 @@ export const infoValue = style({
   wordBreak: "break-all",
 });
 
-export const scheduleRow = style({
-  display: "grid",
-  gridTemplateColumns: "1.2fr 1.5fr 3fr 1.5fr 3fr",
-  gap: "2vmin",
-  padding: "2.5vmin",
-  backgroundColor: tokens.color.bg.base,
-  borderRadius: tokens.radius.md,
-  boxShadow: tokens.shadow.raised.md,
-  alignItems: "stretch",
-});
-
 export const dateLabelBlock = style({
   display: "flex",
   flexDirection: "column",
@@ -209,6 +215,8 @@ export const dateLabelBlock = style({
   fontSize: "clamp(14px, 2.2vmin, 24px)",
   fontWeight: tokens.font.weight.bold,
   gap: "4px",
+  height: "100%",
+  boxSizing: "border-box",
 });
 
 export const dateSubLabel = style({

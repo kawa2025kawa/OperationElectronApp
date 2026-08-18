@@ -1,17 +1,9 @@
 // src/renderer/components/layout/footer/Footer.tsx
 
-import React, { useCallback } from "react";
-
+import React from "react";
 import * as styles from "./footer.css";
-
-import { FooterActionButton } from "@renderer/components/ui/button/footerActionButton/FooterActionButton";
-
-import { TenpoMaticPdfUpLoadButton } from "@renderer/components/ui/button/tenpoMaticPdfUpLoadButton/TenpoMaticPdfUpLoadButton";
-
+import { FooterActionButton } from "./components/FooterActionButton";
 import { SearchField } from "@renderer/components/ui/searchField/SearchField";
-
-import { OperationModal } from "@renderer/features/operation/components/modal/OperationModal";
-
 import { useFooterLogic } from "./useFooterLogic";
 
 export const Footer: React.FC = () => {
@@ -19,27 +11,13 @@ export const Footer: React.FC = () => {
     is1CActive,
     is2CActive,
     is3CActive,
-    isOperationView,
     searchTerm,
     searchPlaceholder,
     handleSearchChange,
     handleToggle1C,
     handleToggle2C,
     handleToggle3C,
-    openGlobalModal,
-    closeGlobalModal,
   } = useFooterLogic();
-
-  const handleOpenPdfModal = useCallback(() => {
-    openGlobalModal(
-      <OperationModal type="pdfUpload" onClose={closeGlobalModal} />,
-      {
-        title: "PDF自動アップロード",
-        width: "min(75vw, 850px)",
-        height: "min(75vh, 650px)",
-      },
-    );
-  }, [openGlobalModal, closeGlobalModal]);
 
   return (
     <footer className={styles.footerContainer}>
@@ -58,10 +36,6 @@ export const Footer: React.FC = () => {
       </div>
 
       <div className={styles.controlsContainer}>
-        {isOperationView && (
-          <TenpoMaticPdfUpLoadButton onClick={handleOpenPdfModal} />
-        )}
-
         <FooterActionButton
           label="1C"
           isActive={is1CActive}

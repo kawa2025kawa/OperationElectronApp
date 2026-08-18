@@ -1,19 +1,19 @@
 // src/renderer/components/ui/table/dataTable.css.ts
+
 import { createVar, style, styleVariants } from "@vanilla-extract/css";
 import { tokens, themeTransition } from "@renderer/styles/tokens";
+
+/* -------------------------------------------------------------------------- */
+/* CSS Variables                                                              */
+/* -------------------------------------------------------------------------- */
 
 const rowTextColor = createVar();
 const rowShadow = createVar();
 const rowBgColor = createVar();
 
-const edgeRadius = {
-  "&:first-child": {
-    borderRadius: `${tokens.radius.md} 0 0 ${tokens.radius.md}`,
-  },
-  "&:last-child": {
-    borderRadius: `0 ${tokens.radius.md} ${tokens.radius.md} 0`,
-  },
-};
+/* -------------------------------------------------------------------------- */
+/* Shared Styles                                                              */
+/* -------------------------------------------------------------------------- */
 
 const rowEdgeRadius = {
   "tr > &:first-child": {
@@ -24,6 +24,15 @@ const rowEdgeRadius = {
   },
 };
 
+const commonTable = {
+  width: "100%",
+  tableLayout: "fixed",
+} satisfies Parameters<typeof style>[0];
+
+/* -------------------------------------------------------------------------- */
+/* Layout                                                                     */
+/* -------------------------------------------------------------------------- */
+
 export const container = style({
   display: "flex",
   flexDirection: "column",
@@ -33,39 +42,59 @@ export const container = style({
   outline: "none",
 });
 
-export const headerArea = style({
-  width: "100%",
+export const headerWrapper = style({
+  position: "relative",
+  zIndex: 10,
   flexShrink: 0,
   paddingInline: tokens.space.md,
+  borderRadius: tokens.radius.md,
+  boxShadow: tokens.shadow.raised.low,
 });
 
 export const bodyWrapper = style({
+  position: "relative",
+  zIndex: 0,
   flex: 1,
-  width: "100%",
+  minHeight: 0,
   overflowX: "hidden",
   overflowY: "auto",
   paddingInline: tokens.space.md,
+  paddingTop: tokens.space.sm,
   scrollbarGutter: "stable",
 });
 
-export const tableStyle = style({
-  width: "100%",
-  tableLayout: "fixed",
+/* -------------------------------------------------------------------------- */
+/* Tables                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export const headerTable = style({
+  ...commonTable,
+  borderCollapse: "collapse",
+  backgroundColor: tokens.color.bg.base,
+  borderRadius: tokens.radius.md,
+  overflow: "hidden",
+});
+
+export const bodyTable = style({
+  ...commonTable,
   borderCollapse: "separate",
   borderSpacing: `0 ${tokens.space.md}`,
 });
+
+/* -------------------------------------------------------------------------- */
+/* Rows                                                                       */
+/* -------------------------------------------------------------------------- */
 
 export const tableRowBase = style([
   themeTransition,
   {
     position: "relative",
     height: "56px",
-    borderRadius: tokens.radius.md,
     backgroundColor: rowBgColor,
     color: rowTextColor,
     boxShadow: rowShadow,
     transition:
-      "box-shadow 0.25s ease-out, color 0.25s ease-out, background-color 0.25s ease-out",
+      "box-shadow 0.25s ease-out, background-color 0.25s ease-out, color 0.25s ease-out",
   },
 ]);
 
@@ -101,9 +130,9 @@ export const tableRowStates = styleVariants({
   },
   selected: {
     vars: {
-      [rowBgColor]: tokens.color.bg.inset,
-      [rowShadow]: tokens.shadow.pressed.md,
+      [rowBgColor]: tokens.color.bg.base,
       [rowTextColor]: "transparent",
+      [rowShadow]: tokens.shadow.pressed.md,
     },
   },
   disabled: {
@@ -118,41 +147,25 @@ export const tableRowStates = styleVariants({
   },
 });
 
-export const cellText = style({
-  display: "inline-block",
-  maxWidth: "100%",
-  verticalAlign: "middle",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  transition: "color 0.25s ease, filter 0.25s ease",
-  selectors: {
-    [`${tableRowStates.selected} &`]: {
-      backgroundImage: tokens.gradient.brand,
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent",
-      backgroundClip: "text",
-      color: "transparent",
-    },
-  },
-});
+/* -------------------------------------------------------------------------- */
+/* Header Cells                                                               */
+/* -------------------------------------------------------------------------- */
 
 export const thBase = style([
   themeTransition,
   {
     height: "56px",
     paddingInline: tokens.space.lg,
-    backgroundColor: tokens.color.bg.base,
+    backgroundColor: "transparent",
     color: tokens.color.text.base,
     fontSize: tokens.font.size.sm,
     fontWeight: tokens.font.weight.bold,
     textTransform: "uppercase",
     letterSpacing: "0.05em",
-    boxShadow: tokens.shadow.raised.low,
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
-    selectors: edgeRadius,
+    selectors: rowEdgeRadius,
   },
 ]);
 
@@ -161,6 +174,10 @@ export const thAlignVariants = styleVariants({
   center: { textAlign: "center" },
   right: { textAlign: "right" },
 });
+
+/* -------------------------------------------------------------------------- */
+/* Body Cells                                                                 */
+/* -------------------------------------------------------------------------- */
 
 export const tdBase = style({
   paddingInline: tokens.space.lg,
@@ -174,4 +191,27 @@ export const tdAlignVariants = styleVariants({
   left: { textAlign: "left" },
   center: { textAlign: "center" },
   right: { textAlign: "right" },
+});
+
+/* -------------------------------------------------------------------------- */
+/* Cell Content                                                               */
+/* -------------------------------------------------------------------------- */
+
+export const cellText = style({
+  display: "inline-block",
+  maxWidth: "100%",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  verticalAlign: "middle",
+  transition: "color 0.25s ease, filter 0.25s ease",
+  selectors: {
+    [`${tableRowStates.selected} &`]: {
+      backgroundImage: tokens.gradient.brand,
+      backgroundClip: "text",
+      WebkitBackgroundClip: "text",
+      color: "transparent",
+      WebkitTextFillColor: "transparent",
+    },
+  },
 });

@@ -1,4 +1,5 @@
 // src/renderer/components/ui/table/DataTable.tsx
+
 import React, { useCallback, useMemo } from "react";
 import {
   flexRender,
@@ -29,6 +30,21 @@ interface TableRowProps<T> {
 }
 
 /**
+ * 列幅（colgroup）コンポーネント
+ */
+const TableColGroup = <T extends object>({
+  columns,
+}: {
+  columns: readonly Column<T>[];
+}) => (
+  <colgroup>
+    {columns.map((col) => (
+      <col key={String(col.key)} style={{ width: col.width }} />
+    ))}
+  </colgroup>
+);
+
+/**
  * 行単位の内部コンポーネント
  */
 const TableRowInner = <T extends object>({
@@ -38,7 +54,6 @@ const TableRowInner = <T extends object>({
 }: TableRowProps<T>) => {
   const state = isSelected ? "selected" : onRowClick ? "clickable" : "idle";
 
-  // クリックハンドラをメモ化して再生成を防止[cite: 3]
   const handleClick = useCallback(() => {
     onRowClick?.(row.original);
   }, [onRowClick, row.original]);
@@ -56,7 +71,6 @@ const TableRowInner = <T extends object>({
         return (
           <td
             key={cell.id}
-            style={{ width: meta?.width }}
             title={
               typeof value === "string" || typeof value === "number"
                 ? String(value)
@@ -76,10 +90,6 @@ const TableRowInner = <T extends object>({
   );
 };
 
-/**
- * React.memo による行描画の最適化
- * 選択状態 (isSelected) や 行データ (row.original) が変更されない限り、再レンダリングをスキップ[cite: 3]
- */
 const TableRow = React.memo(
   TableRowInner,
   (prev, next) =>
@@ -95,6 +105,8 @@ export const DataTable = <T extends object>({
   selectedId,
   onRowClick,
 }: DataTableProps<T>) => {
+  "use no memo"; // React Compiler に対し、TanStack Table 互換のためのメモ化スキップを明確に指示
+
   const tanstackColumns = useMemo<ColumnDef<T>[]>(() => {
     return columns.map((col) => {
       const keyStr = String(col.key);
@@ -117,6 +129,7 @@ export const DataTable = <T extends object>({
     });
   }, [columns]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table (useReactTable) は React Compiler の自動メモ化と非互換なため、"use no memo" でスキップ指示済み
   const table = useReactTable({
     data,
     columns: tanstackColumns,
@@ -129,8 +142,9 @@ export const DataTable = <T extends object>({
 
   return (
     <div className={styles.container}>
-      <div className={styles.headerArea} style={{ height: "56px" }}>
-        <table className={styles.tableStyle}>
+      <div className={styles.headerWrapper}>
+        <table className={styles.headerTable}>
+          <TableColGroup columns={columns} />
           <thead>
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id}>
@@ -140,7 +154,6 @@ export const DataTable = <T extends object>({
                   return (
                     <th
                       key={header.id}
-                      style={{ width: meta?.width }}
                       className={clsx(
                         styles.thBase,
                         styles.thAlignVariants[align],
@@ -158,8 +171,10 @@ export const DataTable = <T extends object>({
           </thead>
         </table>
       </div>
+
       <div className={styles.bodyWrapper}>
-        <table className={styles.tableStyle}>
+        <table className={styles.bodyTable}>
+          <TableColGroup columns={columns} />
           <tbody>
             {table.getRowModel().rows.map((row) => {
               const id =

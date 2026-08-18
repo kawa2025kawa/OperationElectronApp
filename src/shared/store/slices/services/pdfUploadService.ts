@@ -55,13 +55,10 @@ export const pdfUploadService = {
 
     logUploadSequence(request.filePaths);
 
-    // 1. Mainプロセスのメモリ領域にパラメータをセット
+    // Mainプロセスのメモリ領域にパラメータをセットする責務のみを担う
     await commands.tempomaticUploadDocument(
       request.filePaths,
       request.expireDate,
     );
-
-    // 2. 他ジョブと同様に executeScript を経由して実行
-    await commands.executeScript("30");
   },
 };
