@@ -1,4 +1,6 @@
-﻿import { contextBridge, ipcRenderer, webUtils } from "electron";
+﻿// electron/preload.ts
+
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 contextBridge.exposeInMainWorld("electronAPI", {
   invoke: (channel: string, ...args: unknown[]) =>
@@ -9,7 +11,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
       _event: Electron.IpcRendererEvent,
       ...args: unknown[]
     ) => callback(...args);
+
     ipcRenderer.on(channel, subscription);
+
     return () => {
       ipcRenderer.removeListener(channel, subscription);
     };
@@ -36,4 +40,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   showOpenDialog: (options: unknown) =>
     ipcRenderer.invoke("showOpenDialog", options),
+
+  /**
+   * Main プロセス経由で CORS 制限なく Gmail の署名を取得
+   */
+  getGmailSignature: (accessToken?: string) =>
+    ipcRenderer.invoke("gmail:getSignature", accessToken),
+
+  /**
+   * Main プロセス経由で CORS 制限なく Gmail の下書きを作成
+   */
+  createGmailDraft: (params: { accessToken: string; raw: string }) =>
+    ipcRenderer.invoke("gmail:createDraft", params),
 });

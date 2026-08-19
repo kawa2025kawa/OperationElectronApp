@@ -25,6 +25,7 @@ export const EXTRA_MODAL_TYPES = {
   SCRIPT: "script",
   LINK: "link",
   MANUAL: "manual",
+  GMAIL: "gmail",
 } as const;
 
 export type ExtraModalType =

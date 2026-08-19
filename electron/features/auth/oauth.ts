@@ -9,11 +9,31 @@ import type { OAuthToken } from "@shared/types/authTypes";
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
+
+/**
+ * Google OAuth scopes
+ *
+ * - openid / email / profile:
+ *   認証・ユーザー情報取得
+ *
+ * - spreadsheets.readonly:
+ *   スプレッドシート参照
+ *
+ * - gmail.settings.basic:
+ *   Gmail の署名（SendAs 設定）取得
+ *
+ * - gmail.compose:
+ *   Gmail 下書き作成
+ */
 const GOOGLE_SCOPES = [
   "openid",
   "email",
   "profile",
+
   "https://www.googleapis.com/auth/spreadsheets.readonly",
+
+  "https://www.googleapis.com/auth/gmail.settings.basic",
+  "https://www.googleapis.com/auth/gmail.compose",
 ];
 
 // =====================================================
@@ -67,6 +87,7 @@ export function generateAuthUrl(
     code_challenge: challenge,
     code_challenge_method: "S256",
   });
+
   return `${AUTH_URL}?${params.toString()}`;
 }
 
@@ -88,9 +109,11 @@ export async function exchangeToken(
     redirect_uri: redirectUri,
     code_verifier: verifier,
   });
+
   if (clientSecret) {
     body.set("client_secret", clientSecret);
   }
+
   return sendTokenRequest(body, "Google token exchange failed");
 }
 
@@ -104,9 +127,11 @@ export async function refreshToken(
     refresh_token: refreshTokenValue,
     grant_type: "refresh_token",
   });
+
   if (clientSecret) {
     body.set("client_secret", clientSecret);
   }
+
   return sendTokenRequest(body, "Google token refresh failed");
 }
 
@@ -133,6 +158,7 @@ async function sendTokenRequest(
   }
 
   const token = (await response.json()) as GoogleTokenResponse;
+
   if (!token.access_token) {
     throw new Error(
       `${errorMessagePrefix}: response does not contain access_token`,

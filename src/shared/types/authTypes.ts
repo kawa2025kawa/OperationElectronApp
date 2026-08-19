@@ -1,4 +1,4 @@
-﻿//src\shared\types\authTypes.ts
+﻿// src/shared/types/authTypes.ts
 
 export interface OAuthToken {
   accessToken: string;
@@ -11,4 +11,6 @@ export interface AuthSession {
   accessToken: string;
   refreshToken: string | null;
   expiresAt: number | null;
+  email?: string | null;
+  familyName?: string | null;
 }

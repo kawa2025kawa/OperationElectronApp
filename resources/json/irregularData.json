@@ -69,10 +69,11 @@
   {
     "kanriNo": "E8",
     "cycle1": "週次",
-    "cycle2": "日",
+    "cycle2": "水",
     "scheduledTime": "17:00",
     "workName": "シェルフラベル発注",
     "manual": true,
+    "gmail": true,
     "link": {
       "PrimeDrive": "https://primedrive.jp/v2/browse"
     }
@@ -80,10 +81,11 @@
   {
     "kanriNo": "E9",
     "cycle1": "週次",
-    "cycle2": "日",
-    "scheduledTime": "17：00",
+    "cycle2": "水",
+    "scheduledTime": "17:00",
     "workName": "各種ポップラベル発注",
-    "manual": true
+    "manual": true,
+    "gmail": true
   },
   {
     "kanriNo": "E12",

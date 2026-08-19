@@ -8,13 +8,17 @@ import type {
 import { APP_VIEW_IDS, type ExtraModalType } from "@shared/types/uiType";
 import { OperationModal } from "@renderer/features/operation/components/modal/OperationModal";
 import type { OperationItem } from "@shared/types/operationType";
+import { useAppStore } from "@shared/store";
 
 const DEFAULT_MODAL_SIZE = {
   width: "min(80vw, 800px)",
   height: "min(70vh, 550px)",
 };
 
-const createOperationAction = (
+/**
+ * モーダルを表示するアクション用ヘルパー
+ */
+const createModalAction = (
   type: ExtraModalType,
   label: string,
   isActive: (item: OperationItem) => boolean,
@@ -58,27 +62,60 @@ export const operationViewConfig: AppViewDefinition = {
   },
 
   actions: [
-    createOperationAction(
-      "jc",
-      "JC",
-      (item) => Boolean("jobId" in item && item.jobId && item.jobId !== "-"),
+    // 1. JC: モーダルなしで直接実行 (runJcJob を呼び出し)
+    {
+      key: "jc",
+      label: "JC",
+      type: "custom",
+      isActive: (item) => {
+        const opItem = item as OperationItem;
+        return Boolean(
+          "jobId" in opItem && opItem.jobId && opItem.jobId !== "-",
+        );
+      },
+      execute: async (item) => {
+        const opItem = item as OperationItem;
+        if (!opItem?.kanriNo) return;
+        const appState = useAppStore.getState();
+        await appState.runJcJob(String(opItem.kanriNo));
+      },
+    },
+
+    // 2. Script: モーダルなしで直接実行 (runScriptJob を呼び出し)[cite: 1]
+    {
+      key: "script",
+      label: "script",
+      type: "custom",
+      isActive: (item) => (item as OperationItem)?.script === true,
+      execute: async (item) => {
+        const opItem = item as OperationItem;
+        if (!opItem?.kanriNo) return;
+        const appState = useAppStore.getState();
+        await appState.runScriptJob(String(opItem.kanriNo));
+      },
+    },
+
+    // 3. Gmail (新規追加: gmail === true の時にアクティブ化)[cite: 1]
+    createModalAction(
+      "gmail",
+      "Gmail",
+      (item) => {
+        const opItem = item as OperationItem;
+        return "gmail" in opItem && opItem.gmail === true;
+      },
       {
-        width: "min(80vw, 950px)",
-        height: "min(70vh, 550px)",
+        width: "min(85vw, 700px)",
+        height: "min(80vh, 600px)",
       },
     ),
 
-    createOperationAction("link", "Link", (item) =>
+    // 4. Link (モーダル表示)[cite: 1]
+    createModalAction("link", "Link", (item) =>
       Boolean(item.link && Object.keys(item.link).length > 0),
     ),
 
-    createOperationAction("manual", "Manual", (item) => Boolean(item.kanriNo), {
-      width: "min(80vw, 800px)",
-      height: "min(75vh, 600px)",
-    }),
-
-    // 🎯 店舗maticアップロードのアクション登録
-    createOperationAction(
+    // 5. 店舗maticアップロード (モーダル表示)[cite: 1]
+    createModalAction(
       "pdfUpload",
       "店舗maticアップロード",
       (item) =>
@@ -91,7 +128,5 @@ export const operationViewConfig: AppViewDefinition = {
         height: "min(75vh, 650px)",
       },
     ),
-
-    createOperationAction("script", "script", (item) => item.script === true),
   ],
 };

@@ -34,13 +34,24 @@ function sendResponse(
 }
 
 // =====================================================
-// Server
+// Server Close
 // =====================================================
 
-function closeServer(server: http.Server): void {
-  if (server.listening) {
-    server.close();
-  }
+function closeServer(server: http.Server): Promise<void> {
+  return new Promise((resolve) => {
+    if (!server.listening) {
+      resolve();
+      return;
+    }
+
+    server.close((error) => {
+      if (error) {
+        console.warn("[OAuthListener] Failed to close server:", error);
+      }
+
+      resolve();
+    });
+  });
 }
 
 // =====================================================
@@ -54,27 +65,41 @@ export function startListener(
   return new Promise((resolve, reject) => {
     let settled = false;
 
-    const finish = (callback: () => void): void => {
+    const server = http.createServer((req, res) => {
+      void handleRequest(req, res);
+    });
+
+    /**
+     * Promiseを一度だけresolve/rejectし、
+     * HTTPサーバーを確実に終了する。
+     */
+    const finish = async (callback: () => void): Promise<void> => {
       if (settled) {
         return;
       }
 
       settled = true;
-      closeServer(server);
+
+      await closeServer(server);
+
       callback();
     };
 
-    const server = http.createServer((req, res) => {
+    /**
+     * OAuth callback request handler
+     */
+    async function handleRequest(
+      req: http.IncomingMessage,
+      res: http.ServerResponse,
+    ): Promise<void> {
       try {
         const requestUrl = new URL(req.url ?? "/", `http://${HOST}:${port}`);
 
         const error = requestUrl.searchParams.get("error");
-
         const errorDescription =
           requestUrl.searchParams.get("error_description");
 
         const code = requestUrl.searchParams.get("code");
-
         const state = requestUrl.searchParams.get("state");
 
         // -------------------------------------------
@@ -84,7 +109,7 @@ export function startListener(
         if (error) {
           sendResponse(res, 400, "<h1>Authentication failed.</h1>");
 
-          finish(() => {
+          await finish(() => {
             reject(
               new Error(
                 `Google OAuth error: ${error}${
@@ -104,7 +129,7 @@ export function startListener(
         if (!code) {
           sendResponse(res, 400, "<h1>Authorization code not found.</h1>");
 
-          finish(() => {
+          await finish(() => {
             reject(new Error("Authorization code not found"));
           });
 
@@ -118,7 +143,7 @@ export function startListener(
         if (!state) {
           sendResponse(res, 400, "<h1>OAuth state not found.</h1>");
 
-          finish(() => {
+          await finish(() => {
             reject(new Error("OAuth state not found"));
           });
 
@@ -132,7 +157,7 @@ export function startListener(
         if (state !== expectedState) {
           sendResponse(res, 400, "<h1>Invalid OAuth state.</h1>");
 
-          finish(() => {
+          await finish(() => {
             reject(new Error("OAuth state mismatch"));
           });
 
@@ -158,28 +183,34 @@ export function startListener(
   <p>このタブを閉じてアプリに戻ってください。</p>
 </body>
 </html>
-            `.trim(),
+          `.trim(),
         );
 
-        finish(() => {
+        await finish(() => {
           resolve({
             code,
             state,
           });
         });
       } catch (error) {
-        finish(() => {
-          reject(error instanceof Error ? error : new Error(String(error)));
+        await finish(() => {
+          reject(
+            error instanceof Error
+              ? error
+              : new Error(String(error), {
+                  cause: error,
+                }),
+          );
         });
       }
-    });
+    }
 
     // -----------------------------------------------
     // Server Error
     // -----------------------------------------------
 
     server.on("error", (error) => {
-      finish(() => {
+      void finish(() => {
         reject(
           new Error(`OAuth listener error: ${error.message}`, {
             cause: error,
@@ -192,6 +223,8 @@ export function startListener(
     // Start Listener
     // -----------------------------------------------
 
-    server.listen(port, HOST);
+    server.listen(port, HOST, () => {
+      console.log(`[OAuthListener] Listening on http://${HOST}:${port}`);
+    });
   });
 }

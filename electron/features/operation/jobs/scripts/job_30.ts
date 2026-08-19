@@ -1,8 +1,4 @@
-﻿import axios from "axios";
-import { wrapper } from "axios-cookiejar-support";
-import { CookieJar } from "tough-cookie";
-import FormData from "form-data";
-import fs from "fs-extra";
+﻿import fs from "node:fs/promises";
 import path from "node:path";
 
 // ============================================================
@@ -55,6 +51,76 @@ export function setJob30Params(params: Job30Params): void {
 }
 
 // ============================================================
+// Native Cookie Store Client
+// ============================================================
+
+class NativeTempomaticClient {
+  private cookies: Map<string, string> = new Map();
+
+  private saveCookies(headers: Headers): void {
+    const setCookieHeaders = headers.getSetCookie();
+    for (const header of setCookieHeaders) {
+      const cookiePair = header.split(";")[0];
+      if (cookiePair) {
+        const [key, ...values] = cookiePair.split("=");
+        if (key && values.length > 0) {
+          this.cookies.set(key.trim(), values.join("=").trim());
+        }
+      }
+    }
+  }
+
+  private getCookieHeader(): string {
+    return Array.from(this.cookies.entries())
+      .map(([k, v]) => `${k}=${v}`)
+      .join("; ");
+  }
+
+  public async get(url: string): Promise<string> {
+    const headers: Record<string, string> = {};
+    const cookie = this.getCookieHeader();
+    if (cookie) headers["Cookie"] = cookie;
+
+    const response = await fetch(url, { method: "GET", headers });
+    this.saveCookies(response.headers);
+    return await response.text();
+  }
+
+  public async postForm(
+    url: string,
+    bodyParams: URLSearchParams,
+  ): Promise<string> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+    const cookie = this.getCookieHeader();
+    if (cookie) headers["Cookie"] = cookie;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: bodyParams.toString(),
+    });
+    this.saveCookies(response.headers);
+    return await response.text();
+  }
+
+  public async postMultipart(url: string, formData: FormData): Promise<string> {
+    const headers: Record<string, string> = {};
+    const cookie = this.getCookieHeader();
+    if (cookie) headers["Cookie"] = cookie;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+    this.saveCookies(response.headers);
+    return await response.text();
+  }
+}
+
+// ============================================================
 // Helpers
 // ============================================================
 
@@ -63,35 +129,20 @@ const sleep = (milliseconds: number): Promise<void> =>
 
 const getFileName = (filePath: string): string => path.basename(filePath);
 
-const createTempomaticClient = () => {
-  const jar = new CookieJar();
-  return wrapper(
-    axios.create({
-      jar,
-      withCredentials: true,
-    }),
-  );
-};
-
 const loginToTempomatic = async (
-  client: ReturnType<typeof createTempomaticClient>,
+  client: NativeTempomaticClient,
 ): Promise<void> => {
   const loginParams = new URLSearchParams();
   loginParams.append("loginId", "98810028");
   loginParams.append("password", "Bog2606!");
   loginParams.append("identity", "");
 
-  const response = await client.post(
+  const responseText = await client.postForm(
     `${BASE_URL}/Login.do`,
-    loginParams.toString(),
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    },
+    loginParams,
   );
 
-  if (typeof response.data === "string" && response.data.includes("loginId")) {
+  if (responseText.includes("loginId")) {
     throw new Error(
       "Tempomaticへのログインに失敗しました。認証情報を確認してください。",
     );
@@ -101,13 +152,13 @@ const loginToTempomatic = async (
 };
 
 const getCsrfToken = async (
-  client: ReturnType<typeof createTempomaticClient>,
+  client: NativeTempomaticClient,
 ): Promise<string> => {
-  const response = await client.get(
+  const responseText = await client.get(
     `${BASE_URL}/STRLibDocument.do?func=edit&ctx=iframe&adding=1`,
   );
 
-  const match = String(response.data).match(/name="__CSRF"\s+value="([^"]+)"/);
+  const match = responseText.match(/name="__CSRF"\s+value="([^"]+)"/);
   if (!match?.[1]) {
     throw new Error("CSRFトークンの取得に失敗しました。");
   }
@@ -146,23 +197,23 @@ const createUploadForm = (
     form.append("category", category);
   }
 
-  form.append("pdfFile", fileBuffer, {
-    filename: fileName,
-    contentType: "application/pdf",
-  });
+  // Node.js 標準 FormData にファイル（Blob）を追加
+  const blob = new Blob([fileBuffer], { type: "application/pdf" });
+  form.append("pdfFile", blob, fileName);
 
   return form;
 };
 
 const validateFile = async (filePath: string): Promise<void> => {
-  const exists = await fs.pathExists(filePath);
-  if (!exists) {
+  try {
+    await fs.access(filePath);
+  } catch {
     throw new Error(`指定されたファイルがローカルに存在しません: ${filePath}`);
   }
 };
 
 const uploadSingleDocument = async (
-  client: ReturnType<typeof createTempomaticClient>,
+  client: NativeTempomaticClient,
   filePath: string,
   expireDate: string,
 ): Promise<void> => {
@@ -177,12 +228,12 @@ const uploadSingleDocument = async (
   const startedAt = Date.now();
   console.log(`[Tempomatic] POST start: ${fileName}`);
 
-  const response = await client.post(`${BASE_URL}/STRLibDocument.do`, form, {
-    headers: form.getHeaders(),
-  });
+  const body = await client.postMultipart(
+    `${BASE_URL}/STRLibDocument.do`,
+    form,
+  );
 
   const elapsed = Date.now() - startedAt;
-  const body = String(response.data);
 
   console.log(`[Tempomatic] POST finished: ${fileName} (${elapsed}ms)`);
 
@@ -198,7 +249,7 @@ const uploadSingleDocument = async (
 };
 
 const uploadDocumentsSequentially = async (
-  client: ReturnType<typeof createTempomaticClient>,
+  client: NativeTempomaticClient,
   filePaths: string[],
   expireDate: string,
 ): Promise<void> => {
@@ -259,7 +310,7 @@ export async function runJob30(): Promise<string> {
   );
 
   try {
-    const client = createTempomaticClient();
+    const client = new NativeTempomaticClient();
     await loginToTempomatic(client);
     await uploadDocumentsSequentially(client, filePaths, expireDate);
 

@@ -81,10 +81,19 @@ export interface OperationDataItem extends BaseDataItem {
   jobId?: string;
 }
 
+export interface GmailTemplate {
+  to?: string;
+  cc?: string; // <-- 追加
+  subject?: string;
+  body?: string;
+}
+
 /** イレギュラー運用ジョブ */
 export interface IrregularDataItem extends BaseDataItem {
   cycle1?: string | null;
   cycle2?: string | null;
+  gmail?: boolean;
+  gmailTemplate?: GmailTemplate;
 }
 
 /** 通常・イレギュラーマスタのユニオン型 */

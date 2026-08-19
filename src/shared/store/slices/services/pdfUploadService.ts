@@ -1,30 +1,11 @@
 ﻿﻿import { commands } from "@shared/api/commands";
-
+import { getFileName } from "@shared/utils/fileUtils";
 import type { ValidatedPdf } from "../pdfUploadSlice";
-
-// ============================================================
-// Types
-// ============================================================
 
 export interface PdfUploadRequest {
   filePaths: string[];
   expireDate: string;
 }
-
-// ============================================================
-// Helpers
-// ============================================================
-
-const getFileName = (filePath: string): string =>
-  filePath.split(/[/\\]/).pop() ?? filePath;
-
-const createUploadRequest = (
-  files: ValidatedPdf[],
-  expireDate: string,
-): PdfUploadRequest => ({
-  filePaths: files.map((file) => file.path),
-  expireDate,
-});
 
 const logUploadSequence = (filePaths: string[]): void => {
   console.log(
@@ -37,10 +18,6 @@ const logUploadSequence = (filePaths: string[]): void => {
   );
 };
 
-// ============================================================
-// Service
-// ============================================================
-
 export const pdfUploadService = {
   async upload(files: ValidatedPdf[], expireDate: string): Promise<void> {
     if (files.length === 0) {
@@ -51,14 +28,9 @@ export const pdfUploadService = {
       throw new Error("PDFアップロードの有効期限が指定されていません");
     }
 
-    const request = createUploadRequest(files, expireDate);
+    const filePaths = files.map((file) => file.path);
+    logUploadSequence(filePaths);
 
-    logUploadSequence(request.filePaths);
-
-    // Mainプロセスのメモリ領域にパラメータをセットする責務のみを担う
-    await commands.tempomaticUploadDocument(
-      request.filePaths,
-      request.expireDate,
-    );
+    await commands.tempomaticUploadDocument(filePaths, expireDate);
   },
 };

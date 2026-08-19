@@ -1,5 +1,6 @@
 ﻿// src/shared/store/slices/utils/pdfUploadUtils.ts
 
+import { getFileName, hasExtension } from "@shared/utils/fileUtils";
 import type { ValidatedPdf, PdfUploadState } from "../pdfUploadSlice";
 
 const DEFAULT_EXPIRE_OFFSET_DAYS = 7;
@@ -12,14 +13,11 @@ export const calculateExpireDate = (
   return date.toISOString().slice(0, 10).replace(/-/g, "/");
 };
 
-export const getFileName = (filePath: string): string =>
-  filePath.split(/[/\\]/).pop() ?? filePath;
-
 export const validateAndFormatPdfs = (
   incomingPaths: string[],
 ): ValidatedPdf[] =>
   incomingPaths
-    .filter((filePath) => filePath.toLowerCase().endsWith(".pdf"))
+    .filter((filePath) => hasExtension(filePath, "pdf"))
     .map((filePath) => ({
       name: getFileName(filePath),
       path: filePath,

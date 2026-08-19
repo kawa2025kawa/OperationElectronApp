@@ -1,8 +1,10 @@
 import React from "react";
 import { clsx } from "clsx";
 
+import { useAppStore } from "@shared/store";
+
 import * as styles from "./authView.css";
-import { useAuth } from "./hooks/useAuth";
+import { useAuth } from "./useAuth";
 
 const Card = ({
   children,
@@ -25,6 +27,9 @@ const AUTH_BUTTON_TEXT = {
 export const AuthView: React.FC = () => {
   const { isAuthenticated, authState, handleAuthToggle } = useAuth();
 
+  const userEmail = useAppStore((state) => state.userEmail);
+  const familyName = useAppStore((state) => state.familyName);
+
   return (
     <div className={styles.container}>
       <Card>
@@ -42,6 +47,34 @@ export const AuthView: React.FC = () => {
         <div className={styles.status}>
           Status:{" "}
           <strong>{isAuthenticated ? "Logged In" : "Not Logged In"}</strong>
+        </div>
+
+        <div className={styles.accountSection}>
+          <h3 className={styles.accountTitle}>Google Account</h3>
+
+          <div className={styles.accountInfoRow}>
+            <span className={styles.accountInfoLabel}>Email</span>
+            <span
+              className={clsx(
+                styles.accountInfoValue,
+                !userEmail && styles.accountInfoEmpty,
+              )}
+            >
+              {userEmail ?? "未ログイン"}
+            </span>
+          </div>
+
+          <div className={styles.accountInfoRow}>
+            <span className={styles.accountInfoLabel}>姓</span>
+            <span
+              className={clsx(
+                styles.accountInfoValue,
+                !familyName && styles.accountInfoEmpty,
+              )}
+            >
+              {familyName ?? "未取得"}
+            </span>
+          </div>
         </div>
 
         <div className={styles.buttonWrapper}>

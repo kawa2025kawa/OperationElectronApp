@@ -35,12 +35,6 @@ interface OperationModalLogic {
 }
 
 // ============================================================
-// Constants
-// ============================================================
-
-const PDF_UPLOAD_TITLE = "PDF処理";
-
-// ============================================================
 // Helpers
 // ============================================================
 
@@ -52,10 +46,8 @@ const getActionLabel = (type: ExtraModalType): string => {
 };
 
 const getDefaultModalTitle = (type: ExtraModalType): string => {
-  if (type === "pdfUpload") {
-    return PDF_UPLOAD_TITLE;
-  }
-
+  if (type === "pdfUpload") return "店舗maticアップロード";
+  if (type === "gmail") return "Gmail"; // <-- 追加
   return getActionLabel(type);
 };
 

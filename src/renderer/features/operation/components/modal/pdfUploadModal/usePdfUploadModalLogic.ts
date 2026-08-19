@@ -1,10 +1,22 @@
 ﻿// src/renderer/features/operation/components/modal/pdfUploadModal/usePdfUploadModalLogic.ts
 
-import { useCallback, useMemo, useState } from "react";
+import {
+  useCallback,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+} from "react";
 import { useShallow } from "zustand/react/shallow";
+
 import { useAppStore } from "@shared/store";
 
-type ViewKey = "dnd" | "success" | "error";
+export type ViewKey = "dnd" | "success" | "error";
+
+export interface PdfUploadFile {
+  name: string;
+  path: string;
+}
 
 export const usePdfUploadModalLogic = (onClose: () => void) => {
   const {
@@ -28,21 +40,33 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
   );
 
   const [currentViewKey, setCurrentViewKey] = useState<ViewKey>("dnd");
+  const [isDragging, setIsDragging] = useState(false);
 
-  const files = useMemo(
+  // ============================================================
+  // Files
+  // ============================================================
+
+  const files = useMemo<PdfUploadFile[]>(
     () =>
       storeFiles.map((file) => ({
         name: file.name || file.path.split(/[/\\]/).pop() || "PDFファイル",
         path: file.path,
-        lastModified: 0,
-      })) as unknown as File[],
+      })),
     [storeFiles],
   );
 
   const fileCount = files.length;
 
-  const handleFilesSelect = useCallback(
+  // ============================================================
+  // File Select
+  // ============================================================
+
+  const selectFiles = useCallback(
     (selectedFiles: File[]) => {
+      if (isProcessing || selectedFiles.length === 0) {
+        return;
+      }
+
       const filePaths = selectedFiles
         .map((file) => {
           if (typeof window.electronAPI?.getFilePath === "function") {
@@ -53,6 +77,7 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
                 "[usePdfUploadModalLogic] failed to get file path",
                 error,
               );
+
               return "";
             }
           }
@@ -72,12 +97,70 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
       mergePdfFiles(filePaths);
       setCurrentViewKey("dnd");
     },
-    [mergePdfFiles],
+    [isProcessing, mergePdfFiles],
   );
+
+  // ============================================================
+  // Drag & Drop
+  // ============================================================
+
+  const handleDragOver = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+
+      if (!isProcessing) {
+        setIsDragging(true);
+      }
+    },
+    [isProcessing],
+  );
+
+  const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      setIsDragging(false);
+
+      if (isProcessing) {
+        return;
+      }
+
+      const pdfFiles = Array.from(event.dataTransfer.files).filter(
+        (file) =>
+          file.type === "application/pdf" ||
+          file.name.toLowerCase().endsWith(".pdf"),
+      );
+
+      selectFiles(pdfFiles);
+    },
+    [isProcessing, selectFiles],
+  );
+
+  // ============================================================
+  // File Input
+  // ============================================================
+
+  const handleFileChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      selectFiles(Array.from(event.target.files ?? []));
+
+      // 同じファイルを再選択できるようにする
+      event.target.value = "";
+    },
+    [selectFiles],
+  );
+
+  // ============================================================
+  // Reorder
+  // ============================================================
 
   const handleMoveUp = useCallback(
     (index: number) => {
-      if (index <= 0 || isProcessing) {
+      if (isProcessing || index <= 0) {
         return;
       }
 
@@ -88,38 +171,50 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
 
   const handleMoveDown = useCallback(
     (index: number) => {
-      if (index >= storeFiles.length - 1 || isProcessing) {
+      if (isProcessing || index >= fileCount - 1) {
         return;
       }
 
       reorderPdfFiles(index, index + 1);
     },
-    [isProcessing, reorderPdfFiles, storeFiles.length],
+    [fileCount, isProcessing, reorderPdfFiles],
   );
 
+  // ============================================================
+  // Upload
+  // ============================================================
+
   const handleExecute = useCallback(async () => {
-    if (storeFiles.length === 0 || isProcessing) {
+    if (isProcessing || fileCount === 0) {
       return;
     }
 
     try {
-      // 内部で executeScript("30") が呼ばれ、他ジョブ同様のLOADING表示＆dispatchScript("30")の実行が行われる
       await uploadPdfFiles();
       setCurrentViewKey("success");
     } catch (error) {
       console.error("[usePdfUploadModalLogic] upload failed", error);
       setCurrentViewKey("error");
     }
-  }, [isProcessing, storeFiles.length, uploadPdfFiles]);
+  }, [fileCount, isProcessing, uploadPdfFiles]);
+
+  // ============================================================
+  // Retry
+  // ============================================================
 
   const handleRetry = useCallback(() => {
     resetPdfUpload();
     setCurrentViewKey("dnd");
   }, [resetPdfUpload]);
 
+  // ============================================================
+  // Close
+  // ============================================================
+
   const handleCancelAndClose = useCallback(() => {
     resetPdfUpload();
     setCurrentViewKey("dnd");
+    setIsDragging(false);
     onClose();
   }, [onClose, resetPdfUpload]);
 
@@ -129,9 +224,13 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
     isProcessing,
     errorMessage,
     currentViewKey,
-    isHovering: false,
+    isDragging,
 
-    handleFilesSelect,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleFileChange,
+
     handleMoveUp,
     handleMoveDown,
     handleExecute,

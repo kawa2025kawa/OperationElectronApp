@@ -4,12 +4,10 @@ import React, { useMemo } from "react";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import type { OperationItem } from "@shared/types/operationType";
 import type { ExtraModalType } from "@shared/types/uiType";
-import { ConfirmModalContent } from "./confirmModal/ConfirmModalContent";
-import { JcModalContent } from "./jcModal/JcModalContent";
 import { LinkModalContent } from "./linkModal/LinkModalContent";
 import { PdfUploadModalContent } from "./pdfUploadModal/PdfUploadModalContent";
-import { ScriptModalContent } from "./scriptModal/ScriptModalContent";
 import { SummaryModalContent } from "./summaryModal/SummaryModalContent";
+import { GmailModalContent } from "./gmailModal/GmailModalContent";
 import {
   useOperationModalLogic,
   type ModalContentProps,
@@ -27,7 +25,6 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
   ({ type, items = [], onClose }) => {
     const {
       title,
-      selectedItem,
       isExecuted,
       setTitle,
       registerPrimaryAction,
@@ -52,31 +49,24 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
         case "summary":
           return <SummaryModalContent {...commonProps} items={items} />;
 
-        case "jc":
-          return <JcModalContent {...commonProps} />;
-
-        case "script":
-          return <ScriptModalContent {...commonProps} />;
-
         case "pdfUpload":
           return <PdfUploadModalContent {...commonProps} />;
 
         case "link":
           return <LinkModalContent {...commonProps} />;
 
-        case "manual":
-          return (
-            <ConfirmModalContent
-              {...commonProps}
-              url={selectedItem?.kanriNo}
-              baseUrl="https://sites.google.com/belc.co.jp/operation-manual-"
-              label="マニュアル"
-            />
-          );
+        case "gmail":
+          return <GmailModalContent {...commonProps} />;
 
         default:
           return null;
       }
+    };
+
+    // モーダルの種類に応じたプライマリボタンのテキスト
+    const getPrimaryButtonLabel = () => {
+      if (type === "gmail") return "下書き保存";
+      return "実行";
     };
 
     return (
@@ -108,14 +98,14 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
                 閉じる
               </button>
 
-              {/* 🎯 summary 以外のモーダルの時だけ実行ボタンを表示 */}
+              {/* summary 以外のモーダルの時だけ実行/保存ボタンを表示 */}
               {type !== "summary" && (
                 <button
                   type="button"
                   className={styles.button}
                   onClick={handlePrimaryClick}
                 >
-                  実行
+                  {getPrimaryButtonLabel()}
                 </button>
               )}
             </>

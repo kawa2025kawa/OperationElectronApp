@@ -1,6 +1,4 @@
-﻿// src/renderer/features/operation/components/sidePanel/useSidePanel.ts
-
-import { useCallback, useMemo } from "react";
+﻿import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@shared/store";
 import type { ViewMode } from "@shared/types/uiType";
@@ -58,6 +56,7 @@ export const useSidePanel = () => {
     (key: string) => {
       const action = configuredActions.find((item) => item.key === key);
       if (!action || !selectedItem) return;
+
       action.execute(selectedItem, {
         openGlobalModal,
         closeGlobalModal,

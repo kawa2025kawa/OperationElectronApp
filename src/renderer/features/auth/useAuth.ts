@@ -21,17 +21,31 @@ export const useAuth = () => {
     })),
   );
 
-  const handleLogin = async () => {
+  const handleLogin = async (): Promise<void> => {
+    // ログイン処理中は二重実行しない
+    if (isLoginProcessing) {
+      console.warn("[Auth] Login is already in progress.");
+      return;
+    }
+
     setIsLoginProcessing(true);
 
     try {
+      console.log("[Auth] Starting Google login...");
+
       const session = await login();
 
       if (!session?.accessToken) {
         throw new Error("アクセストークンの取得に失敗しました");
       }
 
-      await handleLoginSuccess(session.accessToken);
+      await handleLoginSuccess(
+        session.accessToken,
+        session.email,
+        session.familyName,
+      );
+
+      console.log("[Auth] Google login completed.");
     } catch (error) {
       console.error("[Auth] Login failed:", error);
 
@@ -43,16 +57,21 @@ export const useAuth = () => {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = async (): Promise<void> => {
     await logout();
   };
 
-  const handleAuthToggle = () => {
+  const handleAuthToggle = (): void => {
+    if (isLoginProcessing) {
+      return;
+    }
+
     if (isAuthenticated) {
       void handleLogout();
-    } else {
-      void handleLogin();
+      return;
     }
+
+    void handleLogin();
   };
 
   const authState = isLoginProcessing
