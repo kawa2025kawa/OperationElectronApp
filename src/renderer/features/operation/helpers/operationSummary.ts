@@ -1,5 +1,4 @@
 // src/renderer/features/operation/helpers/operationSummary.ts
-
 import type { StatusSummary } from "@shared/types/uiType";
 import { EMPTY_STATUS_SUMMARY, STATUS_ORDER } from "@shared/types/uiType";
 import type { JobStatus, OperationItem } from "@shared/types/operationType";
@@ -7,11 +6,48 @@ import type { AppState } from "@shared/store";
 import { calculateNextStatus } from "./statusEvaluator";
 
 export const INITIAL_SUMMARY: StatusSummary = { ...EMPTY_STATUS_SUMMARY };
-
 const VALID_STATUSES = new Set<string>(STATUS_ORDER);
 
 /**
- * OperationItem 配列またはオブジェクトから kanriNo をキーにしたマップを作成
+ * 有効な jobId を保持しているか判定 ("-" や 空文字を除外)
+ */
+export const hasValidJobId = (item: OperationItem): boolean => {
+  return Boolean("jobId" in item && item.jobId && item.jobId !== "-");
+};
+
+/**
+ * jobId を持つジョブの集計結果インターフェース
+ */
+export interface JobIdSummary {
+  total: number;
+  successCount: number;
+  allCompleted: boolean;
+}
+
+/**
+ * jobId を持つ有効なデータのトータル件数・Status状況を集計
+ */
+export function calculateJobIdSummary(items: OperationItem[]): JobIdSummary {
+  const jobIdItems = items.filter(hasValidJobId);
+  const total = jobIdItems.length;
+
+  if (total === 0) {
+    return { total: 0, successCount: 0, allCompleted: true };
+  }
+
+  const successCount = jobIdItems.filter(
+    (item) => String(item.status).toLowerCase() === "success",
+  ).length;
+
+  return {
+    total,
+    successCount,
+    allCompleted: successCount === total,
+  };
+}
+
+/**
+ * OperationItem 配列またはオブジェクトを kanriNo キーのマップに変換
  */
 export const mapRawEntities = (
   items: OperationItem[] | Record<string, OperationItem>,
@@ -27,23 +63,19 @@ export const mapRawEntities = (
 };
 
 /**
- * AppState から「通常作業 + 本日分のイレギュラー作業」のみを配列形式で取得
+ * AppState から Operation および本日対象の Irregular エントリを一括取得
  */
 export function getAllEntities(state: AppState): OperationItem[] {
   const ops = Object.values(state.operationEntities ?? {});
-
-  // イレギュラーデータは todayIds に含まれるもの（本日分）のみ抽出
   const todayIdsSet = new Set(state.todayIds ?? []);
   const todayIrregulars = Object.values(state.irregularEntities ?? {}).filter(
     (item) => todayIdsSet.has(String(item.kanriNo)),
   );
-
   return [...ops, ...todayIrregulars];
 }
 
 /**
- * サマリー数値を計算
- * activeFlags（店舗/センター有効フラグ）を考慮して最新の動的ステータスを集計
+ * 全体サマリーの計算
  */
 export function calculateSummary(
   input: Record<string, OperationItem> | OperationItem[],
@@ -51,7 +83,6 @@ export function calculateSummary(
 ): StatusSummary {
   const items = Array.isArray(input) ? input : Object.values(input ?? {});
   const allEntitiesMap = mapRawEntities(items);
-
   const summary: StatusSummary = {
     ...INITIAL_SUMMARY,
     total: items.length,
@@ -59,26 +90,21 @@ export function calculateSummary(
 
   for (const item of items) {
     if (!item) continue;
-
     const rawStatus = item.status
       ? (String(item.status).toLowerCase() as JobStatus)
       : undefined;
-
     const computedStatus = calculateNextStatus(
       item,
       rawStatus,
       allEntitiesMap,
       activeFlags,
     );
-
     const statusKey = computedStatus as JobStatus;
-
     if (VALID_STATUSES.has(statusKey)) {
       summary[statusKey] = (summary[statusKey] ?? 0) + 1;
     }
   }
 
-  // 進捗率の計算 (完了数 / 全体数)
   summary.progress =
     summary.total > 0 ? Math.round((summary.success / summary.total) * 100) : 0;
 

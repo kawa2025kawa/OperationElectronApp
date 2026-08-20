@@ -47,11 +47,12 @@ const commonValues = {
 
   zIndex: {
     base: "0",
-    under: "1", // 背面レイヤー
-    active: "2", // アクティブな要素
+    under: "1",
+    active: "2",
     content: "10",
     sticky: "100",
     dropdown: "200",
+    contextMenu: "500",
     overlay: "900",
     modal: "1000",
     toast: "1100",
@@ -82,10 +83,11 @@ export const darkThemeClass = createTheme(
 
     color: {
       bg: {
-        base: "rgba(30, 34, 39, 1)", // メイン背景
-        surface: "rgba(28, 28, 40, 1)", // 表面（カードなど）
-        inset: "rgba(16, 16, 22, 1)", // 凹み（インセット）
-        header: "rgba(20, 20, 25, 0.8)", // ヘッダー
+        base: "rgba(30, 34, 39, 1)",
+        surface: "rgba(28, 28, 40, 1)",
+        inset: "rgba(16, 16, 22, 1)",
+        header: "rgba(20, 20, 25, 0.8)",
+        frostedGlass: "rgba(0, 0, 0, 0.45)", // 💡 ダーク時のすりガラス用透過背景を追加
       },
 
       text: {
@@ -96,7 +98,7 @@ export const darkThemeClass = createTheme(
 
       border: {
         default: "rgba(255, 255, 255, 0.08)",
-        subtle: "rgba(255, 255, 255, 0.03)",
+        subtle: "rgba(0, 0, 0, 0.6)", // 💡 くっきり境界線用を追加
         accent: "rgba(0, 200, 180, 1)",
       },
 
@@ -108,7 +110,6 @@ export const darkThemeClass = createTheme(
         neonPink: "rgba(255, 60, 200, 1)",
       },
 
-      /* ステータスカラー (RGBA 形式) */
       status: {
         total: "rgba(255, 255, 255, 1)",
         success: "rgba(74, 222, 128, 1)",
@@ -120,7 +121,6 @@ export const darkThemeClass = createTheme(
       },
     },
 
-    /* グラデーション設定 */
     gradient: {
       brand:
         "linear-gradient(90deg, rgba(12, 235, 235, 1), rgba(32, 227, 178, 1), rgba(41, 255, 198, 1))",
@@ -169,6 +169,7 @@ export const lightThemeClass = createTheme(
         surface: "rgba(242, 245, 248, 1)",
         inset: "rgba(225, 230, 235, 1)",
         header: "rgba(242, 245, 248, 0.8)",
+        frostedGlass: "rgba(255, 255, 255, 0.65)", // 💡 ライト時のすりガラス用透過背景を追加
       },
 
       text: {
@@ -179,7 +180,7 @@ export const lightThemeClass = createTheme(
 
       border: {
         default: "rgba(0, 0, 0, 0.08)",
-        subtle: "rgba(0, 0, 0, 0.03)",
+        subtle: "rgba(0, 0, 0, 0.15)", // 💡 くっきり境界線用を追加
         accent: "rgba(0, 200, 180, 1)",
       },
 

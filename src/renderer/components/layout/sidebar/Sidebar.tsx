@@ -4,7 +4,6 @@ import { clsx } from "clsx";
 
 import { Overlay } from "@renderer/components/ui/overlay/Overlay";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-
 import { useSidebarLogic } from "./useSidebarLogic";
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";
 

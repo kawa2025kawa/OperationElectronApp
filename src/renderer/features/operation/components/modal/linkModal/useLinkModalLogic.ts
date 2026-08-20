@@ -1,4 +1,6 @@
-﻿import { useCallback } from "react";
+﻿//src\renderer\features\operation\components\modal\linkModal\useLinkModalLogic.ts
+
+import { useCallback } from "react";
 import { commands } from "@shared/api/commands";
 import { useAppStore } from "@shared/store";
 import { selectActiveSelectedItem } from "@renderer/features/operation/store/operationSelectors";

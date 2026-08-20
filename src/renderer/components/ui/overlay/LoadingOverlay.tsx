@@ -1,4 +1,5 @@
 // src/renderer/components/ui/overlay/LoadingOverlay.tsx
+
 import React from "react";
 import { LoadingContent } from "./Overlay";
 import type { InitStatus } from "@shared/types/initializationTypes";
@@ -49,16 +50,13 @@ const LoadingOverlayComponent: React.FC<LoadingOverlayProps> = ({
     >
       <LoadingContent message={message} statusMessage={statusMessage} />
 
-      {processingTarget && (
-        <div className={styles.processingTargetPanel}>
-          <span className={styles.processingTargetLabel}>
-            PROCESSING TARGET
-          </span>
-          <span className={styles.processingTargetValue}>
-            {processingTarget}
-          </span>
-        </div>
-      )}
+      <div className={styles.processingTargetPanel}>
+        <span className={styles.processingTargetLabel}>PROCESSING TARGET</span>
+
+        <span className={styles.processingTargetValue}>
+          {processingTarget ?? "PROCESSING"}
+        </span>
+      </div>
 
       {dataStatus && (
         <div className={styles.statusPanel}>
@@ -66,6 +64,7 @@ const LoadingOverlayComponent: React.FC<LoadingOverlayProps> = ({
             ([key, value]) => (
               <div className={styles.statusRow} key={String(key)}>
                 <span>{PANEL_LABELS[key]}:</span>
+
                 <span className={getStatusTone(value)}>{value}</span>
               </div>
             ),

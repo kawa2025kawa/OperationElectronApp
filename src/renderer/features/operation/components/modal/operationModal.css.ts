@@ -26,7 +26,10 @@ export const pressedSection = style([
 
 export const container = style({
   display: "grid",
-  gridTemplateRows: "auto 1fr",
+
+  // header / content / footer
+  gridTemplateRows: "auto minmax(0, 1fr) auto",
+
   width: "100%",
   height: "100%",
   padding: "3vmin",
@@ -51,6 +54,10 @@ export const modalTitle = style({
   color: tokens.color.text.base,
 });
 
+/* =======================================
+ * 3. 中央コンテンツ
+ * ======================================= */
+
 export const centerContent = style({
   display: "flex",
   flexDirection: "column",
@@ -58,13 +65,43 @@ export const centerContent = style({
   height: "100%",
   minHeight: 0,
   flex: 1,
-  padding: "1vmin 0",
+
+  // 上下 + 右側にスクロールバーとの間隔を確保
+  padding: "1vmin 1.5vmin 1vmin 0",
+
   boxSizing: "border-box",
-  overflow: "hidden",
+
+  overflowY: "auto",
+  overflowX: "hidden",
+
+  scrollbarWidth: "thin",
+
+  scrollbarColor: `${tokens.color.accent.base} ${tokens.color.bg.inset}`,
+
+  selectors: {
+    "&::-webkit-scrollbar": {
+      width: "8px",
+    },
+
+    "&::-webkit-scrollbar-track": {
+      background: tokens.color.bg.inset,
+      borderRadius: tokens.radius.md,
+    },
+
+    "&::-webkit-scrollbar-thumb": {
+      background: tokens.color.accent.base,
+      borderRadius: tokens.radius.md,
+      border: `2px solid ${tokens.color.bg.inset}`,
+    },
+
+    "&::-webkit-scrollbar-thumb:hover": {
+      background: tokens.color.accent.neonCyan,
+    },
+  },
 });
 
 /* =======================================
- * 3. 共通コンテンツラッパー
+ * 4. 共通コンテンツラッパー
  * ======================================= */
 
 export const contentFlexContainer = style({
@@ -95,7 +132,7 @@ export const sectionTitle = style({
 });
 
 /* =======================================
- * 4. アクションボタン
+ * 5. アクションボタン
  * ======================================= */
 
 export const actionContainer = style({
@@ -108,7 +145,6 @@ export const actionContainer = style({
   paddingTop: "1vmin",
 });
 
-// src/renderer/features/operation/components/modal/operationModal.css.ts
 export const button = style([
   themeTransition,
   {
@@ -128,15 +164,18 @@ export const button = style([
     color: tokens.color.text.base,
     border: `1px solid ${tokens.color.border.default}`,
     boxShadow: tokens.shadow.raised.low,
+
     selectors: {
       "&:hover:not(:disabled)": {
         borderColor: tokens.color.accent.neonCyan,
         boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
         color: tokens.color.text.onAccent,
       },
+
       "&:active:not(:disabled)": {
         boxShadow: tokens.shadow.pressed.low,
       },
+
       "&:disabled": {
         opacity: 0.4,
         cursor: "not-allowed",

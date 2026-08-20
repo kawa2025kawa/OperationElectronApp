@@ -1,13 +1,16 @@
 // src/renderer/features/operation/components/modal/OperationModal.tsx
 
 import React, { useMemo } from "react";
+
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
+
 import type { OperationItem } from "@shared/types/operationType";
 import type { ExtraModalType } from "@shared/types/uiType";
+
+import { GmailModalContent } from "./gmailModal/GmailModalContent";
 import { LinkModalContent } from "./linkModal/LinkModalContent";
 import { PdfUploadModalContent } from "./pdfUploadModal/PdfUploadModalContent";
 import { SummaryModalContent } from "./summaryModal/SummaryModalContent";
-import { GmailModalContent } from "./gmailModal/GmailModalContent";
 import {
   useOperationModalLogic,
   type ModalContentProps,
@@ -15,14 +18,32 @@ import {
 
 import * as styles from "./operationModal.css";
 
+// =====================================================
+// Types
+// =====================================================
+
 interface OperationModalProps {
   type: ExtraModalType;
   items?: OperationItem[];
   onClose: () => void;
+
+  /**
+   * Gmailモーダルを開いた際に、
+   * kanriNoによるテンプレート自動選択を行わず、
+   * ユーザーにテンプレートを選択させる。
+   *
+   * 主にOtherViewから「下書きメール」を
+   * 新規作成する場合に使用する。
+   */
+  gmailTemplateSelection?: boolean;
 }
 
+// =====================================================
+// Component
+// =====================================================
+
 export const OperationModal: React.FC<OperationModalProps> = React.memo(
-  ({ type, items = [], onClose }) => {
+  ({ type, items = [], onClose, gmailTemplateSelection = false }) => {
     const {
       title,
       isExecuted,
@@ -35,6 +56,10 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
       onClose,
     });
 
+    // =================================================
+    // Common Props
+    // =================================================
+
     const commonProps: ModalContentProps = useMemo(
       () => ({
         onClose: handleClose,
@@ -43,6 +68,10 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
       }),
       [handleClose, setTitle, registerPrimaryAction],
     );
+
+    // =================================================
+    // Content
+    // =================================================
 
     const renderContent = () => {
       switch (type) {
@@ -56,28 +85,53 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
           return <LinkModalContent {...commonProps} />;
 
         case "gmail":
-          return <GmailModalContent {...commonProps} />;
+          return (
+            <GmailModalContent
+              {...commonProps}
+              forceTemplateSelection={gmailTemplateSelection}
+            />
+          );
 
         default:
           return null;
       }
     };
 
-    // モーダルの種類に応じたプライマリボタンのテキスト
+    // =================================================
+    // Primary Button
+    // =================================================
+
     const getPrimaryButtonLabel = () => {
-      if (type === "gmail") return "下書き保存";
-      return "実行";
+      switch (type) {
+        case "gmail":
+          return "下書き保存";
+
+        default:
+          return "実行";
+      }
     };
+
+    const shouldShowPrimaryButton = type !== "summary";
+
+    // =================================================
+    // Render
+    // =================================================
 
     return (
       <div className={styles.container}>
+        {/* Header */}
+
         <header className={styles.header}>
           <h2 className={styles.modalTitle}>{title}</h2>
 
           {!isExecuted && <CloseButton onClick={handleClose} />}
         </header>
 
+        {/* Content */}
+
         <main className={styles.centerContent}>{renderContent()}</main>
+
+        {/* Footer */}
 
         <footer className={styles.actionContainer}>
           {isExecuted ? (
@@ -98,8 +152,7 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
                 閉じる
               </button>
 
-              {/* summary 以外のモーダルの時だけ実行/保存ボタンを表示 */}
-              {type !== "summary" && (
+              {shouldShowPrimaryButton && (
                 <button
                   type="button"
                   className={styles.button}

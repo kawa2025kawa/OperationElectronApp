@@ -1,4 +1,4 @@
-﻿// src/shared/store/slices/services/fileDialogService.ts
+// src/shared/store/slices/services/fileDialogService.ts
 
 import { commands } from "@shared/api/commands";
 
@@ -21,6 +21,6 @@ export const fileDialogService = {
       ],
     });
 
-    return selected ?? [];
+    return (selected as string[]) ?? [];
   },
 };

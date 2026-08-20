@@ -6,6 +6,11 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "noEmit": true,
+
+    // ★ 以下の2行を追加
+    "skipLibCheck": true,
+    "typeRoots": ["./node_modules/@types"],
+
     "paths": {
       "@renderer/*": ["./src/renderer/*"],
       "@shared/*": ["./src/shared/*"],

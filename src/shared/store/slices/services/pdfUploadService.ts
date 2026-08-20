@@ -1,4 +1,6 @@
-﻿﻿import { commands } from "@shared/api/commands";
+﻿﻿//src\shared\store\slices\services\pdfUploadService.ts
+
+import { commands } from "@shared/api/commands";
 import { getFileName } from "@shared/utils/fileUtils";
 import type { ValidatedPdf } from "../pdfUploadSlice";
 

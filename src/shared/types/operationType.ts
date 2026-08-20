@@ -31,6 +31,7 @@ export interface JobDependency {
   condition?: DependencyCondition;
   afterTime?: string;
   requiresActive?: string[];
+  requiresAllJobsSuccess?: boolean; // ★ 追加: 有効なjobIdを持つ全アイテムのStatusがsuccessであることを求めるフラグ
 }
 
 // ============================================================

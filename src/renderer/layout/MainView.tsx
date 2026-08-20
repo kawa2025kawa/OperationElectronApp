@@ -1,5 +1,6 @@
 // src/renderer/layout/MainView.tsx
 import React from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { clsx } from "clsx";
 import { Footer } from "@renderer/components/layout/footer/Footer";
 import { Navbar } from "@renderer/components/layout/navbar/Navbar";
@@ -14,6 +15,7 @@ export const MainView: React.FC = React.memo(() => {
   return (
     <div className={styles.appContainer}>
       <Navbar />
+
       <div className={styles.contentWrapper}>
         <aside
           className={clsx(
@@ -23,14 +25,42 @@ export const MainView: React.FC = React.memo(() => {
         >
           <Sidebar />
         </aside>
+
         <main className={styles.mainContent}>
           <div className={styles.viewWrapper}>
-            {ViewComponent ? (
-              <ViewComponent />
-            ) : (
-              <UnknownView view={currentView} />
-            )}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={currentView}
+                initial={{
+                  opacity: 0,
+                  x: 12,
+                }}
+                animate={{
+                  opacity: 1,
+                  x: 0,
+                }}
+                exit={{
+                  opacity: 0,
+                  x: -12,
+                }}
+                transition={{
+                  duration: 0.2,
+                  ease: "easeOut",
+                }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                }}
+              >
+                {ViewComponent ? (
+                  <ViewComponent />
+                ) : (
+                  <UnknownView view={currentView} />
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
+
           <Footer />
         </main>
       </div>
@@ -39,4 +69,5 @@ export const MainView: React.FC = React.memo(() => {
 });
 
 MainView.displayName = "MainView";
+
 export default MainView;

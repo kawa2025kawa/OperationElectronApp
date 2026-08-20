@@ -1,8 +1,8 @@
-﻿// electron\features\spreadsheet\GoogleOAuthService.ts
+﻿// electron/features/spreadsheet/googleOAuthService.ts
 
 import { shell } from "electron";
 
-import type { AuthSession, OAuthToken } from "@shared/types/authTypes";
+import type { AuthSession } from "@shared/types/authTypes";
 
 import { getGoogleClientId, getGoogleClientSecret } from "../auth/credentials";
 import { startListener } from "../auth/listener";
@@ -13,12 +13,29 @@ import {
   generateState,
   refreshToken,
 } from "../auth/oauth";
-import { clearToken, loadToken, saveToken } from "../auth/token";
+import {
+  clearToken,
+  isTokenExpired,
+  loadToken,
+  saveToken,
+} from "../auth/token";
+
+// =====================================================
+// Constants
+// =====================================================
 
 const DEFAULT_PORT = 8888;
 const REDIRECT_HOST = "127.0.0.1";
 
+// =====================================================
+// Service
+// =====================================================
+
 export class GoogleOAuthService {
+  // ===================================================
+  // Login
+  // ===================================================
+
   async login(port = DEFAULT_PORT): Promise<AuthSession> {
     const clientId = getGoogleClientId();
     const clientSecret = getGoogleClientSecret();
@@ -42,10 +59,12 @@ export class GoogleOAuthService {
       verifier,
     );
 
-    await saveToken(token);
-
-    return this.toAuthSession(token);
+    return saveToken(token);
   }
+
+  // ===================================================
+  // Load Session
+  // ===================================================
 
   async loadSession(): Promise<AuthSession | null> {
     const session = await loadToken();
@@ -54,7 +73,7 @@ export class GoogleOAuthService {
       return null;
     }
 
-    if (session.expiresAt === null || Date.now() < session.expiresAt) {
+    if (!isTokenExpired(session)) {
       return session;
     }
 
@@ -66,9 +85,17 @@ export class GoogleOAuthService {
     return this.refreshSession(session.refreshToken);
   }
 
+  // ===================================================
+  // Logout
+  // ===================================================
+
   async clearSession(): Promise<void> {
     await clearToken();
   }
+
+  // ===================================================
+  // Refresh
+  // ===================================================
 
   private async refreshSession(
     refreshTokenValue: string,
@@ -87,24 +114,13 @@ export class GoogleOAuthService {
         token.refreshToken = refreshTokenValue;
       }
 
-      await saveToken(token);
-
-      return this.toAuthSession(token);
+      return saveToken(token);
     } catch (error) {
-      console.error("[GoogleOAuth] token refresh failed", error);
+      console.error("[GoogleOAuth] Token refresh failed:", error);
 
       await clearToken();
 
       return null;
     }
-  }
-
-  private toAuthSession(token: OAuthToken): AuthSession {
-    return {
-      accessToken: token.accessToken,
-      refreshToken: token.refreshToken,
-      expiresAt:
-        token.expiresIn !== null ? Date.now() + token.expiresIn * 1000 : null,
-    };
   }
 }

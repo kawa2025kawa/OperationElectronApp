@@ -1,4 +1,6 @@
-﻿import type { EmailTemplate } from "./types";
+﻿//src\renderer\features\operation\components\modal\gmailModal\templates\popLabel.ts
+
+import type { EmailTemplate } from "./types";
 
 export const popLabelTemplate: EmailTemplate = {
   to: "belc@taiyosha-insatsu.co.jp",

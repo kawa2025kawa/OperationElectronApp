@@ -1,66 +1,141 @@
 ﻿// src/renderer/features/auth/store/authSlice.ts
 
-import { toast } from "sonner";
+import { useToastStore } from "@renderer/components/ui/toast/toastStore";
 import type { StateCreator } from "zustand";
+
 import { loadAuthSession, logout as logoutCommand } from "@shared/api/commands";
 import type { AppState } from "@shared/store";
-import type { AuthSession } from "@shared/types/authTypes";
 
-export interface AuthSlice {
-  isAuthenticated: boolean;
-  isChecking: boolean;
-  isLoginProcessing: boolean;
-  accessToken: string | null;
-  userEmail: string | null;
-  familyName: string | null;
-
-  setIsAuthenticated: (auth: boolean) => void;
-  setIsChecking: (check: boolean) => void;
-  setIsLoginProcessing: (proc: boolean) => void;
-  setAccessToken: (token: string | null) => void;
-  setUserEmail: (email: string | null) => void;
-  setFamilyName: (familyName: string | null) => void;
-
-  checkAuthStatus: () => Promise<boolean>;
-  handleLoginSuccess: (
-    token: string,
-    email?: string | null,
-    familyName?: string | null,
-  ) => Promise<void>;
-  logout: () => Promise<void>;
-}
+// ============================================================
+// Types
+// ============================================================
 
 interface GoogleUserInfo {
   email?: string;
   family_name?: string;
 }
 
-/**
- * アクセストークンから Google UserInfo API を呼び出して
- * メールアドレスと姓（family_name）を取得するヘルパー関数
- */
+interface AuthProfile {
+  email: string | null;
+  familyName: string | null;
+}
+
+// ============================================================
+// Constants
+// ============================================================
+
+const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
+
+// ============================================================
+// Google UserInfo
+// ============================================================
+
 async function fetchUserInfo(
   accessToken: string,
 ): Promise<GoogleUserInfo | null> {
   try {
-    const res = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+    const response = await fetch(GOOGLE_USERINFO_URL, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
       },
     });
 
-    if (!res.ok) {
-      console.warn(`[Auth] Failed to fetch Google user info: ${res.status}`);
+    if (!response.ok) {
+      console.warn(`[Auth] Google UserInfo API failed: ${response.status}`);
       return null;
     }
 
-    const data = (await res.json()) as GoogleUserInfo;
-
-    return data;
+    return (await response.json()) as GoogleUserInfo;
   } catch (error) {
     console.error("[Auth] Failed to fetch Google user info:", error);
     return null;
   }
+}
+
+// ============================================================
+// Profile
+// ============================================================
+
+function normalize(value?: string | null): string | null {
+  const normalized = value?.trim();
+  return normalized || null;
+}
+
+async function resolveAuthProfile(
+  accessToken: string,
+  email?: string | null,
+  familyName?: string | null,
+): Promise<AuthProfile> {
+  const resolvedEmail = normalize(email);
+  const resolvedFamilyName = normalize(familyName);
+
+  if (resolvedEmail && resolvedFamilyName) {
+    return {
+      email: resolvedEmail,
+      familyName: resolvedFamilyName,
+    };
+  }
+
+  const userInfo = await fetchUserInfo(accessToken);
+
+  return {
+    email: resolvedEmail ?? normalize(userInfo?.email),
+    familyName: resolvedFamilyName ?? normalize(userInfo?.family_name),
+  };
+}
+
+// ============================================================
+// State
+// ============================================================
+
+function clearAuthState(state: AppState): void {
+  state.isAuthenticated = false;
+  state.isChecking = false;
+  state.accessToken = null;
+  state.userEmail = null;
+  state.familyName = null;
+  state.pendingView = null;
+}
+
+function applyAuthenticatedState(
+  state: AppState,
+  accessToken: string,
+  profile: AuthProfile,
+): void {
+  state.accessToken = accessToken;
+  state.isAuthenticated = true;
+  state.userEmail = profile.email;
+  state.familyName = profile.familyName;
+}
+
+// ============================================================
+// Slice
+// ============================================================
+
+export interface AuthSlice {
+  isAuthenticated: boolean;
+  isChecking: boolean;
+
+  accessToken: string | null;
+  userEmail: string | null;
+  familyName: string | null;
+
+  setIsAuthenticated: (auth: boolean) => void;
+  setIsChecking: (check: boolean) => void;
+  setAccessToken: (token: string | null) => void;
+  setUserEmail: (email: string | null) => void;
+  setFamilyName: (familyName: string | null) => void;
+
+  checkAuthStatus: () => Promise<boolean>;
+
+  handleLoginSuccess: (
+    token: string,
+    email?: string | null,
+    familyName?: string | null,
+  ) => Promise<void>;
+
+  logout: () => Promise<void>;
 }
 
 export const createAuthSlice: StateCreator<
@@ -71,155 +146,133 @@ export const createAuthSlice: StateCreator<
 > = (set, get) => ({
   isAuthenticated: false,
   isChecking: false,
-  isLoginProcessing: false,
+
   accessToken: null,
   userEmail: null,
   familyName: null,
 
+  // ----------------------------------------------------------
+  // Setters
+  // ----------------------------------------------------------
+
   setIsAuthenticated: (auth) =>
-    set((state: AppState) => {
+    set((state) => {
       state.isAuthenticated = auth;
     }),
 
   setIsChecking: (check) =>
-    set((state: AppState) => {
+    set((state) => {
       state.isChecking = check;
     }),
 
-  setIsLoginProcessing: (proc) =>
-    set((state: AppState) => {
-      state.isLoginProcessing = proc;
-    }),
-
   setAccessToken: (token) =>
-    set((state: AppState) => {
+    set((state) => {
       state.accessToken = token;
     }),
 
   setUserEmail: (email) =>
-    set((state: AppState) => {
+    set((state) => {
       state.userEmail = email;
     }),
 
   setFamilyName: (familyName) =>
-    set((state: AppState) => {
+    set((state) => {
       state.familyName = familyName;
     }),
 
-  checkAuthStatus: async () => {
-    get().setIsChecking(true);
+  // ----------------------------------------------------------
+  // Auth Check
+  // ----------------------------------------------------------
+
+  checkAuthStatus: async (): Promise<boolean> => {
+    set((state) => {
+      state.isChecking = true;
+    });
 
     try {
-      const session: AuthSession | null = await loadAuthSession();
+      const session = await loadAuthSession();
 
       if (!session?.accessToken) {
-        get().setIsAuthenticated(false);
-        get().setAccessToken(null);
-        get().setUserEmail(null);
-        get().setFamilyName(null);
+        set((state) => {
+          clearAuthState(state);
+        });
 
         return false;
       }
 
-      get().setAccessToken(session.accessToken);
-      get().setIsAuthenticated(true);
-
-      /*
-       * セッションに email / familyName が含まれていればそれを使用。
-       * 含まれていない場合は Google UserInfo API から取得する。
-       */
-      const userInfo =
-        session.email !== undefined && session.familyName !== undefined
-          ? {
-              email: session.email,
-              family_name: session.familyName,
-            }
-          : await fetchUserInfo(session.accessToken);
-
-      get().setUserEmail(
-        session.email !== undefined ? session.email : (userInfo?.email ?? null),
+      const profile = await resolveAuthProfile(
+        session.accessToken,
+        session.email,
+        session.familyName,
       );
 
-      get().setFamilyName(
-        session.familyName !== undefined
-          ? session.familyName
-          : (userInfo?.family_name ?? null),
-      );
+      set((state) => {
+        applyAuthenticatedState(state, session.accessToken, profile);
+      });
 
       return true;
     } catch (error) {
       console.error("[Auth] Session check failed:", error);
 
-      get().setIsAuthenticated(false);
-      get().setAccessToken(null);
-      get().setUserEmail(null);
-      get().setFamilyName(null);
+      set((state) => {
+        clearAuthState(state);
+      });
 
       return false;
     } finally {
-      get().setIsChecking(false);
+      set((state) => {
+        state.isChecking = false;
+      });
     }
   },
 
-  handleLoginSuccess: async (accessToken, emailParam, familyNameParam) => {
-    get().setAccessToken(accessToken);
-    get().setIsAuthenticated(true);
-    get().setIsLoginProcessing(false);
+  // ----------------------------------------------------------
+  // Login
+  // ----------------------------------------------------------
 
-    /*
-     * ログイン時に引数としてプロフィール情報が渡されていれば使用。
-     * なければ Google UserInfo API から取得する。
-     */
-    const userInfo =
-      emailParam !== undefined && familyNameParam !== undefined
-        ? {
-            email: emailParam,
-            family_name: familyNameParam,
-          }
-        : await fetchUserInfo(accessToken);
+  handleLoginSuccess: async (accessToken, email, familyName): Promise<void> => {
+    const profile = await resolveAuthProfile(accessToken, email, familyName);
 
-    const email =
-      emailParam !== undefined ? emailParam : (userInfo?.email ?? null);
+    set((state) => {
+      applyAuthenticatedState(state, accessToken, profile);
 
-    const familyName =
-      familyNameParam !== undefined
-        ? familyNameParam
-        : (userInfo?.family_name ?? null);
+      if (state.pendingView) {
+        state.currentView = state.pendingView;
+        state.pendingView = null;
+      }
+    });
 
-    get().setUserEmail(email);
-    get().setFamilyName(familyName);
-
-    toast.success("Googleログインに成功しました");
+    useToastStore
+      .getState()
+      .addToast("Googleログインに成功しました", "success");
 
     void get().prefetchSheets(accessToken);
-
-    const pendingView = get().pendingView;
-
-    if (pendingView) {
-      get().setCurrentView(pendingView);
-      get().setPendingView(null);
-    }
   },
 
-  logout: async () => {
+  // ----------------------------------------------------------
+  // Logout
+  // ----------------------------------------------------------
+
+  logout: async (): Promise<void> => {
     try {
       await logoutCommand();
 
-      set((state: AppState) => {
-        state.isAuthenticated = false;
-        state.isChecking = false;
-        state.isLoginProcessing = false;
-        state.accessToken = null;
-        state.userEmail = null;
-        state.familyName = null;
-        state.pendingView = null;
+      set((state) => {
+        clearAuthState(state);
       });
 
-      toast.success("ログアウトしました");
+      useToastStore.getState().addToast("ログアウトしました", "success");
     } catch (error) {
       console.error("[Auth] Logout failed:", error);
 
-      toast.error(error instanceof Error ? error.message : "ログアウト失敗");
+      useToastStore
+        .getState()
+        .addToast(
+          error instanceof Error ? error.message : "ログアウト失敗",
+          "error",
+        );
     }
   },
 });
+
+export default createAuthSlice;

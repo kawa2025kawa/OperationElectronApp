@@ -8,9 +8,6 @@ import { themeTransition, tokens } from "@renderer/styles/tokens";
 // Common
 // ============================================================
 
-/**
- * 凹みコンテナ
- */
 export const pressed = style([
   themeTransition,
   {
@@ -23,9 +20,6 @@ export const pressed = style([
   },
 ]);
 
-/**
- * 省略表示
- */
 export const text = style({
   minWidth: 0,
   overflow: "hidden",
@@ -47,15 +41,17 @@ export const dropZone = style([
     cursor: "pointer",
 
     selectors: {
-      "&:hover": {
-        borderColor: tokens.color.accent.base,
+      "&:hover:not(:disabled)": {
+        borderColor: tokens.color.accent.neonCyan,
+        boxShadow: tokens.shadow.glow.cyan,
       },
     },
   },
 ]);
 
 export const dropZoneDragging = style({
-  borderColor: tokens.color.accent.base,
+  borderColor: tokens.color.accent.neonCyan,
+  boxShadow: tokens.shadow.glow.cyan,
 });
 
 export const dropZoneDisabled = style({
@@ -107,9 +103,7 @@ export const listBox = style([
     flexDirection: "column",
     gap: "1vmin",
     minHeight: 0,
-    height: "100%",
     padding: "2vmin",
-    boxSizing: "border-box",
     overflowY: "auto",
   },
 ]);
@@ -125,7 +119,6 @@ export const emptyContainer = style({
   justifyContent: "center",
   width: "100%",
   minHeight: 0,
-  height: "100%",
   overflow: "hidden",
 });
 
@@ -161,12 +154,16 @@ export const itemCardRow = style([
     border: `1px solid ${tokens.color.border.subtle}`,
     borderRadius: tokens.radius.sm,
     boxShadow: tokens.shadow.raised.low,
+
+    selectors: {
+      "&:hover": {
+        borderColor: tokens.color.accent.neonCyan,
+        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      },
+    },
   },
 ]);
 
-/**
- * ファイル名・パスを縦に並べる領域
- */
 export const fileContent = style({
   display: "flex",
   flex: 1,
@@ -175,9 +172,6 @@ export const fileContent = style({
   gap: "0.25rem",
 });
 
-/**
- * ファイル番号 + ファイル名
- */
 export const fileNameRow = style({
   display: "flex",
   alignItems: "center",
@@ -187,7 +181,6 @@ export const fileNameRow = style({
 
 export const fileIndex = style({
   flexShrink: 0,
-  minWidth: "24px",
   color: tokens.color.text.base,
   fontWeight: tokens.font.weight.bold,
 });
@@ -197,6 +190,12 @@ export const fileName = style([
   {
     fontSize: "clamp(11px, 1.8vmin, 14px)",
     fontWeight: tokens.font.weight.bold,
+
+    selectors: {
+      [`${itemCardRow}:hover &`]: {
+        color: tokens.color.text.hover,
+      },
+    },
   },
 ]);
 
@@ -205,6 +204,12 @@ export const filePath = style([
   {
     fontSize: "clamp(10px, 1.6vmin, 13px)",
     opacity: 0.7,
+
+    selectors: {
+      [`${itemCardRow}:hover &`]: {
+        color: tokens.color.text.hover,
+      },
+    },
   },
 ]);
 
@@ -227,8 +232,8 @@ export const reorderButton = style([
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
     width: "28px",
-    minWidth: "28px",
     height: "28px",
     padding: 0,
 
@@ -243,7 +248,9 @@ export const reorderButton = style([
 
     selectors: {
       "&:hover:not(:disabled)": {
-        boxShadow: tokens.shadow.raised.low,
+        borderColor: tokens.color.accent.neonCyan,
+        boxShadow: tokens.shadow.glow.cyan,
+        color: tokens.color.text.hover,
       },
 
       "&:active:not(:disabled)": {

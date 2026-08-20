@@ -1,4 +1,6 @@
-﻿import { useEffect } from "react";
+﻿//src\renderer\features\operation\components\table\useOperationTableHotkeys.ts
+
+import { useEffect } from "react";
 import { useAppStore } from "@shared/store";
 import type { ViewMode } from "@shared/types/uiType";
 import { completeSelectedOperation } from "@renderer/features/operation/actions/operationActions";

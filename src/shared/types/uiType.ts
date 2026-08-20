@@ -14,6 +14,7 @@ export const APP_VIEW_IDS = {
   JUGYOIN: "jugyoin",
   SHOP: "shop",
   TANTOU: "tantou",
+  OTHER: "other",
 } as const;
 
 export type AppViewId = (typeof APP_VIEW_IDS)[keyof typeof APP_VIEW_IDS];

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { useShallow } from "zustand/react/shallow";
@@ -22,13 +22,11 @@ const contentVariants: Variants = {
 };
 
 export const GlobalModalManager: React.FC = () => {
-  const [modalRoot, setModalRoot] = useState<HTMLElement | null>(null);
+  const modalRoot =
+    typeof window !== "undefined"
+      ? document.getElementById("modal-root")
+      : null;
 
-  useEffect(() => {
-    setModalRoot(document.getElementById("modal-root"));
-  }, []);
-
-  // 🎯 複数要素の一括取得を useShallow で最適化
   const { modalContent, modalConfig, closeModal } = useAppStore(
     useShallow((s) => ({
       modalContent: s.modalContent,
@@ -57,9 +55,10 @@ export const GlobalModalManager: React.FC = () => {
           animate="visible"
           exit="exit"
           onClick={(e) => e.stopPropagation()}
+          // 💡 カスタム指定がある場合のみ動的にスタイルを適用
           style={{
-            width: modalConfig?.width ?? "min(60vw, 700px)",
-            height: modalConfig?.height ?? "min(70vh, 600px)",
+            width: modalConfig?.width,
+            height: modalConfig?.height,
           }}
         >
           {modalContent}

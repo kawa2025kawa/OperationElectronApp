@@ -1,19 +1,24 @@
-﻿﻿// src/shared/store/slices/pdfUploadSlice.ts
-
-import { toast } from "sonner";
+﻿﻿import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-import type { AppState } from "@shared/store/index";
+
+import type { AppState } from "@shared/store";
 import { pdfUploadService } from "@shared/store/slices/services/pdfUploadService";
+
 import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/operationSelectors";
+import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/jobRunnerHelper";
+
 import {
+  calculateExpireDate,
   createInitialPdfUploadState,
   createUniquePaths,
-  validateAndFormatPdfs,
-  calculateExpireDate,
   logUploadOrder,
+  validateAndFormatPdfs,
 } from "./utils/pdfUploadUtils";
 
-// --- Types ---
+// ============================================================
+// Types
+// ============================================================
+
 export interface ValidatedPdf {
   name: string;
   path: string;
@@ -31,15 +36,18 @@ export interface PdfUploadState {
 
 export interface PdfUploadSlice {
   pdfUpload: PdfUploadState;
+
   updatePdfUpload(update: Partial<PdfUploadState>): void;
   resetPdfUpload(): void;
   mergePdfFiles(incomingPaths: string[]): void;
   reorderPdfFiles(fromIndex: number, toIndex: number): void;
   uploadPdfFiles(): Promise<void>;
-  runPdfUploadJob(): Promise<void>;
 }
 
-// --- Slice ---
+// ============================================================
+// Slice
+// ============================================================
+
 export const createPdfUploadSlice: StateCreator<
   AppState,
   [["zustand/immer", never]],
@@ -48,18 +56,31 @@ export const createPdfUploadSlice: StateCreator<
 > = (set, get) => ({
   pdfUpload: createInitialPdfUploadState(),
 
+  // ==========================================================
+  // Update
+  // ==========================================================
+
   updatePdfUpload: (update) =>
     set((state) => {
       Object.assign(state.pdfUpload, update);
     }),
+
+  // ==========================================================
+  // Reset
+  // ==========================================================
 
   resetPdfUpload: () =>
     set((state) => {
       state.pdfUpload = createInitialPdfUploadState();
     }),
 
+  // ==========================================================
+  // Merge Files
+  // ==========================================================
+
   mergePdfFiles: (incomingPaths) => {
     const currentPaths = get().pdfUpload.files.map((file) => file.path);
+
     const mergedPaths = createUniquePaths(currentPaths, incomingPaths);
     const files = validateAndFormatPdfs(mergedPaths);
 
@@ -77,28 +98,57 @@ export const createPdfUploadSlice: StateCreator<
     });
   },
 
+  // ==========================================================
+  // Reorder Files
+  // ==========================================================
+
   reorderPdfFiles: (fromIndex, toIndex) =>
     set((state) => {
-      const files = state.pdfUpload.files;
-      if (
+      const { files } = state.pdfUpload;
+
+      const isInvalidIndex =
         fromIndex < 0 ||
         fromIndex >= files.length ||
         toIndex < 0 ||
         toIndex >= files.length ||
-        fromIndex === toIndex
-      ) {
+        fromIndex === toIndex;
+
+      if (isInvalidIndex) {
         return;
       }
+
       const [movedFile] = files.splice(fromIndex, 1);
-      if (movedFile) {
-        files.splice(toIndex, 0, movedFile);
-        logUploadOrder("reordered file order", files);
+
+      if (!movedFile) {
+        return;
       }
+
+      files.splice(toIndex, 0, movedFile);
+
+      logUploadOrder("reordered file order", files);
     }),
+
+  // ==========================================================
+  // Upload
+  // ==========================================================
 
   uploadPdfFiles: async () => {
     const { files, expireDate, isProcessing } = get().pdfUpload;
-    if (files.length === 0 || isProcessing) return;
+
+    console.log("[PdfUpload] uploadPdfFiles called", {
+      fileCount: files.length,
+      expireDate,
+      isProcessing,
+    });
+
+    if (files.length === 0 || isProcessing) {
+      console.warn("[PdfUpload] upload blocked", {
+        fileCount: files.length,
+        isProcessing,
+      });
+
+      return;
+    }
 
     logUploadOrder("final upload order", files);
 
@@ -111,21 +161,47 @@ export const createPdfUploadSlice: StateCreator<
     });
 
     try {
-      await pdfUploadService.upload(files, expireDate);
+      const state = get();
 
-      const activeItem = selectActiveItemStatusFlags(get()).item;
-      const kanriNo = activeItem?.kanriNo
-        ? String(activeItem.kanriNo).trim()
-        : "30";
+      console.log("[PdfUpload] starting global processing");
 
-      await get().runScriptJob(kanriNo);
+      await runJobWithGlobalProcessing(
+        state,
+        "PDFアップロード中...",
+        "PDFアップロード",
+        async () => {
+          console.log("[PdfUpload] upload service start");
+
+          await pdfUploadService.upload(files, expireDate);
+
+          console.log("[PdfUpload] upload service completed");
+
+          const activeItem = selectActiveItemStatusFlags(get()).item;
+
+          const kanriNo = activeItem?.kanriNo
+            ? String(activeItem.kanriNo).trim()
+            : "30";
+
+          console.log("[PdfUpload] starting script job", {
+            kanriNo,
+          });
+
+          await get().runScriptJob(kanriNo);
+
+          console.log("[PdfUpload] script job completed");
+        },
+      );
 
       set((state) => {
         state.pdfUpload.resultState = "success";
       });
+
+      console.log("[PdfUpload] upload completed successfully");
+
       toast.success("PDFアップロード完了");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
+
       console.error("[PdfUpload] upload failed:", error);
 
       set((state) => {
@@ -134,16 +210,16 @@ export const createPdfUploadSlice: StateCreator<
           errorMessage: message,
         });
       });
-      toast.error(
-        "PDFアップロードに失敗しました。F12コンソールを確認してください。",
-      );
+
+      toast.error("PDFアップロードに失敗しました。");
+
       throw error;
     } finally {
       set((state) => {
         state.pdfUpload.isProcessing = false;
       });
+
+      console.log("[PdfUpload] processing state cleared");
     }
   },
-
-  runPdfUploadJob: () => get().uploadPdfFiles(),
 });

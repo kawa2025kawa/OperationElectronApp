@@ -1,4 +1,6 @@
-﻿import type { EmailTemplate } from "./types";
+﻿//src\renderer\features\operation\components\modal\gmailModal\templates\shelfLabel.ts
+
+import type { EmailTemplate } from "./types";
 
 export const shelfLabelTemplate: EmailTemplate = {
   to: "mw-data@tkcc-jp.com",

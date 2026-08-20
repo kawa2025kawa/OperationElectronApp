@@ -1,6 +1,8 @@
 // src/renderer/App.tsx
+
 import React from "react";
-import { ToastContainer } from "@renderer/components/ui/toast/ToastContainer"; // ⭕ 追加
+
+import { Toast } from "@renderer/components/ui/toast/Toast";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { GlobalModalManager } from "@renderer/components/ui/modal/GlobalModalManager";
 import { MainView } from "@renderer/layout/MainView";
@@ -32,8 +34,11 @@ export const App: React.FC = () => {
   return (
     <>
       <MainView />
-      <ToastContainer /> {/* ⭕ 旧 <Toaster> の代わりにここに配置 */}
+
+      <Toast />
+
       <GlobalModalManager />
+
       <LoadingOverlay
         isOpen={isGlobalProcessing}
         message={overlayMessage}

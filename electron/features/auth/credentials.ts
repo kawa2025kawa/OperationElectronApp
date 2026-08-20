@@ -1,103 +1,118 @@
-﻿// electron/services/auth/credentials.ts
+﻿// electron/features/auth/credentials.ts
 
 import { app } from "electron";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-// =====================================================
-// Constants
-// =====================================================
-
 const CREDENTIAL_FILE = "google-oauth-credentials.json";
-
-// =====================================================
-// Types
-// =====================================================
 
 export interface GoogleCredentials {
   clientId: string;
   clientSecret?: string;
 }
 
-interface GoogleCredentialsJson {
-  installed?: {
-    client_id?: string;
-    client_secret?: string;
-  };
-
-  web?: {
-    client_id?: string;
-    client_secret?: string;
-  };
+interface GoogleCredentialConfig {
+  client_id?: unknown;
+  client_secret?: unknown;
 }
 
-// =====================================================
-// Path
-// =====================================================
+interface GoogleCredentialsJson {
+  installed?: GoogleCredentialConfig;
+  web?: GoogleCredentialConfig;
+}
 
 function getCredentialPath(): string {
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, CREDENTIAL_FILE);
-  }
-
-  return path.join(process.cwd(), "resources", CREDENTIAL_FILE);
+  return app.isPackaged
+    ? path.join(process.resourcesPath, CREDENTIAL_FILE)
+    : path.join(process.cwd(), "resources", CREDENTIAL_FILE);
 }
 
-// =====================================================
-// Load JSON
-// =====================================================
-
-function loadCredentialsJson(): GoogleCredentialsJson {
-  const filePath = getCredentialPath();
-
+function readCredentialFile(filePath: string): string {
   if (!existsSync(filePath)) {
     throw new Error(`Google OAuth credentials not found: ${filePath}`);
   }
 
   try {
-    return JSON.parse(readFileSync(filePath, "utf-8")) as GoogleCredentialsJson;
+    return readFileSync(filePath, "utf-8");
+  } catch (error) {
+    throw new Error(
+      `Failed to read Google OAuth credentials: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      { cause: error },
+    );
+  }
+}
+
+function parseCredentialsJson(
+  filePath: string,
+  raw: string,
+): GoogleCredentialsJson {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Credential JSON root must be an object");
+    }
+
+    return parsed as GoogleCredentialsJson;
   } catch (error) {
     throw new Error(
       `Failed to parse Google OAuth credentials: ${
         error instanceof Error ? error.message : String(error)
       }`,
-      {
-        cause: error,
-      },
+      { cause: error },
     );
   }
 }
 
-// =====================================================
-// Credentials
-// =====================================================
-
-export function getGoogleCredentials(): GoogleCredentials {
-  const json = loadCredentialsJson();
-
+function getCredentialConfig(
+  json: GoogleCredentialsJson,
+): GoogleCredentialConfig {
   const config = json.installed ?? json.web;
 
-  if (!config?.client_id) {
-    throw new Error("Google OAuth client_id not found");
+  if (!config || typeof config !== "object") {
+    throw new Error(
+      'Google OAuth credentials must contain either "installed" or "web" configuration',
+    );
   }
 
-  return {
-    clientId: config.client_id,
-    clientSecret: config.client_secret,
-  };
+  return config;
 }
 
-// =====================================================
-// Client ID
-// =====================================================
+function getRequiredString(value: unknown, fieldName: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`Google OAuth ${fieldName} not found`);
+  }
+
+  return value.trim();
+}
+
+function getOptionalString(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+export function getGoogleCredentials(): GoogleCredentials {
+  const filePath = getCredentialPath();
+  const raw = readCredentialFile(filePath);
+  const json = parseCredentialsJson(filePath, raw);
+  const config = getCredentialConfig(json);
+
+  return {
+    clientId: getRequiredString(config.client_id, "client_id"),
+    clientSecret: getOptionalString(config.client_secret),
+  };
+}
 
 export function getGoogleClientId(): string {
   return getGoogleCredentials().clientId;
 }
-
-// =====================================================
-// Client Secret
-// =====================================================
 
 export function getGoogleClientSecret(): string | undefined {
   return getGoogleCredentials().clientSecret;

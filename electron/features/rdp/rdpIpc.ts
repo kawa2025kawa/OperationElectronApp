@@ -1,4 +1,6 @@
-﻿import { ipcMain } from "electron";
+﻿//electron\features\rdp\rdpIpc.ts
+
+import { ipcMain } from "electron";
 import { exec } from "node:child_process";
 import util from "node:util";
 import type { RdpTarget } from "@shared/types/rdpTypes";

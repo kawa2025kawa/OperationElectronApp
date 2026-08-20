@@ -1,10 +1,10 @@
 // src/renderer/features/operation/helpers/dependencyHelper.ts
-
 import type {
   JobDependency,
   JobStatus,
   OperationItem,
 } from "@shared/types/operationType";
+import { hasValidJobId } from "./operationSummary";
 
 export interface MissingDependency {
   kanriNo: string;
@@ -19,6 +19,9 @@ export interface DependencyCheckResult {
 
 type RequiredStatus = JobStatus[] | Record<string, JobStatus[]> | undefined;
 
+/**
+ * 対象ジョブの依存関係（requiresActive, requiresAllJobsSuccess, dependsOn）を評価
+ */
 export function checkJobDependencies(
   kanriNo: string,
   entities: Record<string, OperationItem>,
@@ -29,11 +32,10 @@ export function checkJobDependencies(
     (k) => String(k).trim() === targetKey,
   );
   const targetEntity = entityKey ? entities[entityKey] : undefined;
-
   const rule = targetEntity?.dependency;
   if (!rule) return success();
 
-  // requiresActive (is1CActive 等) のチェック
+  // 1. requiresActive チェック (is1CActive 等のフラグチェック)
   if (rule.requiresActive && rule.requiresActive.length > 0) {
     if (!activeFlags) {
       return { ok: false, missingDependencies: [] };
@@ -46,6 +48,30 @@ export function checkJobDependencies(
     }
   }
 
+  // 2. requiresAllJobsSuccess チェック (KanriNo 81 等、全 jobId の完了が必須なルール)
+  if (rule.requiresAllJobsSuccess) {
+    const jobIdEntities = Object.values(entities).filter(hasValidJobId);
+    const uncompleted = jobIdEntities.filter(
+      (item) => String(item.status).toLowerCase() !== "success",
+    );
+
+    if (uncompleted.length > 0) {
+      return {
+        ok: false,
+        missingDependencies: uncompleted.map((item) => {
+          // 型ガードで jobId を安全に取得
+          const jobIdStr = "jobId" in item && item.jobId ? item.jobId : "";
+          return {
+            kanriNo: String(item.kanriNo),
+            status: item.status,
+            comment: item.comment ?? `Job ID (${jobIdStr}) 未完了`,
+          };
+        }),
+      };
+    }
+  }
+
+  // 3. dependsOn チェック (個別の依存ジョブチェック)
   const dependsOn = getDependsOn(rule);
   if (!dependsOn.length) {
     return success();
@@ -56,9 +82,7 @@ export function checkJobDependencies(
       (k) => String(k).trim() === String(depKanriNo).trim(),
     );
     const depEntity = depKey ? entities[depKey] : undefined;
-
     const required = getRequiredStatus(rule.requiredStatus, depKanriNo);
-
     const currentStatus = depEntity?.status
       ? String(depEntity.status).toLowerCase()
       : "";
@@ -66,7 +90,6 @@ export function checkJobDependencies(
       currentStatus &&
       required.some((req) => req.toLowerCase() === currentStatus),
     );
-
     return {
       ok: isMet,
       missing: {
@@ -90,6 +113,9 @@ export function checkJobDependencies(
       };
 }
 
+/**
+ * 不足している依存関係のリストを取得
+ */
 export function getMissingDependencies(
   kanriNo: string,
   entities: Record<string, OperationItem>,
@@ -99,12 +125,14 @@ export function getMissingDependencies(
     .missingDependencies;
 }
 
+/**
+ * 指定された kanriNo に依存している後続ジョブの kanriNo 一覧を取得
+ */
 export function getDependentKanriNos(
   kanriNo: string,
   entities: Record<string, OperationItem>,
 ): string[] {
   const target = String(kanriNo).trim();
-
   return Object.values(entities)
     .filter((entity) => {
       if (!entity.dependency) return false;
@@ -115,6 +143,7 @@ export function getDependentKanriNos(
     .map((entity) => String(entity.kanriNo));
 }
 
+// 内部ヘルパー関数
 const getDependsOn = (rule: string[] | JobDependency): string[] =>
   Array.isArray(rule) ? rule.map(String) : (rule.dependsOn ?? []).map(String);
 
@@ -124,12 +153,10 @@ const getRequiredStatus = (
 ): string[] => {
   if (!requiredStatus) return ["success"];
   if (Array.isArray(requiredStatus)) return requiredStatus.map(String);
-
   const targetKey = String(kanriNo).trim();
   const matchedKey = Object.keys(requiredStatus).find(
     (k) => String(k).trim() === targetKey,
   );
-
   return matchedKey ? requiredStatus[matchedKey].map(String) : ["success"];
 };
 

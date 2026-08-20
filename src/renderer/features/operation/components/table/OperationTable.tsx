@@ -1,4 +1,7 @@
+//src\renderer\features\operation\components\table\OperationTable.tsx
+
 import React, { useCallback } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { StatusContextMenu } from "@renderer/features/operation/components/contextMenu/StatusContextMenu";
 import { useAppStore } from "@shared/store";
@@ -110,34 +113,49 @@ const UnifiedTableRow: React.FC<TableRowProps> = React.memo(
 UnifiedTableRow.displayName = "UnifiedTableRow";
 
 export const UnifiedTable: React.FC = React.memo(() => {
-  const { rowIds, columns, selectedId, handleRowClick } = useOperationTable();
+  const { currentMode, rowIds, columns, selectedId, handleRowClick } =
+    useOperationTable();
 
   return (
     <div className={styles.container}>
-      <div className={styles.headerWrapper}>
-        <table className={styles.headerTable}>
-          <TableColGroup columns={columns} />
-          <TableHeader columns={columns} />
-        </table>
-      </div>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={currentMode}
+          initial={{ opacity: 0, x: 6 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -6 }}
+          transition={{
+            duration: 0.12,
+            ease: "easeOut",
+          }}
+          className={styles.modeContent}
+        >
+          <div className={styles.headerWrapper}>
+            <table className={styles.headerTable}>
+              <TableColGroup columns={columns} />
+              <TableHeader columns={columns} />
+            </table>
+          </div>
 
-      <div className={styles.bodyWrapper}>
-        <table className={styles.bodyTable}>
-          <TableColGroup columns={columns} />
+          <div className={styles.bodyWrapper}>
+            <table className={styles.bodyTable}>
+              <TableColGroup columns={columns} />
 
-          <tbody>
-            {rowIds.map((id) => (
-              <UnifiedTableRow
-                key={id}
-                kanriNo={id}
-                columns={columns}
-                isSelected={selectedId === id}
-                onRowClick={handleRowClick}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
+              <tbody>
+                {rowIds.map((id) => (
+                  <UnifiedTableRow
+                    key={id}
+                    kanriNo={id}
+                    columns={columns}
+                    isSelected={selectedId === id}
+                    onRowClick={handleRowClick}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 });

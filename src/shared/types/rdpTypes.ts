@@ -9,12 +9,3 @@ export interface RdpTarget {
   name: string;
   description?: string;
 }
-
-/**
- * config内部用（秘密情報含む）
- */
-export interface RdpConfigTarget extends RdpTarget {
-  server: string;
-  username: string;
-  password?: string;
-}

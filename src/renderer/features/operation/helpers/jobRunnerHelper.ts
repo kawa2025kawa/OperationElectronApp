@@ -1,15 +1,27 @@
-﻿import type { AppState } from "@shared/store";
+﻿// src/renderer/features/operation/helpers/jobRunnerHelper.ts
+
+import type { AppState } from "@shared/store";
 
 export async function runJobWithGlobalProcessing(
   state: AppState,
   message: string,
-  targetName: string | null,
+  target: string,
   executeFn: () => Promise<void>,
 ): Promise<void> {
-  state.setGlobalProcessing(true, message, targetName);
+  const isAlreadyProcessing = state.globalProcessing !== null;
+
+  if (!isAlreadyProcessing) {
+    state.setGlobalProcessing({
+      message,
+      target,
+    });
+  }
+
   try {
     await executeFn();
   } finally {
-    state.setGlobalProcessing(false);
+    if (!isAlreadyProcessing) {
+      state.setGlobalProcessing(null);
+    }
   }
 }

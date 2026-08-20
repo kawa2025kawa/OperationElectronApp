@@ -1,3 +1,5 @@
+// src/renderer/features/spreadSheet/config/spreadsheetConfig.ts
+
 import { SHEET_IDS, type SheetId } from "@shared/types/spreadsheetTypes";
 
 export interface ColumnDef {
@@ -5,36 +7,27 @@ export interface ColumnDef {
   label: string;
   width?: string;
   group?: "today" | "tomorrow";
-  headerGroup?: { groupKey: string; label: string }; // ⭕ 追加
+  headerGroup?: { groupKey: string; label: string };
 }
 
 export interface SheetDataConfig {
-  /** 実際のGoogleスプレッドシートのタブ名 */
   tabName: string;
-  /** ヘッダー（見出し行）が存在する行番号 (1始まり) */
   headerRow: number;
-  /** 読み取り開始列 */
   startColumn: string;
-  /** 読み取り終了列 */
   endColumn: string;
-  /** キー変換マッピング (生列名 -> ネストプロパティパス) */
   keyMap?: Record<string, string>;
-  /** UIテーブル表示用カラム定義 */
   columns: ColumnDef[];
 }
 
 export interface KeyMappingDefinition {
-  /** スプレッドシート上の生カラム名 */
   rawHeader: string;
-  /** システム内で扱うオブジェクトパス (例: today.amDetail) */
   targetPath: string;
 }
 
 /* ============================================================================
- * 1. 全シート共通の固有キーマッピングの一元管理定義マスター
+ * 1. マスターキー定義
  * ============================================================================ */
 export const SHEET_KEY_MASTER = {
-  // 共通スケジュール項目
   SCHEDULE: {
     TODAY_AM_STATUS: {
       rawHeader: "todayAmStatus",
@@ -52,8 +45,6 @@ export const SHEET_KEY_MASTER = {
       rawHeader: "todayPmDetail",
       targetPath: "today.pmDetail",
     },
-
-    // Kokyuhyo 用の明日分表記
     KOKYUHYO_TOMORROW_AM_STATUS: {
       rawHeader: "AM2",
       targetPath: "tomorrow.amStatus",
@@ -70,8 +61,6 @@ export const SHEET_KEY_MASTER = {
       rawHeader: "PM2詳細",
       targetPath: "tomorrow.pmDetail",
     },
-
-    // Jugyoin 用の明日分表記
     JUGYOIN_TOMORROW_AM_STATUS: {
       rawHeader: "tomorrowAmStatus",
       targetPath: "tomorrow.amStatus",
@@ -89,15 +78,11 @@ export const SHEET_KEY_MASTER = {
       targetPath: "tomorrow.pmDetail",
     },
   },
-
-  // 連絡先共通項目
   CONTACT: {
     EXTENSION: { rawHeader: "naisen", targetPath: "contact.extension" },
     MOBILE_SHORT: { rawHeader: "tanshuku", targetPath: "contact.mobileShort" },
     MOBILE: { rawHeader: "contactMobile", targetPath: "contact.mobile" },
   },
-
-  // 店舗マスター項目
   SHOP: {
     CODE: { rawHeader: "shopCode", targetPath: "code" },
     NAME: { rawHeader: "shopName", targetPath: "name" },
@@ -171,130 +156,67 @@ export const SHEET_KEY_MASTER = {
   },
 } as const;
 
-/**
- * キーマッピング配列から keyMap レコードを動的生成するヘルパー
- */
 export const buildKeyMap = (
   definitions: KeyMappingDefinition[],
-): Record<string, string> => {
-  const map: Record<string, string> = {};
-  definitions.forEach((def) => {
-    map[def.rawHeader] = def.targetPath;
-  });
-  return map;
-};
+): Record<string, string> =>
+  definitions.reduce<Record<string, string>>((acc, def) => {
+    acc[def.rawHeader] = def.targetPath;
+    return acc;
+  }, {});
 
 /* ============================================================================
- * 2. 一元管理マスターを参照する共通カラム定義 (局休表ベース: 計80%割り当て)
+ * 2. スケジュールカラム定義生成ヘルパー
  * ============================================================================ */
-const SCHEDULE_COLUMNS_KOKYUHYO: ColumnDef[] = [
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.TODAY_AM_STATUS.targetPath,
-    label: "AM1",
-    width: "8%",
-    group: "today",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.TODAY_AM_DETAIL.targetPath,
-    label: "AM1詳細",
-    width: "12%",
-    group: "today",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.TODAY_PM_STATUS.targetPath,
-    label: "PM1",
-    width: "8%",
-    group: "today",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.TODAY_PM_DETAIL.targetPath,
-    label: "PM1詳細",
-    width: "12%",
-    group: "today",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_AM_STATUS.targetPath,
-    label: "AM2",
-    width: "8%",
-    group: "tomorrow",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_AM_DETAIL.targetPath,
-    label: "AM2詳細",
-    width: "12%",
-    group: "tomorrow",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_PM_STATUS.targetPath,
-    label: "PM2",
-    width: "8%",
-    group: "tomorrow",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_PM_DETAIL.targetPath,
-    label: "PM2詳細",
-    width: "12%",
-    group: "tomorrow",
-  },
-];
+const buildScheduleColumns = (ratio: number): ColumnDef[] => {
+  const statusWidth = `${8 * ratio}%`;
+  const detailWidth = `${12 * ratio}%`;
 
-/* 共通スケジュールカラム定義 (従業員ベース: 計70%割り当て) */
-const SCHEDULE_COLUMNS_JUGYOIN: ColumnDef[] = [
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.TODAY_AM_STATUS.targetPath,
-    label: "AM1",
-    width: "7%",
-    group: "today",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.TODAY_AM_DETAIL.targetPath,
-    label: "AM1詳細",
-    width: "10.5%",
-    group: "today",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.TODAY_PM_STATUS.targetPath,
-    label: "PM1",
-    width: "7%",
-    group: "today",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.TODAY_PM_DETAIL.targetPath,
-    label: "PM1詳細",
-    width: "10.5%",
-    group: "today",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_AM_STATUS.targetPath,
-    label: "AM2",
-    width: "7%",
-    group: "tomorrow",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_AM_DETAIL.targetPath,
-    label: "AM2詳細",
-    width: "10.5%",
-    group: "tomorrow",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_PM_STATUS.targetPath,
-    label: "PM2",
-    width: "7%",
-    group: "tomorrow",
-  },
-  {
-    key: SHEET_KEY_MASTER.SCHEDULE.JUGYOIN_TOMORROW_PM_DETAIL.targetPath,
-    label: "PM2詳細",
-    width: "10.5%",
-    group: "tomorrow",
-  },
-];
+  return [
+    { key: "today.amStatus", label: "AM1", width: statusWidth, group: "today" },
+    {
+      key: "today.amDetail",
+      label: "AM1詳細",
+      width: detailWidth,
+      group: "today",
+    },
+    { key: "today.pmStatus", label: "PM1", width: statusWidth, group: "today" },
+    {
+      key: "today.pmDetail",
+      label: "PM1詳細",
+      width: detailWidth,
+      group: "today",
+    },
+    {
+      key: "tomorrow.amStatus",
+      label: "AM2",
+      width: statusWidth,
+      group: "tomorrow",
+    },
+    {
+      key: "tomorrow.amDetail",
+      label: "AM2詳細",
+      width: detailWidth,
+      group: "tomorrow",
+    },
+    {
+      key: "tomorrow.pmStatus",
+      label: "PM2",
+      width: statusWidth,
+      group: "tomorrow",
+    },
+    {
+      key: "tomorrow.pmDetail",
+      label: "PM2詳細",
+      width: detailWidth,
+      group: "tomorrow",
+    },
+  ];
+};
 
 /* ============================================================================
  * 3. スプレッドシート別データ構成
  * ============================================================================ */
 export const SPREADSHEET_CONFIGS: Record<SheetId, SheetDataConfig> = {
-  // 1. 店舗マスター (合計 100%)
   [SHEET_IDS.SHOP]: {
     tabName: "StoreMasterData",
     headerRow: 1,
@@ -317,8 +239,6 @@ export const SPREADSHEET_CONFIGS: Record<SheetId, SheetDataConfig> = {
       { key: "address", label: "住所", width: "40%" },
     ],
   },
-
-  // 2. 局休表マスター (氏名 20% + スケジュール 80% = 合計 100%)
   [SHEET_IDS.KOKYUHYO]: {
     tabName: "KokyuhyoMasterData",
     headerRow: 3,
@@ -339,11 +259,9 @@ export const SPREADSHEET_CONFIGS: Record<SheetId, SheetDataConfig> = {
     ]),
     columns: [
       { key: "name", label: "氏名", width: "20%" },
-      ...SCHEDULE_COLUMNS_KOKYUHYO,
+      ...buildScheduleColumns(1),
     ],
   },
-
-  // 3. 従業員マスター (部署 15% + 氏名 15% + スケジュール 70% = 合計 100%)
   [SHEET_IDS.JUGYOIN]: {
     tabName: "JugyoinMasterData",
     headerRow: 3,
@@ -366,11 +284,9 @@ export const SPREADSHEET_CONFIGS: Record<SheetId, SheetDataConfig> = {
     columns: [
       { key: "department", label: "部署", width: "15%" },
       { key: "name", label: "氏名", width: "15%" },
-      ...SCHEDULE_COLUMNS_JUGYOIN,
+      ...buildScheduleColumns(0.875),
     ],
   },
-
-  // 4. 担当表マスター (各列 10.4%〜10.5% × 10列 = 合計 100%)
   [SHEET_IDS.TANTOU]: {
     tabName: "KokyuhyoTantouMasterData",
     headerRow: 2,
@@ -391,12 +307,8 @@ export const SPREADSHEET_CONFIGS: Record<SheetId, SheetDataConfig> = {
   },
 };
 
-/**
- * シート個別の設定から API 呼び出し用の Range 文字列・headerRow・keyMap を動的に生成
- */
 export const getSheetRangeConfig = (sheetId: SheetId) => {
   const config = SPREADSHEET_CONFIGS[sheetId];
-
   if (!config) {
     return {
       headerRow: 1,
@@ -404,9 +316,7 @@ export const getSheetRangeConfig = (sheetId: SheetId) => {
       keyMap: undefined,
     };
   }
-
   const { tabName, headerRow, startColumn, endColumn, keyMap } = config;
-
   return {
     headerRow,
     dynamicRange: `${tabName}!${startColumn}${headerRow}:${endColumn}10000`,

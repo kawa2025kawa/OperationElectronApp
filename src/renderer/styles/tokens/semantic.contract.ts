@@ -12,6 +12,7 @@ export const tokens = createGlobalThemeContract(
         surface: null,
         inset: null,
         header: null,
+        frostedGlass: null,
       },
 
       /* =========================
@@ -152,6 +153,7 @@ export const tokens = createGlobalThemeContract(
       content: null,
       sticky: null,
       dropdown: null,
+      contextMenu: null,
       overlay: null,
       modal: null,
       toast: null,

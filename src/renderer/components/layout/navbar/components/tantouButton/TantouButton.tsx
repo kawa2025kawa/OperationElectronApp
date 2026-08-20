@@ -5,7 +5,7 @@ import { useAppStore } from "@shared/store";
 import { SHEET_IDS, type Tantou } from "@shared/types/spreadsheetTypes";
 import { APP_REGISTRY, getAppViewConfig } from "@renderer/registry/appRegistry";
 import { APP_VIEW_IDS } from "@shared/types/uiType";
-import { TantouModalContent } from "@renderer/features/spreadSheet/components/modal/contents/tantou/TantouModalContent";
+import { TantouModalContent } from "@renderer/features/spreadSheet/components/modal/contents/TantouModalContent";
 import * as styles from "./tantouButton.css";
 
 export const TantouButton: React.FC = () => {

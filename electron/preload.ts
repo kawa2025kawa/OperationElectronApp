@@ -1,31 +1,38 @@
-﻿// electron/preload.ts
+﻿import { contextBridge, ipcRenderer, webUtils } from "electron";
 
-import { contextBridge, ipcRenderer, webUtils } from "electron";
+type IpcListener = (...args: unknown[]) => void;
 
-contextBridge.exposeInMainWorld("electronAPI", {
-  invoke: (channel: string, ...args: unknown[]) =>
-    ipcRenderer.invoke(channel, ...args),
+interface GmailDraftParams {
+  accessToken: string;
+  raw: string;
+}
 
-  on: (channel: string, callback: (...args: unknown[]) => void) => {
-    const subscription = (
+const electronAPI = {
+  invoke: <T = unknown>(channel: string, ...args: unknown[]): Promise<T> => {
+    return ipcRenderer.invoke(channel, ...args) as Promise<T>;
+  },
+
+  on: (channel: string, callback: IpcListener): (() => void) => {
+    const listener = (
       _event: Electron.IpcRendererEvent,
       ...args: unknown[]
-    ) => callback(...args);
+    ) => {
+      callback(...args);
+    };
 
-    ipcRenderer.on(channel, subscription);
+    ipcRenderer.on(channel, listener);
 
     return () => {
-      ipcRenderer.removeListener(channel, subscription);
+      ipcRenderer.removeListener(channel, listener);
     };
   },
 
-  /**
-   * Chromiumのセキュリティ制限を回避し、Fileオブジェクトから絶対パスを取得
-   */
   getFilePath: (file: File): string => {
     try {
       return webUtils.getPathForFile(file);
-    } catch {
+    } catch (error) {
+      console.error("[Preload] getFilePath failed:", error);
+
       return "";
     }
   },
@@ -36,20 +43,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
     });
   },
 
-  showWindow: () => ipcRenderer.invoke("showMainWindow"),
+  showWindow: async (): Promise<void> => {
+    await ipcRenderer.invoke("showMainWindow");
+  },
 
-  showOpenDialog: (options: unknown) =>
-    ipcRenderer.invoke("showOpenDialog", options),
+  showOpenDialog: (options: unknown): Promise<unknown> => {
+    return ipcRenderer.invoke("showOpenDialog", options);
+  },
 
-  /**
-   * Main プロセス経由で CORS 制限なく Gmail の署名を取得
-   */
-  getGmailSignature: (accessToken?: string) =>
-    ipcRenderer.invoke("gmail:getSignature", accessToken),
+  getGmailSignature: (accessToken?: string): Promise<string> => {
+    return ipcRenderer.invoke("gmail:getSignature", accessToken);
+  },
 
-  /**
-   * Main プロセス経由で CORS 制限なく Gmail の下書きを作成
-   */
-  createGmailDraft: (params: { accessToken: string; raw: string }) =>
-    ipcRenderer.invoke("gmail:createDraft", params),
-});
+  createGmailDraft: (params: GmailDraftParams): Promise<void> => {
+    return ipcRenderer.invoke("gmail:createDraft", params);
+  },
+} as const;
+
+contextBridge.exposeInMainWorld("electronAPI", electronAPI);

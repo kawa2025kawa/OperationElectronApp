@@ -69,7 +69,7 @@ export const useSidePanel = () => {
     () => [
       { label: "管理 No", value: selectedItem?.kanriNo },
       { label: "作業名", value: selectedItem?.workName },
-      { label: "状態", value: getStatusLabel(status) },
+      { label: "ステータス", value: getStatusLabel(status) },
       {
         label: "開始時刻",
         value: formatToJapaneseDateTime(selectedItem?.startTime),
@@ -77,14 +77,6 @@ export const useSidePanel = () => {
       {
         label: "終了時刻",
         value: formatToJapaneseDateTime(selectedItem?.endTime),
-      },
-      {
-        label: "予定開始",
-        value: formatToJapaneseDateTime(selectedItem?.expectedStartTime),
-      },
-      {
-        label: "予定終了",
-        value: formatToJapaneseDateTime(selectedItem?.expectedEndTime),
       },
       {
         label: "サブステータス",

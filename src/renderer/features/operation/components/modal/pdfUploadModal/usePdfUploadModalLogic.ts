@@ -1,5 +1,3 @@
-﻿// src/renderer/features/operation/components/modal/pdfUploadModal/usePdfUploadModalLogic.ts
-
 import {
   useCallback,
   useMemo,
@@ -9,6 +7,8 @@ import {
 } from "react";
 import { useShallow } from "zustand/react/shallow";
 
+import { commands } from "@shared/api/commands";
+import { getFileName } from "@shared/utils/fileUtils";
 import { useAppStore } from "@shared/store";
 
 export type ViewKey = "dnd" | "success" | "error";
@@ -42,24 +42,16 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
   const [currentViewKey, setCurrentViewKey] = useState<ViewKey>("dnd");
   const [isDragging, setIsDragging] = useState(false);
 
-  // ============================================================
-  // Files
-  // ============================================================
-
   const files = useMemo<PdfUploadFile[]>(
     () =>
       storeFiles.map((file) => ({
-        name: file.name || file.path.split(/[/\\]/).pop() || "PDFファイル",
+        name: file.name || getFileName(file.path) || "PDFファイル",
         path: file.path,
       })),
     [storeFiles],
   );
 
   const fileCount = files.length;
-
-  // ============================================================
-  // File Select
-  // ============================================================
 
   const selectFiles = useCallback(
     (selectedFiles: File[]) => {
@@ -69,26 +61,14 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
 
       const filePaths = selectedFiles
         .map((file) => {
-          if (typeof window.electronAPI?.getFilePath === "function") {
-            try {
-              return window.electronAPI.getFilePath(file) || "";
-            } catch (error) {
-              console.warn(
-                "[usePdfUploadModalLogic] failed to get file path",
-                error,
-              );
-
-              return "";
-            }
-          }
-
-          if ("path" in file && typeof file.path === "string") {
-            return file.path;
-          }
-
-          return file.name;
+          return (
+            commands.getFilePath(file) ||
+            ("path" in file && typeof file.path === "string"
+              ? file.path
+              : file.name)
+          );
         })
-        .filter((path): path is string => Boolean(path));
+        .filter(Boolean);
 
       if (filePaths.length === 0) {
         return;
@@ -99,10 +79,6 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
     },
     [isProcessing, mergePdfFiles],
   );
-
-  // ============================================================
-  // Drag & Drop
-  // ============================================================
 
   const handleDragOver = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
@@ -140,23 +116,13 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
     [isProcessing, selectFiles],
   );
 
-  // ============================================================
-  // File Input
-  // ============================================================
-
   const handleFileChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       selectFiles(Array.from(event.target.files ?? []));
-
-      // 同じファイルを再選択できるようにする
       event.target.value = "";
     },
     [selectFiles],
   );
-
-  // ============================================================
-  // Reorder
-  // ============================================================
 
   const handleMoveUp = useCallback(
     (index: number) => {
@@ -180,36 +146,40 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
     [fileCount, isProcessing, reorderPdfFiles],
   );
 
-  // ============================================================
-  // Upload
-  // ============================================================
-
   const handleExecute = useCallback(async () => {
+    console.log("[PdfUploadModal] handleExecute called", {
+      isProcessing,
+      fileCount,
+    });
+
     if (isProcessing || fileCount === 0) {
+      console.warn("[PdfUploadModal] execute blocked", {
+        isProcessing,
+        fileCount,
+      });
+
       return;
     }
 
     try {
+      console.log("[PdfUploadModal] uploadPdfFiles start");
+
       await uploadPdfFiles();
+
+      console.log("[PdfUploadModal] uploadPdfFiles success");
+
       setCurrentViewKey("success");
     } catch (error) {
-      console.error("[usePdfUploadModalLogic] upload failed", error);
+      console.error("[PdfUploadModal] uploadPdfFiles error", error);
+
       setCurrentViewKey("error");
     }
   }, [fileCount, isProcessing, uploadPdfFiles]);
-
-  // ============================================================
-  // Retry
-  // ============================================================
 
   const handleRetry = useCallback(() => {
     resetPdfUpload();
     setCurrentViewKey("dnd");
   }, [resetPdfUpload]);
-
-  // ============================================================
-  // Close
-  // ============================================================
 
   const handleCancelAndClose = useCallback(() => {
     resetPdfUpload();
@@ -225,12 +195,10 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
     errorMessage,
     currentViewKey,
     isDragging,
-
     handleDragOver,
     handleDragLeave,
     handleDrop,
     handleFileChange,
-
     handleMoveUp,
     handleMoveDown,
     handleExecute,

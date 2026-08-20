@@ -13,14 +13,8 @@ export interface IElectronAPI {
 
   showOpenDialog(options: unknown): Promise<unknown>;
 
-  /**
-   * Main プロセス (IPC) 経由で Gmail のプライマリ署名を取得する
-   */
   getGmailSignature(accessToken?: string): Promise<string>;
 
-  /**
-   * Main プロセス (IPC) 経由で Gmail の下書きを作成する
-   */
   createGmailDraft(params: { accessToken: string; raw: string }): Promise<void>;
 }
 

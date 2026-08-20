@@ -9,7 +9,6 @@ import type { RdpTarget } from "@shared/types/rdpTypes";
 export interface RdpSlice {
   rdpTargets: RdpTarget[];
   isRdpLoading: boolean;
-  setRdpTargets: (targets: RdpTarget[]) => void;
   fetchRdpTargets: () => Promise<void>;
   runRdp: (id: string) => Promise<void>;
 }
@@ -22,11 +21,6 @@ export const createRdpSlice: StateCreator<
 > = (set, get) => ({
   rdpTargets: [],
   isRdpLoading: false,
-
-  setRdpTargets: (targets: RdpTarget[]) =>
-    set((s: AppState) => {
-      s.rdpTargets = targets;
-    }),
 
   fetchRdpTargets: async () => {
     set((s: AppState) => {

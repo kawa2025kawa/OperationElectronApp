@@ -1,5 +1,3 @@
-//src\renderer\components\ui\modal\globalModalManager.css.ts
-
 import { style } from "@vanilla-extract/css";
 import { tokens, themeTransition } from "@renderer/styles/tokens";
 
@@ -33,5 +31,9 @@ export const contentWrapper = style([
     outline: "none",
     overflow: "hidden",
     boxSizing: "border-box",
+
+    // 💡 デフォルトサイズを CSS 側で定義
+    width: "min(60vw, 700px)",
+    height: "min(70vh, 600px)",
   },
 ]);

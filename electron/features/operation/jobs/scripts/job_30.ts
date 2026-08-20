@@ -1,4 +1,4 @@
-﻿import fs from "node:fs/promises";
+import fs from "node:fs/promises";
 import path from "node:path";
 
 // ============================================================
@@ -198,7 +198,7 @@ const createUploadForm = (
   }
 
   // Node.js 標準 FormData にファイル（Blob）を追加
-  const blob = new Blob([fileBuffer], { type: "application/pdf" });
+  const blob = new Blob([new Uint8Array(fileBuffer)], { type: "application/pdf" });
   form.append("pdfFile", blob, fileName);
 
   return form;

@@ -1,23 +1,22 @@
+// src/renderer/features/spreadSheet/components/modal/spreadSheetModal.css.ts
 import { style } from "@vanilla-extract/css";
 import { tokens, themeTransition } from "@renderer/styles/tokens";
 
-export const modalContainer = style({
-  position: "fixed",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  zIndex: tokens.zIndex.modal,
-  width: "80vw",
-  maxWidth: "800px",
-  maxHeight: "85vh",
-  backgroundColor: tokens.color.bg.base,
-  borderRadius: tokens.radius.lg,
-  boxShadow: tokens.shadow.raised.high,
+/* =======================================
+ * 1. 共通フレーム & レイアウト
+ * ======================================= */
+export const modalWrapper = style({
   display: "flex",
   flexDirection: "column",
-  overflow: "hidden",
+  height: "100%",
+  width: "100%",
+  padding: "3vmin",
+  boxSizing: "border-box",
+  gap: "2vmin",
+  fontFamily: tokens.font.base,
 });
 
+/* ニューモフィズム凹み（インセット）枠組み */
 export const pressedSection = style([
   themeTransition,
   {
@@ -30,20 +29,9 @@ export const pressedSection = style([
   },
 ]);
 
-export const modalWrapper = style({
-  display: "flex",
-  flexDirection: "column",
-  height: "100%",
-  width: "100%",
-  padding: "3vmin",
-  boxSizing: "border-box",
-  gap: "2vmin",
-});
-
 export const modalHeader = style([
   pressedSection,
   {
-    display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     padding: "1vmin 2vmin",
@@ -51,79 +39,6 @@ export const modalHeader = style([
     boxSizing: "border-box",
   },
 ]);
-
-export const modalTitle = style({
-  fontSize: "clamp(18px, 3.5vmin, 32px)",
-  fontWeight: tokens.font.weight.bold,
-  color: tokens.color.text.base,
-  margin: 0,
-});
-
-export const contactInfo = style({
-  display: "flex",
-  gap: "2vmin",
-  fontSize: "clamp(12px, 2.2vmin, 22px)",
-  fontWeight: tokens.font.weight.bold,
-  color: tokens.color.text.base,
-});
-
-export const scheduleLinkButton = style({
-  padding: "1vmin 2vmin",
-  borderRadius: tokens.radius.md,
-  backgroundColor: tokens.color.bg.base,
-  color: tokens.color.accent.base,
-  fontSize: "clamp(11px, 1.8vmin, 16px)",
-  fontWeight: tokens.font.weight.bold,
-  border: "none",
-  boxShadow: tokens.shadow.raised.md,
-  cursor: "pointer",
-  transition: tokens.transition.fast,
-  selectors: {
-    "&:hover": {
-      boxShadow: tokens.shadow.glow.cyan,
-      transform: "translateY(-1px)",
-    },
-    "&:active": {
-      boxShadow: tokens.shadow.pressed.low,
-      transform: "translateY(0)",
-    },
-  },
-});
-
-export const tabContainer = style({
-  display: "flex",
-  gap: "1vmin",
-  padding: "1vmin",
-  flexShrink: 0,
-  backgroundColor: tokens.color.bg.base,
-  borderRadius: tokens.radius.md,
-  boxShadow: tokens.shadow.pressed.md,
-});
-
-export const tabButton = style({
-  flex: 1,
-  padding: "1vmin 2vmin",
-  borderRadius: tokens.radius.sm,
-  border: "none",
-  backgroundColor: "transparent",
-  color: tokens.color.text.base,
-  fontSize: "clamp(12px, 2vmin, 16px)",
-  fontWeight: tokens.font.weight.bold,
-  cursor: "pointer",
-  transition: tokens.transition.fast,
-  whiteSpace: "nowrap",
-  selectors: {
-    "&:hover": {
-      color: tokens.color.text.hover,
-      boxShadow: tokens.shadow.glow.cyan,
-    },
-    '&[data-active="true"]': {
-      backgroundColor: tokens.color.bg.base,
-      color: tokens.color.accent.base,
-      boxShadow: tokens.shadow.raised.md,
-    },
-  },
-});
 
 export const modalContentContainer = style([
   pressedSection,
@@ -139,6 +54,68 @@ export const modalContentContainer = style([
   },
 ]);
 
+/* =======================================
+ * 2. 汎用ボタン (Close, ScheduleLink, Tab)
+ * ======================================= */
+export const button = style([
+  themeTransition,
+  {
+    border: "none",
+    cursor: "pointer",
+    backgroundColor: tokens.color.bg.base,
+    color: tokens.color.text.base,
+    fontWeight: tokens.font.weight.bold,
+    outline: "none",
+
+    selectors: {
+      "&:hover": {
+        color: tokens.color.text.hover,
+        boxShadow: tokens.shadow.glow.cyan,
+      },
+      "&:active": {
+        boxShadow: tokens.shadow.pressed.low,
+      },
+      // アイコン型 (CloseButton)
+      '&[data-variant="icon"]': {
+        width: "32px",
+        height: "32px",
+        borderRadius: tokens.radius.full,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "1.2rem",
+        boxShadow: tokens.shadow.raised.md,
+        flexShrink: 0,
+      },
+      // ピル型 (ScheduleLinkButton)
+      '&[data-variant="pill"]': {
+        padding: "1vmin 2vmin",
+        borderRadius: tokens.radius.md,
+        color: tokens.color.accent.base,
+        fontSize: "clamp(11px, 1.8vmin, 16px)",
+        boxShadow: tokens.shadow.raised.md,
+      },
+      // タブ型 (TabButton)
+      '&[data-variant="tab"]': {
+        flex: 1,
+        padding: "1vmin 2vmin",
+        borderRadius: tokens.radius.sm,
+        backgroundColor: "transparent",
+        fontSize: "clamp(12px, 2vmin, 16px)",
+        whiteSpace: "nowrap",
+      },
+      '&[data-variant="tab"][data-active="true"]': {
+        backgroundColor: tokens.color.bg.base,
+        color: tokens.color.accent.base,
+        boxShadow: tokens.shadow.raised.md,
+      },
+    },
+  },
+]);
+
+/* =======================================
+ * 3. グリッド & カード系
+ * ======================================= */
 export const gridContainer = style({
   display: "grid",
   gridTemplateColumns: "repeat(3, 1fr)",
@@ -149,79 +126,88 @@ export const gridContainer = style({
   flex: 1,
 });
 
-// 🎯 モーダル内のカード要素のベーススタイル（共通定義）
-export const infoBlock = style({
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  padding: "1.5vmin",
-  backgroundColor: tokens.color.bg.base,
-  borderRadius: tokens.radius.md,
-  boxShadow: tokens.shadow.raised.md,
-  transition: tokens.transition.fast,
-  height: "100%", // 🎯 親要素の高さにジャストフィット
-  boxSizing: "border-box", // 🎯 padding によるハミ出し防止
-  selectors: {
-    "&:hover": {
-      boxShadow: tokens.shadow.glow.cyan,
+export const card = style([
+  themeTransition,
+  {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: "1.5vmin",
+    backgroundColor: tokens.color.bg.base,
+    borderRadius: tokens.radius.md,
+    boxShadow: tokens.shadow.raised.md,
+    height: "100%",
+    boxSizing: "border-box",
+
+    selectors: {
+      "&:hover": {
+        boxShadow: tokens.shadow.glow.cyan,
+      },
+      '&[data-full-width="true"]': {
+        gridColumn: "1 / -1",
+      },
+      '&[data-variant="schedule-row"]': {
+        display: "grid",
+        gridTemplateColumns: "1.2fr 1.5fr 3fr 1.5fr 3fr",
+        gap: "2vmin",
+        padding: "2.5vmin",
+        alignItems: "stretch",
+      },
+      '&[data-variant="pressed"]': {
+        boxShadow: tokens.shadow.pressed.md,
+        gap: "4px",
+      },
     },
   },
+]);
+
+/* =======================================
+ * 4. テキスト (親の card ホバー連動で発光)
+ * ======================================= */
+export const title = style({
+  fontSize: "clamp(18px, 3.5vmin, 32px)",
+  fontWeight: tokens.font.weight.bold,
+  color: tokens.color.text.base,
+  margin: 0,
 });
 
-export const fullWidthBlock = style([
-  infoBlock,
-  {
-    gridColumn: "1 / -1",
-  },
-]);
+export const textGroup = style({
+  display: "flex",
+  gap: "2vmin",
+  fontSize: "clamp(12px, 2.2vmin, 22px)",
+  fontWeight: tokens.font.weight.bold,
+  color: tokens.color.text.base,
+});
 
-// 🎯 scheduleRow は infoBlock を継承し、固有の5列グリッドのレイアウト差分のみを定義
-export const scheduleRow = style([
-  infoBlock,
-  {
-    display: "grid",
-    gridTemplateColumns: "1.2fr 1.5fr 3fr 1.5fr 3fr",
-    gap: "2vmin",
-    padding: "2.5vmin",
-    alignItems: "stretch",
-  },
-]);
-
-export const infoLabel = style({
+export const label = style({
   fontSize: "clamp(12px, 2vmin, 16px)",
   fontWeight: tokens.font.weight.medium,
   color: tokens.color.text.base,
   opacity: 0.8,
   marginBottom: "0.5vmin",
+  transition: `color ${tokens.transition.ease}, text-shadow ${tokens.transition.ease}, opacity ${tokens.transition.ease}`,
+
+  selectors: {
+    // 💡 親の card のホバー発光と完全同期（ネオンシアン発光）
+    [`${card}:hover &`]: {
+      color: tokens.color.text.hover,
+      opacity: 1,
+    },
+  },
 });
 
-export const infoValue = style({
+export const value = style({
   fontSize: "clamp(14px, 2.5vmin, 24px)",
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.base,
   wordBreak: "break-all",
-});
+  transition: `color ${tokens.transition.ease}, text-shadow ${tokens.transition.ease}`,
 
-export const dateLabelBlock = style({
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  backgroundColor: tokens.color.bg.base,
-  borderRadius: tokens.radius.md,
-  boxShadow: tokens.shadow.pressed.md,
-  padding: "1.5vmin",
-  fontSize: "clamp(14px, 2.2vmin, 24px)",
-  fontWeight: tokens.font.weight.bold,
-  gap: "4px",
-  height: "100%",
-  boxSizing: "border-box",
-});
-
-export const dateSubLabel = style({
-  fontSize: "clamp(11px, 1.8vmin, 15px)",
-  fontFamily: tokens.font.mono,
-  color: tokens.color.text.base,
-  fontWeight: tokens.font.weight.medium,
+  selectors: {
+    // 💡 親の card のホバー発光と完全同期（ネオンシアン発光）
+    [`${card}:hover &`]: {
+      color: tokens.color.text.hover,
+    },
+  },
 });

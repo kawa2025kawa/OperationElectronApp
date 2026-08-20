@@ -1,134 +1,180 @@
-﻿// src/renderer/hooks/useStatusToast.ts
+// src/renderer/hooks/useStatusToast.ts
 
 import { useEffect, useRef } from "react";
-import { showToast, type ToastType } from "@shared/utils/toastUtils";
+
+import { commands } from "@shared/api/commands";
 import { useAppStore } from "@shared/store/index";
+import { consumeSuppressedSuccessToast } from "@shared/utils/statusToastSuppression";
+import { showToast, type ToastType } from "@shared/utils/toastUtils";
+
 import type { JobStatus } from "@shared/types/operationType";
-import type { OperationItem } from "@shared/types/operationType";
 
 type PendingToast = {
   kanriNo: string;
-  status: string;
+  status: JobStatus;
   displayName: string;
 };
 
 const BATCH_DELAY = 500;
+const INITIAL_LOOP_DELAY = 5000;
+
 const TARGET_STATUSES: JobStatus[] = ["success", "ready", "error"];
-const prevMap = new Map<string, string>();
 
-export const useStatusToast = () => {
-  const isPolling = useAppStore((s) => s.isPolling);
-  const pending = useRef<PendingToast[]>([]);
-  const timer = useRef<number | null>(null);
+const prevStatusMap = new Map<string, JobStatus>();
 
-  // ポーリング1周目（開始直後）のトースト通知を制御するフラグ
-  const isFirstLoopRef = useRef<boolean>(true);
+export const useStatusToast = (): void => {
+  const isPolling = useAppStore((state) => state.isPolling);
+
+  const pendingRef = useRef<PendingToast[]>([]);
+  const timerRef = useRef<number | null>(null);
+  const isFirstLoopRef = useRef(true);
 
   useEffect(() => {
     if (!isPolling) {
-      // ポーリングが停止したらフラグと保持マップをリセット
       isFirstLoopRef.current = true;
-      prevMap.clear();
+      prevStatusMap.clear();
+
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+
+      pendingRef.current = [];
+
       return;
     }
 
     let cleanup: (() => void) | undefined;
 
-    // 1周目のループ処理時間を考慮し、最初のステータス取得群を通過した後に通知を有効化（約5秒後にフラグ解除）
     const firstLoopTimer = window.setTimeout(() => {
       isFirstLoopRef.current = false;
-    }, 5000);
+    }, INITIAL_LOOP_DELAY);
 
     try {
-      cleanup = window.electronAPI.on?.(
-        "operationStatusUpdated",
-        (...args: unknown[]) => {
-          const payload = args[0] as { status?: OperationItem };
-          const update = payload?.status;
-          if (!update) return;
+      cleanup = commands.onOperationStatusUpdated((update) => {
+        const kanriNo = String(update.kanriNo ?? "");
 
-          const kanriNo = String(update.kanriNo || "");
-          if (!kanriNo) return;
+        if (!kanriNo) {
+          return;
+        }
 
-          const currentStatus = update.status as JobStatus | undefined;
-          if (!currentStatus) return;
+        const currentStatus = update.status as JobStatus | undefined;
 
-          const comment = update.comment || "";
-          const prevStatus = prevMap.get(kanriNo);
+        if (!currentStatus) {
+          return;
+        }
 
-          // 状態のマップを更新
-          if (comment.includes(" ")) {
-            prevMap.set(kanriNo, currentStatus);
-            return;
-          }
+        const previousStatus = prevStatusMap.get(kanriNo);
 
-          if (currentStatus === prevStatus) return;
-          prevMap.set(kanriNo, currentStatus);
+        if (currentStatus === previousStatus) {
+          return;
+        }
 
-          // 1周目（開始直後）なら通知をスキップして終了
-          if (isFirstLoopRef.current) return;
+        prevStatusMap.set(kanriNo, currentStatus);
 
-          if (!TARGET_STATUSES.includes(currentStatus)) return;
+        if (isFirstLoopRef.current) {
+          return;
+        }
 
-          const state = useAppStore.getState();
-          const item =
-            state.operationEntities[kanriNo] ??
-            state.irregularEntities[kanriNo];
-          const displayName = item?.workName ?? "";
+        if (!TARGET_STATUSES.includes(currentStatus)) {
+          return;
+        }
 
-          pending.current.push({
-            kanriNo,
-            status: currentStatus,
-            displayName,
-          });
+        /**
+         * Enterによる完了処理で発生したSUCCESSは通知しない。
+         *
+         * ERRORはここでは抑制しない。
+         */
+        if (
+          currentStatus === "success" &&
+          consumeSuppressedSuccessToast(kanriNo)
+        ) {
+          return;
+        }
 
-          if (timer.current) return;
+        const state = useAppStore.getState();
 
-          timer.current = window.setTimeout(() => {
-            flush(pending.current);
-            pending.current = [];
-            timer.current = null;
-          }, BATCH_DELAY);
-        },
-      );
+        const item =
+          state.operationEntities[kanriNo] ?? state.irregularEntities[kanriNo];
+
+        pendingRef.current.push({
+          kanriNo,
+          status: currentStatus,
+          displayName: item?.workName ?? "",
+        });
+
+        if (timerRef.current !== null) {
+          return;
+        }
+
+        timerRef.current = window.setTimeout(() => {
+          flush(pendingRef.current);
+
+          pendingRef.current = [];
+          timerRef.current = null;
+        }, BATCH_DELAY);
+      });
     } catch (error) {
       console.error("[Toast] Failed to setup status toast listener:", error);
     }
 
     return () => {
       cleanup?.();
-      if (timer.current) {
-        window.clearTimeout(timer.current);
-        timer.current = null;
+
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
       }
+
       window.clearTimeout(firstLoopTimer);
     };
   }, [isPolling]);
 };
 
-// --------------------------------------------------------------------------
-// ⭕ showToast に差し替えた通知バッチ処理
-// --------------------------------------------------------------------------
-const flush = (list: PendingToast[]) => {
-  if (list.length === 0) return;
+const getToastType = (status: JobStatus): ToastType => {
+  switch (status) {
+    case "error":
+      return "error";
 
-  if (list.length === 1) {
-    const t = list[0];
-    const message = `${t.kanriNo}.${t.displayName}  ${t.status}`;
-    const type: ToastType =
-      t.status === "success"
-        ? "success"
-        : t.status === "error"
-          ? "error"
-          : "info";
+    case "success":
+      return "success";
 
-    showToast(message, type);
+    case "ready":
+    default:
+      return "info";
+  }
+};
+
+const flush = (list: PendingToast[]): void => {
+  if (list.length === 0) {
     return;
   }
 
-  const hasError = list.some((t) => t.status === "error");
+  if (list.length === 1) {
+    const [toast] = list;
+
+    if (!toast) {
+      return;
+    }
+
+    const message = `${toast.kanriNo}.${toast.displayName}  ${toast.status}`;
+
+    showToast(message, getToastType(toast.status));
+
+    return;
+  }
+
+  const hasError = list.some((toast) => toast.status === "error");
+
   const first = list[0];
-  const message = `${first.kanriNo}.${first.displayName} 他 ${list.length - 1} 件`;
+
+  if (!first) {
+    return;
+  }
+
+  const message = `${first.kanriNo}.${first.displayName} 他${
+    list.length - 1
+  }件`;
 
   showToast(message, hasError ? "error" : "success");
 };

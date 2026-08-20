@@ -1,11 +1,12 @@
 // src/renderer/features/remoteDesktop/rdpView.css.ts
 
 import { createVar, style } from "@vanilla-extract/css";
-import { tokens, themeTransition } from "@renderer/styles/tokens";
+import { themeTransition, tokens } from "@renderer/styles/tokens";
 
 /* =========================
- * Card Variables (テーブル行と統一)
+ * Card Variables
  * ========================= */
+
 const cardBgColor = createVar();
 const cardTextColor = createVar();
 const cardShadow = createVar();
@@ -13,16 +14,19 @@ const cardShadow = createVar();
 /* =========================
  * Layout
  * ========================= */
+
 export const rdpContainer = style([
   themeTransition,
   {
     display: "flex",
     flexDirection: "column",
     gap: tokens.space.md,
-    padding: tokens.space.xl,
-    height: "100%",
+
     width: "100%",
+    height: "100%",
+    padding: tokens.space.xl,
     boxSizing: "border-box",
+
     overflowY: "auto",
   },
 ]);
@@ -31,27 +35,32 @@ export const grid = style({
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
   gap: tokens.space.lg,
+
   width: "100%",
 });
 
 /* =========================
- * Text Styles
+ * State Messages
  * ========================= */
+
 export const messageText = style({
-  fontSize: tokens.font.size.md,
-  color: tokens.color.text.base,
   margin: 0,
+
+  color: tokens.color.text.base,
+  fontSize: tokens.font.size.md,
 });
 
 export const captionText = style({
-  fontSize: tokens.font.size.sm,
-  color: tokens.color.text.base,
   margin: 0,
+
+  color: tokens.color.text.base,
+  fontSize: tokens.font.size.sm,
 });
 
 /* =========================
- * RDP Card (テーブル行のスタイルスタックに準拠)
+ * RDP Card
  * ========================= */
+
 export const card = style([
   themeTransition,
   {
@@ -60,22 +69,34 @@ export const card = style([
       [cardTextColor]: tokens.color.text.base,
       [cardShadow]: tokens.shadow.raised.low,
     },
+
     position: "relative",
+
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
+
+    minHeight: "140px",
     padding: tokens.space.xl,
+
+    boxSizing: "border-box",
+    border: "none",
     borderRadius: tokens.radius.lg,
+    outline: "none",
+
     backgroundColor: cardBgColor,
     color: cardTextColor,
     boxShadow: cardShadow,
+
     cursor: "pointer",
-    minHeight: "140px",
-    border: "none",
-    outline: "none",
-    transition:
-      "box-shadow 0.25s ease-out, color 0.25s ease-out, background-color 0.25s ease-out, transform 0.25s ease-out",
+
+    transition: `
+      box-shadow ${tokens.transition.ease},
+      color ${tokens.transition.ease},
+      background-color ${tokens.transition.ease},
+      transform ${tokens.transition.ease}
+    `,
 
     selectors: {
       "&:hover": {
@@ -83,37 +104,79 @@ export const card = style([
           [cardTextColor]: tokens.color.text.hover,
           [cardShadow]: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
         },
-        transform: "translateY(-2px)",
         zIndex: 1,
       },
+
       "&:active": {
         vars: {
           [cardShadow]: tokens.shadow.pressed.low,
         },
+
         transform: "translateY(0)",
+      },
+
+      "&:focus-visible": {
+        outline: `2px solid ${tokens.color.accent.base}`,
+        outlineOffset: "2px",
       },
     },
   },
 ]);
 
 /* =========================
- * Card Title (テキストグラデーション発光)
+ * Card Name
  * ========================= */
+
 export const cardTitle = style({
+  color: "inherit",
   fontSize: tokens.font.size.lg,
   fontWeight: tokens.font.weight.bold,
-  color: "inherit",
+  lineHeight: 1.3,
   textAlign: "center",
   wordBreak: "break-all",
-  transition: "color 0.25s ease, filter 0.25s ease",
+
+  transition: `
+    color ${tokens.transition.ease},
+    filter ${tokens.transition.ease}
+  `,
 
   selectors: {
     [`${card}:hover &`]: {
       backgroundImage: tokens.gradient.brand,
+      backgroundClip: "text",
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent",
-      backgroundClip: "text",
       color: "transparent",
+    },
+  },
+});
+
+/* =========================
+ * Card Host
+ * ========================= */
+
+export const cardHost = style({
+  marginTop: tokens.space.xs,
+
+  color: tokens.color.text.base,
+  fontFamily: tokens.font.mono,
+  fontSize: tokens.font.size.sm,
+  fontWeight: tokens.font.weight.medium,
+  lineHeight: 1.4,
+
+  textAlign: "center",
+  wordBreak: "break-all",
+  opacity: 0.75,
+
+  transition: `
+    color ${tokens.transition.ease},
+    opacity ${tokens.transition.ease}
+  `,
+
+  selectors: {
+    [`${card}:hover &`]: {
+      color: tokens.color.text.hover,
+      opacity: 1,
     },
   },
 });

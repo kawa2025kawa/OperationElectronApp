@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { darkThemeClass, lightThemeClass } from "@renderer/styles/tokens";
 
+import { commands } from "@shared/api/commands";
+
 type Theme = "dark" | "light";
 
 export const useTheme = () => {
@@ -25,7 +27,7 @@ export const useTheme = () => {
     let cleanup: (() => void) | undefined;
 
     try {
-      cleanup = window.electronAPI.on?.("theme-changed", (newTheme) => {
+      cleanup = commands.onThemeChanged((newTheme) => {
         const saved = localStorage.getItem("theme");
         // ユーザーが手動変更指定していない場合のみ、OSの変更に追従
         if (!saved && (newTheme === "dark" || newTheme === "light")) {

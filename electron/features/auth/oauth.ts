@@ -1,50 +1,26 @@
-﻿// electron/services/auth/oauth.ts
+﻿// electron/features/auth/oauth.ts
 
 import { createHash, randomBytes } from "node:crypto";
-import type { OAuthToken } from "@shared/types/authTypes";
 
-// =====================================================
-// Constants
-// =====================================================
+import type { OAuthToken } from "@shared/types/authTypes";
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
-/**
- * Google OAuth scopes
- *
- * - openid / email / profile:
- *   認証・ユーザー情報取得
- *
- * - spreadsheets.readonly:
- *   スプレッドシート参照
- *
- * - gmail.settings.basic:
- *   Gmail の署名（SendAs 設定）取得
- *
- * - gmail.compose:
- *   Gmail 下書き作成
- */
 const GOOGLE_SCOPES = [
   "openid",
   "email",
   "profile",
-
   "https://www.googleapis.com/auth/spreadsheets.readonly",
-
   "https://www.googleapis.com/auth/gmail.settings.basic",
   "https://www.googleapis.com/auth/gmail.compose",
-];
-
-// =====================================================
-// Types
-// =====================================================
+] as const;
 
 interface GoogleTokenResponse {
-  access_token: string;
-  refresh_token?: string;
-  expires_in?: number;
-  id_token?: string;
+  access_token?: unknown;
+  refresh_token?: unknown;
+  expires_in?: unknown;
+  id_token?: unknown;
 }
 
 export interface PkceChallenge {
@@ -52,23 +28,20 @@ export interface PkceChallenge {
   challenge: string;
 }
 
-// =====================================================
-// PKCE & State
-// =====================================================
-
 export function createPkce(): PkceChallenge {
   const verifier = randomBytes(32).toString("hex");
+
   const challenge = createHash("sha256").update(verifier).digest("base64url");
-  return { verifier, challenge };
+
+  return {
+    verifier,
+    challenge,
+  };
 }
 
 export function generateState(): string {
   return randomBytes(32).toString("hex");
 }
-
-// =====================================================
-// Authorization URL
-// =====================================================
 
 export function generateAuthUrl(
   clientId: string,
@@ -90,10 +63,6 @@ export function generateAuthUrl(
 
   return `${AUTH_URL}?${params.toString()}`;
 }
-
-// =====================================================
-// Token Requests
-// =====================================================
 
 export async function exchangeToken(
   clientId: string,
@@ -135,40 +104,75 @@ export async function refreshToken(
   return sendTokenRequest(body, "Google token refresh failed");
 }
 
-// =====================================================
-// Helper
-// =====================================================
+function getOptionalString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function getOptionalNumber(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return null;
+  }
+
+  return value;
+}
 
 async function sendTokenRequest(
   body: URLSearchParams,
   errorMessagePrefix: string,
 ): Promise<OAuthToken> {
-  const response = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body,
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      },
+      body,
+    });
+  } catch (error) {
+    throw new Error(`${errorMessagePrefix}: network request failed`, {
+      cause: error,
+    });
+  }
+
+  const responseText = await response.text();
 
   if (!response.ok) {
     throw new Error(
-      `${errorMessagePrefix}: ${response.status} ${await response.text()}`,
+      `${errorMessagePrefix}: ${response.status} ${responseText}`,
     );
   }
 
-  const token = (await response.json()) as GoogleTokenResponse;
+  let token: GoogleTokenResponse;
 
-  if (!token.access_token) {
+  try {
+    token = JSON.parse(responseText) as GoogleTokenResponse;
+  } catch (error) {
+    throw new Error(`${errorMessagePrefix}: invalid JSON response`, {
+      cause: error,
+    });
+  }
+
+  const accessToken = getOptionalString(token.access_token);
+
+  if (!accessToken) {
     throw new Error(
       `${errorMessagePrefix}: response does not contain access_token`,
     );
   }
 
   return {
-    accessToken: token.access_token,
-    refreshToken: token.refresh_token ?? null,
-    expiresIn: token.expires_in ?? null,
-    idToken: token.id_token ?? null,
+    accessToken,
+    refreshToken: getOptionalString(token.refresh_token),
+    expiresIn: getOptionalNumber(token.expires_in),
+    idToken: getOptionalString(token.id_token),
   };
 }

@@ -11,6 +11,6 @@ export interface AuthSession {
   accessToken: string;
   refreshToken: string | null;
   expiresAt: number | null;
-  email?: string | null;
-  familyName?: string | null;
+  email: string | null;
+  familyName: string | null;
 }

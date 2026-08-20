@@ -1,34 +1,34 @@
-﻿import { toast } from "sonner";
+﻿import { useState } from "react";
+import { useToastStore } from "@renderer/components/ui/toast/toastStore";
 import { useShallow } from "zustand/react/shallow";
 
 import { login } from "@shared/api/commands";
 import { useAppStore } from "@shared/store";
 
 export const useAuth = () => {
-  const {
-    isAuthenticated,
-    isLoginProcessing,
-    handleLoginSuccess,
-    logout,
-    setIsLoginProcessing,
-  } = useAppStore(
-    useShallow((s) => ({
-      isAuthenticated: s.isAuthenticated,
-      isLoginProcessing: s.isLoginProcessing,
-      handleLoginSuccess: s.handleLoginSuccess,
-      logout: s.logout,
-      setIsLoginProcessing: s.setIsLoginProcessing,
-    })),
-  );
+  const [isLoginProcessing, setIsLoginProcessing] = useState(false);
+
+  const { isAuthenticated, handleLoginSuccess, logout, setGlobalProcessing } =
+    useAppStore(
+      useShallow((state) => ({
+        isAuthenticated: state.isAuthenticated,
+        handleLoginSuccess: state.handleLoginSuccess,
+        logout: state.logout,
+        setGlobalProcessing: state.setGlobalProcessing,
+      })),
+    );
 
   const handleLogin = async (): Promise<void> => {
-    // ログイン処理中は二重実行しない
     if (isLoginProcessing) {
       console.warn("[Auth] Login is already in progress.");
       return;
     }
 
     setIsLoginProcessing(true);
+    setGlobalProcessing({
+      message: "認証処理中...",
+      target: "認証処理中",
+    });
 
     try {
       console.log("[Auth] Starting Google login...");
@@ -49,11 +49,15 @@ export const useAuth = () => {
     } catch (error) {
       console.error("[Auth] Login failed:", error);
 
-      toast.error(
-        error instanceof Error ? error.message : "ログインに失敗しました",
-      );
-
+      useToastStore
+        .getState()
+        .addToast(
+          error instanceof Error ? error.message : "ログインに失敗しました",
+          "error",
+        );
+    } finally {
       setIsLoginProcessing(false);
+      setGlobalProcessing(null);
     }
   };
 

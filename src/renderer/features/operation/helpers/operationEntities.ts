@@ -1,4 +1,4 @@
-﻿//src\renderer\features\operation\helpers\operationEntities.ts
+﻿// src/renderer/features/operation/helpers/operationEntities.ts
 
 import type { AppState } from "@shared/store";
 import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
@@ -17,6 +17,32 @@ export function findEntityByKanriNo(
 ): OperationItem | undefined {
   const key = String(kanriNo);
   return state.operationEntities[key] ?? state.irregularEntities[key];
+}
+
+/**
+ * 単一エンティティにステータス更新を適用し、最新のステータスを評価したクローンを返却する内部ヘルパー
+ */
+function applyStatusUpdateToEntity(
+  entity: OperationItem,
+  update: OperationItem,
+  allEntities: Record<string, OperationItem>,
+  activeFlags?: Record<string, boolean>,
+): { cloned: OperationItem; statusChanged: boolean } {
+  const previousStatus = entity.status;
+  const cloned = { ...entity };
+
+  mergeStatus(cloned, update);
+  cloned.status = calculateNextStatus(
+    cloned,
+    update.status ?? undefined,
+    allEntities,
+    activeFlags,
+  );
+
+  return {
+    cloned,
+    statusChanged: previousStatus !== cloned.status,
+  };
 }
 
 export function updateEntityInState(
@@ -39,23 +65,16 @@ export function updateEntityInState(
     const entity = targetGroup[kanriNo];
     if (!entity) continue;
 
-    const previousStatus = entity.status;
-
-    // ⭕ 読み取り専用オブジェクトのプロパティ変更エラーを回避するため浅いコピーを作成
-    const clonedEntity = { ...entity };
-    mergeStatus(clonedEntity, update);
-
-    clonedEntity.status = calculateNextStatus(
-      clonedEntity,
-      update.status ?? undefined,
+    const result = applyStatusUpdateToEntity(
+      entity,
+      update,
       allEntities,
       activeFlags,
     );
 
-    targetGroup[kanriNo] = clonedEntity;
-
+    targetGroup[kanriNo] = result.cloned;
     updated = true;
-    if (previousStatus !== clonedEntity.status) {
+    if (result.statusChanged) {
       statusChanged = true;
     }
   }
@@ -70,17 +89,12 @@ export function applyPersistedStatuses(
   const result = { ...entities };
   for (const [kanriNo, status] of Object.entries(statuses)) {
     if (result[kanriNo]) {
-      // ⭕ 読み取り専用オブジェクトのプロパティ変更エラーを回避するため浅いコピーを作成
-      const clonedEntity = { ...result[kanriNo] };
-      mergeStatus(clonedEntity, status);
-
-      clonedEntity.status = calculateNextStatus(
-        clonedEntity,
-        status.status ?? undefined,
+      const { cloned } = applyStatusUpdateToEntity(
+        result[kanriNo],
+        status,
         result,
       );
-
-      result[kanriNo] = clonedEntity;
+      result[kanriNo] = cloned;
     }
   }
   return result;

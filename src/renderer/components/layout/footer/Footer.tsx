@@ -6,6 +6,8 @@ import { FooterActionButton } from "./components/FooterActionButton";
 import { SearchField } from "@renderer/components/ui/searchField/SearchField";
 import { useFooterLogic } from "./useFooterLogic";
 
+const APP_VERSION = import.meta.env.APP_VERSION ?? "1.0.0";
+
 export const Footer: React.FC = () => {
   const {
     is1CActive,
@@ -21,9 +23,7 @@ export const Footer: React.FC = () => {
 
   return (
     <footer className={styles.footerContainer}>
-      <div className={styles.copyrightText}>
-        © 2026 OperationApp. All rights reserved.
-      </div>
+      <div className={styles.copyrightText}>OperationApp v{APP_VERSION}</div>
 
       <div className={styles.centerSearchWrapper}>
         {searchPlaceholder && (

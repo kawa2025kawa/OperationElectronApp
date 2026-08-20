@@ -3,20 +3,20 @@
 import type { StateCreator } from "zustand";
 import type { AppState } from "@shared/store";
 
-export interface OverlaySlice {
-  /** 全体処理Overlay */
-  isGlobalProcessing: boolean;
-  overlayMessage: string;
+export interface GlobalProcessingState {
+  message: string;
+  target: string;
+}
 
-  /** JC / Script実行中の対象表示 */
-  processingTarget: string | null;
+export interface OverlaySlice {
+  /** アプリ全体で1つだけ存在する処理中状態 */
+  globalProcessing: GlobalProcessingState | null;
+
+  /** アプリ初期化用 */
   isLoading: boolean;
 
-  setGlobalProcessing: (
-    isProcessing: boolean,
-    message?: string,
-    target?: string | null,
-  ) => void;
+  setGlobalProcessing: (processing: GlobalProcessingState | null) => void;
+
   setIsLoading: (isLoading: boolean) => void;
 }
 
@@ -26,16 +26,13 @@ export const createOverlaySlice: StateCreator<
   [],
   OverlaySlice
 > = (set) => ({
-  isGlobalProcessing: false,
-  overlayMessage: "",
-  processingTarget: null,
+  globalProcessing: null,
+
   isLoading: false,
 
-  setGlobalProcessing: (isProcessing, message = "", target = null) =>
+  setGlobalProcessing: (processing) =>
     set((state: AppState) => {
-      state.isGlobalProcessing = isProcessing;
-      state.overlayMessage = message;
-      state.processingTarget = isProcessing ? target : null;
+      state.globalProcessing = processing;
     }),
 
   setIsLoading: (isLoading) =>

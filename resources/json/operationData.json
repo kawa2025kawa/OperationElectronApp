@@ -837,6 +837,10 @@
     "kanriNo": "81",
     "workName": "JOB全体確認",
     "scheduledTime": "18:00",
-    "manual": true
+    "manual": true,
+    "dependency": {
+      "dependsOn": [],
+      "requiresAllJobsSuccess": true
+    }
   }
 ]

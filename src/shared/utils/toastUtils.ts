@@ -10,14 +10,8 @@ export type { ToastType };
 /**
  * アプリ共通のトースト通知呼び出し関数
  */
-export const showToast = (
-  message: string,
-  type: ToastType = "info",
-  duration = 4000,
-): void => {
-  // エラー時は自動消去時間を長め（8秒）に設定、それ以外は4秒
-  const toastDuration = type === "error" ? 8000 : duration;
-  useToastStore.getState().addToast(message, type, toastDuration);
+export const showToast = (message: string, type: ToastType = "info"): void => {
+  useToastStore.getState().addToast(message, type);
 };
 
 /**

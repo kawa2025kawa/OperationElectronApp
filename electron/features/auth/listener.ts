@@ -1,41 +1,69 @@
-﻿// electron/services/auth/listener.ts
+﻿// electron/features/auth/listener.ts
 
 import * as http from "node:http";
-
-// =====================================================
-// Types
-// =====================================================
 
 export interface OAuthCallback {
   code: string;
   state: string;
 }
 
-// =====================================================
-// Constants
-// =====================================================
-
 const HOST = "127.0.0.1";
 
-// =====================================================
-// Response
-// =====================================================
+const SUCCESS_RESPONSE = `
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>認証完了</title>
+</head>
+<body>
+  <h1>認証が完了しました</h1>
+  <p>このタブを閉じてアプリに戻ってください。</p>
+</body>
+</html>
+`.trim();
+
+const AUTH_ERROR_RESPONSE = `
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>認証失敗</title>
+</head>
+<body>
+  <h1>認証に失敗しました</h1>
+  <p>アプリに戻って再度ログインしてください。</p>
+</body>
+</html>
+`.trim();
+
+const INVALID_REQUEST_RESPONSE = `
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>認証エラー</title>
+</head>
+<body>
+  <h1>認証リクエストが不正です</h1>
+  <p>アプリに戻って再度ログインしてください。</p>
+</body>
+</html>
+`.trim();
 
 function sendResponse(
-  res: http.ServerResponse,
+  response: http.ServerResponse,
   statusCode: number,
   body: string,
 ): void {
-  res.writeHead(statusCode, {
+  response.writeHead(statusCode, {
     "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store",
   });
 
-  res.end(body);
+  response.end(body);
 }
-
-// =====================================================
-// Server Close
-// =====================================================
 
 function closeServer(server: http.Server): Promise<void> {
   return new Promise((resolve) => {
@@ -54,9 +82,15 @@ function closeServer(server: http.Server): Promise<void> {
   });
 }
 
-// =====================================================
-// OAuth Callback Listener
-// =====================================================
+function toError(error: unknown, fallbackMessage: string): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error(error == null ? fallbackMessage : String(error), {
+    cause: error,
+  });
+}
 
 export function startListener(
   port: number,
@@ -65,14 +99,10 @@ export function startListener(
   return new Promise((resolve, reject) => {
     let settled = false;
 
-    const server = http.createServer((req, res) => {
-      void handleRequest(req, res);
+    const server = http.createServer((request, response) => {
+      void handleRequest(request, response);
     });
 
-    /**
-     * Promiseを一度だけresolve/rejectし、
-     * HTTPサーバーを確実に終了する。
-     */
     const finish = async (callback: () => void): Promise<void> => {
       if (settled) {
         return;
@@ -81,19 +111,38 @@ export function startListener(
       settled = true;
 
       await closeServer(server);
-
       callback();
     };
 
-    /**
-     * OAuth callback request handler
-     */
+    const rejectWithError = async (
+      response: http.ServerResponse,
+      statusCode: number,
+      responseBody: string,
+      error: Error,
+    ): Promise<void> => {
+      sendResponse(response, statusCode, responseBody);
+      await finish(() => reject(error));
+    };
+
     async function handleRequest(
-      req: http.IncomingMessage,
-      res: http.ServerResponse,
+      request: http.IncomingMessage,
+      response: http.ServerResponse,
     ): Promise<void> {
       try {
-        const requestUrl = new URL(req.url ?? "/", `http://${HOST}:${port}`);
+        if (request.method !== "GET") {
+          await rejectWithError(
+            response,
+            405,
+            INVALID_REQUEST_RESPONSE,
+            new Error("OAuth callback must use GET"),
+          );
+          return;
+        }
+
+        const requestUrl = new URL(
+          request.url ?? "/",
+          `http://${HOST}:${port}`,
+        );
 
         const error = requestUrl.searchParams.get("error");
         const errorDescription =
@@ -102,89 +151,53 @@ export function startListener(
         const code = requestUrl.searchParams.get("code");
         const state = requestUrl.searchParams.get("state");
 
-        // -------------------------------------------
-        // Google OAuth Error
-        // -------------------------------------------
-
         if (error) {
-          sendResponse(res, 400, "<h1>Authentication failed.</h1>");
+          const description = errorDescription ? ` - ${errorDescription}` : "";
 
-          await finish(() => {
-            reject(
-              new Error(
-                `Google OAuth error: ${error}${
-                  errorDescription ? ` - ${errorDescription}` : ""
-                }`,
-              ),
-            );
-          });
+          await rejectWithError(
+            response,
+            400,
+            AUTH_ERROR_RESPONSE,
+            new Error(`Google OAuth error: ${error}${description}`),
+          );
 
           return;
         }
-
-        // -------------------------------------------
-        // Authorization Code
-        // -------------------------------------------
 
         if (!code) {
-          sendResponse(res, 400, "<h1>Authorization code not found.</h1>");
-
-          await finish(() => {
-            reject(new Error("Authorization code not found"));
-          });
+          await rejectWithError(
+            response,
+            400,
+            INVALID_REQUEST_RESPONSE,
+            new Error("Authorization code not found"),
+          );
 
           return;
         }
-
-        // -------------------------------------------
-        // OAuth State
-        // -------------------------------------------
 
         if (!state) {
-          sendResponse(res, 400, "<h1>OAuth state not found.</h1>");
-
-          await finish(() => {
-            reject(new Error("OAuth state not found"));
-          });
+          await rejectWithError(
+            response,
+            400,
+            INVALID_REQUEST_RESPONSE,
+            new Error("OAuth state not found"),
+          );
 
           return;
         }
-
-        // -------------------------------------------
-        // State Validation
-        // -------------------------------------------
 
         if (state !== expectedState) {
-          sendResponse(res, 400, "<h1>Invalid OAuth state.</h1>");
-
-          await finish(() => {
-            reject(new Error("OAuth state mismatch"));
-          });
+          await rejectWithError(
+            response,
+            400,
+            AUTH_ERROR_RESPONSE,
+            new Error("OAuth state mismatch"),
+          );
 
           return;
         }
 
-        // -------------------------------------------
-        // Success
-        // -------------------------------------------
-
-        sendResponse(
-          res,
-          200,
-          `
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>認証完了</title>
-</head>
-<body>
-  <h1>認証が完了しました</h1>
-  <p>このタブを閉じてアプリに戻ってください。</p>
-</body>
-</html>
-          `.trim(),
-        );
+        sendResponse(response, 200, SUCCESS_RESPONSE);
 
         await finish(() => {
           resolve({
@@ -194,22 +207,12 @@ export function startListener(
         });
       } catch (error) {
         await finish(() => {
-          reject(
-            error instanceof Error
-              ? error
-              : new Error(String(error), {
-                  cause: error,
-                }),
-          );
+          reject(toError(error, "OAuth callback handling failed"));
         });
       }
     }
 
-    // -----------------------------------------------
-    // Server Error
-    // -----------------------------------------------
-
-    server.on("error", (error) => {
+    server.once("error", (error) => {
       void finish(() => {
         reject(
           new Error(`OAuth listener error: ${error.message}`, {
@@ -218,10 +221,6 @@ export function startListener(
         );
       });
     });
-
-    // -----------------------------------------------
-    // Start Listener
-    // -----------------------------------------------
 
     server.listen(port, HOST, () => {
       console.log(`[OAuthListener] Listening on http://${HOST}:${port}`);

@@ -95,7 +95,7 @@ export const operationViewConfig: AppViewDefinition = {
       },
     },
 
-    // 3. Gmail (新規追加: gmail === true の時にアクティブ化)[cite: 1]
+    // 3. Gmail (gmail === true の時にアクティブ化)[cite: 1]
     createModalAction(
       "gmail",
       "Gmail",
@@ -112,21 +112,6 @@ export const operationViewConfig: AppViewDefinition = {
     // 4. Link (モーダル表示)[cite: 1]
     createModalAction("link", "Link", (item) =>
       Boolean(item.link && Object.keys(item.link).length > 0),
-    ),
-
-    // 5. 店舗maticアップロード (モーダル表示)[cite: 1]
-    createModalAction(
-      "pdfUpload",
-      "店舗maticアップロード",
-      (item) =>
-        Boolean(
-          item.kanriNo &&
-          ["30", "37", "45", "54"].includes(String(item.kanriNo).trim()),
-        ),
-      {
-        width: "min(80vw, 850px)",
-        height: "min(75vh, 650px)",
-      },
     ),
   ],
 };

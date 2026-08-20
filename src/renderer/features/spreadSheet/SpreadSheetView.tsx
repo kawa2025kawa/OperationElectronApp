@@ -3,9 +3,9 @@ import { useShallow } from "zustand/react/shallow";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { useAppStore } from "@shared/store";
 
-import { JugyoinKokyuhyoModalContent } from "./components/modal/contents/common/JugyoinKokyuhyoModalContent";
-import { ShopModalContent } from "./components/modal/contents/shop/ShopModalContent";
-import { TantouModalContent } from "./components/modal/contents/tantou/TantouModalContent";
+import { JugyoinKokyuhyoModalContent } from "./components/modal/contents/JugyoinKokyuhyoModalContent";
+import { ShopModalContent } from "./components/modal/contents/ShopModalContent";
+import { TantouModalContent } from "./components/modal/contents/TantouModalContent";
 import { SpreadSheetTable } from "./components/table/SpreadSheetTable";
 import * as styles from "./spreadSheetView.css";
 import {
