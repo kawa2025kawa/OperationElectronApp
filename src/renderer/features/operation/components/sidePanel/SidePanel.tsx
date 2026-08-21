@@ -2,7 +2,6 @@
 
 import React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import clsx from "clsx";
 import type { ViewMode } from "@shared/types/uiType";
 import * as styles from "./SidePanel.css";
 import { useSidePanel, type InfoRowData } from "./useSidePanel";
@@ -27,9 +26,7 @@ const ModeSwitcher: React.FC<{
         data-active={currentMode === mode}
         onClick={() => onModeChange(mode)}
       >
-        <span className={styles.toggleText}>
-          {mode.charAt(0).toUpperCase() + mode.slice(1)}
-        </span>
+        {mode.charAt(0).toUpperCase() + mode.slice(1)}
       </button>
     ))}
   </div>
@@ -43,15 +40,11 @@ ModeSwitcher.displayName = "ModeSwitcher";
 
 const InfoRow = React.memo(({ label, value }: InfoRowData) => {
   const isRemarks = label === "備考";
-  const rowClass = isRemarks ? styles.rowRemarks : styles.rowStandard;
-  const detailClass = isRemarks ? styles.detailRemarks : styles.detailStandard;
 
   return (
-    <div className={rowClass}>
-      <span className={styles.infoLabel}>{label}</span>
-      <span className={clsx(styles.resultValue, detailClass)}>
-        {value || "-"}
-      </span>
+    <div className={styles.row} data-remarks={isRemarks}>
+      <span>{label}</span>
+      <span className={styles.resultValue}>{value || "-"}</span>
     </div>
   );
 });
@@ -68,7 +61,7 @@ export const SidePanel: React.FC = React.memo(() => {
     currentMode,
     activeActions,
     infoRows,
-    handleModeChange,
+    setMode,
     executeAction,
   } = useSidePanel();
 
@@ -76,10 +69,7 @@ export const SidePanel: React.FC = React.memo(() => {
     <div className={styles.panelContainer}>
       {/* 上部コントロール部（トグルボタン & Menuボタン） */}
       <div className={styles.topControls}>
-        <ModeSwitcher
-          currentMode={currentMode}
-          onModeChange={handleModeChange}
-        />
+        <ModeSwitcher currentMode={currentMode} onModeChange={setMode} />
 
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
@@ -88,7 +78,7 @@ export const SidePanel: React.FC = React.memo(() => {
               className={styles.menuButton}
               disabled={!selectedItem || activeActions.length === 0}
             >
-              <span className={styles.menuButtonText}>Menu ▼</span>
+              Menu ▼
             </button>
           </DropdownMenu.Trigger>
 

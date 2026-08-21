@@ -1,12 +1,10 @@
-// src/renderer/features/operation/components/modal/pdfUploadModal/PdfUploadModalContent.tsx
+// src/renderer/features/other/components/modal/pdfUploadModal/PdfUploadModalContent.tsx
 
 import React, { useEffect } from "react";
 import { clsx } from "clsx";
-
 import { ErrorState } from "@renderer/components/ui/state/StateContainer";
 import * as sharedStyles from "@renderer/features/operation/components/modal/operationModal.css";
-
-import type { ModalContentProps } from "../useOperationModalLogic";
+import type { ModalContentProps } from "../useOtherModalLogic"; //
 import {
   type PdfUploadFile,
   usePdfUploadModalLogic,
@@ -14,12 +12,11 @@ import {
 import * as styles from "./pdfUploadModalContent.css";
 
 const PDF_ACCEPT = "application/pdf,.pdf";
-const ERROR_MESSAGE = "PDFのアップロード処理に失敗しました。";
+const ERROR_MESSAGE = "PDFのアップロードに失敗しました";
 
 // ============================================================
-// File Item
+// Sub Component: File Item
 // ============================================================
-
 interface FileItemProps {
   file: PdfUploadFile;
   index: number;
@@ -46,29 +43,26 @@ const FileItem: React.FC<FileItemProps> = ({
           <span className={styles.fileIndex}>{index + 1}.</span>
           <span className={styles.fileName}>{file.name}</span>
         </div>
-
         <span className={styles.filePath}>{file.path}</span>
       </div>
-
       <div className={styles.reorderButtons}>
         <button
           type="button"
           className={styles.reorderButton}
           onClick={() => onMoveUp(index)}
           disabled={isFirst || isProcessing}
-          aria-label={`${index + 1}番目のファイルを上へ移動`}
+          aria-label={`${index + 1}番目のファイルを上に移動`}
         >
-          ↑
+          ▲
         </button>
-
         <button
           type="button"
           className={styles.reorderButton}
           onClick={() => onMoveDown(index)}
           disabled={isLast || isProcessing}
-          aria-label={`${index + 1}番目のファイルを下へ移動`}
+          aria-label={`${index + 1}番目のファイルを下に移動`}
         >
-          ↓
+          ▼
         </button>
       </div>
     </div>
@@ -76,9 +70,8 @@ const FileItem: React.FC<FileItemProps> = ({
 };
 
 // ============================================================
-// Drop Zone
+// Sub Component: Drop Zone
 // ============================================================
-
 interface DropZoneProps {
   isDragging: boolean;
   isProcessing: boolean;
@@ -107,12 +100,10 @@ const DropZone: React.FC<DropZoneProps> = ({
     onDrop={onDrop}
   >
     <label className={styles.dropZoneLabel}>
-      <p className={styles.dropZoneTitle}>PDFファイルをここにドロップ</p>
-
+      <p className={styles.dropZoneTitle}>PDFファイルをドロップ</p>
       <p className={styles.dropZoneDescription}>
         またはクリックしてファイルを選択
       </p>
-
       <input
         type="file"
         accept={PDF_ACCEPT}
@@ -126,9 +117,8 @@ const DropZone: React.FC<DropZoneProps> = ({
 );
 
 // ============================================================
-// File List
+// Sub Component: File List
 // ============================================================
-
 interface FileListProps {
   files: PdfUploadFile[];
   isProcessing: boolean;
@@ -168,9 +158,8 @@ const FileList: React.FC<FileListProps> = ({
 };
 
 // ============================================================
-// Main
+// Main Component
 // ============================================================
-
 export const PdfUploadModalContent: React.FC<ModalContentProps> = React.memo(
   ({ onClose, registerPrimaryAction }) => {
     const {
@@ -193,7 +182,6 @@ export const PdfUploadModalContent: React.FC<ModalContentProps> = React.memo(
 
     useEffect(() => {
       let action: (() => void) | undefined;
-
       if (currentViewKey === "success") {
         action = handleCancelAndClose;
       } else if (currentViewKey === "dnd" && !isProcessing) {
@@ -203,7 +191,6 @@ export const PdfUploadModalContent: React.FC<ModalContentProps> = React.memo(
       }
 
       registerPrimaryAction(action);
-
       return () => {
         registerPrimaryAction(undefined);
       };
@@ -244,12 +231,10 @@ export const PdfUploadModalContent: React.FC<ModalContentProps> = React.memo(
           onDrop={handleDrop}
           onChange={handleFileChange}
         />
-
         <div className={styles.bottomSection}>
           <div className={sharedStyles.sectionTitle}>
-            選択中のファイル ({fileCount})
+            対象ファイル一覧 ({fileCount})
           </div>
-
           <div className={styles.listBox}>
             <FileList
               files={files}
@@ -265,5 +250,4 @@ export const PdfUploadModalContent: React.FC<ModalContentProps> = React.memo(
 );
 
 PdfUploadModalContent.displayName = "PdfUploadModalContent";
-
 export default PdfUploadModalContent;

@@ -3,7 +3,7 @@
 import { useToastStore } from "@renderer/components/ui/toast/toastStore";
 import type { StateCreator } from "zustand";
 
-import { loadAuthSession, logout as logoutCommand } from "@shared/api/commands";
+import { commands } from "@shared/api/commands";
 import type { AppState } from "@shared/store";
 
 // ============================================================
@@ -190,7 +190,7 @@ export const createAuthSlice: StateCreator<
     });
 
     try {
-      const session = await loadAuthSession();
+      const session = await commands.loadAuthSession();
 
       if (!session?.accessToken) {
         set((state) => {
@@ -255,7 +255,7 @@ export const createAuthSlice: StateCreator<
 
   logout: async (): Promise<void> => {
     try {
-      await logoutCommand();
+      await commands.logout();
 
       set((state) => {
         clearAuthState(state);

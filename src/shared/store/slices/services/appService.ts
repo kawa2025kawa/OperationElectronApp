@@ -121,6 +121,11 @@ function markInitializationCompleted(): void {
     operation: "OK",
     irregular: "OK",
   });
+
+  // RAWデータ設定完了後に集計(StatusSummary)を確実に再計算し、
+  // 全件「予定」の状態と件数を完全連動させる
+  store.recalculateSummary();
+
   store.setIsInitialLoaded(true);
 }
 

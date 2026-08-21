@@ -1,8 +1,10 @@
-﻿import { useState } from "react";
+﻿// src/renderer/features/auth/useAuth.ts
+
+import { useState } from "react";
 import { useToastStore } from "@renderer/components/ui/toast/toastStore";
 import { useShallow } from "zustand/react/shallow";
 
-import { login } from "@shared/api/commands";
+import { commands } from "@shared/api/commands";
 import { useAppStore } from "@shared/store";
 
 export const useAuth = () => {
@@ -33,7 +35,7 @@ export const useAuth = () => {
     try {
       console.log("[Auth] Starting Google login...");
 
-      const session = await login();
+      const session = await commands.login();
 
       if (!session?.accessToken) {
         throw new Error("アクセストークンの取得に失敗しました");

@@ -1,6 +1,7 @@
 // src/renderer/features/operation/components/modal/contents/linkModal/linkModalContent.css.ts
+
 import { style } from "@vanilla-extract/css";
-import { tokens, themeTransition } from "@renderer/styles/tokens";
+import { themeTransition, tokens } from "@renderer/styles/tokens";
 
 // インセット（凹み）共通基調
 export const pressedSection = style([
@@ -49,61 +50,32 @@ export const listBox = style([
   },
 ]);
 
-// 各リン行カード
-export const linkRowCard = style([
+// 🎯 カード全体をクリッカブルなボタンに変更
+export const linkCardButton = style([
   themeTransition,
   {
+    appearance: "none",
     display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    width: "100%",
     padding: "1.5vmin 2vmin",
     backgroundColor: tokens.color.bg.base,
     borderRadius: tokens.radius.md,
-    boxShadow: tokens.shadow.raised.md,
-    transition: tokens.transition.fast,
-    gap: "2vmin",
-    selectors: {
-      "&:hover": {
-        boxShadow: tokens.shadow.glow.cyan,
-        transform: "translateY(-1px)",
-      },
-    },
-  },
-]);
-
-// リンクのラベル（左側）
-export const linkLabel = style({
-  fontSize: "clamp(13px, 2.2vmin, 18px)",
-  fontWeight: tokens.font.weight.bold,
-  color: tokens.color.text.base,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-// リンク開くボタン
-export const openButton = style([
-  themeTransition,
-  {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "1vmin 2vmin",
-    borderRadius: tokens.radius.md,
-    backgroundColor: tokens.color.bg.base,
-    color: tokens.color.accent.base,
-    fontSize: "clamp(11px, 1.8vmin, 15px)",
-    fontWeight: tokens.font.weight.bold,
-    border: "none",
+    border: `1px solid ${tokens.color.border.subtle}`,
     boxShadow: tokens.shadow.raised.md,
     cursor: "pointer",
-    whiteSpace: "nowrap",
+    textAlign: "left",
+    gap: "0.5vmin",
+    outline: "none",
+    transition: tokens.transition.fast,
+
     selectors: {
-      "&:hover": {
-        boxShadow: tokens.shadow.glow.cyan,
+      "&:hover, &:focus-visible": {
+        borderColor: tokens.color.accent.neonCyan,
+        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
         transform: "translateY(-1px)",
-        color: tokens.color.text.hover,
       },
       "&:active": {
         boxShadow: tokens.shadow.pressed.low,
@@ -112,6 +84,33 @@ export const openButton = style([
     },
   },
 ]);
+
+// 上段：キー（項目名）
+export const linkLabel = style({
+  fontSize: "clamp(13px, 2vmin, 16px)",
+  fontWeight: tokens.font.weight.bold,
+  color: tokens.color.accent.neonCyan,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  width: "100%",
+});
+
+// 下段：値（パス / URL）
+export const linkValue = style({
+  fontSize: "clamp(11px, 1.6vmin, 14px)",
+  color: tokens.color.text.base,
+  opacity: 0.8,
+  wordBreak: "break-all",
+  lineHeight: 1.4,
+  width: "100%",
+  selectors: {
+    [`${linkCardButton}:hover &`]: {
+      color: tokens.color.text.hover,
+      opacity: 1,
+    },
+  },
+});
 
 // NO DATA 表示領域
 export const emptyContainer = style({

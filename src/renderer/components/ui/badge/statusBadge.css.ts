@@ -10,25 +10,18 @@ export const badge = style({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-
   height: "28px",
   minWidth: "86px",
   padding: `0 ${tokens.space.md}`,
-
   borderRadius: tokens.radius.full,
-
   fontSize: tokens.font.size.xs,
   fontWeight: tokens.font.weight.bold,
-
   whiteSpace: "nowrap",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
-
   backgroundColor: tokens.color.bg.base,
-
   border: "2px solid currentcolor",
-
-  transition: `all ${tokens.transition.normal}`,
+  transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
 });
 
 /* =========================

@@ -5,6 +5,8 @@ import { registerOperationIpc } from "@electron/features/operation/operationIpc"
 import { registerRdpIpc } from "@electron/features/rdp/rdpIpc";
 import { registerSystemIpc } from "@electron/features/system/systemIpc";
 import { registerTempomaticIpc } from "@electron/features/tempomatic/tempomaticIpc";
+// 1. Gmail用のIPC登録関数をインポート（※実際のファイルパスに合わせて調整してください）
+import { registerGmailIpc } from "@electron/features/gmail/gmailIpc";
 
 type IpcHandlerSetup = () => void;
 
@@ -14,6 +16,7 @@ const ipcHandlers: IpcHandlerSetup[] = [
   registerRdpIpc,
   registerSystemIpc,
   registerTempomaticIpc,
+  registerGmailIpc, // 2. 配列に追加
 ];
 
 let initialized = false;

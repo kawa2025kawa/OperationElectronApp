@@ -19,14 +19,37 @@ export const APP_VIEW_IDS = {
 
 export type AppViewId = (typeof APP_VIEW_IDS)[keyof typeof APP_VIEW_IDS];
 
-export const EXTRA_MODAL_TYPES = {
+/**
+ * OperationModal 用のモーダル種別
+ */
+export const OPERATION_MODAL_TYPES = {
   SUMMARY: "summary",
+  LINK: "link",
+} as const;
+
+export type OperationModalType =
+  (typeof OPERATION_MODAL_TYPES)[keyof typeof OPERATION_MODAL_TYPES];
+
+/**
+ * OtherModal 用のモーダル種別
+ */
+export const OTHER_MODAL_TYPES = {
   PDF_UPLOAD: "pdfUpload",
+  GMAIL: "gmail",
+} as const;
+
+export type OtherModalType =
+  (typeof OTHER_MODAL_TYPES)[keyof typeof OTHER_MODAL_TYPES];
+
+/**
+ * 全モーダル種別の統合定義（互換性維持用）
+ */
+export const EXTRA_MODAL_TYPES = {
+  ...OPERATION_MODAL_TYPES,
+  ...OTHER_MODAL_TYPES,
   JC: "jc",
   SCRIPT: "script",
-  LINK: "link",
   MANUAL: "manual",
-  GMAIL: "gmail",
 } as const;
 
 export type ExtraModalType =

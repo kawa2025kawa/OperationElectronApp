@@ -64,7 +64,7 @@ export const primaryButton = style({
   fontWeight: tokens.font.weight.bold,
   cursor: "pointer",
   boxShadow: tokens.shadow.raised.low,
-  transition: `all ${tokens.transition.fast}`,
+  transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
 
   selectors: {
     "&:hover": {

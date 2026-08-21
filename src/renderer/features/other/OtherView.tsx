@@ -1,10 +1,10 @@
-﻿import React, { useCallback } from "react";
+﻿// src/renderer/features/other/OtherView.tsx
+
+import React, { useCallback } from "react";
 import { clsx } from "clsx";
-
 import { animateFadeIn } from "@renderer/styles/tokens";
-import { OperationModal } from "@renderer/features/operation/components/modal/OperationModal";
+import { OtherModal } from "./components/modal/OtherModal";
 import { useAppStore } from "@shared/store";
-
 import * as styles from "./otherView.css";
 
 interface OtherToolAction {
@@ -20,10 +20,9 @@ export const OtherView: React.FC = () => {
   // =====================================================
   // 店舗matic
   // =====================================================
-
   const handleOpenPdfUpload = useCallback(() => {
     openGlobalModal(
-      <OperationModal type="pdfUpload" onClose={closeGlobalModal} />,
+      <OtherModal type="pdfUpload" onClose={closeGlobalModal} />,
       {
         title: "店舗matic",
         width: "min(80vw, 850px)",
@@ -35,10 +34,13 @@ export const OtherView: React.FC = () => {
   // =====================================================
   // 下書きメール
   // =====================================================
-
   const handleOpenGmailDraft = useCallback(() => {
     openGlobalModal(
-      <OperationModal type="gmail" onClose={closeGlobalModal} />,
+      <OtherModal
+        type="gmail"
+        onClose={closeGlobalModal}
+        gmailTemplateSelection
+      />,
       {
         title: "下書きメール",
         width: "min(80vw, 850px)",
@@ -50,7 +52,6 @@ export const OtherView: React.FC = () => {
   // =====================================================
   // Tools
   // =====================================================
-
   const tools: OtherToolAction[] = [
     {
       id: "pdfUpload",
@@ -63,10 +64,6 @@ export const OtherView: React.FC = () => {
       onClick: handleOpenGmailDraft,
     },
   ];
-
-  // =====================================================
-  // Render
-  // =====================================================
 
   return (
     <div className={clsx(styles.container, animateFadeIn)}>

@@ -1,4 +1,4 @@
-﻿// src/renderer/features/operation/components/modal/gmailModal/useGmailModalContent.ts
+﻿// src/renderer/features/other/components/modal/gmailModal/useGmailModalContent.ts
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -7,7 +7,7 @@ import { gmailService } from "@renderer/features/operation/services/gmailService
 import { selectActiveSelectedItem } from "@renderer/features/operation/store/operationSelectors";
 import { useAppStore } from "@shared/store";
 
-import type { ModalContentProps } from "../useOperationModalLogic";
+import type { ModalContentProps } from "@renderer/features/other/components/modal/useOtherModalLogic";
 
 import {
   EMAIL_TEMPLATE_OPTIONS,
@@ -22,6 +22,7 @@ import {
 
 interface UseGmailModalContentParams {
   registerPrimaryAction: ModalContentProps["registerPrimaryAction"];
+  setTitle: ModalContentProps["setTitle"];
   forceTemplateSelection?: boolean;
 }
 
@@ -47,6 +48,12 @@ function getNextTuesdayString(): string {
   nextTuesday.setDate(now.getDate() + daysUntilNextTuesday);
 
   return `${nextTuesday.getMonth() + 1}月${nextTuesday.getDate()}日(火)`;
+}
+
+function stripHtmlTags(html: string): string {
+  if (!html) return "";
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent || doc.body.innerText || "";
 }
 
 function createFormValues(
@@ -84,6 +91,7 @@ function createFormValues(
 
 export function useGmailModalContent({
   registerPrimaryAction,
+  setTitle,
   forceTemplateSelection = false,
 }: UseGmailModalContentParams) {
   const selectedItem = useAppStore(selectActiveSelectedItem);
@@ -203,14 +211,16 @@ export function useGmailModalContent({
           return;
         }
 
+        const plainSignature = stripHtmlTags(signature).trim();
+
         setFormValues((prev) => {
-          if (prev.body.includes(signature)) {
+          if (prev.body.includes(plainSignature)) {
             return prev;
           }
 
           return {
             ...prev,
-            body: `${prev.body.trim()}\n\n--\n${signature}`,
+            body: `${prev.body.trim()}\n\n--\n${plainSignature}`,
           };
         });
       })
@@ -230,17 +240,25 @@ export function useGmailModalContent({
   const handleExecute = useCallback(async () => {
     if (!templateKey) {
       toast.error("メールテンプレートを選択してください");
-
       throw new Error("メールテンプレート未選択");
     }
 
     if (!formValues.to.trim()) {
       toast.error("宛先(To)を入力してください");
-
       throw new Error("宛先未入力");
     }
 
     setIsSaving(true);
+
+    // ★ 1. 全面 LOADING 状態を更新
+    const setGlobalProcessing = useAppStore.getState().setGlobalProcessing;
+    setGlobalProcessing({
+      message: "Gmail下書き保存中...",
+      target: formValues.subject.trim() || "下書きメール",
+    });
+
+    // ★ 2. ブラウザの描画更新イベントを1フレーム待ち、LOADING画面を確実に表示させる
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     try {
       await gmailService.createDraft({
@@ -249,6 +267,9 @@ export function useGmailModalContent({
         subject: formValues.subject.trim(),
         body: formValues.body,
       });
+
+      // ヘッダータイトルを「下書き保存完了」へ更新
+      setTitle("下書き保存完了");
 
       toast.success("Gmailの下書きに保存しました");
     } catch (error) {
@@ -261,8 +282,10 @@ export function useGmailModalContent({
       throw error;
     } finally {
       setIsSaving(false);
+      // ★ 3. LOADING 表示をクリア
+      setGlobalProcessing(null);
     }
-  }, [templateKey, formValues]);
+  }, [templateKey, formValues, setTitle]);
 
   // ===================================================
   // Primary Action

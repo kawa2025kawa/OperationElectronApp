@@ -65,19 +65,12 @@ export const centerContent = style({
   height: "100%",
   minHeight: 0,
   flex: 1,
-
-  // 上下 + 右側にスクロールバーとの間隔を確保
   padding: "1vmin 1.5vmin 1vmin 0",
-
   boxSizing: "border-box",
-
   overflowY: "auto",
   overflowX: "hidden",
-
   scrollbarWidth: "thin",
-
   scrollbarColor: `${tokens.color.accent.base} ${tokens.color.bg.inset}`,
-
   selectors: {
     "&::-webkit-scrollbar": {
       width: "8px",

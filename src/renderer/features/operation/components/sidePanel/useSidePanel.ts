@@ -1,7 +1,8 @@
-﻿import { useCallback, useMemo } from "react";
+﻿// src/renderer/features/operation/components/sidePanel/useSidePanel.ts
+
+import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@shared/store";
-import type { ViewMode } from "@shared/types/uiType";
 import { getStatusLabel } from "@shared/types/uiType";
 import { formatToJapaneseDateTime } from "@shared/utils/dateUtils";
 import { operationViewConfig } from "@renderer/features/operation/config/operationView";
@@ -11,6 +12,10 @@ export interface InfoRowData {
   label: string;
   value: string | number | null | undefined;
 }
+
+// 静的な定数はフック外に配置してメモリ生成コストを抑える
+const CONFIG_ACTIONS = operationViewConfig.actions ?? [];
+const EMPTY_ACTIONS: typeof CONFIG_ACTIONS = [];
 
 export const useSidePanel = () => {
   const {
@@ -34,27 +39,15 @@ export const useSidePanel = () => {
     }),
   );
 
-  const configuredActions = useMemo(
-    () => operationViewConfig.actions ?? [],
-    [],
-  );
-
-  // 選択中アイテムに対して isActive が true のアクションのみ抽出
+  // アクティブなアクションのみ抽出
   const activeActions = useMemo(() => {
-    if (!selectedItem) return [];
-    return configuredActions.filter((action) => action.isActive(selectedItem));
-  }, [configuredActions, selectedItem]);
-
-  const handleModeChange = useCallback(
-    (mode: ViewMode) => {
-      setMode(mode);
-    },
-    [setMode],
-  );
+    if (!selectedItem) return EMPTY_ACTIONS;
+    return CONFIG_ACTIONS.filter((action) => action.isActive(selectedItem));
+  }, [selectedItem]);
 
   const executeAction = useCallback(
     (key: string) => {
-      const action = configuredActions.find((item) => item.key === key);
+      const action = CONFIG_ACTIONS.find((item) => item.key === key);
       if (!action || !selectedItem) return;
 
       action.execute(selectedItem, {
@@ -62,7 +55,7 @@ export const useSidePanel = () => {
         closeGlobalModal,
       });
     },
-    [configuredActions, selectedItem, openGlobalModal, closeGlobalModal],
+    [selectedItem, openGlobalModal, closeGlobalModal],
   );
 
   const infoRows = useMemo<InfoRowData[]>(
@@ -94,7 +87,7 @@ export const useSidePanel = () => {
     currentMode,
     activeActions,
     infoRows,
-    handleModeChange,
+    setMode,
     executeAction,
   };
 };

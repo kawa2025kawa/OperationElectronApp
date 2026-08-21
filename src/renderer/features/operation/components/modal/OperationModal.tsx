@@ -1,15 +1,10 @@
 // src/renderer/features/operation/components/modal/OperationModal.tsx
 
 import React, { useMemo } from "react";
-
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-
 import type { OperationItem } from "@shared/types/operationType";
 import type { ExtraModalType } from "@shared/types/uiType";
-
-import { GmailModalContent } from "./gmailModal/GmailModalContent";
 import { LinkModalContent } from "./linkModal/LinkModalContent";
-import { PdfUploadModalContent } from "./pdfUploadModal/PdfUploadModalContent";
 import { SummaryModalContent } from "./summaryModal/SummaryModalContent";
 import {
   useOperationModalLogic,
@@ -26,16 +21,6 @@ interface OperationModalProps {
   type: ExtraModalType;
   items?: OperationItem[];
   onClose: () => void;
-
-  /**
-   * Gmailモーダルを開いた際に、
-   * kanriNoによるテンプレート自動選択を行わず、
-   * ユーザーにテンプレートを選択させる。
-   *
-   * 主にOtherViewから「下書きメール」を
-   * 新規作成する場合に使用する。
-   */
-  gmailTemplateSelection?: boolean;
 }
 
 // =====================================================
@@ -43,7 +28,7 @@ interface OperationModalProps {
 // =====================================================
 
 export const OperationModal: React.FC<OperationModalProps> = React.memo(
-  ({ type, items = [], onClose, gmailTemplateSelection = false }) => {
+  ({ type, items = [], onClose }) => {
     const {
       title,
       isExecuted,
@@ -78,36 +63,11 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
         case "summary":
           return <SummaryModalContent {...commonProps} items={items} />;
 
-        case "pdfUpload":
-          return <PdfUploadModalContent {...commonProps} />;
-
         case "link":
           return <LinkModalContent {...commonProps} />;
 
-        case "gmail":
-          return (
-            <GmailModalContent
-              {...commonProps}
-              forceTemplateSelection={gmailTemplateSelection}
-            />
-          );
-
         default:
           return null;
-      }
-    };
-
-    // =================================================
-    // Primary Button
-    // =================================================
-
-    const getPrimaryButtonLabel = () => {
-      switch (type) {
-        case "gmail":
-          return "下書き保存";
-
-        default:
-          return "実行";
       }
     };
 
@@ -120,7 +80,6 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
     return (
       <div className={styles.container}>
         {/* Header */}
-
         <header className={styles.header}>
           <h2 className={styles.modalTitle}>{title}</h2>
 
@@ -128,11 +87,9 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
         </header>
 
         {/* Content */}
-
         <main className={styles.centerContent}>{renderContent()}</main>
 
         {/* Footer */}
-
         <footer className={styles.actionContainer}>
           {isExecuted ? (
             <button
@@ -158,7 +115,7 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
                   className={styles.button}
                   onClick={handlePrimaryClick}
                 >
-                  {getPrimaryButtonLabel()}
+                  実行
                 </button>
               )}
             </>

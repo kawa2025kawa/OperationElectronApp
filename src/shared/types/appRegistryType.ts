@@ -1,6 +1,7 @@
-//src\shared\types\appRegistryType.ts
+// src/shared/types/appRegistryType.ts
 
 import type { ComponentType, ReactNode } from "react";
+import type { OperationItem } from "@shared/types/operationType";
 import type { SheetId } from "@shared/types/spreadsheetTypes";
 import type { Column } from "@shared/types/tableType";
 import type { AppViewId, GlobalModalConfig } from "@shared/types/uiType";
@@ -15,7 +16,7 @@ export interface ActionStoreContext {
   closeGlobalModal: () => void;
 }
 
-export interface ViewActionDefinition<TItem = unknown> {
+export interface ViewActionDefinition<TItem = OperationItem> {
   key: string;
   label: string;
   type: "modal" | "external" | "custom";

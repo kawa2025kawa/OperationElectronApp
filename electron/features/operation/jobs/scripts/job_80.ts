@@ -1,4 +1,8 @@
-﻿import fs from "fs-extra";
+﻿//electron\features\operation\jobs\scripts\job_80.ts
+
+//BENIF2200抽出ファイル存在確認
+
+import fs from "fs-extra";
 import { format } from "date-fns";
 
 const TARGET_DIR = "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV";

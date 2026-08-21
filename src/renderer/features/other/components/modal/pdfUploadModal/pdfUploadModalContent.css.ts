@@ -1,4 +1,4 @@
-// src/renderer/features/operation/components/modal/pdfUploadModal/pdfUploadModalContent.css.ts
+// src\renderer\features\other\components\modal\pdfUploadModal\pdfUploadModalContent.css.ts
 
 import { style } from "@vanilla-extract/css";
 

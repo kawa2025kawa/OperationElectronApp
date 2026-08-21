@@ -1,6 +1,4 @@
-﻿// electron/features/operation/jobRunner.ts
-
-import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
+﻿import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
 import { dispatchScript } from "@electron/features/operation/jobs/scripts";
 import { hasJobId } from "@electron/features/operation/monitors/trackerMonitor";
 import {
@@ -9,6 +7,17 @@ import {
 } from "@electron/features/operation/statusManager";
 
 const runningJobs = new Set<string>();
+
+/**
+ * IPC通信やErrorオブジェクトの冗長な接頭辞を除去
+ */
+function cleanErrorMessage(error: unknown): string {
+  const rawMessage = error instanceof Error ? error.message : String(error);
+  return rawMessage
+    .replace(/^Error invoking remote method '[^']+':\s*/, "")
+    .replace(/^Error:\s*/, "")
+    .trim();
+}
 
 /**
  * 指定管理番号のジョブを実行
@@ -48,16 +57,19 @@ export async function executeJob(rawKanriNo: string | number): Promise<string> {
     console.log(`[JobRunner] completed: ${kanriNo}`);
     return result;
   } catch (error) {
+    const formattedError = cleanErrorMessage(error);
+
     updateStatus({
       kanriNo,
       status: JOB_STATUS.ERROR,
-      comment: error instanceof Error ? error.message : String(error),
+      comment: formattedError,
       startTime,
       endTime: new Date().toISOString(),
     });
 
-    console.error(`[JobRunner] failed: ${kanriNo}`, error);
-    throw error;
+    console.error(`[JobRunner] failed: ${kanriNo}`, formattedError);
+
+    throw new Error(formattedError, { cause: error });
   } finally {
     runningJobs.delete(kanriNo);
   }
@@ -70,12 +82,12 @@ export async function triggerAutoStartJobs(
   targets: OperationItem[],
   runningCheck: () => boolean,
 ): Promise<void> {
-  const jobs = targets.filter((target) => {
-    if (target.autoStart !== true) return false;
-    if (hasJobId(target)) return false;
-    const currentStatus = getStatus(target.kanriNo)?.status;
-    return currentStatus === JOB_STATUS.READY;
-  });
+  const jobs = targets.filter(
+    (target) =>
+      target.autoStart === true &&
+      !hasJobId(target) &&
+      getStatus(target.kanriNo)?.status === JOB_STATUS.READY,
+  );
 
   if (jobs.length === 0) return;
 
@@ -84,10 +96,11 @@ export async function triggerAutoStartJobs(
   for (const job of jobs) {
     if (!runningCheck()) return;
 
+    // executeJob 側で整形済みのエラーが返るため、そのまま受ける
     executeJob(job.kanriNo).catch((error) => {
       console.error("[JobRunner] Auto-start FAILED", {
         kanriNo: job.kanriNo,
-        error,
+        error: error instanceof Error ? error.message : error,
       });
     });
   }

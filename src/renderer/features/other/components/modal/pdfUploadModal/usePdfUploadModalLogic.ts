@@ -1,3 +1,5 @@
+// src/renderer/features/other/components/modal/pdfUploadModal/usePdfUploadModalLogic.ts
+
 import {
   useCallback,
   useMemo,
@@ -6,7 +8,6 @@ import {
   type DragEvent,
 } from "react";
 import { useShallow } from "zustand/react/shallow";
-
 import { commands } from "@shared/api/commands";
 import { getFileName } from "@shared/utils/fileUtils";
 import { useAppStore } from "@shared/store";
@@ -45,7 +46,7 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
   const files = useMemo<PdfUploadFile[]>(
     () =>
       storeFiles.map((file) => ({
-        name: file.name || getFileName(file.path) || "PDFファイル",
+        name: file.name || getFileName(file.path) || "ファイル名不明",
         path: file.path,
       })),
     [storeFiles],
@@ -83,7 +84,6 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
   const handleDragOver = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
-
       if (!isProcessing) {
         setIsDragging(true);
       }
@@ -129,7 +129,6 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
       if (isProcessing || index <= 0) {
         return;
       }
-
       reorderPdfFiles(index, index - 1);
     },
     [isProcessing, reorderPdfFiles],
@@ -140,38 +139,21 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
       if (isProcessing || index >= fileCount - 1) {
         return;
       }
-
       reorderPdfFiles(index, index + 1);
     },
     [fileCount, isProcessing, reorderPdfFiles],
   );
 
   const handleExecute = useCallback(async () => {
-    console.log("[PdfUploadModal] handleExecute called", {
-      isProcessing,
-      fileCount,
-    });
-
     if (isProcessing || fileCount === 0) {
-      console.warn("[PdfUploadModal] execute blocked", {
-        isProcessing,
-        fileCount,
-      });
-
       return;
     }
 
     try {
-      console.log("[PdfUploadModal] uploadPdfFiles start");
-
       await uploadPdfFiles();
-
-      console.log("[PdfUploadModal] uploadPdfFiles success");
-
       setCurrentViewKey("success");
     } catch (error) {
       console.error("[PdfUploadModal] uploadPdfFiles error", error);
-
       setCurrentViewKey("error");
     }
   }, [fileCount, isProcessing, uploadPdfFiles]);

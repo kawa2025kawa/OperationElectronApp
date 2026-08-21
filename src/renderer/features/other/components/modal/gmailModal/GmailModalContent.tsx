@@ -1,23 +1,13 @@
-﻿// src/renderer/features/operation/components/modal/gmailModal/GmailModalContent.tsx
+﻿// src/renderer/features/other/components/modal/gmailModal/GmailModalContent.tsx
 
 import React from "react";
-
-import type { ModalContentProps } from "../useOperationModalLogic";
-
+import type { ModalContentProps } from "../useOtherModalLogic"; // 🎯 Other用の共通型を参照
 import * as styles from "./gmailModalContent.css";
 import { useGmailModalContent } from "./useGmailModalContent";
-
-// =====================================================
-// Types
-// =====================================================
 
 interface GmailModalContentProps extends ModalContentProps {
   forceTemplateSelection?: boolean;
 }
-
-// =====================================================
-// Component
-// =====================================================
 
 export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
   ({ registerPrimaryAction, forceTemplateSelection = false }) => {
@@ -43,12 +33,10 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
     return (
       <div className={styles.formContainer}>
         {/* Template */}
-
         <div className={styles.fieldGroup}>
           <label className={styles.label} htmlFor="gmail-template">
             メールテンプレート
           </label>
-
           <select
             id="gmail-template"
             className={styles.input}
@@ -57,7 +45,6 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
             disabled={isSaving}
           >
             <option value="">テンプレートを選択してください</option>
-
             {templateOptions.map((option) => (
               <option key={option.key} value={option.key}>
                 {option.label}
@@ -67,12 +54,10 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
         </div>
 
         {/* From */}
-
         <div className={styles.fieldGroup}>
           <label className={styles.label} htmlFor="gmail-from">
             送信元 (From)
           </label>
-
           <input
             id="gmail-from"
             type="text"
@@ -83,12 +68,10 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
         </div>
 
         {/* To */}
-
         <div className={styles.fieldGroup}>
           <label className={styles.label} htmlFor="gmail-to">
             宛先 (To)
           </label>
-
           <input
             id="gmail-to"
             type="email"
@@ -101,12 +84,10 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
         </div>
 
         {/* CC */}
-
         <div className={styles.fieldGroup}>
           <label className={styles.label} htmlFor="gmail-cc">
             CC
           </label>
-
           <input
             id="gmail-cc"
             type="email"
@@ -119,12 +100,10 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
         </div>
 
         {/* Subject */}
-
         <div className={styles.fieldGroup}>
           <label className={styles.label} htmlFor="gmail-subject">
             件名 (Subject)
           </label>
-
           <input
             id="gmail-subject"
             type="text"
@@ -136,12 +115,10 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
         </div>
 
         {/* Body */}
-
         <div className={styles.bodyFieldGroup}>
           <label className={styles.label} htmlFor="gmail-body">
             本文 (Body)
           </label>
-
           <textarea
             id="gmail-body"
             className={styles.textarea}
@@ -156,5 +133,4 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
 );
 
 GmailModalContent.displayName = "GmailModalContent";
-
 export default GmailModalContent;

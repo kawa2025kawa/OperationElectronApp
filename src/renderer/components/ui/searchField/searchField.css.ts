@@ -32,7 +32,7 @@ export const searchField = style({
   color: tokens.color.text.base,
   fontSize: tokens.font.size.sm,
   fontWeight: tokens.font.weight.bold,
-  transition: `all ${tokens.transition.ease}`,
+  transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
 
   // モバイル用にフォントサイズを微調整
   "@media": {

@@ -1,6 +1,7 @@
-﻿//src\renderer\features\operation\components\modal\linkModal\useLinkModalLogic.ts
+﻿// src/renderer/features/operation/components/modal/contents/linkModal/useLinkModalLogic.ts
 
 import { useCallback } from "react";
+import { toast } from "sonner";
 import { commands } from "@shared/api/commands";
 import { useAppStore } from "@shared/store";
 import { selectActiveSelectedItem } from "@renderer/features/operation/store/operationSelectors";
@@ -10,17 +11,16 @@ export const useLinkModalLogic = () => {
   const links = selectedItem?.link ?? {};
   const linkEntries = Object.entries(links);
 
-  const handleOpenUrl = useCallback(async (url: string) => {
+  const handleOpenUrl = useCallback(async (rawUrl: string) => {
     try {
-      if (url.startsWith("http://") || url.startsWith("https://")) {
-        window.open(url, "_blank");
-        return;
-      }
-      await commands.openExternal(url);
+      await commands.openExternal(rawUrl.trim());
     } catch (error) {
       console.error(
         "[LinkModalContent.handleOpenUrl] Failed to open link:",
         error,
+      );
+      toast.error(
+        "指定のパスが開けませんでした。ネットワーク接続やパスの存在を確認してください。",
       );
     }
   }, []);

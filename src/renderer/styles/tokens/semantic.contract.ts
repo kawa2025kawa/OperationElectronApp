@@ -83,6 +83,7 @@ export const tokens = createGlobalThemeContract(
       glow: {
         brand: null,
         cyan: null,
+        white: null,
         total: null,
         error: null,
         success: null,

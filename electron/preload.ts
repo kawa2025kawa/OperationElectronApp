@@ -1,11 +1,8 @@
-﻿import { contextBridge, ipcRenderer, webUtils } from "electron";
+﻿// electron/preload.ts
+
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 type IpcListener = (...args: unknown[]) => void;
-
-interface GmailDraftParams {
-  accessToken: string;
-  raw: string;
-}
 
 const electronAPI = {
   invoke: <T = unknown>(channel: string, ...args: unknown[]): Promise<T> => {
@@ -19,7 +16,6 @@ const electronAPI = {
     ) => {
       callback(...args);
     };
-
     ipcRenderer.on(channel, listener);
 
     return () => {
@@ -32,31 +28,8 @@ const electronAPI = {
       return webUtils.getPathForFile(file);
     } catch (error) {
       console.error("[Preload] getFilePath failed:", error);
-
       return "";
     }
-  },
-
-  openExternal: async (url: string): Promise<void> => {
-    await ipcRenderer.invoke("openExternal", {
-      urlOrPath: url,
-    });
-  },
-
-  showWindow: async (): Promise<void> => {
-    await ipcRenderer.invoke("showMainWindow");
-  },
-
-  showOpenDialog: (options: unknown): Promise<unknown> => {
-    return ipcRenderer.invoke("showOpenDialog", options);
-  },
-
-  getGmailSignature: (accessToken?: string): Promise<string> => {
-    return ipcRenderer.invoke("gmail:getSignature", accessToken);
-  },
-
-  createGmailDraft: (params: GmailDraftParams): Promise<void> => {
-    return ipcRenderer.invoke("gmail:createDraft", params);
   },
 } as const;
 

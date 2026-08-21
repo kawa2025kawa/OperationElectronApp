@@ -1,4 +1,6 @@
-﻿import React, { useEffect } from "react";
+﻿// src/renderer/features/operation/components/modal/contents/linkModal/LinkModalContent.tsx
+
+import React, { useEffect } from "react";
 import type { ModalContentProps } from "@renderer/features/operation/components/modal/useOperationModalLogic";
 import * as styles from "./linkModalContent.css";
 import { useLinkModalLogic } from "./useLinkModalLogic";
@@ -8,9 +10,9 @@ export const LinkModalContent: React.FC<ModalContentProps> = React.memo(
     const { linkEntries, handleOpenUrl } = useLinkModalLogic();
 
     useEffect(() => {
-      registerPrimaryAction();
+      registerPrimaryAction(undefined);
       return () => {
-        registerPrimaryAction();
+        registerPrimaryAction(undefined);
       };
     }, [registerPrimaryAction]);
 
@@ -24,16 +26,17 @@ export const LinkModalContent: React.FC<ModalContentProps> = React.memo(
             </div>
           ) : (
             linkEntries.map(([label, url]) => (
-              <div key={label} className={styles.linkRowCard}>
+              <button
+                key={label}
+                type="button"
+                className={styles.linkCardButton}
+                onClick={() => void handleOpenUrl(String(url))}
+              >
+                {/* 上段: キー */}
                 <span className={styles.linkLabel}>{label}</span>
-                <button
-                  type="button"
-                  className={styles.openButton}
-                  onClick={() => void handleOpenUrl(String(url))}
-                >
-                  開く
-                </button>
-              </div>
+                {/* 下段: 値 */}
+                <span className={styles.linkValue}>{String(url)}</span>
+              </button>
             ))
           )}
         </div>

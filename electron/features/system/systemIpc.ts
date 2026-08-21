@@ -10,7 +10,6 @@ import {
 } from "electron";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-
 import type { UpdateInfo } from "@shared/types/updateTypes";
 
 const UPDATE_DIRECTORY =
@@ -49,7 +48,17 @@ export function registerSystemIpc(): void {
   ipcMain.handle(
     "openExternal",
     async (_event, { urlOrPath }: { urlOrPath: string }) => {
-      await shell.openExternal(urlOrPath);
+      const target = urlOrPath.trim();
+
+      if (target.startsWith("http://") || target.startsWith("https://")) {
+        await shell.openExternal(target);
+      } else {
+        const normalized = target.replace(/\//g, "\\");
+        const error = await shell.openPath(normalized);
+        if (error) {
+          throw new Error(`Failed to open path: ${error}`);
+        }
+      }
       return null;
     },
   );

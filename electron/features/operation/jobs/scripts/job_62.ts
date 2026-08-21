@@ -1,4 +1,7 @@
 ﻿// electron/services/operation/jobs/scripts/job_62.ts
+
+//抽出ファイル存在確認
+
 import fs from "fs-extra";
 
 const TARGET_DIR = "\\\\172.25.101.51\\if\\MASTER\\RCV";
@@ -9,7 +12,8 @@ const EXPECTED_FILES = [
 ] as const;
 
 export async function runJob62(): Promise<string> {
-  if (!(await fs.pathExists(TARGET_DIR))) throw new Error(`対象フォルダが見つかりません: ${TARGET_DIR}`);
+  if (!(await fs.pathExists(TARGET_DIR)))
+    throw new Error(`対象フォルダが見つかりません: ${TARGET_DIR}`);
 
   const files = await fs.readdir(TARGET_DIR);
   const isAllMatched = EXPECTED_FILES.every((rule) => {

@@ -1,4 +1,6 @@
 // electron/services/operation/jobs/scripts/job_114.ts
+//自動発注6時00分件数確認
+
 import fs from "fs-extra";
 import path from "path";
 import iconv from "iconv-lite";
@@ -10,10 +12,13 @@ const REQUIRED_KEYWORD = "READ=";
 export async function runJob114(): Promise<string> {
   const yymmdd = format(new Date(), "yyMMdd");
 
-  if (!(await fs.pathExists(LOG_DIR))) throw new Error(`対象ディレクトリなし: ${LOG_DIR}`);
+  if (!(await fs.pathExists(LOG_DIR)))
+    throw new Error(`対象ディレクトリなし: ${LOG_DIR}`);
 
   const files = await fs.readdir(LOG_DIR);
-  const targetFile = files.find((name) => name.startsWith(yymmdd) && name.includes("ORJH0010.log"));
+  const targetFile = files.find(
+    (name) => name.startsWith(yymmdd) && name.includes("ORJH0010.log"),
+  );
 
   if (!targetFile) throw new Error(`本日の対象ファイルなし: ${yymmdd})`);
 
@@ -27,5 +32,7 @@ export async function runJob114(): Promise<string> {
     return `${Number.isNaN(parsed) ? match[1] : parsed}`;
   }
 
-  throw new Error(`エラー (${targetFile}): '${REQUIRED_KEYWORD}' が見つかりません`);
+  throw new Error(
+    `エラー (${targetFile}): '${REQUIRED_KEYWORD}' が見つかりません`,
+  );
 }

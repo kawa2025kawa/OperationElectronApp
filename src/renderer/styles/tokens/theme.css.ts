@@ -142,6 +142,7 @@ export const darkThemeClass = createTheme(
       glow: {
         brand: "0 0 12px rgba(0,200,180,0.5)",
         cyan: "0 0 15px rgba(0,220,255,0.6)",
+        white: "0 0 14px rgba(255, 255, 255, 0.8)",
         total: "0 0 12px rgba(255, 255, 255, 0.5)",
         error: "0 0 12px rgba(255,80,80,0.5)",
         success: "0 0 12px rgba(74, 222, 128, 0.5)",
@@ -224,6 +225,7 @@ export const lightThemeClass = createTheme(
       glow: {
         brand: "0 0 10px rgba(0, 200, 180, 0.4)",
         cyan: "0 0 12px rgba(0, 200, 255, 0.4)",
+        white: "0 0 14px rgba(255, 255, 255, 0.8)",
         total: "0 0 10px rgba(60, 64, 67, 0.4)",
         error: "0 0 10px rgba(255, 80, 80, 0.4)",
         success: "0 0 10px rgba(34, 197, 94, 0.4)",

@@ -14,7 +14,7 @@ export const button = style({
   whiteSpace: "nowrap",
   fontSize: tokens.font.size.md,
   fontWeight: tokens.font.weight.bold,
-  transition: `all ${tokens.transition.ease}`,
+  transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
   backgroundColor: tokens.color.bg.base,
   color: tokens.color.text.base,
   boxShadow: tokens.shadow.raised.md,

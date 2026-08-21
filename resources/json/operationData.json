@@ -569,7 +569,8 @@
     "script": true,
     "autoStart": false,
     "link": {
-      "操作マニュアル": "//172.25.101.51/if/LOG/DCMMD"
+      "エラーファイル保存フォルダ": "//172.25.101.51/if/LOG/DCMMD",
+      "修正ファイル保存フォルダ": "//172.25.101.51/if/MASTER/RCV"
     },
     "dependency": {
       "dependsOn": ["63"],
@@ -627,9 +628,11 @@
     "kanriNo": "56",
     "scheduledTime": "16:40",
     "workName": "請求データファイル確認",
+    "script": true,
+    "autoStart": false,
     "manual": true,
     "link": {
-      "チェックフォルダ": "//172.25.101.51/if/WEB-SV/RCV"
+      "SEIKYUDTフォルダ": "//172.25.101.51/if/WEB-SV/RCV/SV"
     }
   },
   {

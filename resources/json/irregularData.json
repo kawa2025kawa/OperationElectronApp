@@ -7,8 +7,8 @@
     "workName": "17時青果EOB棚順データ作成",
     "manual": true,
     "link": {
-      "作成ツール": "//S0088210情報システムチェックリスト/05_作業マニュアルオペレーション関連EOB棚順データ作成",
-      "保存先フォルダ": "\\mdsyuhai01.BELC01.belc.localIFEOB棚割SND"
+      "作成ツール": "\\\\S0088210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\EOB棚順データ作成",
+      "保存先フォルダ": "\\\\mdsyuhai01.BELC01.belc.local\\IF\\EOB棚割\\SND"
     }
   },
   {
@@ -26,7 +26,7 @@
     "workName": "17時青果EOB棚順データ投入",
     "manual": true,
     "link": {
-      "保存先フォルダ": "\\mdsyuhai01.BELC01.belc.localIFEOB棚割SND"
+      "保存先フォルダ": "\\\\mdsyuhai01.BELC01.belc.local\\IF\\EOB棚割\\SND"
     }
   },
   {
@@ -267,7 +267,7 @@
     "script": true,
     "autoStart": false,
     "link": {
-      "操作マニュアル": "//192.88.100.1/diskD/execute/log"
+      "操作マニュアル": "\\\\192.88.100.1\\diskD\\execute\\log"
     }
   },
   {
@@ -279,7 +279,7 @@
     "script": true,
     "autoStart": false,
     "link": {
-      "操作マニュアル": "//192.88.100.1/diskD/execute/log"
+      "操作マニュアル": "\\\\192.88.100.1\\diskD\\execute\\log"
     }
   }
 ]

@@ -1,4 +1,6 @@
-﻿import { app, BrowserWindow, shell } from "electron";
+﻿// electron/main.ts
+
+import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { setupIpcHandlers } from "./ipc";
