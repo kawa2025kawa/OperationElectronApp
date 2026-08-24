@@ -1,3 +1,5 @@
+// src/renderer/features/operation/helpers/statusFactory.ts
+
 import {
   JOB_STATUS,
   type JobStatus,
@@ -13,9 +15,7 @@ export const mergeStatus = (
   entity: OperationItem,
   update: OperationItem,
 ): void => {
-  // ステータスが渡されていれば更新（ない場合は現状維持、初期値は SCHEDULED）
   entity.status = update.status ?? entity.status ?? JOB_STATUS.SCHEDULED;
-
   if (update.comment != null) {
     const comment = update.comment.trim();
     if (comment) entity.comment = comment;

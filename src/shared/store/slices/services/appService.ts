@@ -6,16 +6,8 @@ import { commands } from "@shared/api/commands";
 import { useAppStore } from "@shared/store";
 import type { OperationItem } from "@shared/types/operationType";
 
-// ============================================================
-// Initial Data
-// ============================================================
-
 const operations = operationData as OperationItem[];
 const irregulars = irregularData as OperationItem[];
-
-// ============================================================
-// Constants
-// ============================================================
 
 const INITIAL_LOADING_STATUS = {
   operation: "LOADING",
@@ -27,19 +19,25 @@ const INITIAL_LOADING_STATUS = {
   tantou: "LOADING",
 } as const;
 
-// ============================================================
+// ----------------------------------------------------------------------------
 // Helpers
-// ============================================================
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
+// ----------------------------------------------------------------------------
 
 async function showMainWindow(): Promise<void> {
   try {
     await commands.showMainWindow();
   } catch (error) {
     console.error("[appService] Failed to show main window:", error);
+  }
+}
+
+async function registerOperationTargets(): Promise<void> {
+  const targets = [...operations, ...irregulars].filter(({ kanriNo }) =>
+    Boolean(kanriNo),
+  );
+
+  if (targets.length > 0) {
+    await commands.registerTargets(targets);
   }
 }
 
@@ -61,43 +59,6 @@ async function initializeSheets(isAuthenticated: boolean): Promise<void> {
   await store.prefetchSheets(store.accessToken || undefined);
 }
 
-async function registerOperationTargets(): Promise<void> {
-  const targets = [...operations, ...irregulars].filter(({ kanriNo }) =>
-    Boolean(kanriNo),
-  );
-
-  if (targets.length === 0) {
-    return;
-  }
-
-  await commands.registerTargets(targets);
-}
-
-function setInitializationError(): void {
-  const store = useAppStore.getState();
-
-  store.setIsAuthenticated(false);
-  store.setAccessToken(null);
-
-  const status = { ...store.initStatus };
-
-  for (const key of Object.keys(status) as Array<keyof typeof status>) {
-    if (status[key] !== "OK" && status[key] !== "CONNECTED") {
-      status[key] = "NG";
-    }
-  }
-
-  store.setInitStatus(status);
-}
-
-function handleInitializationError(error: unknown): void {
-  console.error(
-    "[appService] Failed to initialize app:",
-    getErrorMessage(error),
-  );
-  setInitializationError();
-}
-
 async function loadInitialData(): Promise<void> {
   const store = useAppStore.getState();
 
@@ -114,6 +75,25 @@ async function loadInitialData(): Promise<void> {
   store.setInitialRawData(operations, irregulars, savedStatuses);
 }
 
+function handleInitializationError(error: unknown): void {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error("[appService] Failed to initialize app:", message);
+
+  const store = useAppStore.getState();
+  store.setIsAuthenticated(false);
+  store.setAccessToken(null);
+
+  // 失敗時に OK / CONNECTED 以外のステータスを一括で NG に更新
+  const updatedStatus = Object.fromEntries(
+    Object.entries(store.initStatus).map(([key, val]) => [
+      key,
+      val === "OK" || val === "CONNECTED" ? val : "NG",
+    ]),
+  );
+
+  store.setInitStatus(updatedStatus);
+}
+
 function markInitializationCompleted(): void {
   const store = useAppStore.getState();
 
@@ -122,16 +102,13 @@ function markInitializationCompleted(): void {
     irregular: "OK",
   });
 
-  // RAWデータ設定完了後に集計(StatusSummary)を確実に再計算し、
-  // 全件「予定」の状態と件数を完全連動させる
   store.recalculateSummary();
-
   store.setIsInitialLoaded(true);
 }
 
-// ============================================================
+// ----------------------------------------------------------------------------
 // Service
-// ============================================================
+// ----------------------------------------------------------------------------
 
 export const appService = {
   async initializeApp(): Promise<void> {

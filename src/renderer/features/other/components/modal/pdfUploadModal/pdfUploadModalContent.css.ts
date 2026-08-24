@@ -1,11 +1,93 @@
-// src\renderer\features\other\components\modal\pdfUploadModal\pdfUploadModalContent.css.ts
+// src/renderer/features/other/components/modal/pdfUploadModal/pdfUploadModalContent.css.ts
 
 import { style } from "@vanilla-extract/css";
-
 import { themeTransition, tokens } from "@renderer/styles/tokens";
 
 // ============================================================
-// Common
+// Modal Frame
+// ============================================================
+
+export const modalContainer = style({
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  width: "100%",
+  padding: tokens.space.xl,
+  boxSizing: "border-box",
+  gap: tokens.space.md,
+  overflow: "hidden",
+});
+
+export const header = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingBottom: tokens.space.sm,
+  borderBottom: `1px solid ${tokens.color.border.subtle}`,
+  flexShrink: 0,
+});
+
+export const modalTitle = style({
+  margin: 0,
+  fontSize: tokens.font.size.lg,
+  fontWeight: tokens.font.weight.bold,
+  color: tokens.color.text.hover,
+});
+
+export const contentFlexContainer = style({
+  display: "flex",
+  flex: 1,
+  flexDirection: "column",
+  minHeight: 0,
+  gap: tokens.space.md,
+  overflowY: "auto",
+});
+
+export const sectionTitle = style({
+  fontSize: tokens.font.size.sm,
+  fontWeight: tokens.font.weight.bold,
+  color: tokens.color.text.hover,
+});
+
+export const footer = style({
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: tokens.space.sm,
+  paddingTop: tokens.space.md,
+  borderTop: `1px solid ${tokens.color.border.subtle}`,
+  flexShrink: 0,
+});
+
+// 🎯 凸（Raised）スタイル適用（transform移動なし）
+export const button = style({
+  padding: `${tokens.space.sm} ${tokens.space.lg}`,
+  borderRadius: tokens.radius.sm,
+  border: "none",
+  backgroundColor: tokens.color.bg.base,
+  color: tokens.color.text.base,
+  fontWeight: tokens.font.weight.bold,
+  boxShadow: tokens.shadow.raised.low,
+  cursor: "pointer",
+  transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
+
+  selectors: {
+    "&:hover:not(:disabled)": {
+      boxShadow: `${tokens.shadow.glow.brand}, ${tokens.shadow.raised.md}`,
+      color: tokens.color.text.hover,
+    },
+    "&:active:not(:disabled)": {
+      boxShadow: tokens.shadow.pressed.low,
+    },
+    "&:disabled": {
+      opacity: 0.5,
+      boxShadow: "none",
+      cursor: "not-allowed",
+    },
+  },
+});
+
+// ============================================================
+// UI Panels & Lists
 // ============================================================
 
 export const pressed = style([
@@ -28,17 +110,14 @@ export const text = style({
   color: tokens.color.text.base,
 });
 
-// ============================================================
-// Drop Zone
-// ============================================================
-
 export const dropZone = style([
   pressed,
   {
-    padding: "24px",
+    padding: tokens.space.lg,
     border: `2px dashed ${tokens.color.border.subtle}`,
     textAlign: "center",
     cursor: "pointer",
+    flexShrink: 0,
 
     selectors: {
       "&:hover:not(:disabled)": {
@@ -82,10 +161,6 @@ export const hiddenFileInput = style({
   display: "none",
 });
 
-// ============================================================
-// File List
-// ============================================================
-
 export const bottomSection = style({
   display: "flex",
   flex: 1,
@@ -103,14 +178,10 @@ export const listBox = style([
     flexDirection: "column",
     gap: "1vmin",
     minHeight: 0,
-    padding: "2vmin",
+    padding: "1.5vmin",
     overflowY: "auto",
   },
 ]);
-
-// ============================================================
-// Empty
-// ============================================================
 
 export const emptyContainer = style({
   display: "flex",
@@ -134,10 +205,6 @@ export const emptyText = style([
     userSelect: "none",
   },
 ]);
-
-// ============================================================
-// File Item
-// ============================================================
 
 export const itemCardRow = style([
   themeTransition,
@@ -213,10 +280,6 @@ export const filePath = style([
   },
 ]);
 
-// ============================================================
-// Reorder
-// ============================================================
-
 export const reorderButtons = style({
   display: "flex",
   flexShrink: 0,
@@ -225,6 +288,7 @@ export const reorderButtons = style({
   marginLeft: "auto",
 });
 
+// 🎯 再配置ボタンも同様に凸化（transform移動なし）
 export const reorderButton = style([
   themeTransition,
   {
@@ -237,11 +301,12 @@ export const reorderButton = style([
     height: "28px",
     padding: 0,
 
-    border: `1px solid ${tokens.color.border.subtle}`,
+    border: "none",
     borderRadius: tokens.radius.sm,
 
     backgroundColor: tokens.color.bg.base,
     color: tokens.color.text.base,
+    boxShadow: tokens.shadow.raised.low,
 
     cursor: "pointer",
     userSelect: "none",
@@ -249,7 +314,7 @@ export const reorderButton = style([
     selectors: {
       "&:hover:not(:disabled)": {
         borderColor: tokens.color.accent.neonCyan,
-        boxShadow: tokens.shadow.glow.cyan,
+        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
         color: tokens.color.text.hover,
       },
 
@@ -259,6 +324,7 @@ export const reorderButton = style([
 
       "&:disabled": {
         opacity: 0.3,
+        boxShadow: "none",
         cursor: "not-allowed",
       },
     },

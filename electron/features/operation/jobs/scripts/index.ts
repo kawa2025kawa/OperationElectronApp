@@ -4,7 +4,6 @@ import { runJob16 } from "./job_16";
 import { runJob20 } from "./job_20";
 import { runJob25 } from "./job_25";
 import { runJob28 } from "./job_28";
-import { runJob30 } from "./job_30";
 import { runJob34 } from "./job_34";
 import { runJob39 } from "./job_39";
 import { runJob56 } from "./job_56";
@@ -32,11 +31,6 @@ export async function dispatchScript(kanriNo: string): Promise<string> {
     case "43":
     case "68":
       return runJob28();
-    case "30":
-    case "37":
-    case "45":
-    case "54":
-      return runJob30();
     case "34":
       return runJob34();
     case "39":

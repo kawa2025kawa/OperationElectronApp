@@ -1,11 +1,14 @@
+// src/renderer/features/spreadSheet/SpreadSheetView.tsx
+
 import React, { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { useAppStore } from "@shared/store";
 
-import { JugyoinKokyuhyoModalContent } from "./components/modal/contents/JugyoinKokyuhyoModalContent";
-import { ShopModalContent } from "./components/modal/contents/ShopModalContent";
-import { TantouModalContent } from "./components/modal/contents/TantouModalContent";
+import { JugyoinModalContent } from "./components/modal/jugyoin/JugyoinModalContent";
+import { KokyuhyoModalContent } from "./components/modal/kokyuhyo/KokyuhyoModalContent";
+import { ShopModalContent } from "./components/modal/shop/ShopModalContent";
+import { TantouModalContent } from "./components/modal/tantou/TantouModalContent";
 import { SpreadSheetTable } from "./components/table/SpreadSheetTable";
 import * as styles from "./spreadSheetView.css";
 import {
@@ -29,11 +32,19 @@ const renderModalContent = <K extends SheetId>(
   onClose: () => void,
 ): React.ReactNode => {
   switch (sheetId) {
-    case SHEET_IDS.KOKYUHYO:
     case SHEET_IDS.JUGYOIN:
       return (
-        <JugyoinKokyuhyoModalContent
-          data={data as Jugyoin | Kokyuhyo}
+        <JugyoinModalContent
+          data={data as Jugyoin}
+          title={title}
+          onClose={onClose}
+        />
+      );
+
+    case SHEET_IDS.KOKYUHYO:
+      return (
+        <KokyuhyoModalContent
+          data={data as Kokyuhyo}
           title={title}
           onClose={onClose}
         />
@@ -83,7 +94,7 @@ export const SpreadSheetView: React.FC = React.memo(() => {
 
       const raw = row as unknown as Record<string, unknown>;
 
-      // ⭕ フォールバック付きの完全なタイトル抽出 (氏名 -> 店舗名 -> 設定タイトル)
+      // フォールバック付きタイトル抽出 (氏名 -> 店舗名 -> 設定タイトル)
       const title =
         (typeof raw.name === "string" && raw.name) ||
         (typeof raw.shopName === "string" && raw.shopName) ||

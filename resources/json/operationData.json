@@ -191,6 +191,7 @@
   {
     "kanriNo": "25",
     "workName": "ZHA8101受信ファイル存在確認",
+    "scheduledTime": "9:00",
     "script": true,
     "autoStart": true,
     "link": {

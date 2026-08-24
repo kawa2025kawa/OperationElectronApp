@@ -1,4 +1,6 @@
-﻿import { useRef } from "react";
+﻿// src/renderer/features/spreadSheet/components/table/useSpreadSheetTable.ts
+
+import { useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type {
   SpreadSheetTableProps,
@@ -6,7 +8,7 @@ import type {
 } from "@shared/types/spreadsheetTypes";
 
 const ROW_HEIGHT = 56;
-const ROW_GAP = 12; // operationTable と同じ余裕を持ったカード間余白
+const ROW_GAP = 12;
 const ROW_SIZE = ROW_HEIGHT + ROW_GAP;
 
 export const useSpreadSheetTable = <T extends object>({

@@ -1,66 +1,40 @@
-﻿// src/renderer/features/other/OtherView.tsx
-
-import React, { useCallback } from "react";
+﻿import React, { useCallback } from "react";
 import { clsx } from "clsx";
 import { animateFadeIn } from "@renderer/styles/tokens";
-import { OtherModal } from "./components/modal/OtherModal";
 import { useAppStore } from "@shared/store";
+import { GmailModalContent } from "./components/modal/gmailModal/GmailModalContent";
+import { PdfUploadModalContent } from "./components/modal/pdfUploadModal/PdfUploadModalContent";
 import * as styles from "./otherView.css";
-
-interface OtherToolAction {
-  id: string;
-  name: string;
-  onClick: () => void;
-}
 
 export const OtherView: React.FC = () => {
   const openGlobalModal = useAppStore((s) => s.openGlobalModal);
   const closeGlobalModal = useAppStore((s) => s.closeGlobalModal);
 
-  // =====================================================
-  // 店舗matic
-  // =====================================================
   const handleOpenPdfUpload = useCallback(() => {
-    openGlobalModal(
-      <OtherModal type="pdfUpload" onClose={closeGlobalModal} />,
-      {
-        title: "店舗matic",
-        width: "min(80vw, 850px)",
-        height: "min(75vh, 650px)",
-      },
-    );
+    openGlobalModal(<PdfUploadModalContent onClose={closeGlobalModal} />, {
+      title: "Tempomatic",
+      width: "min(80vw, 850px)",
+      height: "min(75vh, 650px)",
+    });
   }, [openGlobalModal, closeGlobalModal]);
 
-  // =====================================================
-  // 下書きメール
-  // =====================================================
   const handleOpenGmailDraft = useCallback(() => {
-    openGlobalModal(
-      <OtherModal
-        type="gmail"
-        onClose={closeGlobalModal}
-        gmailTemplateSelection
-      />,
-      {
-        title: "下書きメール",
-        width: "min(80vw, 850px)",
-        height: "min(75vh, 750px)",
-      },
-    );
+    openGlobalModal(<GmailModalContent onClose={closeGlobalModal} />, {
+      title: "Gmail下書き作成",
+      width: "min(80vw, 850px)",
+      height: "min(75vh, 750px)",
+    });
   }, [openGlobalModal, closeGlobalModal]);
 
-  // =====================================================
-  // Tools
-  // =====================================================
-  const tools: OtherToolAction[] = [
+  const tools = [
     {
       id: "pdfUpload",
-      name: "店舗matic",
+      name: "Tempomatic PDFアップロード",
       onClick: handleOpenPdfUpload,
     },
     {
       id: "gmailDraft",
-      name: "下書きメール",
+      name: "Gmail下書き作成",
       onClick: handleOpenGmailDraft,
     },
   ];
@@ -75,7 +49,7 @@ export const OtherView: React.FC = () => {
             onClick={tool.onClick}
             type="button"
           >
-            <span className={styles.cardTitle}>{tool.name}</span>
+            {tool.name}
           </button>
         ))}
       </div>

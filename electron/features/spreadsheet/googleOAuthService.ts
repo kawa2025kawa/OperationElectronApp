@@ -1,10 +1,8 @@
 ﻿// electron/features/spreadsheet/googleOAuthService.ts
 
 import { shell } from "electron";
-
 import type { AuthSession } from "@shared/types/authTypes";
-
-import { getGoogleClientId, getGoogleClientSecret } from "../auth/credentials";
+import { getGoogleCredentials } from "../auth/credentials";
 import { startListener } from "../auth/listener";
 import {
   createPkce,
@@ -20,16 +18,8 @@ import {
   saveToken,
 } from "../auth/token";
 
-// =====================================================
-// Constants
-// =====================================================
-
 const DEFAULT_PORT = 8888;
 const REDIRECT_HOST = "127.0.0.1";
-
-// =====================================================
-// Service
-// =====================================================
 
 export class GoogleOAuthService {
   // ===================================================
@@ -37,16 +27,12 @@ export class GoogleOAuthService {
   // ===================================================
 
   async login(port = DEFAULT_PORT): Promise<AuthSession> {
-    const clientId = getGoogleClientId();
-    const clientSecret = getGoogleClientSecret();
-
+    const { clientId, clientSecret } = getGoogleCredentials();
     const { verifier, challenge } = createPkce();
     const state = generateState();
-
     const redirectUri = `http://${REDIRECT_HOST}:${port}`;
 
     const authUrl = generateAuthUrl(clientId, redirectUri, challenge, state);
-
     await shell.openExternal(authUrl);
 
     const { code } = await startListener(port, state);
@@ -68,14 +54,9 @@ export class GoogleOAuthService {
 
   async loadSession(): Promise<AuthSession | null> {
     const session = await loadToken();
+    if (!session) return null;
 
-    if (!session) {
-      return null;
-    }
-
-    if (!isTokenExpired(session)) {
-      return session;
-    }
+    if (!isTokenExpired(session)) return session;
 
     if (!session.refreshToken) {
       await clearToken();
@@ -101,8 +82,7 @@ export class GoogleOAuthService {
     refreshTokenValue: string,
   ): Promise<AuthSession | null> {
     try {
-      const clientId = getGoogleClientId();
-      const clientSecret = getGoogleClientSecret();
+      const { clientId, clientSecret } = getGoogleCredentials();
 
       const token = await refreshToken(
         clientId,
@@ -117,9 +97,7 @@ export class GoogleOAuthService {
       return saveToken(token);
     } catch (error) {
       console.error("[GoogleOAuth] Token refresh failed:", error);
-
       await clearToken();
-
       return null;
     }
   }

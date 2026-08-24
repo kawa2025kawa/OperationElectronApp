@@ -1,32 +1,16 @@
 // src/renderer/registry/appRegistry.ts
-import React from "react";
+
+import type React from "react";
 import { useAppStore } from "@shared/store";
-import {
-  APP_VIEW_IDS,
-  EXTRA_MODAL_TYPES,
-  type AppViewId,
-} from "@shared/types/uiType";
-import type {
-  AppViewDefinition,
-  ExtraModalDefinition,
-} from "@shared/types/appRegistryType";
+import { APP_VIEW_IDS, type AppViewId } from "@shared/types/uiType";
+import type { AppViewDefinition } from "@shared/types/appRegistryType";
 
-// --- Views ---
-import OperationView from "@renderer/features/operation/OperationView";
-import { RdpView } from "@renderer/features/remoteDesktop/RdpView";
-import AuthView from "@renderer/features/auth/AuthView";
-import SpreadSheetView from "@renderer/features/spreadSheet/SpreadSheetView";
-import OtherView from "@renderer/features/other/OtherView";
-
-// --- Configs & Modals ---
+// --- Configs ---
 import { operationViewConfig } from "@renderer/features/operation/config/operationView";
-import {
-  jugyoinViewConfig,
-  kokyuhyoViewConfig,
-  shopViewConfig,
-  tantouViewConfig,
-} from "@renderer/features/spreadSheet/config/spreadsheetViewConfigs";
-import { OperationModal } from "@renderer/features/operation/components/modal/OperationModal";
+import { shopViewConfig } from "@renderer/features/spreadSheet/components/modal/shop/useShopModalContent";
+import { tantouViewConfig } from "@renderer/features/spreadSheet/components/modal/tantou/useTantouModalContent";
+import { jugyoinViewConfig } from "@renderer/features/spreadSheet/components/modal/jugyoin/useJugyoinModalContent";
+import { kokyuhyoViewConfig } from "@renderer/features/spreadSheet/components/modal/kokyuhyo/useKokyuhyoModalContent";
 
 export type * from "@shared/types/appRegistryType";
 
@@ -60,65 +44,31 @@ export const APP_REGISTRY: Record<AppViewId, AppViewDefinition> = {
 };
 
 /* ============================================================================
- * 2. Component Mapping
- * ============================================================================ */
-const COMPONENT_MAP = {
-  [APP_VIEW_IDS.OPERATION]: OperationView,
-  [APP_VIEW_IDS.RDP]: RdpView,
-  [APP_VIEW_IDS.OTHER]: OtherView,
-  [APP_VIEW_IDS.AUTH]: AuthView,
-  [APP_VIEW_IDS.KOKYUHYO]: SpreadSheetView,
-  [APP_VIEW_IDS.JUGYOIN]: SpreadSheetView,
-  [APP_VIEW_IDS.SHOP]: SpreadSheetView,
-  [APP_VIEW_IDS.TANTOU]: SpreadSheetView,
-} as const;
-
-/* ============================================================================
- * 3. Extra Modal Registry
- * ============================================================================ */
-export const EXTRA_MODAL_REGISTRY: Record<string, ExtraModalDefinition> = {
-  [EXTRA_MODAL_TYPES.PDF_UPLOAD]: {
-    modalType: EXTRA_MODAL_TYPES.PDF_UPLOAD,
-    modalSize: { width: "min(75vw, 850px)", height: "min(75vh, 650px)" },
-    execute: (store) =>
-      store.openGlobalModal(
-        React.createElement(OperationModal, {
-          type: "pdfUpload",
-          onClose: store.closeGlobalModal,
-        }),
-        {
-          title: "店舗matic",
-          width: "min(75vw, 850px)",
-          height: "min(75vh, 650px)",
-        },
-      ),
-  },
-};
-
-/* ============================================================================
- * 4. Setup Method
+ * 2. Setup Method
  * ============================================================================ */
 interface CustomGlobal {
   useAppStore?: typeof useAppStore;
 }
 
-export const setupAppRegistry = (): void => {
-  // 1. Component バインド
-  Object.entries(COMPONENT_MAP).forEach(([viewId, component]) => {
-    const registryItem = APP_REGISTRY[viewId as keyof typeof COMPONENT_MAP];
-    if (registryItem) {
-      registryItem.component = component;
-    }
-  });
+export const setupAppRegistry = (
+  componentMap?: Partial<Record<AppViewId, React.ComponentType<never>>>,
+): void => {
+  if (componentMap) {
+    Object.entries(componentMap).forEach(([viewId, component]) => {
+      const registryItem = APP_REGISTRY[viewId as AppViewId];
+      if (registryItem && component) {
+        registryItem.component = component as React.ComponentType;
+      }
+    });
+  }
 
-  // 2. Zustand Store のグローバル参照を確保
   if (typeof window !== "undefined") {
     (globalThis as unknown as CustomGlobal).useAppStore = useAppStore;
   }
 };
 
 /* ============================================================================
- * 5. Helper Methods
+ * 3. Helper Methods
  * ============================================================================ */
 export function getAppViewConfig(viewId: string): AppViewDefinition {
   return (

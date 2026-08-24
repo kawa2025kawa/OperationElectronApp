@@ -1,10 +1,11 @@
-﻿﻿import { toast } from "sonner";
+﻿﻿// src/shared/store/slices/pdfUploadSlice.ts
+
+import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 
+import { commands } from "@shared/api/commands";
 import type { AppState } from "@shared/store";
-import { pdfUploadService } from "@shared/store/slices/services/pdfUploadService";
 
-import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/operationSelectors";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/jobRunnerHelper";
 
 import {
@@ -113,15 +114,10 @@ export const createPdfUploadSlice: StateCreator<
         toIndex >= files.length ||
         fromIndex === toIndex;
 
-      if (isInvalidIndex) {
-        return;
-      }
+      if (isInvalidIndex) return;
 
       const [movedFile] = files.splice(fromIndex, 1);
-
-      if (!movedFile) {
-        return;
-      }
+      if (!movedFile) return;
 
       files.splice(toIndex, 0, movedFile);
 
@@ -135,19 +131,16 @@ export const createPdfUploadSlice: StateCreator<
   uploadPdfFiles: async () => {
     const { files, expireDate, isProcessing } = get().pdfUpload;
 
-    console.log("[PdfUpload] uploadPdfFiles called", {
-      fileCount: files.length,
-      expireDate,
-      isProcessing,
-    });
-
     if (files.length === 0 || isProcessing) {
       console.warn("[PdfUpload] upload blocked", {
         fileCount: files.length,
         isProcessing,
       });
-
       return;
+    }
+
+    if (!expireDate) {
+      throw new Error("PDFアップロードの有効期限が指定されていません");
     }
 
     logUploadOrder("final upload order", files);
@@ -163,32 +156,13 @@ export const createPdfUploadSlice: StateCreator<
     try {
       const state = get();
 
-      console.log("[PdfUpload] starting global processing");
-
       await runJobWithGlobalProcessing(
         state,
         "PDFアップロード中...",
-        "PDFアップロード",
+        "店舗maticPDFアップロード",
         async () => {
-          console.log("[PdfUpload] upload service start");
-
-          await pdfUploadService.upload(files, expireDate);
-
-          console.log("[PdfUpload] upload service completed");
-
-          const activeItem = selectActiveItemStatusFlags(get()).item;
-
-          const kanriNo = activeItem?.kanriNo
-            ? String(activeItem.kanriNo).trim()
-            : "30";
-
-          console.log("[PdfUpload] starting script job", {
-            kanriNo,
-          });
-
-          await get().runScriptJob(kanriNo);
-
-          console.log("[PdfUpload] script job completed");
+          const filePaths = files.map((file) => file.path);
+          await commands.tempomaticUploadDocument(filePaths, expireDate);
         },
       );
 
@@ -196,12 +170,9 @@ export const createPdfUploadSlice: StateCreator<
         state.pdfUpload.resultState = "success";
       });
 
-      console.log("[PdfUpload] upload completed successfully");
-
       toast.success("PDFアップロード完了");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-
       console.error("[PdfUpload] upload failed:", error);
 
       set((state) => {
@@ -212,14 +183,11 @@ export const createPdfUploadSlice: StateCreator<
       });
 
       toast.error("PDFアップロードに失敗しました。");
-
       throw error;
     } finally {
       set((state) => {
         state.pdfUpload.isProcessing = false;
       });
-
-      console.log("[PdfUpload] processing state cleared");
     }
   },
 });

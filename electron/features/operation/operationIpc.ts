@@ -1,5 +1,4 @@
-﻿// electron/features/operation/operationIpc.ts
-import { ipcMain } from "electron";
+﻿import { ipcMain } from "electron";
 import type { JobStatus, OperationItem } from "@shared/types/operationType";
 import {
   registerTargets as registerOperationTargets,
@@ -40,21 +39,17 @@ export function registerOperationIpc(): void {
     ) => {
       const kanriNo = String(args?.kanriNo ?? "");
       const status = args?.status;
-      const comment = args?.comment ?? "";
       if (!kanriNo || !status) {
         throw new Error("Invalid parameters");
       }
-      updateManualStatus(kanriNo, status, comment);
+      updateManualStatus(kanriNo, status, args?.comment ?? "");
     },
   );
 
-  ipcMain.handle("deleteAllJobStatuses", async () => {
-    await deleteAllStatuses();
-  });
-
-  ipcMain.handle("initializeStatus", async () => {
-    return initializeStatuses();
-  });
+  ipcMain.handle("deleteAllJobStatuses", deleteAllStatuses);
+  ipcMain.handle("initializeStatus", initializeStatuses);
+  ipcMain.handle("startPolling", startPolling);
+  ipcMain.handle("stopPolling", stopPolling);
 
   ipcMain.handle(
     "executeScript",
@@ -65,14 +60,6 @@ export function registerOperationIpc(): void {
       return executeJob(args.scriptId);
     },
   );
-
-  ipcMain.handle("startPolling", () => {
-    startPolling();
-  });
-
-  ipcMain.handle("stopPolling", () => {
-    stopPolling();
-  });
 
   ipcMain.handle(
     "fetchSingleJobStatus",
@@ -86,7 +73,6 @@ export function registerOperationIpc(): void {
         throw new Error(`Target not found (kanriNo=${kanriNo})`);
       }
 
-      // 型ガードで jobId の存在を安全に検証
       const jobId =
         "jobId" in target && typeof target.jobId === "string"
           ? target.jobId
@@ -99,6 +85,7 @@ export function registerOperationIpc(): void {
       if (!tracker) {
         throw new Error("Tracker data not found");
       }
+
       return {
         kanriNo,
         jobId,

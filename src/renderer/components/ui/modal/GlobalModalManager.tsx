@@ -1,3 +1,5 @@
+//src\renderer\components\ui\modal\GlobalModalManager.t//
+
 import React from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type Variants } from "framer-motion";

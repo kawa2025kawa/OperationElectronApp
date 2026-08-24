@@ -1,8 +1,6 @@
-﻿//src\renderer\features\operation\components\modal\gmailModal\templates\types.ts
-
-export interface EmailTemplateContext {
-  lastName: string; // $1: 苗字
-  nextTuesdayStr: string; // $2: 来週火曜日
+﻿export interface EmailTemplateContext {
+  lastName: string;
+  nextTuesdayStr: string;
   links?: Record<string, string> | null;
 }
 

@@ -9,8 +9,8 @@ import {
 } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { commands } from "@shared/api/commands";
-import { getFileName } from "@shared/utils/fileUtils";
 import { useAppStore } from "@shared/store";
+import { getFileName } from "@shared/utils/fileUtils";
 
 export type ViewKey = "dnd" | "success" | "error";
 
@@ -43,6 +43,7 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
   const [currentViewKey, setCurrentViewKey] = useState<ViewKey>("dnd");
   const [isDragging, setIsDragging] = useState(false);
 
+  // 表示用ファイル一覧の整形
   const files = useMemo<PdfUploadFile[]>(
     () =>
       storeFiles.map((file) => ({
@@ -54,26 +55,22 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
 
   const fileCount = files.length;
 
+  // 共通ファイル選択処理
   const selectFiles = useCallback(
     (selectedFiles: File[]) => {
-      if (isProcessing || selectedFiles.length === 0) {
-        return;
-      }
+      if (isProcessing || selectedFiles.length === 0) return;
 
       const filePaths = selectedFiles
-        .map((file) => {
-          return (
+        .map(
+          (file) =>
             commands.getFilePath(file) ||
             ("path" in file && typeof file.path === "string"
               ? file.path
-              : file.name)
-          );
-        })
+              : file.name),
+        )
         .filter(Boolean);
 
-      if (filePaths.length === 0) {
-        return;
-      }
+      if (filePaths.length === 0) return;
 
       mergePdfFiles(filePaths);
       setCurrentViewKey("dnd");
@@ -81,6 +78,7 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
     [isProcessing, mergePdfFiles],
   );
 
+  // ドラッグ＆ドロップ イベントハンドラー
   const handleDragOver = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
@@ -100,10 +98,7 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       setIsDragging(false);
-
-      if (isProcessing) {
-        return;
-      }
+      if (isProcessing) return;
 
       const pdfFiles = Array.from(event.dataTransfer.files).filter(
         (file) =>
@@ -124,11 +119,10 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
     [selectFiles],
   );
 
+  // 並び替え操作ハンドラー
   const handleMoveUp = useCallback(
     (index: number) => {
-      if (isProcessing || index <= 0) {
-        return;
-      }
+      if (isProcessing || index <= 0) return;
       reorderPdfFiles(index, index - 1);
     },
     [isProcessing, reorderPdfFiles],
@@ -136,28 +130,27 @@ export const usePdfUploadModalLogic = (onClose: () => void) => {
 
   const handleMoveDown = useCallback(
     (index: number) => {
-      if (isProcessing || index >= fileCount - 1) {
-        return;
-      }
+      if (isProcessing || index >= fileCount - 1) return;
       reorderPdfFiles(index, index + 1);
     },
     [fileCount, isProcessing, reorderPdfFiles],
   );
 
+  // 実行ハンドラー (旧 pdfUploadService のバリデーション・処理ログを内包)
   const handleExecute = useCallback(async () => {
-    if (isProcessing || fileCount === 0) {
-      return;
-    }
+    if (isProcessing || fileCount === 0) return;
 
     try {
+      // アクション実行（ログ出力や IPC API コールはストア側アクションへ完全に委譲）
       await uploadPdfFiles();
       setCurrentViewKey("success");
     } catch (error) {
-      console.error("[PdfUploadModal] uploadPdfFiles error", error);
+      console.error("[PdfUploadModal] uploadPdfFiles error:", error);
       setCurrentViewKey("error");
     }
   }, [fileCount, isProcessing, uploadPdfFiles]);
 
+  // リトライ＆キャンセルクリーンアップ
   const handleRetry = useCallback(() => {
     resetPdfUpload();
     setCurrentViewKey("dnd");

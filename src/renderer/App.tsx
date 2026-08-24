@@ -9,6 +9,27 @@ import { MainView } from "@renderer/layout/MainView";
 import { useIpcManager } from "@renderer/hooks/useIpcManager";
 import { useAppLogic } from "@renderer/hooks/useAppLogic";
 
+// Registry & Views
+import { setupAppRegistry } from "@renderer/registry/appRegistry";
+import { APP_VIEW_IDS } from "@shared/types/uiType";
+import OperationView from "@renderer/features/operation/OperationView";
+import { RdpView } from "@renderer/features/remoteDesktop/RdpView";
+import AuthView from "@renderer/features/auth/AuthView";
+import SpreadSheetView from "@renderer/features/spreadSheet/SpreadSheetView";
+import OtherView from "@renderer/features/other/OtherView";
+
+// レンダラー起動時に View コンポーネントを一度だけ動的バインド
+setupAppRegistry({
+  [APP_VIEW_IDS.OPERATION]: OperationView,
+  [APP_VIEW_IDS.RDP]: RdpView,
+  [APP_VIEW_IDS.OTHER]: OtherView,
+  [APP_VIEW_IDS.AUTH]: AuthView,
+  [APP_VIEW_IDS.KOKYUHYO]: SpreadSheetView,
+  [APP_VIEW_IDS.JUGYOIN]: SpreadSheetView,
+  [APP_VIEW_IDS.SHOP]: SpreadSheetView,
+  [APP_VIEW_IDS.TANTOU]: SpreadSheetView,
+});
+
 export const App: React.FC = () => {
   useIpcManager();
 
@@ -34,11 +55,8 @@ export const App: React.FC = () => {
   return (
     <>
       <MainView />
-
       <Toast />
-
       <GlobalModalManager />
-
       <LoadingOverlay
         isOpen={isGlobalProcessing}
         message={overlayMessage}

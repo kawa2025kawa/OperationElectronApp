@@ -2,8 +2,8 @@
 
 import type { AppState } from "@shared/store";
 import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
-import { mergeStatus } from "./statusFactory";
 import { calculateNextStatus } from "./statusEvaluator";
+import { mergeStatus } from "./statusFactory";
 
 export function getAllEntities(
   state: Pick<AppState, "operationEntities" | "irregularEntities">,
@@ -19,9 +19,6 @@ export function findEntityByKanriNo(
   return state.operationEntities[key] ?? state.irregularEntities[key];
 }
 
-/**
- * 単一エンティティにステータス更新を適用し、最新のステータスを評価したクローンを返却する内部ヘルパー
- */
 function applyStatusUpdateToEntity(
   entity: OperationItem,
   update: OperationItem,
@@ -30,7 +27,6 @@ function applyStatusUpdateToEntity(
 ): { cloned: OperationItem; statusChanged: boolean } {
   const previousStatus = entity.status;
   const cloned = { ...entity };
-
   mergeStatus(cloned, update);
   cloned.status = calculateNextStatus(
     cloned,
@@ -38,7 +34,6 @@ function applyStatusUpdateToEntity(
     allEntities,
     activeFlags,
   );
-
   return {
     cloned,
     statusChanged: previousStatus !== cloned.status,
@@ -52,7 +47,6 @@ export function updateEntityInState(
   const kanriNo = String(update.kanriNo);
   let updated = false;
   let statusChanged = false;
-
   const allEntities = getAllEntities(state);
   const activeFlags = {
     is1CActive: Boolean(state.is1CActive),
@@ -71,7 +65,6 @@ export function updateEntityInState(
       allEntities,
       activeFlags,
     );
-
     targetGroup[kanriNo] = result.cloned;
     updated = true;
     if (result.statusChanged) {

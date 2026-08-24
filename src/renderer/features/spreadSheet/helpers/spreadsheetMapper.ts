@@ -1,10 +1,22 @@
 // src/renderer/features/spreadSheet/helpers/spreadsheetMapper.ts
 
-import { getSheetRangeConfig } from "../config/spreadsheetConfig";
-
+import {
+  SHOP_RANGE_CONFIG,
+  SHOP_KEY_MAP,
+} from "@renderer/features/spreadSheet/components/modal/shop/useShopModalContent";
+import { TANTOU_RANGE_CONFIG } from "@renderer/features/spreadSheet/components/modal/tantou/useTantouModalContent";
+import {
+  JUGYOIN_RANGE_CONFIG,
+  JUGYOIN_KEY_MAP,
+} from "@renderer/features/spreadSheet/components/modal/jugyoin/useJugyoinModalContent";
+import {
+  KOKYUHYO_RANGE_CONFIG,
+  KOKYUHYO_KEY_MAP,
+} from "@renderer/features/spreadSheet/components/modal/kokyuhyo/useKokyuhyoModalContent";
 import {
   MASTER_SPREADSHEET_ID,
   SHEET_IDS,
+  SHEET_TYPES,
   type SheetDataResponse,
   type SheetId,
   type SheetType,
@@ -12,24 +24,43 @@ import {
   type TantouDailyDetails,
 } from "@shared/types/spreadsheetTypes";
 
-// =====================================================
-// Constants
-// =====================================================
+// 🎯 設定マップを一括定義して switch 文を撲滅
+const RANGE_CONFIG_MAP: Record<
+  SheetId,
+  { headerRow: number; dynamicRange: string; keyMap?: Record<string, string> }
+> = {
+  [SHEET_IDS.SHOP]: {
+    headerRow: SHOP_RANGE_CONFIG.headerRow,
+    dynamicRange: SHOP_RANGE_CONFIG.dynamicRange,
+    keyMap: SHOP_KEY_MAP,
+  },
+  [SHEET_IDS.TANTOU]: {
+    headerRow: TANTOU_RANGE_CONFIG.headerRow,
+    dynamicRange: TANTOU_RANGE_CONFIG.dynamicRange,
+  },
+  [SHEET_IDS.JUGYOIN]: {
+    headerRow: JUGYOIN_RANGE_CONFIG.headerRow,
+    dynamicRange: JUGYOIN_RANGE_CONFIG.dynamicRange,
+    keyMap: JUGYOIN_KEY_MAP,
+  },
+  [SHEET_IDS.KOKYUHYO]: {
+    headerRow: KOKYUHYO_RANGE_CONFIG.headerRow,
+    dynamicRange: KOKYUHYO_RANGE_CONFIG.dynamicRange,
+    keyMap: KOKYUHYO_KEY_MAP,
+  },
+};
+
+export const getSheetRangeConfig = (sheetId: SheetId) =>
+  RANGE_CONFIG_MAP[sheetId] ?? {
+    headerRow: 1,
+    dynamicRange: `${sheetId}!1:10000`,
+  };
 
 const EMPTY_VALUE = "-";
-const FALLBACK_ID_PREFIX = "row";
-
-// =====================================================
-// Header Helpers
-// =====================================================
 
 export function sanitizeHeader(text: string): string {
   return text ? text.replace(/[\r\n\t\s]+/g, "").trim() : "";
 }
-
-// =====================================================
-// Object Helpers
-// =====================================================
 
 function setNestedValue(
   target: Record<string, unknown>,
@@ -37,180 +68,82 @@ function setNestedValue(
   value: string,
 ): void {
   const keys = path.split(".");
-
-  if (keys.length === 0) {
-    return;
-  }
-
   let current = target;
 
-  for (let index = 0; index < keys.length - 1; index += 1) {
-    const key = keys[index];
-
-    if (!key) {
-      continue;
-    }
-
-    const existing = current[key];
-
-    if (!existing || typeof existing !== "object" || Array.isArray(existing)) {
+  for (let i = 0; i < keys.length - 1; i++) {
+    const key = keys[i];
+    if (!key) continue;
+    if (!current[key] || typeof current[key] !== "object") {
       current[key] = {};
     }
-
     current = current[key] as Record<string, unknown>;
   }
 
   const finalKey = keys[keys.length - 1];
-
-  if (!finalKey) {
-    return;
+  if (finalKey) {
+    current[finalKey] = value.trim() || EMPTY_VALUE;
   }
-
-  const normalizedValue = value.trim();
-
-  current[finalKey] = normalizedValue || EMPTY_VALUE;
 }
-
-// =====================================================
-// Fallback Values
-// =====================================================
-
-function setFallbackId(
-  item: Record<string, unknown>,
-  sheetId: SheetId,
-  rowIndex: number,
-): void {
-  const currentId = item.id;
-
-  if (
-    typeof currentId === "string" &&
-    currentId.trim() &&
-    currentId !== EMPTY_VALUE
-  ) {
-    return;
-  }
-
-  const fallbackId = `${sheetId}_${FALLBACK_ID_PREFIX}_${rowIndex + 1}`;
-  const code = item.code;
-
-  item.id =
-    typeof code === "string" && code.trim() && code !== EMPTY_VALUE
-      ? `${code}_${fallbackId}`
-      : fallbackId;
-}
-
-function setBusinessHours(item: Record<string, unknown>): void {
-  const start =
-    typeof item.businessHoursStart === "string"
-      ? item.businessHoursStart
-      : undefined;
-
-  const end =
-    typeof item.businessHoursEnd === "string"
-      ? item.businessHoursEnd
-      : undefined;
-
-  const hasStart = Boolean(start && start !== EMPTY_VALUE);
-  const hasEnd = Boolean(end && end !== EMPTY_VALUE);
-
-  if (!hasStart && !hasEnd) {
-    return;
-  }
-
-  item.businessHours = [
-    hasStart ? start : "00:00",
-    hasEnd ? end : "24:00",
-  ].join(" ～ ");
-}
-
-function setFallbackValues(
-  item: Record<string, unknown>,
-  sheetId: SheetId,
-  rowIndex: number,
-): void {
-  setFallbackId(item, sheetId, rowIndex);
-  setBusinessHours(item);
-}
-
-// =====================================================
-// Raw Row Parser
-// =====================================================
 
 export function parseRawSheetRows<T = Record<string, unknown>>(
   rawRows: string[][],
   sheetId: SheetId,
   keyMap?: Record<string, string>,
 ): T[] {
-  if (rawRows.length <= 1) {
-    return [];
-  }
+  if (rawRows.length <= 1) return [];
 
   const headers = rawRows[0] ?? [];
-
-  const validKeys = headers.map((header) => {
-    const sanitized = sanitizeHeader(header);
-
-    if (!sanitized) {
-      return "";
-    }
-
-    return keyMap?.[sanitized] ?? sanitized;
+  const validKeys = headers.map((h) => {
+    const sanitized = sanitizeHeader(h);
+    return sanitized ? (keyMap?.[sanitized] ?? sanitized) : "";
   });
 
-  const responseData: Record<string, unknown>[] = [];
-
-  for (const [rowIndex, row] of rawRows.slice(1).entries()) {
-    const isEmptyRow = row.every((cell) => !cell || !cell.trim());
-
-    if (isEmptyRow) {
-      continue;
-    }
+  return rawRows.slice(1).reduce<Record<string, unknown>[]>((acc, row, idx) => {
+    if (row.every((cell) => !cell || !cell.trim())) return acc;
 
     const item: Record<string, unknown> = {};
+    validKeys.forEach((key, colIdx) => {
+      if (key) setNestedValue(item, key, row[colIdx] ?? "");
+    });
 
-    for (
-      let columnIndex = 0;
-      columnIndex < validKeys.length;
-      columnIndex += 1
-    ) {
-      const key = validKeys[columnIndex];
-
-      if (!key) {
-        continue;
-      }
-
-      setNestedValue(item, key, row[columnIndex] ?? "");
+    if (!item.id || item.id === EMPTY_VALUE) {
+      const fallbackId = `${sheetId}_row_${idx + 1}`;
+      item.id =
+        item.code && item.code !== EMPTY_VALUE
+          ? `${item.code}_${fallbackId}`
+          : fallbackId;
     }
 
-    setFallbackValues(item, sheetId, rowIndex);
+    const start =
+      typeof item.businessHoursStart === "string"
+        ? item.businessHoursStart
+        : "";
+    const end =
+      typeof item.businessHoursEnd === "string" ? item.businessHoursEnd : "";
+    if (start || end) {
+      item.businessHours = `${start || "00:00"} ～ ${end || "24:00"}`;
+    }
 
-    responseData.push(item);
-  }
-
-  return responseData as T[];
+    acc.push(item);
+    return acc;
+  }, []) as T[];
 }
-
-// =====================================================
-// Tantou
-// =====================================================
 
 function getFirstValue(
   row: Record<string, unknown>,
   keys: readonly string[],
 ): string {
   for (const key of keys) {
-    const value = row[key];
-
+    const val = row[key];
     if (
-      value !== undefined &&
-      value !== null &&
-      value !== "" &&
-      value !== EMPTY_VALUE
+      val !== undefined &&
+      val !== null &&
+      val !== "" &&
+      val !== EMPTY_VALUE
     ) {
-      return String(value);
+      return String(val);
     }
   }
-
   return EMPTY_VALUE;
 }
 
@@ -242,7 +175,6 @@ export function parseTantouSheet(rawRows: string[][]): Tantou {
     rawRows,
     SHEET_IDS.TANTOU,
   );
-
   return {
     id: "tantou_singleton",
     today: buildDailyDetails(parsedRows[0] ?? {}),
@@ -250,30 +182,14 @@ export function parseTantouSheet(rawRows: string[][]): Tantou {
   };
 }
 
-// =====================================================
-// Sheet Type
-// =====================================================
-
 const SHEET_TYPE_BY_ID: Record<SheetId, SheetType> = {
-  [SHEET_IDS.SHOP]: "Store",
-  [SHEET_IDS.KOKYUHYO]: "Kokyuhyo",
-  [SHEET_IDS.JUGYOIN]: "Jugyoin",
-  [SHEET_IDS.TANTOU]: "Tantou",
+  [SHEET_IDS.SHOP]: SHEET_TYPES.Store,
+  [SHEET_IDS.KOKYUHYO]: SHEET_TYPES.Kokyuhyo,
+  [SHEET_IDS.JUGYOIN]: SHEET_TYPES.Jugyoin,
+  [SHEET_IDS.TANTOU]: SHEET_TYPES.Tantou,
 };
 
-export function getSheetTypeBySheetId(sheetId: SheetId): SheetType {
-  return SHEET_TYPE_BY_ID[sheetId] ?? "Raw";
-}
-
-// =====================================================
-// Google Sheets API
-// =====================================================
-
-interface GoogleSheetValuesResponse {
-  values?: string[][];
-}
-
-interface FetchSheetResult {
+export interface FetchSheetResult {
   status: number;
   data?: SheetDataResponse;
   errorText?: string;
@@ -284,39 +200,26 @@ export async function fetchSheetValues(
   accessToken: string,
 ): Promise<FetchSheetResult> {
   const { dynamicRange, keyMap } = getSheetRangeConfig(sheetId);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${MASTER_SPREADSHEET_ID}/values/${encodeURIComponent(dynamicRange)}`;
 
-  const url =
-    `https://sheets.googleapis.com/v4/spreadsheets/` +
-    `${MASTER_SPREADSHEET_ID}/values/` +
-    `${encodeURIComponent(dynamicRange)}`;
-
-  const response = await fetch(url, {
+  const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: "application/json",
     },
   });
 
-  if (response.status === 401) {
-    return { status: 401 };
-  }
+  if (res.status === 401) return { status: 401 };
+  if (!res.ok) return { status: res.status, errorText: await res.text() };
 
-  if (!response.ok) {
-    return {
-      status: response.status,
-      errorText: await response.text(),
-    };
-  }
-
-  const json = (await response.json()) as GoogleSheetValuesResponse;
-
+  const json = await res.json();
   const rawRows = json.values ?? [];
 
   if (sheetId === SHEET_IDS.TANTOU) {
     return {
       status: 200,
       data: {
-        sheetType: "Tantou",
+        sheetType: SHEET_TYPES.Tantou,
         data: [parseTantouSheet(rawRows)],
       },
     };
@@ -325,7 +228,7 @@ export async function fetchSheetValues(
   return {
     status: 200,
     data: {
-      sheetType: getSheetTypeBySheetId(sheetId),
+      sheetType: SHEET_TYPE_BY_ID[sheetId] ?? "Raw",
       data: parseRawSheetRows(rawRows, sheetId, keyMap),
     },
   };

@@ -54,7 +54,7 @@ const LoadingOverlayComponent: React.FC<LoadingOverlayProps> = ({
         <span className={styles.processingTargetLabel}>PROCESSING TARGET</span>
 
         <span className={styles.processingTargetValue}>
-          {processingTarget ?? "PROCESSING"}
+          {processingTarget ?? ""}
         </span>
       </div>
 

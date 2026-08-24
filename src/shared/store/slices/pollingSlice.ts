@@ -1,7 +1,7 @@
-// src/shared/store/slices/pollingSlice.ts
+import { toast } from "sonner";
 import type { StateCreator } from "zustand";
+import { commands } from "@shared/api/commands";
 import type { AppState } from "@shared/store/index";
-import { pollingService } from "./services/pollingService";
 
 export interface PollingSlice {
   isPolling: boolean;
@@ -34,12 +34,14 @@ export const createPollingSlice: StateCreator<
   startPolling: async () => {
     if (get().isPolling) return console.warn("[Polling] Already polling");
     try {
-      await pollingService.startPolling();
+      await commands.startPolling();
+      toast.success("ポーリングを開始しました");
       set((s: AppState) => {
         s.isPolling = true;
         s.lastPollTime = new Date().toISOString();
       });
     } catch (error: unknown) {
+      console.error("[startPolling] Failed:", error);
       set((s: AppState) => {
         s.isPolling = false;
       });
@@ -48,10 +50,17 @@ export const createPollingSlice: StateCreator<
   },
 
   stopPolling: async () => {
-    if (!get().isPolling) return console.warn("[Polling] Polling is not running");
-    await pollingService.stopPolling();
-    set((s: AppState) => {
-      s.isPolling = false;
-    });
+    if (!get().isPolling)
+      return console.warn("[Polling] Polling is not running");
+    try {
+      await commands.stopPolling();
+      toast.success("ポーリングを停止しました");
+    } catch (error: unknown) {
+      console.error("[stopPolling] Failed:", error);
+    } finally {
+      set((s: AppState) => {
+        s.isPolling = false;
+      });
+    }
   },
 });

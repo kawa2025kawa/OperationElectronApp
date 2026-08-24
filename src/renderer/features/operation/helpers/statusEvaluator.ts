@@ -2,20 +2,17 @@
 
 import { commands } from "@shared/api/commands";
 import type { AppState } from "@shared/store";
-import { isScheduledTimePassed, isJobTimedOut } from "@shared/utils/dateUtils";
 import {
   JOB_STATUS,
   type JobStatus,
   type OperationItem,
 } from "@shared/types/operationType";
+import { isJobTimedOut, isScheduledTimePassed } from "@shared/utils/dateUtils";
 import { checkJobDependencies, getDependentKanriNos } from "./dependencyHelper";
 import { findEntityByKanriNo, getAllEntities } from "./operationEntities";
 
 const FINAL_STATUSES = new Set<string>([JOB_STATUS.SUCCESS, JOB_STATUS.ERROR]);
 
-/**
- * AppState からセンターのアクティブフラグを抽出
- */
 function extractActiveFlags(
   state?: Pick<AppState, "is1CActive" | "is2CActive" | "is3CActive">,
 ): Record<string, boolean> | undefined {
@@ -27,9 +24,6 @@ function extractActiveFlags(
   };
 }
 
-/**
- * 次のステータスを計算・判定
- */
 export function calculateNextStatus(
   entity: OperationItem,
   externalStatus: JobStatus | undefined,
@@ -65,7 +59,6 @@ export function calculateNextStatus(
       allEntities,
       activeFlags,
     ).ok;
-
     if (!depsMet) {
       return JOB_STATUS.SCHEDULED;
     }
@@ -76,9 +69,6 @@ export function calculateNextStatus(
     : JOB_STATUS.SCHEDULED;
 }
 
-/**
- * ステータス更新に伴う依存ジョブの連鎖的更新処理
- */
 export function refreshDependentStatuses(
   state: AppState,
   changedKanriNo: string,
@@ -86,10 +76,9 @@ export function refreshDependentStatuses(
   const activeFlags = extractActiveFlags(state);
   const allEntities = getAllEntities(state);
 
-  // 1. 直近でステータスが変更されたジョブを初期キューに登録
   const queue = [String(changedKanriNo)];
 
-  // 2. 「全 jobId の完了」を依存条件に持つ特殊ジョブ (KanriNo 81等) をキューに追加
+  // 全ジョブ完了依存のあるジョブ（KanriNo 81等）をキューに含める
   Object.values(allEntities).forEach((entity) => {
     if (entity.dependency?.requiresAllJobsSuccess) {
       queue.push(String(entity.kanriNo));
@@ -103,7 +92,6 @@ export function refreshDependentStatuses(
     if (!currentKanriNo || processed.has(currentKanriNo)) continue;
     processed.add(currentKanriNo);
 
-    // currentKanriNo 自身が最新状態か評価・更新
     const currentEntity = findEntityByKanriNo(state, currentKanriNo);
     if (currentEntity) {
       const selfNextStatus = calculateNextStatus(
@@ -112,7 +100,6 @@ export function refreshDependentStatuses(
         allEntities,
         activeFlags,
       );
-
       if (currentEntity.status !== selfNextStatus) {
         currentEntity.status = selfNextStatus;
         void commands.updateJobStatus(
@@ -123,7 +110,6 @@ export function refreshDependentStatuses(
       }
     }
 
-    // currentKanriNo に直接依存している後続ジョブを取得してキューにプッシュ
     const dependentKanriNos = getDependentKanriNos(currentKanriNo, allEntities);
     for (const depKanriNo of dependentKanriNos) {
       if (!processed.has(depKanriNo)) {

@@ -1,89 +1,180 @@
-/* src/renderer/styles/tokens/semantic.contract.ts */
 import { createGlobalThemeContract } from "@vanilla-extract/css";
+
+/**
+ * ============================================================
+ * Semantic Design Token Contract
+ * ============================================================
+ *
+ * このファイルでは「何が存在するか」だけを定義する。
+ *
+ * 実際の値は theme.css.ts の Dark / Light Theme で定義する。
+ *
+ * 設計方針:
+ *
+ *   color    -> 色・意味
+ *   glass    -> Glassmorphism
+ *   gradient -> Gradient
+ *   shadow   -> Neumorphism / Glow
+ *   font     -> Typography
+ *   space    -> Spacing
+ *   radius   -> Border Radius
+ *   transition -> Motion
+ *   zIndex   -> Layer
+ * ============================================================
+ */
 
 export const tokens = createGlobalThemeContract(
   {
+    /* ==========================================================
+     * Color
+     * ========================================================== */
+
     color: {
-      /* =========================
-         背景 Background
-      ========================= */
       bg: {
+        /** アプリ全体のベース背景 */
         base: null,
+
+        /** 通常の surface */
         surface: null,
+
+        /** 凹み・inset surface */
         inset: null,
+
+        /** Header / navigation 系 */
         header: null,
-        frostedGlass: null,
       },
 
-      /* =========================
-         文字 Text
-      ========================= */
       text: {
+        /** 通常文字 */
         base: null,
+
+        /** hover / emphasis */
         hover: null,
+
+        /** Accent 背景上の文字 */
         onAccent: null,
       },
 
-      /* =========================
-         邊框 Border
-      ========================= */
       border: {
+        /** 通常境界線 */
         default: null,
+
+        /** より明確な境界線 */
         subtle: null,
+
+        /** Accent 境界線 */
         accent: null,
       },
 
-      /* =========================
-         強調色 Accent
-      ========================= */
       accent: {
+        /** Primary accent */
         base: null,
+
+        /** Accent hover */
         hover: null,
+
+        /** Neon cyan */
         neonCyan: null,
+
+        /** Neon pink */
         neonPink: null,
       },
 
-      /* =========================
-         狀態 Status
-      ========================= */
       status: {
         total: null,
         success: null,
         running: null,
-        ready: null, // 🎯 READY用としてそのまま使用（色コードを割り当てる場合はここに記述）
-        waiting: null, // 🚨 pending を waiting に変更！
+        ready: null,
+        waiting: null,
         scheduled: null,
         error: null,
       },
     },
 
-    /* =========================
-       漸層 Gradient
-    ========================= */
+    /* ==========================================================
+     * Glassmorphism
+     * ========================================================== */
+
+    glass: {
+      /**
+       * 標準 Glass surface
+       *
+       * background-color に使用する。
+       */
+      surface: null,
+
+      /**
+       * より透明度の高い Glass surface
+       */
+      surfaceSubtle: null,
+
+      /**
+       * Glass の border
+       */
+      border: null,
+
+      /**
+       * 強調された Glass border
+       */
+      borderStrong: null,
+
+      /**
+       * 標準 blur
+       */
+      blur: null,
+
+      /**
+       * 強い blur
+       */
+      blurStrong: null,
+
+      /**
+       * 色の彩度
+       */
+      saturation: null,
+    },
+
+    /* ==========================================================
+     * Gradient
+     * ========================================================== */
+
     gradient: {
       brand: null,
     },
 
-    /* =========================
-       陰影 Shadow
-    ========================= */
+    /* ==========================================================
+     * Shadow
+     * ========================================================== */
+
     shadow: {
+      /**
+       * Neumorphism:
+       * surface が浮いて見える
+       */
       raised: {
         low: null,
         md: null,
         high: null,
       },
 
+      /**
+       * Neumorphism:
+       * surface が押し込まれて見える
+       */
       pressed: {
         low: null,
         md: null,
         high: null,
       },
 
+      /**
+       * Accent / Status の glow
+       */
       glow: {
         brand: null,
         cyan: null,
         white: null,
+
         total: null,
         error: null,
         success: null,
@@ -94,12 +185,14 @@ export const tokens = createGlobalThemeContract(
       },
     },
 
-    /* =========================
-       字體 Font
-    ========================= */
+    /* ==========================================================
+     * Typography
+     * ========================================================== */
+
     font: {
       base: null,
       mono: null,
+
       size: {
         xs: null,
         sm: null,
@@ -107,6 +200,7 @@ export const tokens = createGlobalThemeContract(
         lg: null,
         xl: null,
       },
+
       weight: {
         normal: null,
         medium: null,
@@ -114,9 +208,10 @@ export const tokens = createGlobalThemeContract(
       },
     },
 
-    /* =========================
-       間距 Spacing
-    ========================= */
+    /* ==========================================================
+     * Spacing
+     * ========================================================== */
+
     space: {
       xs: null,
       sm: null,
@@ -125,9 +220,10 @@ export const tokens = createGlobalThemeContract(
       xl: null,
     },
 
-    /* =========================
-       圓角 Radius
-    ========================= */
+    /* ==========================================================
+     * Radius
+     * ========================================================== */
+
     radius: {
       sm: null,
       md: null,
@@ -135,18 +231,20 @@ export const tokens = createGlobalThemeContract(
       full: null,
     },
 
-    /* =========================
-       轉場效果 Transition
-    ========================= */
+    /* ==========================================================
+     * Transition
+     * ========================================================== */
+
     transition: {
       fast: null,
       normal: null,
       ease: null,
     },
 
-    /* =========================
-       層級 Z-index
-    ========================= */
+    /* ==========================================================
+     * Z-index
+     * ========================================================== */
+
     zIndex: {
       base: null,
       under: null,
@@ -162,5 +260,6 @@ export const tokens = createGlobalThemeContract(
       globalOverlay: null,
     },
   },
+
   (_, path) => path.join("-"),
 );

@@ -1,6 +1,4 @@
-﻿// electron/features/auth/credentials.ts
-
-import { app } from "electron";
+﻿import { app } from "electron";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -11,109 +9,42 @@ export interface GoogleCredentials {
   clientSecret?: string;
 }
 
-interface GoogleCredentialConfig {
-  client_id?: unknown;
-  client_secret?: unknown;
-}
-
-interface GoogleCredentialsJson {
-  installed?: GoogleCredentialConfig;
-  web?: GoogleCredentialConfig;
-}
-
-function getCredentialPath(): string {
-  return app.isPackaged
+export function getGoogleCredentials(): GoogleCredentials {
+  const filePath = app.isPackaged
     ? path.join(process.resourcesPath, CREDENTIAL_FILE)
     : path.join(process.cwd(), "resources", CREDENTIAL_FILE);
-}
 
-function readCredentialFile(filePath: string): string {
   if (!existsSync(filePath)) {
     throw new Error(`Google OAuth credentials not found: ${filePath}`);
   }
 
   try {
-    return readFileSync(filePath, "utf-8");
-  } catch (error) {
-    throw new Error(
-      `Failed to read Google OAuth credentials: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      { cause: error },
-    );
-  }
-}
+    const raw = readFileSync(filePath, "utf-8");
+    const json = JSON.parse(raw);
+    const config = json.installed ?? json.web;
 
-function parseCredentialsJson(
-  filePath: string,
-  raw: string,
-): GoogleCredentialsJson {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error("Credential JSON root must be an object");
+    if (!config || typeof config !== "object") {
+      throw new Error('Credentials must contain "installed" or "web" config');
     }
 
-    return parsed as GoogleCredentialsJson;
+    const clientId =
+      typeof config.client_id === "string" ? config.client_id.trim() : "";
+    if (!clientId) {
+      throw new Error("Google OAuth client_id not found");
+    }
+
+    const clientSecret =
+      typeof config.client_secret === "string" && config.client_secret.trim()
+        ? config.client_secret.trim()
+        : undefined;
+
+    return { clientId, clientSecret };
   } catch (error) {
     throw new Error(
-      `Failed to parse Google OAuth credentials: ${
+      `Failed to load Google OAuth credentials: ${
         error instanceof Error ? error.message : String(error)
       }`,
       { cause: error },
     );
   }
-}
-
-function getCredentialConfig(
-  json: GoogleCredentialsJson,
-): GoogleCredentialConfig {
-  const config = json.installed ?? json.web;
-
-  if (!config || typeof config !== "object") {
-    throw new Error(
-      'Google OAuth credentials must contain either "installed" or "web" configuration',
-    );
-  }
-
-  return config;
-}
-
-function getRequiredString(value: unknown, fieldName: string): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`Google OAuth ${fieldName} not found`);
-  }
-
-  return value.trim();
-}
-
-function getOptionalString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
-export function getGoogleCredentials(): GoogleCredentials {
-  const filePath = getCredentialPath();
-  const raw = readCredentialFile(filePath);
-  const json = parseCredentialsJson(filePath, raw);
-  const config = getCredentialConfig(json);
-
-  return {
-    clientId: getRequiredString(config.client_id, "client_id"),
-    clientSecret: getOptionalString(config.client_secret),
-  };
-}
-
-export function getGoogleClientId(): string {
-  return getGoogleCredentials().clientId;
-}
-
-export function getGoogleClientSecret(): string | undefined {
-  return getGoogleCredentials().clientSecret;
 }

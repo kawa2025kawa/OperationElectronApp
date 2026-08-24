@@ -6,15 +6,6 @@ import { useStatusToast } from "@renderer/hooks/useStatusToast";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { AuthView } from "@renderer/features/auth/AuthView";
 
-// 認証が必要なビューIDのリスト
-const PROTECTED_VIEWS = [
-  "kokyuhyo",
-  "jugyoin",
-  "store",
-  "tantou",
-  "spreadsheet",
-];
-
 export const useMainViewLogic = () => {
   useAutoUpdate();
   useStatusToast();
@@ -28,13 +19,14 @@ export const useMainViewLogic = () => {
   );
 
   const ViewComponent = useMemo(() => {
-    // 未認証で保護対象のビューを開こうとした場合は AuthView を強制返却
-    const isProtected = PROTECTED_VIEWS.includes(currentView.toLowerCase());
-    if (!isAuthenticated && isProtected) {
+    const viewConfig = getAppViewConfig(currentView);
+
+    // ビュー定義の isProtected フラグによる動的ガード
+    if (!isAuthenticated && viewConfig.isProtected) {
       return AuthView;
     }
 
-    return getAppViewConfig(currentView).component;
+    return viewConfig.component;
   }, [currentView, isAuthenticated]);
 
   return {

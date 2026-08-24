@@ -1,4 +1,4 @@
-//src\renderer\features\remoteDesktop\store\rdpSlice.ts
+// src/renderer/features/remoteDesktop/store/rdpSlice.ts
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
@@ -23,9 +23,16 @@ export const createRdpSlice: StateCreator<
   isRdpLoading: false,
 
   fetchRdpTargets: async () => {
+    // 全画面 LOADING 表示を開始
+    get().setGlobalProcessing({
+      message: "RDP ターゲット情報を読み込み中...",
+      target: "リモートデスクトップ",
+    });
+
     set((s: AppState) => {
       s.isRdpLoading = true;
     });
+
     try {
       const targets = await rdpService.fetchTargets();
       set((s: AppState) => {
@@ -39,6 +46,8 @@ export const createRdpSlice: StateCreator<
       set((s: AppState) => {
         s.isRdpLoading = false;
       });
+      // 全画面 LOADING 表示を解除
+      get().setGlobalProcessing(null);
     }
   },
 

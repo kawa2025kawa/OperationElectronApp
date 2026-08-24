@@ -1,23 +1,27 @@
-// src/renderer/features/operation/config/operationView.ts
-
-import React from "react";
+import { commands } from "@shared/api/commands";
+import { useAppStore } from "@shared/store";
 import type {
   AppViewDefinition,
   ViewActionDefinition,
 } from "@shared/types/appRegistryType";
-import { APP_VIEW_IDS, type ExtraModalType } from "@shared/types/uiType";
-import { OperationModal } from "@renderer/features/operation/components/modal/OperationModal";
 import type { OperationItem } from "@shared/types/operationType";
-import { useAppStore } from "@shared/store";
-import { commands } from "@shared/api/commands";
-
-// ============================================================
-// Constants & Helpers
-// ============================================================
+import { APP_VIEW_IDS, type ExtraModalType } from "@shared/types/uiType";
 
 const DEFAULT_MODAL_SIZE = {
   width: "min(80vw, 800px)",
   height: "min(70vh, 550px)",
+};
+
+const MANUAL_ALIAS_MAP: Record<string, string> = {
+  "37": "30",
+  "45": "30",
+  "48": "30",
+  "54": "30",
+  "36": "29",
+  "44": "29",
+  "47": "29",
+  "43": "28",
+  "68": "28",
 };
 
 const createModalAction = (
@@ -33,34 +37,21 @@ const createModalAction = (
   modalSize,
   isActive,
   execute: (_item, store) => {
-    store.openGlobalModal(
-      React.createElement(OperationModal, {
-        type,
-        onClose: store.closeGlobalModal,
-      }),
-      { title: label, ...modalSize },
-    );
+    // コンポーネントの直接インポートを避け、modalType を介して開く
+    store.openGlobalModal(null, { title: label, ...modalSize });
   },
 });
-
-// ============================================================
-// View Configuration
-// ============================================================
 
 export const operationViewConfig: AppViewDefinition = {
   id: APP_VIEW_IDS.OPERATION,
   title: "Operation",
   isProtected: false,
-
   sidebarMenu: { show: true, order: 1 },
-
   search: {
     placeholder: "管理番号、名称、JobIDで検索...",
     searchKeys: ["workName", "jobId", "kanriNo"],
   },
-
   actions: [
-    // 1. JC ジョブ実行 (Menuクリックで実行 -> LOADING表示 -> 完了後に自動解除)
     {
       key: "jc",
       label: "JC",
@@ -73,8 +64,6 @@ export const operationViewConfig: AppViewDefinition = {
         }
       },
     },
-
-    // 2. Script ジョブ実行 (Menuクリックで実行 -> LOADING表示 -> 完了後に自動解除)
     {
       key: "script",
       label: "script",
@@ -86,13 +75,9 @@ export const operationViewConfig: AppViewDefinition = {
         }
       },
     },
-
-    // 3. Link
     createModalAction("link", (item) =>
       Boolean(item.link && Object.keys(item.link).length > 0),
     ),
-
-    // 4. Manual
     {
       key: "manual",
       label: "Manual",
@@ -100,22 +85,7 @@ export const operationViewConfig: AppViewDefinition = {
       isActive: (item) => Boolean(item?.kanriNo),
       execute: async (item) => {
         const kanriNoStr = String(item.kanriNo).trim();
-
-        // 管理番号のエイリアスマップ（統合先への置き換え定義）
-        const MANUAL_ALIAS_MAP: Record<string, string> = {
-          "37": "30",
-          "45": "30",
-          "48": "30",
-          "54": "30",
-          "36": "29",
-          "44": "29",
-          "47": "29",
-          "43": "28",
-          "68": "28",
-        };
-
         const targetKanriNo = MANUAL_ALIAS_MAP[kanriNoStr] ?? kanriNoStr;
-
         const targetUrl = `https://sites.google.com/belc.co.jp/operation-manual-${targetKanriNo}`;
         await commands.openExternal(targetUrl);
       },

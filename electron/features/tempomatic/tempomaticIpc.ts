@@ -1,18 +1,21 @@
-﻿import { ipcMain } from "electron";
-import {
-  setJob30Params,
-  type Job30Params,
-} from "../operation/jobs/scripts/job_30";
+﻿// electron/features/tempomatic/tempomaticIpc.ts
+
+import { ipcMain } from "electron";
+import { uploadPdfDocuments } from "./tempomaticService";
+
+type TempomaticUploadDocumentParams = {
+  filePaths: string[];
+  expireDate: string;
+};
 
 export function registerTempomaticIpc(): void {
   ipcMain.handle(
-    "tempomaticUploadDocument",
-    async (_event, args: Job30Params) => {
-      setJob30Params({
-        filePaths: args?.filePaths ?? [],
-        expireDate: args?.expireDate ?? "",
-      });
-      return true;
+    "tempomatic:uploadDocument",
+    async (
+      _event,
+      { filePaths, expireDate }: TempomaticUploadDocumentParams,
+    ): Promise<string> => {
+      return uploadPdfDocuments(filePaths, expireDate);
     },
   );
 }

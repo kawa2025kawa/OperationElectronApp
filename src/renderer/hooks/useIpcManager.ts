@@ -2,14 +2,11 @@
 
 import { useEffect } from "react";
 import { useAppStore } from "@shared/store/index";
-import type { OperationItem } from "@shared/types/operationType";
-
 import { commands } from "@shared/api/commands";
 
 export const useIpcManager = (): void => {
   useEffect(() => {
     let cleanup: (() => void) | undefined;
-
     try {
       cleanup = commands.onOperationStatusUpdated((update) => {
         useAppStore.getState().updateItemStatus(update);
@@ -17,7 +14,6 @@ export const useIpcManager = (): void => {
     } catch (error) {
       console.error("[IPC] Listener Error:", error);
     }
-
     return () => {
       cleanup?.();
     };

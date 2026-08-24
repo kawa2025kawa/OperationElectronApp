@@ -1,3 +1,5 @@
+﻿//electron\features\tempomatic\tempomaticService.ts
+
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -34,21 +36,6 @@ const DEFAULT_CATEGORIES = [
   "1718",
   "998",
 ];
-
-// ============================================================
-// Types & State
-// ============================================================
-
-export interface Job30Params {
-  filePaths: string[];
-  expireDate: string;
-}
-
-let pendingParams: Job30Params | null = null;
-
-export function setJob30Params(params: Job30Params): void {
-  pendingParams = params;
-}
 
 // ============================================================
 // Native Cookie Store Client
@@ -197,8 +184,9 @@ const createUploadForm = (
     form.append("category", category);
   }
 
-  // Node.js 標準 FormData にファイル（Blob）を追加
-  const blob = new Blob([new Uint8Array(fileBuffer)], { type: "application/pdf" });
+  const blob = new Blob([new Uint8Array(fileBuffer)], {
+    type: "application/pdf",
+  });
   form.append("pdfFile", blob, fileName);
 
   return form;
@@ -281,17 +269,14 @@ const uploadDocumentsSequentially = async (
 };
 
 // ============================================================
-// Main Job Function
+// Main Upload API (直接呼出用)
 // ============================================================
 
-export async function runJob30(): Promise<string> {
-  if (!pendingParams) {
-    throw new Error("アップロードパラメータがセットされていません。");
-  }
-
-  const { filePaths, expireDate } = pendingParams;
-
-  if (filePaths.length === 0) {
+export async function uploadPdfDocuments(
+  filePaths: string[],
+  expireDate: string,
+): Promise<string> {
+  if (!filePaths || filePaths.length === 0) {
     console.error("[Tempomatic] filePaths is empty.");
     throw new Error("アップロードするファイルパスが選択されていません。");
   }
@@ -309,15 +294,10 @@ export async function runJob30(): Promise<string> {
     })),
   );
 
-  try {
-    const client = new NativeTempomaticClient();
-    await loginToTempomatic(client);
-    await uploadDocumentsSequentially(client, filePaths, expireDate);
+  const client = new NativeTempomaticClient();
+  await loginToTempomatic(client);
+  await uploadDocumentsSequentially(client, filePaths, expireDate);
 
-    console.log("[Tempomatic] All documents uploaded successfully.");
-    return "正常終了";
-  } finally {
-    // 実行完了・例外発生にかかわらずパラメータをクリア
-    pendingParams = null;
-  }
+  console.log("[Tempomatic] All documents uploaded successfully.");
+  return "正常終了";
 }

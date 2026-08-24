@@ -1,3 +1,5 @@
+// src/renderer/features/spreadSheet/components/table/SpreadSheetTable.tsx
+
 import React, { useCallback } from "react";
 import type { Column } from "@shared/types/tableType";
 import type {
@@ -19,19 +21,14 @@ const TableHeader = <T extends object>({
 }) => (
   <div className={styles.headerRow}>
     {columns.map((col) => {
-      const alignKey = col.align ?? "left";
-      const alignClass = styles.thAlignVariants[alignKey] ?? "";
-      const widthVal = col.width ?? "150px";
+      const alignClass = styles.thAlignVariants[col.align ?? "left"] ?? "";
+      const width = col.width ?? "150px";
 
       return (
         <div
           key={String(col.key)}
           className={`${styles.thBase} ${alignClass}`}
-          style={{
-            width: widthVal,
-            minWidth: widthVal,
-            maxWidth: widthVal,
-          }}
+          style={{ width, minWidth: width, maxWidth: width }}
         >
           {col.label}
         </div>
@@ -66,24 +63,18 @@ const TableRowInner = <T extends object>({
       >
         {columns.map((col) => {
           const keyStr = String(col.key);
-          const align = col.align ?? "left";
-          const alignClass = styles.tdAlignVariants[align] ?? "";
+          const alignClass = styles.tdAlignVariants[col.align ?? "left"] ?? "";
+          const width = col.width ?? "150px";
 
           const rawValue = col.render
             ? col.render(item)
             : getValueByPath(item as Record<string, unknown>, keyStr);
 
-          const widthVal = col.width ?? "150px";
-
           return (
             <div
               key={keyStr}
               className={`${styles.tdBase} ${alignClass}`}
-              style={{
-                width: widthVal,
-                minWidth: widthVal,
-                maxWidth: widthVal,
-              }}
+              style={{ width, minWidth: width, maxWidth: width }}
             >
               <span className={styles.cellText}>
                 {rawValue != null && typeof rawValue === "object"
@@ -114,38 +105,27 @@ export const SpreadSheetTableComponent = <T extends object>({
   onRowClick,
   selectedId,
 }: SpreadSheetTableProps<T>) => {
-  // ⭕ measureElement の分割代入を削除
   const { parentRef, virtualItems, totalSize } = useSpreadSheetTable({ data });
 
   return (
     <div className={styles.container}>
-      {/* ------------------------------------------------------------------ */}
-      {/* Header                                                             */}
-      {/* ------------------------------------------------------------------ */}
-
+      {/* Header */}
       <div className={styles.headerWrapper}>
         <TableHeader columns={columns} />
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Body                                                               */}
-      {/* ------------------------------------------------------------------ */}
-
+      {/* Body */}
       <div ref={parentRef} className={styles.bodyWrapper}>
         <div
           className={styles.virtualBody}
-          style={{
-            height: `${totalSize}px`,
-          }}
+          style={{ height: `${totalSize}px` }}
         >
           {!data || data.length === 0 ? (
             <div className={styles.emptyText}>データが存在しません</div>
           ) : (
             virtualItems.map((virtualRow) => {
               const item = data[virtualRow.index];
-
               const id = String(item[rowKey] ?? "");
-
               const isSelected =
                 selectedId != null && String(selectedId) === id;
 

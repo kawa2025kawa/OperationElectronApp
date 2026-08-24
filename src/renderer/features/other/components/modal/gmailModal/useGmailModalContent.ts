@@ -1,30 +1,12 @@
-﻿// src/renderer/features/other/components/modal/gmailModal/useGmailModalContent.ts
-
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-
-import { gmailService } from "@renderer/features/operation/services/gmailService";
-import { selectActiveSelectedItem } from "@renderer/features/operation/store/operationSelectors";
+import { gmailService } from "@renderer/features/other/services/gmailService";
 import { useAppStore } from "@shared/store";
-
-import type { ModalContentProps } from "@renderer/features/other/components/modal/useOtherModalLogic";
-
 import {
   EMAIL_TEMPLATE_OPTIONS,
   getEmailTemplate,
-  getEmailTemplateKey,
   type EmailTemplateKey,
 } from "./templates";
-
-// =====================================================
-// Types
-// =====================================================
-
-interface UseGmailModalContentParams {
-  registerPrimaryAction: ModalContentProps["registerPrimaryAction"];
-  setTitle: ModalContentProps["setTitle"];
-  forceTemplateSelection?: boolean;
-}
 
 interface FormValues {
   to: string;
@@ -33,233 +15,114 @@ interface FormValues {
   body: string;
 }
 
-// =====================================================
-// Helpers
-// =====================================================
-
 function getNextTuesdayString(): string {
   const now = new Date();
-  const dayOfWeek = now.getDay();
-
-  const daysUntilNextTuesday = (2 - dayOfWeek + 7) % 7 || 7;
-
+  const daysUntilNextTuesday = (2 - now.getDay() + 7) % 7 || 7;
   const nextTuesday = new Date(now);
-
   nextTuesday.setDate(now.getDate() + daysUntilNextTuesday);
-
-  return `${nextTuesday.getMonth() + 1}月${nextTuesday.getDate()}日(火)`;
+  return `${nextTuesday.getMonth() + 1}月${nextTuesday.getDate()}日`;
 }
 
 function stripHtmlTags(html: string): string {
   if (!html) return "";
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  return doc.body.textContent || doc.body.innerText || "";
+  const formattedHtml = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<\/p>/gi, "\n");
+  const doc = new DOMParser().parseFromString(formattedHtml, "text/html");
+  const textContent = doc.body.textContent || "";
+  return textContent
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function createFormValues(
   templateKey: EmailTemplateKey | null,
   lastName: string,
   nextTuesdayStr: string,
-  links?: Record<string, string> | null,
 ): FormValues {
-  if (!templateKey) {
-    return {
-      to: "",
-      cc: "",
-      subject: "",
-      body: "",
-    };
-  }
-
+  if (!templateKey) return { to: "", cc: "", subject: "", body: "" };
   const template = getEmailTemplate(templateKey);
-
   return {
     to: template.to,
     cc: template.cc ?? "",
     subject: template.subject,
-    body: template.generateBody({
-      lastName,
-      nextTuesdayStr,
-      links,
-    }),
+    body: template.generateBody({ lastName, nextTuesdayStr }),
   };
 }
 
-// =====================================================
-// Hook
-// =====================================================
-
-export function useGmailModalContent({
-  registerPrimaryAction,
-  setTitle,
-  forceTemplateSelection = false,
-}: UseGmailModalContentParams) {
-  const selectedItem = useAppStore(selectActiveSelectedItem);
-
-  const userEmail = useAppStore((state) => state.userEmail);
-
+export function useGmailModalContent() {
   const familyName = useAppStore((state) => state.familyName);
+  const userEmail = useAppStore((state) => state.userEmail);
+  const lastName = familyName || "担当者";
+  const nextTuesdayStr = getNextTuesdayString();
 
-  const selectedKanriNo = selectedItem?.kanriNo;
-
-  const lastName = familyName || "担当";
-
-  const [nextTuesdayStr] = useState(getNextTuesdayString);
-
-  const initialTemplateKey = forceTemplateSelection
-    ? null
-    : getEmailTemplateKey(selectedKanriNo);
-
-  const [templateKey, setTemplateKey] = useState<EmailTemplateKey | null>(
-    initialTemplateKey,
-  );
-
-  const [formValues, setFormValues] = useState<FormValues>(() =>
-    createFormValues(
-      initialTemplateKey,
-      lastName,
-      nextTuesdayStr,
-      selectedItem?.link,
-    ),
-  );
-
+  const [templateKey, setTemplateKey] = useState<EmailTemplateKey | null>(null);
+  const [formValues, setFormValues] = useState<FormValues>({
+    to: "",
+    cc: "",
+    subject: "",
+    body: "",
+  });
   const [isSaving, setIsSaving] = useState(false);
+  const [isExecuted, setIsExecuted] = useState(false);
 
-  // ===================================================
-  // Template
-  // ===================================================
+  const handleInputChange = useCallback(
+    (field: keyof FormValues) =>
+      (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFormValues((prev) => ({ ...prev, [field]: e.target.value }));
+      },
+    [],
+  );
 
   const handleTemplateChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const nextTemplateKey = event.target.value
-        ? (event.target.value as EmailTemplateKey)
-        : null;
-
-      setTemplateKey(nextTemplateKey);
-
-      setFormValues(
-        createFormValues(
-          nextTemplateKey,
-          lastName,
-          nextTuesdayStr,
-          selectedItem?.link,
-        ),
-      );
+      const nextKey = (event.target.value as EmailTemplateKey) || null;
+      setTemplateKey(nextKey);
+      setFormValues(createFormValues(nextKey, lastName, nextTuesdayStr));
     },
-    [lastName, nextTuesdayStr, selectedItem?.link],
+    [lastName, nextTuesdayStr],
   );
-
-  // ===================================================
-  // Form
-  // ===================================================
-
-  const handleToChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setFormValues((prev) => ({
-        ...prev,
-        to: event.target.value,
-      }));
-    },
-    [],
-  );
-
-  const handleCcChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setFormValues((prev) => ({
-        ...prev,
-        cc: event.target.value,
-      }));
-    },
-    [],
-  );
-
-  const handleSubjectChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setFormValues((prev) => ({
-        ...prev,
-        subject: event.target.value,
-      }));
-    },
-    [],
-  );
-
-  const handleBodyChange = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setFormValues((prev) => ({
-        ...prev,
-        body: event.target.value,
-      }));
-    },
-    [],
-  );
-
-  // ===================================================
-  // Gmail Signature
-  // ===================================================
 
   useEffect(() => {
-    if (!templateKey) {
-      return;
-    }
-
+    if (!templateKey) return;
     let mounted = true;
-
     void gmailService
       .getPrimarySignature()
       .then((signature) => {
-        if (!mounted || !signature?.trim()) {
-          return;
-        }
-
-        const plainSignature = stripHtmlTags(signature).trim();
-
+        const plainSignature = stripHtmlTags(signature || "");
+        if (!mounted || !plainSignature) return;
         setFormValues((prev) => {
-          if (prev.body.includes(plainSignature)) {
-            return prev;
-          }
-
+          if (prev.body.includes(plainSignature)) return prev;
+          const currentBody = prev.body.trimEnd();
           return {
             ...prev,
-            body: `${prev.body.trim()}\n\n--\n${plainSignature}`,
+            body: `${currentBody}\n\n--\n${plainSignature}`,
           };
         });
       })
-      .catch((error) => {
-        console.warn("[GmailModal] Failed to load signature:", error);
-      });
-
+      .catch((err) => console.warn("[GmailModal] Signature error:", err));
     return () => {
       mounted = false;
     };
   }, [templateKey]);
 
-  // ===================================================
-  // Execute
-  // ===================================================
-
   const handleExecute = useCallback(async () => {
-    if (!templateKey) {
-      toast.error("メールテンプレートを選択してください");
-      throw new Error("メールテンプレート未選択");
-    }
-
+    if (!templateKey) return;
     if (!formValues.to.trim()) {
-      toast.error("宛先(To)を入力してください");
-      throw new Error("宛先未入力");
+      toast.error("宛先 (To) を入力してください。");
+      return;
     }
-
     setIsSaving(true);
-
-    // ★ 1. 全面 LOADING 状態を更新
-    const setGlobalProcessing = useAppStore.getState().setGlobalProcessing;
+    const { setGlobalProcessing } = useAppStore.getState();
     setGlobalProcessing({
-      message: "Gmail下書き保存中...",
-      target: formValues.subject.trim() || "下書きメール",
+      message: "Gmail下書き作成中...",
+      target: formValues.subject.trim() || "無題",
     });
-
-    // ★ 2. ブラウザの描画更新イベントを1フレーム待ち、LOADING画面を確実に表示させる
     await new Promise((resolve) => setTimeout(resolve, 50));
-
     try {
       await gmailService.createDraft({
         to: formValues.to.trim(),
@@ -267,55 +130,28 @@ export function useGmailModalContent({
         subject: formValues.subject.trim(),
         body: formValues.body,
       });
-
-      // ヘッダータイトルを「下書き保存完了」へ更新
-      setTitle("下書き保存完了");
-
-      toast.success("Gmailの下書きに保存しました");
+      setIsExecuted(true);
+      toast.success("Gmail下書きを作成しました。");
     } catch (error) {
       console.error("[GmailModal] Failed to create draft:", error);
-
       toast.error(
-        error instanceof Error ? error.message : "下書き保存に失敗しました",
+        error instanceof Error ? error.message : "下書き作成に失敗しました。",
       );
-
-      throw error;
     } finally {
       setIsSaving(false);
-      // ★ 3. LOADING 表示をクリア
       setGlobalProcessing(null);
     }
-  }, [templateKey, formValues, setTitle]);
-
-  // ===================================================
-  // Primary Action
-  // ===================================================
-
-  useEffect(() => {
-    registerPrimaryAction(handleExecute);
-
-    return () => {
-      registerPrimaryAction(undefined);
-    };
-  }, [handleExecute, registerPrimaryAction]);
+  }, [templateKey, formValues]);
 
   return {
     userEmail,
     templateKey,
-
-    to: formValues.to,
-    cc: formValues.cc,
-    subject: formValues.subject,
-    body: formValues.body,
-
+    ...formValues,
     isSaving,
-
+    isExecuted,
     templateOptions: EMAIL_TEMPLATE_OPTIONS,
-
     handleTemplateChange,
-    handleToChange,
-    handleCcChange,
-    handleSubjectChange,
-    handleBodyChange,
+    handleInputChange,
+    handleExecute,
   };
 }

@@ -1,39 +1,75 @@
 ﻿// electron/services/operation/jobs/scripts/job_39.ts
 
-import fs from "fs-extra";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import path from "node:path";
-import { isSameDay } from "date-fns";
+import fs from "fs-extra";
+import { format, isSameDay } from "date-fns";
+
+const execFileAsync = promisify(execFile);
 
 const BEFORE_NOON_DIR = "\\\\172.25.101.51\\if\\MASTER\\RCV";
 const AFTER_NOON_DIR = "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV";
 
 const TARGET_FILES = ["Okurikomi_toMD.dat", "htsf0060"] as const;
 
-function selectTargetDirectory(): string {
-  return new Date().getHours() < 12 ? BEFORE_NOON_DIR : AFTER_NOON_DIR;
+/**
+ * Windows コマンド（dir /b）を使ってネットワーク共有フォルダ内の該当ファイルを高速検索
+ */
+async function hasFileWithPattern(
+  dirPath: string,
+  prefix: string,
+  dateStr: string,
+): Promise<boolean> {
+  const searchPattern = `${prefix}_${dateStr}*`;
+  try {
+    const { stdout } = await execFileAsync("cmd.exe", [
+      "/c",
+      "dir",
+      "/b",
+      path.join(dirPath, searchPattern),
+    ]);
+    return stdout.trim().length > 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function runJob39(): Promise<string> {
-  const targetDir = selectTargetDirectory();
-  const today = new Date();
+  const now = new Date();
+  const isBeforeNoon = now.getHours() < 12;
+  const todayStr = format(now, "yyyyMMdd");
 
   const missing: string[] = [];
 
-  // 🎯 2万件のディレクトリ走査をスキップし、ピンポイントで2ファイルのみ判定
-  for (const targetName of TARGET_FILES) {
-    const filePath = path.join(targetDir, targetName);
-
-    try {
-      // ファイルの存在確認と情報取得を1回の通信で実行
-      const stats = await fs.stat(filePath);
-
-      // 本日の更新日時か判定
-      if (!isSameDay(stats.mtime, today)) {
-        missing.push(`${targetName} (更新日時が本日ではありません)`);
+  if (isBeforeNoon) {
+    // ----------------------------------------------------
+    // 午前（12時前）: 固定ファイル名の存在・更新日チェック
+    // ----------------------------------------------------
+    for (const targetName of TARGET_FILES) {
+      const filePath = path.join(BEFORE_NOON_DIR, targetName);
+      try {
+        const stats = await fs.stat(filePath);
+        if (!isSameDay(stats.mtime, now)) {
+          missing.push(`${targetName} (更新日時が本日ではありません)`);
+        }
+      } catch {
+        missing.push(`${targetName} (未存在)`);
       }
-    } catch {
-      // ファイルが存在しない場合は stat が例外を投げる
-      missing.push(`${targetName} (未存在)`);
+    }
+  } else {
+    // ----------------------------------------------------
+    // 午後（12時以降）: 2万件のフォルダから `プレフィックス_YYYYMMDD` で高速検索
+    // ----------------------------------------------------
+    for (const targetName of TARGET_FILES) {
+      const exists = await hasFileWithPattern(
+        AFTER_NOON_DIR,
+        targetName,
+        todayStr,
+      );
+      if (!exists) {
+        missing.push(`${targetName}_${todayStr}* (未存在)`);
+      }
     }
   }
 

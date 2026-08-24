@@ -5,7 +5,7 @@ import electron from "vite-plugin-electron/simple";
 
 import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
-import packageJson from "./package.json";
+import packageJson from "./package.json" with { type: "json" };
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
 

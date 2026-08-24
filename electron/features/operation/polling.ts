@@ -1,6 +1,4 @@
-﻿// electron/features/operation/polling.ts
-
-import { evaluateAllTargetStatuses } from "@electron/features/operation/evaluators/pollingStatusEvaluator";
+﻿import { evaluateAllTargetStatuses } from "@electron/features/operation/evaluators/pollingStatusEvaluator";
 import { triggerAutoStartJobs } from "@electron/features/operation/jobRunner";
 import {
   isTrackerTarget,
@@ -11,9 +9,11 @@ import { getAllTargets } from "@electron/features/operation/targetManager";
 let timer: NodeJS.Timeout | null = null;
 let running = false;
 
-// ============================================================
-// State Control
-// ============================================================
+const formatTime = (timeMs: number) =>
+  new Date(timeMs).toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    hour12: false,
+  });
 
 export function isPollingRunning(): boolean {
   return running;
@@ -36,18 +36,9 @@ export function stopPolling(): void {
   console.log("[Polling] stopped");
 }
 
-// ============================================================
-// Main Loop & Cycle
-// ============================================================
-
 async function pollingLoop(): Promise<void> {
   while (running) {
     const startedAt = Date.now();
-    const startTimeStr = new Date(startedAt).toLocaleString("ja-JP", {
-      timeZone: "Asia/Tokyo",
-      hour12: false,
-    });
-
     const targets = getAllTargets();
     const trackerTargets = targets.filter(isTrackerTarget).map((t) => ({
       kanriNo: t.kanriNo,
@@ -55,7 +46,7 @@ async function pollingLoop(): Promise<void> {
     }));
 
     console.log(
-      `\n=================== [Polling Loop START: ${startTimeStr}] ===================`,
+      `\n=================== [Polling Loop START: ${formatTime(startedAt)}] ===================`,
     );
     console.log("[Polling Debug] (START):", {
       count: trackerTargets.length,
@@ -69,17 +60,12 @@ async function pollingLoop(): Promise<void> {
     }
 
     const endedAt = Date.now();
-    const endTimeStr = new Date(endedAt).toLocaleString("ja-JP", {
-      timeZone: "Asia/Tokyo",
-      hour12: false,
-    });
-
     console.log("[Polling Debug] (END):", {
       count: trackerTargets.length,
       targets: trackerTargets,
     });
     console.log(
-      `=================== [Polling Loop END: ${endTimeStr} (Elapsed: ${endedAt - startedAt}ms)] ===================\n`,
+      `=================== [Polling Loop END: ${formatTime(endedAt)} (Elapsed: ${endedAt - startedAt}ms)] ===================\n`,
     );
 
     if (running) {
@@ -92,21 +78,16 @@ async function runCycle(): Promise<void> {
   const startedAt = Date.now();
   const targets = getAllTargets();
 
-  console.log("[Polling] runCycle START", {
-    targets: targets.length,
-  });
+  console.log("[Polling] runCycle START", { targets: targets.length });
 
   if (!targets.length || !running) return;
 
-  // 1. ルール評価 (scheduled -> waiting -> ready)
   evaluateAllTargetStatuses(targets, () => running);
   if (!running) return;
 
-  // 2. Tracker API 同期
   await syncTrackerStatuses(targets);
   if (!running) return;
 
-  // 3. 自動起動ジョブの実行 (jobRunner 内の triggerAutoStartJobs を利用)
   await triggerAutoStartJobs(targets, () => running);
 
   console.log("[Polling] runCycle END", {
@@ -114,14 +95,11 @@ async function runCycle(): Promise<void> {
   });
 }
 
-// ============================================================
-// Helpers
-// ============================================================
-
 function clearTimer(): void {
-  if (timer === null) return;
-  clearTimeout(timer);
-  timer = null;
+  if (timer !== null) {
+    clearTimeout(timer);
+    timer = null;
+  }
 }
 
 function sleepUntilNextMinute(): Promise<void> {

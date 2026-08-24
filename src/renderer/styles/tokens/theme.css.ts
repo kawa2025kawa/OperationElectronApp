@@ -1,15 +1,15 @@
-// src/renderer/styles/tokens/theme.css.ts
-
 import { createTheme, style } from "@vanilla-extract/css";
 import { tokens } from "./semantic.contract.js";
 
-/* =========================
-   共通トークン・基本設定
-========================= */
+/* ============================================================
+ * Common Tokens
+ * ============================================================ */
+
 const commonValues = {
   font: {
     base: "'Inter', 'Noto Sans JP', sans-serif",
     mono: "'JetBrains Mono', monospace",
+
     size: {
       xs: "0.75rem",
       sm: "0.875rem",
@@ -17,6 +17,7 @@ const commonValues = {
       lg: "1.125rem",
       xl: "1.25rem",
     },
+
     weight: {
       normal: "500",
       medium: "700",
@@ -61,21 +62,26 @@ const commonValues = {
   },
 };
 
-/* =========================
-   基本アニメーション設定
-========================= */
+/* ============================================================
+ * Theme Transition
+ * ============================================================ */
+
 export const themeTransition = style({
-  transition: `
-    background-color ${commonValues.transition.normal},
-    color ${commonValues.transition.normal},
-    border-color ${commonValues.transition.normal},
-    box-shadow ${commonValues.transition.normal}
-  `.replace(/\n/g, ""),
+  transition: [
+    `background-color ${commonValues.transition.normal}`,
+    `color ${commonValues.transition.normal}`,
+    `border-color ${commonValues.transition.normal}`,
+    `box-shadow ${commonValues.transition.normal}`,
+    `backdrop-filter ${commonValues.transition.normal}`,
+    `transform ${commonValues.transition.fast}`,
+    `opacity ${commonValues.transition.normal}`,
+  ].join(","),
 });
 
-/* =========================
-   ダークテーマ設定 (Dark Theme)
-========================= */
+/* ============================================================
+ * Dark Theme
+ * ============================================================ */
+
 export const darkThemeClass = createTheme(
   tokens,
   {
@@ -87,7 +93,6 @@ export const darkThemeClass = createTheme(
         surface: "rgba(28, 28, 40, 1)",
         inset: "rgba(16, 16, 22, 1)",
         header: "rgba(20, 20, 25, 0.8)",
-        frostedGlass: "rgba(0, 0, 0, 0.45)", // 💡 ダーク時のすりガラス用透過背景を追加
       },
 
       text: {
@@ -98,7 +103,7 @@ export const darkThemeClass = createTheme(
 
       border: {
         default: "rgba(255, 255, 255, 0.08)",
-        subtle: "rgba(0, 0, 0, 0.6)", // 💡 くっきり境界線用を追加
+        subtle: "rgba(0, 0, 0, 0.6)",
         accent: "rgba(0, 200, 180, 1)",
       },
 
@@ -121,30 +126,77 @@ export const darkThemeClass = createTheme(
       },
     },
 
+    /* ========================================================
+     * Glass
+     * ======================================================== */
+
+    glass: {
+      surface: "rgba(0, 0, 0, 0.45)",
+      surfaceSubtle: "rgba(0, 0, 0, 0.28)",
+
+      border: "rgba(255, 255, 255, 0.08)",
+      borderStrong: "rgba(255, 255, 255, 0.14)",
+
+      blur: "18px",
+      blurStrong: "28px",
+      saturation: "140%",
+    },
+
+    /* ========================================================
+     * Gradient
+     * ======================================================== */
+
     gradient: {
       brand:
         "linear-gradient(90deg, rgba(12, 235, 235, 1), rgba(32, 227, 178, 1), rgba(41, 255, 198, 1))",
     },
 
+    /* ========================================================
+     * Shadow
+     * ======================================================== */
+
     shadow: {
       raised: {
-        low: "3px 3px 6px rgba(0,0,0,0.5), -2px -2px 6px rgba(255,255,255,0.08)",
-        md: "5px 5px 10px rgba(0,0,0,0.6), -3px -3px 8px rgba(255,255,255,0.1)",
-        high: "8px 8px 16px rgba(0,0,0,0.8), -5px -5px 12px rgba(255,255,255,0.12)",
+        low: [
+          "3px 3px 6px rgba(0, 0, 0, 0.5)",
+          "-2px -2px 6px rgba(255, 255, 255, 0.08)",
+        ].join(", "),
+
+        md: [
+          "5px 5px 10px rgba(0, 0, 0, 0.6)",
+          "-3px -3px 8px rgba(255, 255, 255, 0.1)",
+        ].join(", "),
+
+        high: [
+          "8px 8px 16px rgba(0, 0, 0, 0.8)",
+          "-5px -5px 12px rgba(255, 255, 255, 0.12)",
+        ].join(", "),
       },
 
       pressed: {
-        low: "inset 3px 3px 6px rgba(0,0,0,0.6), inset -2px -2px 6px rgba(255,255,255,0.08)",
-        md: "inset 5px 5px 10px rgba(0,0,0,0.8), inset -3px -3px 8px rgba(255,255,255,0.1)",
-        high: "inset 10px 10px 20px rgba(0,0,0,0.9), inset -8px -8px 16px rgba(255,255,255,0.05)",
+        low: [
+          "inset 3px 3px 6px rgba(0, 0, 0, 0.6)",
+          "inset -2px -2px 6px rgba(255, 255, 255, 0.08)",
+        ].join(", "),
+
+        md: [
+          "inset 5px 5px 10px rgba(0, 0, 0, 0.8)",
+          "inset -3px -3px 8px rgba(255, 255, 255, 0.1)",
+        ].join(", "),
+
+        high: [
+          "inset 10px 10px 20px rgba(0, 0, 0, 0.9)",
+          "inset -8px -8px 16px rgba(255, 255, 255, 0.05)",
+        ].join(", "),
       },
 
       glow: {
-        brand: "0 0 12px rgba(0,200,180,0.5)",
-        cyan: "0 0 15px rgba(0,220,255,0.6)",
+        brand: "0 0 12px rgba(0, 200, 180, 0.5)",
+        cyan: "0 0 15px rgba(0, 220, 255, 0.6)",
         white: "0 0 14px rgba(255, 255, 255, 0.8)",
+
         total: "0 0 12px rgba(255, 255, 255, 0.5)",
-        error: "0 0 12px rgba(255,80,80,0.5)",
+        error: "0 0 12px rgba(255, 80, 80, 0.5)",
         success: "0 0 12px rgba(74, 222, 128, 0.5)",
         running: "0 0 12px rgba(250, 204, 21, 0.5)",
         ready: "0 0 12px rgba(226, 53, 140, 0.5)",
@@ -156,9 +208,10 @@ export const darkThemeClass = createTheme(
   "theme-dark",
 );
 
-/* =========================
-   ライトテーマ設定 (Light Theme)
-========================= */
+/* ============================================================
+ * Light Theme
+ * ============================================================ */
+
 export const lightThemeClass = createTheme(
   tokens,
   {
@@ -170,7 +223,6 @@ export const lightThemeClass = createTheme(
         surface: "rgba(242, 245, 248, 1)",
         inset: "rgba(225, 230, 235, 1)",
         header: "rgba(242, 245, 248, 0.8)",
-        frostedGlass: "rgba(255, 255, 255, 0.65)", // 💡 ライト時のすりガラス用透過背景を追加
       },
 
       text: {
@@ -181,7 +233,7 @@ export const lightThemeClass = createTheme(
 
       border: {
         default: "rgba(0, 0, 0, 0.08)",
-        subtle: "rgba(0, 0, 0, 0.15)", // 💡 くっきり境界線用を追加
+        subtle: "rgba(0, 0, 0, 0.15)",
         accent: "rgba(0, 200, 180, 1)",
       },
 
@@ -204,28 +256,75 @@ export const lightThemeClass = createTheme(
       },
     },
 
+    /* ========================================================
+     * Glass
+     * ======================================================== */
+
+    glass: {
+      surface: "rgba(255, 255, 255, 0.65)",
+      surfaceSubtle: "rgba(255, 255, 255, 0.45)",
+
+      border: "rgba(255, 255, 255, 0.55)",
+      borderStrong: "rgba(255, 255, 255, 0.8)",
+
+      blur: "18px",
+      blurStrong: "28px",
+      saturation: "140%",
+    },
+
+    /* ========================================================
+     * Gradient
+     * ======================================================== */
+
     gradient: {
       brand:
         "linear-gradient(135deg, rgba(0, 242, 254, 1) 0%, rgb(47, 156, 252) 100%)",
     },
 
+    /* ========================================================
+     * Shadow
+     * ======================================================== */
+
     shadow: {
       raised: {
-        low: "3px 3px 6px rgba(0, 0, 0, 0.15), -2px -2px 6px rgba(255, 255, 255, 0.8)",
-        md: "5px 5px 10px rgba(0, 0, 0, 0.2), -4px -4px 8px rgba(255, 255, 255, 0.9)",
-        high: "8px 8px 16px rgba(0, 0, 0, 0.35), -6px -6px 12px rgba(255, 255, 255, 1)",
+        low: [
+          "3px 3px 6px rgba(0, 0, 0, 0.15)",
+          "-2px -2px 6px rgba(255, 255, 255, 0.8)",
+        ].join(", "),
+
+        md: [
+          "5px 5px 10px rgba(0, 0, 0, 0.2)",
+          "-4px -4px 8px rgba(255, 255, 255, 0.9)",
+        ].join(", "),
+
+        high: [
+          "8px 8px 16px rgba(0, 0, 0, 0.35)",
+          "-6px -6px 12px rgba(255, 255, 255, 1)",
+        ].join(", "),
       },
 
       pressed: {
-        low: "inset 3px 3px 6px rgba(0, 0, 0, 0.15), inset -2px -2px 6px rgba(255, 255, 255, 0.8)",
-        md: "inset 5px 5px 10px rgba(0, 0, 0, 0.2), inset -4px -4px 8px rgba(255, 255, 255, 0.9)",
-        high: "inset 10px 10px 20px rgba(0, 0, 0, 0.35), inset -8px -8px 16px rgba(255, 255, 255, 1)",
+        low: [
+          "inset 3px 3px 6px rgba(0, 0, 0, 0.15)",
+          "inset -2px -2px 6px rgba(255, 255, 255, 0.8)",
+        ].join(", "),
+
+        md: [
+          "inset 5px 5px 10px rgba(0, 0, 0, 0.2)",
+          "inset -4px -4px 8px rgba(255, 255, 255, 0.9)",
+        ].join(", "),
+
+        high: [
+          "inset 10px 10px 20px rgba(0, 0, 0, 0.35)",
+          "inset -8px -8px 16px rgba(255, 255, 255, 1)",
+        ].join(", "),
       },
 
       glow: {
         brand: "0 0 10px rgba(0, 200, 180, 0.4)",
         cyan: "0 0 12px rgba(0, 200, 255, 0.4)",
         white: "0 0 14px rgba(255, 255, 255, 0.8)",
+
         total: "0 0 10px rgba(60, 64, 67, 0.4)",
         error: "0 0 10px rgba(255, 80, 80, 0.4)",
         success: "0 0 10px rgba(34, 197, 94, 0.4)",

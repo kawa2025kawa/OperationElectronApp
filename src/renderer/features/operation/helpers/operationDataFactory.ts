@@ -1,9 +1,9 @@
-﻿//src\renderer\features\operation\helpers\operationDataFactory.ts
+﻿// src/renderer/features/operation/helpers/operationDataFactory.ts
 
 import type { OperationItem } from "@shared/types/operationType";
 import { isIrregularToday } from "@shared/utils/isIrregularToday";
-import { mapRawEntities } from "./operationSummary";
 import { applyPersistedStatuses } from "./operationEntities";
+import { mapRawEntities } from "./operationSummary";
 
 export interface InitializedOperationData {
   operationIds: string[];

@@ -1,44 +1,33 @@
 // src/renderer/features/operation/helpers/operationSummary.ts
+
+import type { AppState } from "@shared/store";
+import type { JobStatus, OperationItem } from "@shared/types/operationType";
 import type { StatusSummary } from "@shared/types/uiType";
 import { EMPTY_STATUS_SUMMARY, STATUS_ORDER } from "@shared/types/uiType";
-import type { JobStatus, OperationItem } from "@shared/types/operationType";
-import type { AppState } from "@shared/store";
 import { calculateNextStatus } from "./statusEvaluator";
 
 export const INITIAL_SUMMARY: StatusSummary = { ...EMPTY_STATUS_SUMMARY };
 const VALID_STATUSES = new Set<string>(STATUS_ORDER);
 
-/**
- * 有効な jobId を保持しているか判定 ("-" や 空文字を除外)
- */
 export const hasValidJobId = (item: OperationItem): boolean => {
   return Boolean("jobId" in item && item.jobId && item.jobId !== "-");
 };
 
-/**
- * jobId を持つジョブの集計結果インターフェース
- */
 export interface JobIdSummary {
   total: number;
   successCount: number;
   allCompleted: boolean;
 }
 
-/**
- * jobId を持つ有効なデータのトータル件数・Status状況を集計
- */
 export function calculateJobIdSummary(items: OperationItem[]): JobIdSummary {
   const jobIdItems = items.filter(hasValidJobId);
   const total = jobIdItems.length;
-
   if (total === 0) {
     return { total: 0, successCount: 0, allCompleted: true };
   }
-
   const successCount = jobIdItems.filter(
     (item) => String(item.status).toLowerCase() === "success",
   ).length;
-
   return {
     total,
     successCount,
@@ -46,9 +35,6 @@ export function calculateJobIdSummary(items: OperationItem[]): JobIdSummary {
   };
 }
 
-/**
- * OperationItem 配列またはオブジェクトを kanriNo キーのマップに変換
- */
 export const mapRawEntities = (
   items: OperationItem[] | Record<string, OperationItem>,
 ): Record<string, OperationItem> => {
@@ -62,9 +48,6 @@ export const mapRawEntities = (
   return entities;
 };
 
-/**
- * AppState から Operation および本日対象の Irregular エントリを一括取得
- */
 export function getAllEntities(state: AppState): OperationItem[] {
   const ops = Object.values(state.operationEntities ?? {});
   const todayIdsSet = new Set(state.todayIds ?? []);
@@ -74,9 +57,6 @@ export function getAllEntities(state: AppState): OperationItem[] {
   return [...ops, ...todayIrregulars];
 }
 
-/**
- * 全体サマリーの計算
- */
 export function calculateSummary(
   input: Record<string, OperationItem> | OperationItem[],
   activeFlags?: Record<string, boolean>,
@@ -107,6 +87,5 @@ export function calculateSummary(
 
   summary.progress =
     summary.total > 0 ? Math.round((summary.success / summary.total) * 100) : 0;
-
   return summary;
 }

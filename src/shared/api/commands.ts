@@ -67,7 +67,7 @@ export const commands = {
     filePaths: string[],
     expireDate: string,
   ): Promise<boolean> =>
-    window.electronAPI.invoke<boolean>("tempomaticUploadDocument", {
+    window.electronAPI.invoke<boolean>("tempomatic:uploadDocument", {
       filePaths,
       expireDate,
     }),
