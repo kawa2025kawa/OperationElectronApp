@@ -44,11 +44,11 @@ import {
 import {
   createPdfUploadSlice,
   type PdfUploadSlice,
-} from "@shared/store/slices/pdfUploadSlice";
+} from "@renderer/features/other/store/pdfUploadSlice";
 import {
   createPollingSlice,
   type PollingSlice,
-} from "@shared/store/slices/pollingSlice";
+} from "@renderer/features/operation/store/pollingSlice";
 import { createCenterSlice, type CenterSlice } from "./slices/centerSlice";
 
 export type AppState = AuthSlice &

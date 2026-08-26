@@ -1,7 +1,12 @@
 ﻿// electron/features/gmail/gmailIpc.ts
+
 import { ipcMain } from "electron";
 
 export function registerGmailIpc(): void {
+  // 重複登録エラーを防ぐため事前解除
+  ipcMain.removeHandler("gmail:getSignature");
+  ipcMain.removeHandler("gmail:createDraft");
+
   // 署名の取得
   ipcMain.handle("gmail:getSignature", async (_event, accessToken?: string) => {
     if (!accessToken) return "";
@@ -30,6 +35,7 @@ export function registerGmailIpc(): void {
     "gmail:createDraft",
     async (_event, params: { accessToken: string; raw: string }) => {
       const { accessToken, raw } = params;
+
       if (!accessToken) {
         throw new Error(
           "アクセストークンが取得できていません。再ログインしてください。",

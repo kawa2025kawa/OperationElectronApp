@@ -3,17 +3,12 @@
 import React from "react";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import type { Shop } from "@shared/types/spreadsheetTypes";
-import * as styles from "./shopModalContent.css";
+import type { SpreadSheetModalProps } from "../modalRegistry";
+import * as styles from "../modal.css";
 import { useShopModalContent } from "./useShopModalContent";
 
-interface ShopModalContentProps {
-  data: Shop;
-  title: string;
-  onClose: () => void;
-}
-
-export const ShopModalContent: React.FC<ShopModalContentProps> = React.memo(
-  ({ data, title, onClose }) => {
+export const ShopModalContent: React.FC<SpreadSheetModalProps<Shop>> =
+  React.memo(({ data, title, onClose }) => {
     const { selectedIndex, setSelectedIndex, groups, displayItems } =
       useShopModalContent(data);
 
@@ -65,8 +60,7 @@ export const ShopModalContent: React.FC<ShopModalContentProps> = React.memo(
         </footer>
       </div>
     );
-  },
-);
+  });
 
 ShopModalContent.displayName = "ShopModalContent";
 export default ShopModalContent;

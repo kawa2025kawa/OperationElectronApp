@@ -1,73 +1,13 @@
-// src/renderer/features/spreadSheet/SpreadSheetView.tsx
-
 import React, { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { useAppStore } from "@shared/store";
+import { type SheetId, type SheetRowMap } from "@shared/types/spreadsheetTypes";
 
-import { JugyoinModalContent } from "./components/modal/jugyoin/JugyoinModalContent";
-import { KokyuhyoModalContent } from "./components/modal/kokyuhyo/KokyuhyoModalContent";
-import { ShopModalContent } from "./components/modal/shop/ShopModalContent";
-import { TantouModalContent } from "./components/modal/tantou/TantouModalContent";
+import { SPREADSHEET_MODAL_MAP } from "./components/modal/modalRegistry";
 import { SpreadSheetTable } from "./components/table/SpreadSheetTable";
-import * as styles from "./spreadSheetView.css";
-import {
-  SHEET_IDS,
-  type SheetId,
-  type SheetRowMap,
-  type Jugyoin,
-  type Kokyuhyo,
-  type Shop,
-  type Tantou,
-} from "@shared/types/spreadsheetTypes";
 import { useSpreadSheetViewLogic } from "./useSpreadSheetViewLogic";
-
-// --------------------------------------------------------------------------
-// モーダル生成ヘルパー
-// --------------------------------------------------------------------------
-const renderModalContent = <K extends SheetId>(
-  sheetId: K,
-  data: SheetRowMap[K],
-  title: string,
-  onClose: () => void,
-): React.ReactNode => {
-  switch (sheetId) {
-    case SHEET_IDS.JUGYOIN:
-      return (
-        <JugyoinModalContent
-          data={data as Jugyoin}
-          title={title}
-          onClose={onClose}
-        />
-      );
-
-    case SHEET_IDS.KOKYUHYO:
-      return (
-        <KokyuhyoModalContent
-          data={data as Kokyuhyo}
-          title={title}
-          onClose={onClose}
-        />
-      );
-
-    case SHEET_IDS.SHOP:
-      return (
-        <ShopModalContent data={data as Shop} title={title} onClose={onClose} />
-      );
-
-    case SHEET_IDS.TANTOU:
-      return (
-        <TantouModalContent
-          data={data as Tantou}
-          title={title}
-          onClose={onClose}
-        />
-      );
-
-    default:
-      return null;
-  }
-};
+import * as styles from "./spreadSheetView.css";
 
 export const SpreadSheetView: React.FC = React.memo(() => {
   const {
@@ -92,6 +32,10 @@ export const SpreadSheetView: React.FC = React.memo(() => {
       const modalConfig = config?.modalConfig;
       if (!modalConfig || !sheetId) return;
 
+      const ModalComponent = SPREADSHEET_MODAL_MAP[sheetId];
+      if (!ModalComponent) return;
+
+      // 🎯 修正箇所: unknown を挟んで型安全に安全キャスト
       const raw = row as unknown as Record<string, unknown>;
 
       // フォールバック付きタイトル抽出 (氏名 -> 店舗名 -> 設定タイトル)
@@ -101,19 +45,17 @@ export const SpreadSheetView: React.FC = React.memo(() => {
         config.title ||
         "詳細情報";
 
-      const modalContent = renderModalContent(
-        sheetId,
-        row,
-        title,
-        closeGlobalModal,
+      openGlobalModal(
+        <ModalComponent
+          data={row as never}
+          title={title}
+          onClose={closeGlobalModal}
+        />,
+        {
+          width: modalConfig.modalSize.width,
+          height: modalConfig.modalSize.height,
+        },
       );
-
-      if (!modalContent) return;
-
-      openGlobalModal(modalContent, {
-        width: modalConfig.modalSize.width,
-        height: modalConfig.modalSize.height,
-      });
     },
     [config, sheetId, openGlobalModal, closeGlobalModal],
   );

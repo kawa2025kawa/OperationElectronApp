@@ -593,6 +593,8 @@
   {
     "kanriNo": "66",
     "workName": "マスタメンテシステム LOCK解除",
+    "script": true,
+    "autoStart": false,
     "manual": true,
     "dependency": {
       "dependsOn": ["65"],

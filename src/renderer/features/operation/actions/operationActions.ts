@@ -1,10 +1,9 @@
-// src/renderer/features/operation/actions/operationActions.ts
-
+import { commands } from "@shared/api/commands";
+import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
 import { useAppStore, type AppState } from "@shared/store";
 import { showToast } from "@shared/utils/toastUtils";
 import { suppressNextSuccessToast } from "@shared/utils/statusToastSuppression";
 
-import { operationViewConfig } from "@renderer/features/operation/config/operationView";
 import { checkJobDependencies } from "@renderer/features/operation/helpers/dependencyHelper";
 import {
   selectActiveSelectedItem,
@@ -12,7 +11,22 @@ import {
   selectOperationTableData,
 } from "@renderer/features/operation/store/operationSelectors";
 
-import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
+const MANUAL_ALIAS_MAP: Record<string, string> = {
+  "37": "30",
+  "45": "30",
+  "48": "30",
+  "54": "30",
+  "36": "29",
+  "44": "29",
+  "47": "29",
+  "43": "28",
+  "68": "28",
+};
+
+const DEFAULT_MODAL_SIZE = {
+  width: "min(80vw, 800px)",
+  height: "min(70vh, 550px)",
+};
 
 const getState = (): AppState => useAppStore.getState();
 
@@ -71,7 +85,7 @@ export function moveSelectionUp(): void {
   setSelectedId(data[previousIndex].kanriNo);
 }
 
-export function executeOperationAction(actionKey: string): void {
+export async function executeOperationAction(actionKey: string): Promise<void> {
   const state = getState();
   const selectedItem = selectActiveSelectedItem(state);
 
@@ -79,18 +93,54 @@ export function executeOperationAction(actionKey: string): void {
     return;
   }
 
-  const action = operationViewConfig.actions?.find(
-    (item) => item.key === actionKey,
-  );
+  switch (actionKey) {
+    case "jc": {
+      const isJcActive = Boolean(
+        "jobId" in selectedItem &&
+        selectedItem.jobId &&
+        selectedItem.jobId !== "-",
+      );
+      if (isJcActive && selectedItem.kanriNo) {
+        await state.runJcJob(String(selectedItem.kanriNo));
+      }
+      break;
+    }
 
-  if (!action || !action.isActive(selectedItem)) {
-    return;
+    case "script": {
+      const isScriptActive = Boolean(selectedItem.script);
+      if (isScriptActive && selectedItem.kanriNo) {
+        await state.runScriptJob(String(selectedItem.kanriNo));
+      }
+      break;
+    }
+
+    case "link": {
+      const isLinkActive = Boolean(
+        selectedItem.link && Object.keys(selectedItem.link).length > 0,
+      );
+      if (isLinkActive) {
+        state.openGlobalModal("link", {
+          title: "Link",
+          ...DEFAULT_MODAL_SIZE,
+        });
+      }
+      break;
+    }
+
+    case "manual": {
+      if (selectedItem.kanriNo) {
+        const kanriNoStr = String(selectedItem.kanriNo).trim();
+        const targetKanriNo = MANUAL_ALIAS_MAP[kanriNoStr] ?? kanriNoStr;
+        const targetUrl = `https://sites.google.com/belc.co.jp/operation-manual-${targetKanriNo}`;
+        await commands.openExternal(targetUrl);
+      }
+      break;
+    }
+
+    default:
+      console.warn(`[executeOperationAction] Unknown actionKey: ${actionKey}`);
+      break;
   }
-
-  action.execute(selectedItem, {
-    openGlobalModal: state.openGlobalModal,
-    closeGlobalModal: state.closeGlobalModal,
-  });
 }
 
 export async function completeSelectedOperation(): Promise<void> {

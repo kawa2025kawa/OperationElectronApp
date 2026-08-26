@@ -1,3 +1,5 @@
+// src/renderer/features/other/services/gmailService.ts
+
 import { commands } from "@shared/api/commands";
 import { useAppStore } from "@shared/store";
 
@@ -50,19 +52,19 @@ export const gmailService = {
   async createDraft(params: CreateDraftParams): Promise<void> {
     const { accessToken, userEmail } = useAppStore.getState();
     if (!accessToken) {
-      throw new Error(
-        "Googleアカウントのアクセストークンが取得できません。ログインしてください。",
-      );
+      throw new Error("Googleアカウントのアクセストークンが存在しません。");
     }
+
     const raw = buildRawMessage({
       ...params,
       from: userEmail || "me",
     });
+
     try {
+      // API側の仕様に合わせて raw 文字列を正しく渡す
       await commands.createGmailDraft({ accessToken, raw });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "不明なエラーが発生しました。";
+      const message = error instanceof Error ? error.message : "不明なエラー";
       throw new Error(`Gmail下書き作成失敗: ${message}`, { cause: error });
     }
   },
@@ -73,7 +75,7 @@ export const gmailService = {
     try {
       return await commands.getGmailSignature(accessToken);
     } catch (error) {
-      console.warn("[GmailService] 署名取得エラー:", error);
+      console.warn("[GmailService] 署名取得失敗:", error);
       return "";
     }
   },

@@ -1,4 +1,6 @@
-﻿import { ipcMain } from "electron";
+﻿//electron\features\operation\operationIpc.ts
+
+import { ipcMain } from "electron";
 import type { JobStatus, OperationItem } from "@shared/types/operationType";
 import {
   registerTargets as registerOperationTargets,
@@ -51,16 +53,19 @@ export function registerOperationIpc(): void {
   ipcMain.handle("startPolling", startPolling);
   ipcMain.handle("stopPolling", stopPolling);
 
+  // Script Job 実行ハンドラー（filePath を引数へ追加）
   ipcMain.handle(
     "executeScript",
-    async (_event, args: { scriptId: string }) => {
+    async (
+      _event,
+      args: { scriptId: string; filePath?: string | string[] },
+    ) => {
       if (!args?.scriptId) {
         throw new Error("scriptId is required");
       }
-      return executeJob(args.scriptId);
+      return executeJob(args.scriptId, args.filePath);
     },
   );
-
   ipcMain.handle(
     "fetchSingleJobStatus",
     async (_event, args?: { kanriNo?: string }) => {

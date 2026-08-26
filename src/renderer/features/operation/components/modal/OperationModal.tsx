@@ -1,21 +1,18 @@
-// src/renderer/features/operation/components/modal/OperationModal.tsx
-
 import React, { useMemo } from "react";
+
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
+import { Button } from "@renderer/components/ui/button/basicButton/BasicButton";
+
 import type { OperationItem } from "@shared/types/operationType";
 import type { ExtraModalType } from "@shared/types/uiType";
+
 import { LinkModalContent } from "./linkModal/LinkModalContent";
+import { ScriptModalContent } from "./scriptModal/ScriptModalContent";
 import { SummaryModalContent } from "./summaryModal/SummaryModalContent";
-import {
-  useOperationModalLogic,
-  type ModalContentProps,
-} from "./useOperationModalLogic";
+import { useOperationModalLogic } from "./useOperationModalLogic";
+import { OperationModalProvider } from "./OperationModalProvider";
 
 import * as styles from "./operationModal.css";
-
-// =====================================================
-// Types
-// =====================================================
 
 interface OperationModalProps {
   type: ExtraModalType;
@@ -23,15 +20,12 @@ interface OperationModalProps {
   onClose: () => void;
 }
 
-// =====================================================
-// Component
-// =====================================================
-
 export const OperationModal: React.FC<OperationModalProps> = React.memo(
   ({ type, items = [], onClose }) => {
     const {
       title,
-      isExecuted,
+      kanriNo,
+      isPrimaryDisabled,
       setTitle,
       registerPrimaryAction,
       handlePrimaryClick,
@@ -41,87 +35,56 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
       onClose,
     });
 
-    // =================================================
-    // Common Props
-    // =================================================
-
-    const commonProps: ModalContentProps = useMemo(
+    // 子コンポーネントへ提供する Context 値（バケツリレーを防止）
+    const contextValue = useMemo(
       () => ({
-        onClose: handleClose,
+        kanriNo,
         setTitle,
         registerPrimaryAction,
+        onClose: handleClose,
       }),
-      [handleClose, setTitle, registerPrimaryAction],
+      [kanriNo, setTitle, registerPrimaryAction, handleClose],
     );
 
-    // =================================================
-    // Content
-    // =================================================
-
-    const renderContent = () => {
+    const content = useMemo(() => {
       switch (type) {
         case "summary":
-          return <SummaryModalContent {...commonProps} items={items} />;
+          return <SummaryModalContent items={items} />;
 
         case "link":
-          return <LinkModalContent {...commonProps} />;
+          return <LinkModalContent />;
+
+        case "script":
+          return <ScriptModalContent />;
 
         default:
           return null;
       }
-    };
+    }, [items, type]);
 
     const shouldShowPrimaryButton = type !== "summary";
 
-    // =================================================
-    // Render
-    // =================================================
-
     return (
-      <div className={styles.container}>
-        {/* Header */}
-        <header className={styles.header}>
-          <h2 className={styles.modalTitle}>{title}</h2>
+      <OperationModalProvider value={contextValue}>
+        <div className={styles.container}>
+          <header className={styles.header}>
+            <h2 className={styles.modalTitle}>{title}</h2>
+            <CloseButton onClick={handleClose} />
+          </header>
 
-          {!isExecuted && <CloseButton onClick={handleClose} />}
-        </header>
+          <main className={styles.centerContent}>{content}</main>
 
-        {/* Content */}
-        <main className={styles.centerContent}>{renderContent()}</main>
+          <footer className={styles.actionContainer}>
+            <Button onClick={handleClose}>閉じる</Button>
 
-        {/* Footer */}
-        <footer className={styles.actionContainer}>
-          {isExecuted ? (
-            <button
-              type="button"
-              className={styles.button}
-              onClick={handleClose}
-            >
-              OK
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                className={styles.button}
-                onClick={handleClose}
-              >
-                閉じる
-              </button>
-
-              {shouldShowPrimaryButton && (
-                <button
-                  type="button"
-                  className={styles.button}
-                  onClick={handlePrimaryClick}
-                >
-                  実行
-                </button>
-              )}
-            </>
-          )}
-        </footer>
-      </div>
+            {shouldShowPrimaryButton && (
+              <Button onClick={handlePrimaryClick} disabled={isPrimaryDisabled}>
+                実行
+              </Button>
+            )}
+          </footer>
+        </div>
+      </OperationModalProvider>
     );
   },
 );

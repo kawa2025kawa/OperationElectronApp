@@ -7,12 +7,14 @@ import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@shared/store";
 import { APP_VIEW_IDS } from "@shared/types/uiType";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
+import { selectIsAllCenterActive } from "@shared/store/slices/centerSlice";
 
 export const useFooterLogic = () => {
   const {
     is1CActive,
     is2CActive,
     is3CActive,
+    isAllCenterActive,
     toggleCenterPill,
     currentView,
     searchTerm,
@@ -24,6 +26,7 @@ export const useFooterLogic = () => {
       is1CActive: state.is1CActive,
       is2CActive: state.is2CActive,
       is3CActive: state.is3CActive,
+      isAllCenterActive: selectIsAllCenterActive(state),
       toggleCenterPill: state.toggleCenterPill,
       currentView: state.currentView,
       searchTerm: state.searchTerm,
@@ -38,7 +41,6 @@ export const useFooterLogic = () => {
   // --------------------------------------------------------------------------
 
   const [inputValue, setInputValue] = useState(searchTerm);
-
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -52,7 +54,6 @@ export const useFooterLogic = () => {
   const handleSearchChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
-
       setInputValue(value);
 
       if (timerRef.current !== null) {
@@ -71,9 +72,7 @@ export const useFooterLogic = () => {
   // --------------------------------------------------------------------------
 
   const currentViewDef = getAppViewConfig(currentView);
-
   const searchPlaceholder = currentViewDef?.search?.placeholder ?? null;
-
   const isOperationView = currentView === APP_VIEW_IDS.OPERATION;
 
   // --------------------------------------------------------------------------
@@ -96,6 +95,7 @@ export const useFooterLogic = () => {
     is1CActive,
     is2CActive,
     is3CActive,
+    isAllCenterActive,
 
     isOperationView,
 

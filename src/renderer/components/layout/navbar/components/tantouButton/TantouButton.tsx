@@ -14,15 +14,23 @@ export const TantouButton: React.FC = () => {
   const closeGlobalModal = useAppStore((s) => s.closeGlobalModal);
 
   const handleClick = useCallback(async () => {
-    // 担当スプレッドシートデータの取得
-    await fetchSheetData(SHEET_IDS.TANTOU);
+    const tantouConfig = APP_REGISTRY[APP_VIEW_IDS.TANTOU]?.modalConfig;
 
-    // 最新データの取得
-    const rawData = useAppStore.getState().sheetData[SHEET_IDS.TANTOU]?.data;
+    // 1. ストア（Zustand）からキャッシュデータを即座に取得
+    let rawData = useAppStore.getState().sheetData[SHEET_IDS.TANTOU]?.data;
+
+    // 2. キャッシュが存在しない場合（未ログイン起動時等）のみ API 完了を待つ
+    if (!rawData) {
+      await fetchSheetData(SHEET_IDS.TANTOU);
+      rawData = useAppStore.getState().sheetData[SHEET_IDS.TANTOU]?.data;
+    } else {
+      // キャッシュで即モーダルを開きつつ、バックグラウンドで最新化したい場合は非同期で投げる
+      void fetchSheetData(SHEET_IDS.TANTOU);
+    }
+
     const tantouData = (
       Array.isArray(rawData) ? rawData[0] : rawData
     ) as Tantou | null;
-    const tantouConfig = APP_REGISTRY[APP_VIEW_IDS.TANTOU]?.modalConfig;
 
     if (tantouData) {
       openGlobalModal(

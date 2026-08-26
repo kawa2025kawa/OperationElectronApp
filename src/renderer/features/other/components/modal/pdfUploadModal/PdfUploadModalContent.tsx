@@ -1,3 +1,5 @@
+//src\renderer\features\other\components\modal\pdfUploadModal\PdfUploadModalContent.tsx
+
 import React from "react";
 import { clsx } from "clsx";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";

@@ -1,49 +1,66 @@
 // src/renderer/components/ui/statusSummary/StatusSummary.tsx
 
-import React from "react";
+import React, { useCallback } from "react";
 import clsx from "clsx";
-import {
-  STATUS_LABEL,
-  SUMMARY_ORDER,
-  type StatusSummary as FilteredSummary,
-  type SummaryDisplayKey,
-} from "@shared/types/uiType";
+import { useAppStore } from "@shared/store";
+import type { OperationItem } from "@shared/types/operationType";
+import { OperationModal } from "@renderer/features/operation/components/modal/OperationModal";
+import { useStatusSummary, type StatusSummaryProps } from "./useStatusSummary";
 import * as styles from "./statusSummary.css";
 
-interface Props {
-  data: FilteredSummary;
-  onItemClick?: (key: SummaryDisplayKey) => void;
-}
+const SUMMARY_MODAL_SIZE = {
+  width: 800,
+  height: 600,
+} as const;
 
-export const StatusSummary: React.FC<Props> = React.memo(
-  ({ data, onItemClick }) => {
+export const StatusSummary: React.FC<StatusSummaryProps> = React.memo(
+  ({ data }) => {
+    const openGlobalModal = useAppStore((state) => state.openGlobalModal);
+    const closeGlobalModal = useAppStore((state) => state.closeGlobalModal);
+
+    const handleOpenModal = useCallback(
+      (items: OperationItem[], title: string) => {
+        openGlobalModal(
+          <OperationModal
+            type="summary"
+            items={items}
+            onClose={closeGlobalModal}
+          />,
+          {
+            title,
+            width: String(SUMMARY_MODAL_SIZE.width),
+            height: String(SUMMARY_MODAL_SIZE.height),
+          },
+        );
+      },
+      [closeGlobalModal, openGlobalModal],
+    );
+
+    const { items, handleClick } = useStatusSummary({
+      data,
+      openModal: handleOpenModal,
+    });
+
     return (
       <nav className={styles.container}>
-        {SUMMARY_ORDER.map((key) => {
-          const rawValue = data[key] ?? 0;
-          const displayValue = key === "progress" ? `${rawValue}%` : rawValue;
-          const badgeClass =
-            styles.valueBadgeVariants[
-              key as keyof typeof styles.valueBadgeVariants
-            ];
-
-          return (
-            <button
-              key={key}
-              type="button"
-              className={styles.statusItem}
-              onClick={() => onItemClick?.(key)}
-            >
-              <span className={clsx(styles.valueBadge, badgeClass)}>
-                {displayValue}
-              </span>
-              <span className={styles.label}>{STATUS_LABEL[key]}</span>
-            </button>
-          );
-        })}
+        {items.map(({ key, label, displayValue, badgeClass }) => (
+          <button
+            key={key}
+            type="button"
+            className={styles.statusItem}
+            onClick={() => handleClick(key, label)}
+          >
+            <span className={clsx(styles.valueBadge, badgeClass)}>
+              {displayValue}
+            </span>
+            <span className={styles.label}>{label}</span>
+          </button>
+        ))}
       </nav>
     );
   },
 );
+
+StatusSummary.displayName = "StatusSummary";
 
 export default StatusSummary;

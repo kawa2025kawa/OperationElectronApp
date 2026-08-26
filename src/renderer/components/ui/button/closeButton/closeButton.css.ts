@@ -17,7 +17,7 @@ export const closeButton = style({
   outline: "none",
   color: tokens.color.text.base,
   backgroundColor: tokens.color.bg.base,
-  boxShadow: tokens.shadow.raised.md,
+  boxShadow: tokens.shadow.raised.high,
 
   selectors: {
     "&:hover": {

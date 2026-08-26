@@ -42,6 +42,9 @@ export const tokens = createGlobalThemeContract(
 
         /** Header / navigation 系 */
         header: null,
+
+        /** ハイライト・ホバー用のすりガラス調背景 */
+        frostedGlass: null,
       },
 
       text: {
@@ -64,6 +67,9 @@ export const tokens = createGlobalThemeContract(
 
         /** Accent 境界線 */
         accent: null,
+
+        /** ハイライト時の内側境界線 */
+        highlight: null,
       },
 
       accent: {
@@ -148,6 +154,11 @@ export const tokens = createGlobalThemeContract(
 
     shadow: {
       /**
+       * ハイライト・選択状態用のドロップシャドウ
+       */
+      highlight: null,
+
+      /**
        * Neumorphism:
        * surface が浮いて見える
        */
@@ -199,6 +210,13 @@ export const tokens = createGlobalThemeContract(
         md: null,
         lg: null,
         xl: null,
+      },
+
+      // ★ 可変レスポンシブテキスト用のトークン階層を追加
+      fluid: {
+        sm: null,
+        md: null, // ★ "clamp(16px, 2.2vmin, 20px)" 用
+        lg: null,
       },
 
       weight: {

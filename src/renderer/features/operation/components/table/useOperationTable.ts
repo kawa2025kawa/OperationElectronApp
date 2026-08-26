@@ -8,9 +8,6 @@ import {
   selectFilteredIrregularIds,
   selectFilteredOperationIds,
   selectFilteredTodayIds,
-  selectSelectedIrregularId,
-  selectSelectedOperationId,
-  selectSelectedTodayId,
 } from "@renderer/features/operation/store/operationSelectors";
 import type { OperationItem } from "@shared/types/operationType";
 import { useTableHotkeys } from "./useOperationTableHotkeys";
@@ -52,39 +49,27 @@ const getColumns = (mode: ViewMode): Column<OperationItem>[] => {
 
 export const useOperationTable = () => {
   const currentMode = useAppStore(selectCurrentMode);
-
-  const selectedOperationId = useAppStore(selectSelectedOperationId) ?? "";
-  const selectedIrregularId = useAppStore(selectSelectedIrregularId) ?? "";
-  const selectedTodayId = useAppStore(selectSelectedTodayId) ?? "";
   const setSelectedId = useAppStore((state) => state.setSelectedId);
 
-  const operationRowIds = useAppStore(useShallow(selectFilteredOperationIds));
-  const irregularRowIds = useAppStore(useShallow(selectFilteredIrregularIds));
-  const todayRowIds = useAppStore(useShallow(selectFilteredTodayIds));
+  // 現在のモードに応じた選択IDのみを取得
+  const selectedId = useAppStore(
+    (state) => state.selectedIds[currentMode] ?? "",
+  );
 
-  const rowIds = useMemo(() => {
-    switch (currentMode) {
-      case "irregular":
-        return irregularRowIds;
-      case "today":
-        return todayRowIds;
-      case "operation":
-      default:
-        return operationRowIds;
-    }
-  }, [currentMode, operationRowIds, irregularRowIds, todayRowIds]);
-
-  const selectedId = useMemo(() => {
-    switch (currentMode) {
-      case "irregular":
-        return selectedIrregularId;
-      case "today":
-        return selectedTodayId;
-      case "operation":
-      default:
-        return selectedOperationId;
-    }
-  }, [currentMode, selectedOperationId, selectedIrregularId, selectedTodayId]);
+  // モードに対応するID一覧のみをシャロー比較で取得
+  const rowIds = useAppStore(
+    useShallow((state) => {
+      switch (currentMode) {
+        case "irregular":
+          return selectFilteredIrregularIds(state);
+        case "today":
+          return selectFilteredTodayIds(state);
+        case "operation":
+        default:
+          return selectFilteredOperationIds(state);
+      }
+    }),
+  );
 
   const handleRowClick = useCallback(
     (id: string) => {

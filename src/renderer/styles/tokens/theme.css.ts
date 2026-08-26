@@ -18,6 +18,13 @@ const commonValues = {
       xl: "1.25rem",
     },
 
+    // ★ 実際の clamp 値を定義
+    fluid: {
+      sm: "clamp(12px, 1.8vmin, 14px)",
+      md: "clamp(16px, 2.2vmin, 20px)",
+      lg: "clamp(20px, 3.5vmin, 28px)",
+    },
+
     weight: {
       normal: "500",
       medium: "700",
@@ -93,6 +100,8 @@ export const darkThemeClass = createTheme(
         surface: "rgba(28, 28, 40, 1)",
         inset: "rgba(16, 16, 22, 1)",
         header: "rgba(20, 20, 25, 0.8)",
+        // ★ ハイライト用のすりガラス調背景を追加
+        frostedGlass: "rgba(255, 255, 255, 0.1)",
       },
 
       text: {
@@ -105,6 +114,8 @@ export const darkThemeClass = createTheme(
         default: "rgba(255, 255, 255, 0.08)",
         subtle: "rgba(0, 0, 0, 0.6)",
         accent: "rgba(0, 200, 180, 1)",
+        // ★ ハイライト時の内側枠線用に追加
+        highlight: "rgba(255, 255, 255, 0.08)",
       },
 
       accent: {
@@ -156,6 +167,12 @@ export const darkThemeClass = createTheme(
      * ======================================================== */
 
     shadow: {
+      // ★ ハイライト時の外側の影（または内側の影と組み合わせたプリセット）を追加
+      highlight: [
+        "inset 0 0 0 1px rgba(255, 255, 255, 0.08)",
+        "0 2px 8px rgba(0, 0, 0, 0.12)",
+      ].join(", "),
+
       raised: {
         low: [
           "3px 3px 6px rgba(0, 0, 0, 0.5)",
@@ -223,6 +240,8 @@ export const lightThemeClass = createTheme(
         surface: "rgba(242, 245, 248, 1)",
         inset: "rgba(225, 230, 235, 1)",
         header: "rgba(242, 245, 248, 0.8)",
+        // ★ ライトモード用に明るい反転値で調整
+        frostedGlass: "rgba(0, 0, 0, 0.05)",
       },
 
       text: {
@@ -235,6 +254,8 @@ export const lightThemeClass = createTheme(
         default: "rgba(0, 0, 0, 0.08)",
         subtle: "rgba(0, 0, 0, 0.15)",
         accent: "rgba(0, 200, 180, 1)",
+        // ★ ライトモード用の枠線
+        highlight: "rgba(0, 0, 0, 0.06)",
       },
 
       accent: {
@@ -286,6 +307,12 @@ export const lightThemeClass = createTheme(
      * ======================================================== */
 
     shadow: {
+      // ★ ライトモード用のハイライト影定義
+      highlight: [
+        "inset 0 0 0 1px rgba(0, 0, 0, 0.06)",
+        "0 2px 8px rgba(0, 0, 0, 0.08)",
+      ].join(", "),
+
       raised: {
         low: [
           "3px 3px 6px rgba(0, 0, 0, 0.15)",

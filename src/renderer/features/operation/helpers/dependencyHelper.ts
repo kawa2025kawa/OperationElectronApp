@@ -7,6 +7,10 @@ import type {
 } from "@shared/types/operationType";
 import { hasValidJobId } from "./operationSummary";
 
+// ============================================================
+// Types
+// ============================================================
+
 export interface MissingDependency {
   kanriNo: string;
   status: JobStatus | null | undefined;
@@ -18,7 +22,24 @@ export interface DependencyCheckResult {
   missingDependencies: MissingDependency[];
 }
 
+export interface JobExecutionOptions {
+  /** 手動実行時など、依存関係チェックを無視する場合は true (デフォルト: true) */
+  ignoreDependencies?: boolean;
+
+  /** 手動操作時など、toast通知を出さない場合は true (デフォルト: true) */
+  silent?: boolean;
+}
+
+export interface ValidationResult {
+  ok: boolean;
+  message?: string;
+}
+
 type RequiredStatus = JobStatus[] | Record<string, JobStatus[]> | undefined;
+
+// ============================================================
+// Helper Functions
+// ============================================================
 
 const success = (): DependencyCheckResult => ({
   ok: true,
@@ -40,6 +61,10 @@ const getRequiredStatus = (
   );
   return matchedKey ? requiredStatus[matchedKey].map(String) : ["success"];
 };
+
+// ============================================================
+// Core Functions
+// ============================================================
 
 export function checkJobDependencies(
   kanriNo: string,
@@ -150,4 +175,37 @@ export function getDependentKanriNos(
       );
     })
     .map((entity) => String(entity.kanriNo));
+}
+
+// ============================================================
+// Guard Function
+// ============================================================
+
+const DEFAULT_OPTIONS: JobExecutionOptions = {
+  ignoreDependencies: true,
+  silent: true,
+};
+
+export function validateJobDependencies(
+  kanriNo: string,
+  entities: Record<string, OperationItem>,
+  options: JobExecutionOptions = DEFAULT_OPTIONS,
+  activeFlags?: Record<string, boolean>,
+): ValidationResult {
+  const effectiveOptions = { ...DEFAULT_OPTIONS, ...options };
+
+  if (effectiveOptions.ignoreDependencies) {
+    return { ok: true };
+  }
+
+  const result = checkJobDependencies(kanriNo, entities, activeFlags);
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      message: "未完了の依存ジョブがあります",
+    };
+  }
+
+  return { ok: true };
 }

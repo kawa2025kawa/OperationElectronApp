@@ -1,18 +1,11 @@
-﻿//src\renderer\features\spreadSheet\components\modal\jugyoin\JugyoinModalContent.tsx
-
-import React from "react";
+﻿import React from "react";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import type { Jugyoin } from "@shared/types/spreadsheetTypes";
-import * as styles from "./jugyoinModalContent.css";
+import type { SpreadSheetModalProps } from "../modalRegistry";
+import * as styles from "../modal.css";
 import { useJugyoinModalContent } from "./useJugyoinModalContent";
 
-interface JugyoinModalContentProps {
-  data: Jugyoin;
-  title: string;
-  onClose: () => void;
-}
-
-export const JugyoinModalContent: React.FC<JugyoinModalContentProps> =
+export const JugyoinModalContent: React.FC<SpreadSheetModalProps<Jugyoin>> =
   React.memo(({ data, title, onClose }) => {
     const { contact, scheduleLink, schedules, handleOpenSchedule } =
       useJugyoinModalContent(data);
@@ -25,7 +18,7 @@ export const JugyoinModalContent: React.FC<JugyoinModalContentProps> =
 
           <div className={styles.textGroup}>
             <span>内線: {contact.extension}</span>
-            <span>PHS短縮: {contact.mobileShort}</span>
+            <span>短縮: {contact.mobileShort}</span>
             <span>携帯: {contact.mobile}</span>
           </div>
 
@@ -47,8 +40,7 @@ export const JugyoinModalContent: React.FC<JugyoinModalContentProps> =
         <div className={styles.contentContainer}>
           {schedules.map((item) => (
             <div key={item.label} className={styles.tableGrid}>
-              {/* 左側：日付（2行結合） */}
-              <div className={styles.dateCell}>
+              <div className={styles.cell.date}>
                 <div className={styles.value}>{item.label}</div>
                 <div className={styles.label}>
                   {item.date.text}
@@ -56,26 +48,23 @@ export const JugyoinModalContent: React.FC<JugyoinModalContentProps> =
                 </div>
               </div>
 
-              {/* 1行目：表頭（ヘッダー） */}
-              <div className={styles.headerCell}>区分</div>
-              <div className={styles.headerCell}>勤務</div>
-              <div className={styles.headerCell}>備考</div>
+              <div className={styles.cell.header}>区分</div>
+              <div className={styles.cell.header}>勤務</div>
+              <div className={styles.cell.header}>備考</div>
 
-              {/* 2行目：AM */}
-              <div className={styles.sectionCell}>AM</div>
-              <div className={styles.dataCell}>
+              <div className={styles.cell.section}>AM</div>
+              <div className={styles.cell.data}>
                 {item.schedule?.amStatus ?? "-"}
               </div>
-              <div className={styles.dataCell}>
+              <div className={styles.cell.data}>
                 {item.schedule?.amDetail ?? "-"}
               </div>
 
-              {/* 3行目：PM */}
-              <div className={styles.sectionCell}>PM</div>
-              <div className={styles.dataCell}>
+              <div className={styles.cell.section}>PM</div>
+              <div className={styles.cell.data}>
                 {item.schedule?.pmStatus ?? "-"}
               </div>
-              <div className={styles.dataCell}>
+              <div className={styles.cell.data}>
                 {item.schedule?.pmDetail ?? "-"}
               </div>
             </div>

@@ -29,6 +29,27 @@
     }
   },
   {
+    "kanriNo": "E8",
+    "cycle1": "週次",
+    "cycle2": "水",
+    "scheduledTime": "17:00",
+    "workName": "シェルフラベル発注",
+    "manual": true,
+    "gmail": true,
+    "link": {
+      "PrimeDrive": "https://primedrive.jp/v2/browse"
+    }
+  },
+  {
+    "kanriNo": "E9",
+    "cycle1": "週次",
+    "cycle2": "水",
+    "scheduledTime": "17:00",
+    "workName": "各種ポップラベル発注",
+    "manual": true,
+    "gmail": true
+  },
+  {
     "kanriNo": "E4",
     "cycle1": "週次",
     "cycle2": "金",
@@ -65,27 +86,7 @@
     "workName": "各マスタ送信（200～202）",
     "manual": true
   },
-  {
-    "kanriNo": "E8",
-    "cycle1": "週次",
-    "cycle2": "水",
-    "scheduledTime": "17:00",
-    "workName": "シェルフラベル発注",
-    "manual": true,
-    "gmail": true,
-    "link": {
-      "PrimeDrive": "https://primedrive.jp/v2/browse"
-    }
-  },
-  {
-    "kanriNo": "E9",
-    "cycle1": "週次",
-    "cycle2": "水",
-    "scheduledTime": "17:00",
-    "workName": "各種ポップラベル発注",
-    "manual": true,
-    "gmail": true
-  },
+
   {
     "kanriNo": "E12",
     "cycle1": "月次",
@@ -174,7 +175,11 @@
     "workName": "日割予算売上取込（AM）",
     "script": true,
     "autoStart": false,
-    "manual": true
+    "manual": true,
+    "link": {
+      "ＭＤ向け予算データ": "\\\\192.88.1.46\\EPMCloud\\02-output\\Daily\\output",
+      "リアル予算データ": "\\\\192.88.1.210\\情報システム\\月別店別予算_POS展開用"
+    }
   },
   {
     "kanriNo": "E30",

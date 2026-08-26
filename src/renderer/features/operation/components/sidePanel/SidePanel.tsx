@@ -1,6 +1,4 @@
-﻿// src/renderer/features/operation/components/sidePanel/SidePanel.tsx
-
-import React from "react";
+﻿import React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import type { ViewMode } from "@shared/types/uiType";
 import * as styles from "./SidePanel.css";
@@ -12,10 +10,10 @@ const MODES: ViewMode[] = ["operation", "irregular", "today"];
  * Sub Component: Mode Switcher
  * ============================================================ */
 
-const ModeSwitcher: React.FC<{
+const ModeSwitcher = React.memo<{
   currentMode: ViewMode;
   onModeChange: (mode: ViewMode) => void;
-}> = React.memo(({ currentMode, onModeChange }) => (
+}>(({ currentMode, onModeChange }) => (
   <div className={styles.modeToggleContainer} data-mode={currentMode}>
     <div className={styles.modeToggleSlider} />
     {MODES.map((mode) => (
@@ -57,7 +55,7 @@ InfoRow.displayName = "InfoRow";
 
 export const SidePanel: React.FC = React.memo(() => {
   const {
-    selectedItem,
+    hasSelection,
     currentMode,
     activeActions,
     infoRows,
@@ -67,7 +65,7 @@ export const SidePanel: React.FC = React.memo(() => {
 
   return (
     <div className={styles.panelContainer}>
-      {/* 上部コントロール部（トグルボタン & Menuボタン） */}
+      {/* 上部コントロール部 */}
       <div className={styles.topControls}>
         <ModeSwitcher currentMode={currentMode} onModeChange={setMode} />
 
@@ -76,7 +74,7 @@ export const SidePanel: React.FC = React.memo(() => {
             <button
               type="button"
               className={styles.menuButton}
-              disabled={!selectedItem || activeActions.length === 0}
+              disabled={!hasSelection || activeActions.length === 0}
             >
               Menu ▼
             </button>

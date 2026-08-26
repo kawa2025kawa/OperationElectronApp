@@ -1,49 +1,43 @@
-﻿// src/renderer/features/operation/components/modal/contents/linkModal/LinkModalContent.tsx
-
-import React, { useEffect } from "react";
-import type { ModalContentProps } from "@renderer/features/operation/components/modal/useOperationModalLogic";
-import * as styles from "./linkModalContent.css";
+﻿import React, { useEffect } from "react";
+import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
+import { useOperationModalContext } from "../OperationModalContext";
 import { useLinkModalLogic } from "./useLinkModalLogic";
+import * as styles from "../operationModal.css";
 
-export const LinkModalContent: React.FC<ModalContentProps> = React.memo(
-  ({ registerPrimaryAction }) => {
-    const { linkEntries, handleOpenUrl } = useLinkModalLogic();
+export const LinkModalContent: React.FC = React.memo(() => {
+  const { registerPrimaryAction } = useOperationModalContext();
+  const { linkEntries, handleOpenUrl } = useLinkModalLogic();
 
-    useEffect(() => {
+  useEffect(() => {
+    registerPrimaryAction(undefined);
+    return () => {
       registerPrimaryAction(undefined);
-      return () => {
-        registerPrimaryAction(undefined);
-      };
-    }, [registerPrimaryAction]);
+    };
+  }, [registerPrimaryAction]);
 
-    return (
-      <div className={styles.container}>
-        <div className={styles.sectionTitle}>関連リンク一覧:</div>
-        <div className={styles.listBox}>
-          {linkEntries.length === 0 ? (
-            <div className={styles.emptyContainer}>
-              <span className={styles.emptyText}>NO DATA</span>
-            </div>
-          ) : (
-            linkEntries.map(([label, url]) => (
-              <button
-                key={label}
-                type="button"
-                className={styles.linkCardButton}
-                onClick={() => void handleOpenUrl(String(url))}
-              >
-                {/* 上段: キー */}
-                <span className={styles.linkLabel}>{label}</span>
-                {/* 下段: 値 */}
-                <span className={styles.linkValue}>{String(url)}</span>
-              </button>
-            ))
-          )}
-        </div>
+  return (
+    <div className={styles.contentFlexContainer}>
+      <div className={styles.sectionTitle}>関連リンク一覧:</div>
+      <div className={styles.commentBox}>
+        {linkEntries.length === 0 ? (
+          <EmptyState />
+        ) : (
+          linkEntries.map(([label, url]) => (
+            <button
+              key={label}
+              type="button"
+              className={styles.linkCardButton}
+              onClick={() => void handleOpenUrl(String(url))}
+            >
+              <span className={styles.linkLabel}>{label}:</span>
+              <span className={styles.linkValue}>{String(url)}</span>
+            </button>
+          ))
+        )}
       </div>
-    );
-  },
-);
+    </div>
+  );
+});
 
 LinkModalContent.displayName = "LinkModalContent";
 

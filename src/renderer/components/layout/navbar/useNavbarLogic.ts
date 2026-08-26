@@ -1,6 +1,5 @@
 // src/renderer/components/layout/navbar/useNavbarLogic.ts
 
-import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
@@ -19,30 +18,10 @@ export const useNavbarLogic = () => {
       })),
     );
 
-  const getSummaryModalData = useCallback((label: string) => {
-    const lowerLabel = label.toLowerCase();
-
-    if (lowerLabel === "progress") {
-      return null;
-    }
-
-    const items = useAppStore.getState().getFilteredSummaryItems(label);
-
-    return {
-      label,
-      lowerLabel,
-      items,
-    };
-  }, []);
-
   const currentViewDef = getAppViewConfig(currentView);
-
   const navbarTitle = currentViewDef?.title ?? "Unknown View";
-
   const isOperation = currentView === APP_VIEW_IDS.OPERATION;
-
   const isIrregular = currentMode === "irregular";
-
   const isShowSummary = isOperation && !isIrregular;
 
   const summaryDisplayType = !isOperation
@@ -60,7 +39,8 @@ export const useNavbarLogic = () => {
     navbarTitle,
     summaryDisplayType,
     isKokyuhyo,
-    getSummaryModalData,
     toggleSidebar,
   };
 };
+
+export default useNavbarLogic;

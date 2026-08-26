@@ -1,17 +1,8 @@
-// src/renderer/components/ui/table/DataTable.tsx
-
-import React, { useCallback, useMemo } from "react";
-import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-  type Row,
-} from "@tanstack/react-table";
+import React, { useCallback } from "react";
 import { clsx } from "clsx";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { getValueByPath } from "@shared/utils/getValueByPath";
-import type { Column, TableColumnMeta } from "@shared/types/tableType";
+import type { Column } from "@shared/types/tableType";
 import * as styles from "./dataTable.css";
 
 export interface DataTableProps<T> {
@@ -23,14 +14,14 @@ export interface DataTableProps<T> {
 }
 
 interface TableRowProps<T> {
-  row: Row<T>;
-  rowKey: keyof T | ((item: T) => string | number);
+  item: T;
+  columns: readonly Column<T>[];
   isSelected: boolean;
   onRowClick?: ((item: T) => void) | undefined;
 }
 
 /**
- * 列幅（colgroup）コンポーネント
+ * 1. 列幅（colgroup）コンポーネント
  */
 const TableColGroup = <T extends object>({
   columns,
@@ -45,43 +36,46 @@ const TableColGroup = <T extends object>({
 );
 
 /**
- * 行単位の内部コンポーネント
+ * 2. 行単位の内部コンポーネント
  */
 const TableRowInner = <T extends object>({
-  row,
+  item,
+  columns,
   isSelected,
   onRowClick,
 }: TableRowProps<T>) => {
   const state = isSelected ? "selected" : onRowClick ? "clickable" : "idle";
 
   const handleClick = useCallback(() => {
-    onRowClick?.(row.original);
-  }, [onRowClick, row.original]);
+    onRowClick?.(item);
+  }, [onRowClick, item]);
 
   return (
     <tr
       onClick={handleClick}
       className={clsx(styles.tableRowBase, styles.tableRowStates[state])}
     >
-      {row.getVisibleCells().map((cell) => {
-        const meta = cell.column.columnDef.meta as TableColumnMeta;
-        const align = meta?.align || "left";
-        const value = cell.getValue();
+      {columns.map((col) => {
+        const keyStr = String(col.key);
+        const align = col.align || "left";
+        const rawValue = col.render
+          ? col.render(item)
+          : getValueByPath(item as Record<string, unknown>, keyStr);
 
         return (
           <td
-            key={cell.id}
+            key={keyStr}
             title={
-              typeof value === "string" || typeof value === "number"
-                ? String(value)
+              typeof rawValue === "string" || typeof rawValue === "number"
+                ? String(rawValue)
                 : undefined
             }
             className={clsx(styles.tdBase, styles.tdAlignVariants[align])}
           >
-            {cell.column.columnDef.cell ? (
-              flexRender(cell.column.columnDef.cell, cell.getContext())
+            {col.render ? (
+              (rawValue as React.ReactNode)
             ) : (
-              <span className={styles.cellText}>{String(value ?? "-")}</span>
+              <span className={styles.cellText}>{String(rawValue ?? "-")}</span>
             )}
           </td>
         );
@@ -94,10 +88,13 @@ const TableRow = React.memo(
   TableRowInner,
   (prev, next) =>
     prev.isSelected === next.isSelected &&
-    prev.row.original === next.row.original &&
+    prev.item === next.item &&
     prev.onRowClick === next.onRowClick,
 ) as typeof TableRowInner;
 
+/**
+ * 3. メイン DataTable コンポーネント (TanStack Table 不使用版)
+ */
 export const DataTable = <T extends object>({
   data,
   columns,
@@ -105,89 +102,54 @@ export const DataTable = <T extends object>({
   selectedId,
   onRowClick,
 }: DataTableProps<T>) => {
-  "use no memo"; // React Compiler に対し、TanStack Table 互換のためのメモ化スキップを明確に指示
-
-  const tanstackColumns = useMemo<ColumnDef<T>[]>(() => {
-    return columns.map((col) => {
-      const keyStr = String(col.key);
-      const align = col.align || "left";
-      return {
-        id: keyStr,
-        header: col.label,
-        accessorFn: (row) =>
-          getValueByPath(row as Record<string, unknown>, keyStr),
-        cell: (info) =>
-          col.render ? (
-            col.render(info.row.original)
-          ) : (
-            <span className={styles.cellText}>
-              {String(info.getValue() ?? "-")}
-            </span>
-          ),
-        meta: { width: col.width, align },
-      };
-    });
-  }, [columns]);
-
-  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table (useReactTable) は React Compiler の自動メモ化と非互換なため、"use no memo" でスキップ指示済み
-  const table = useReactTable({
-    data,
-    columns: tanstackColumns,
-    getCoreRowModel: getCoreRowModel(),
-  });
-
   if (data.length === 0) {
     return <EmptyState />;
   }
 
   return (
     <div className={styles.container}>
+      {/* Header */}
       <div className={styles.headerWrapper}>
         <table className={styles.headerTable}>
           <TableColGroup columns={columns} />
           <thead>
-            {table.getHeaderGroups().map((group) => (
-              <tr key={group.id}>
-                {group.headers.map((header) => {
-                  const meta = header.column.columnDef.meta as TableColumnMeta;
-                  const align = meta?.align || "left";
-                  return (
-                    <th
-                      key={header.id}
-                      className={clsx(
-                        styles.thBase,
-                        styles.thAlignVariants[align],
-                      )}
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                    </th>
-                  );
-                })}
-              </tr>
-            ))}
+            <tr>
+              {columns.map((col) => {
+                const align = col.align || "left";
+                return (
+                  <th
+                    key={String(col.key)}
+                    className={clsx(
+                      styles.thBase,
+                      styles.thAlignVariants[align],
+                    )}
+                  >
+                    {col.label}
+                  </th>
+                );
+              })}
+            </tr>
           </thead>
         </table>
       </div>
 
+      {/* Body */}
       <div className={styles.bodyWrapper}>
         <table className={styles.bodyTable}>
           <TableColGroup columns={columns} />
           <tbody>
-            {table.getRowModel().rows.map((row) => {
+            {data.map((item) => {
               const id =
                 typeof rowKey === "function"
-                  ? rowKey(row.original)
-                  : String(row.original[rowKey]);
+                  ? rowKey(item)
+                  : String(item[rowKey]);
               const isSelected = String(selectedId) === id;
 
               return (
                 <TableRow
-                  key={row.id}
-                  row={row}
-                  rowKey={rowKey}
+                  key={id}
+                  item={item}
+                  columns={columns}
                   isSelected={isSelected}
                   onRowClick={onRowClick}
                 />

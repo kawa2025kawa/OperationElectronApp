@@ -7,7 +7,7 @@ export const content = style({
   minWidth: "160px",
   padding: tokens.space.xs,
   borderRadius: tokens.radius.lg,
-  backgroundColor: tokens.color.bg.frostedGlass,
+  backgroundColor: tokens.glass.surface,
   backdropFilter: "blur(12px) saturate(180%)",
   WebkitBackdropFilter: "blur(12px) saturate(180%)",
   border: `2px solid ${tokens.color.border.subtle}`,
@@ -50,11 +50,8 @@ export const itemBase = style({
   transition: `color ${tokens.transition.ease}, background-color ${tokens.transition.ease}`,
   selectors: {
     "&[data-highlighted]": {
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
-      boxShadow: `
-      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-      0 2px 8px rgba(0, 0, 0, 0.12)
-    `,
+      backgroundColor: tokens.color.bg.frostedGlass,
+      boxShadow: tokens.shadow.highlight,
     },
   },
 });

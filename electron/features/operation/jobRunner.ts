@@ -1,4 +1,6 @@
-﻿import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
+﻿//electron\features\operation\jobRunner.ts
+
+import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
 import { dispatchScript } from "@electron/features/operation/jobs/scripts";
 import { hasJobId } from "@electron/features/operation/monitors/trackerMonitor";
 import {
@@ -21,8 +23,13 @@ function cleanErrorMessage(error: unknown): string {
 
 /**
  * 指定管理番号のジョブを実行
+ * @param rawKanriNo 管理番号
+ * @param filePath 単一または複数のファイルパス
  */
-export async function executeJob(rawKanriNo: string | number): Promise<string> {
+export async function executeJob(
+  rawKanriNo: string | number,
+  filePath?: string | string[],
+): Promise<string> {
   const kanriNo = String(rawKanriNo).trim();
   if (!kanriNo) {
     throw new Error("kanriNo is required");
@@ -44,7 +51,8 @@ export async function executeJob(rawKanriNo: string | number): Promise<string> {
       startTime,
     });
 
-    const result = await dispatchScript(kanriNo);
+    // dispatchScript へ filePath (string | string[]) を委譲
+    const result = await dispatchScript(kanriNo, filePath);
 
     updateStatus({
       kanriNo,

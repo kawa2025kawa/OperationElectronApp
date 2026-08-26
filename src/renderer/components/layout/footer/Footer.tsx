@@ -8,7 +8,7 @@ import { useFooterLogic } from "./useFooterLogic";
 
 const APP_VERSION = import.meta.env.APP_VERSION ?? "1.0.0";
 
-export const Footer: React.FC = () => {
+export const Footer: React.FC = React.memo(() => {
   const {
     is1CActive,
     is2CActive,
@@ -56,7 +56,7 @@ export const Footer: React.FC = () => {
       </div>
     </footer>
   );
-};
+});
 
 Footer.displayName = "Footer";
 

@@ -16,9 +16,10 @@ export const StatusContextMenu: React.FC<Props> = ({ children, kanriNo }) => {
 
   const updateJobStatus = useAppStore((s) => s.updateJobStatus);
 
-  const handleUpdateStatus = useCallback(
-    async (status: JobStatus) => {
-      await updateJobStatus({
+  // ステータス更新ハンドラーを固定化
+  const handleSelectStatus = useCallback(
+    (status: JobStatus) => {
+      void updateJobStatus({
         kanriNo,
         status,
         comment: "",
@@ -56,7 +57,7 @@ export const StatusContextMenu: React.FC<Props> = ({ children, kanriNo }) => {
               <ContextMenu.Item
                 key={status}
                 className={clsx(styles.itemBase, toneClass)}
-                onSelect={() => void handleUpdateStatus(status)}
+                onSelect={() => handleSelectStatus(status)}
               >
                 {STATUS_LABEL[status]}
               </ContextMenu.Item>

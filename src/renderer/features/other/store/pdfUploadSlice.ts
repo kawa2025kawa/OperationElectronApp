@@ -1,6 +1,4 @@
-﻿﻿// src/shared/store/slices/pdfUploadSlice.ts
-
-import { toast } from "sonner";
+﻿import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 
 import { commands } from "@shared/api/commands";
@@ -14,7 +12,7 @@ import {
   createUniquePaths,
   logUploadOrder,
   validateAndFormatPdfs,
-} from "./utils/pdfUploadUtils";
+} from "@renderer/features/other/store/utils/pdfUploadUtils";
 
 // ============================================================
 // Types

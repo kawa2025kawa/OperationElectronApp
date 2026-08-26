@@ -1,19 +1,13 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/tantou/TantouModalContent.tsx
 
 import React from "react";
-import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import type { Tantou } from "@shared/types/spreadsheetTypes";
-import * as styles from "./tantouModalContent.css";
+import type { SpreadSheetModalProps } from "../modalRegistry";
+import * as styles from "../modal.css";
 import { useTantouModalContent } from "./useTantouModalContent";
 
-interface TantouModalContentProps {
-  data: Tantou;
-  title: string;
-  onClose: () => void;
-}
-
-export const TantouModalContent: React.FC<TantouModalContentProps> = React.memo(
-  ({ data, title, onClose }) => {
+export const TantouModalContent: React.FC<SpreadSheetModalProps<Tantou>> =
+  React.memo(({ data, title, onClose }) => {
     const { selectedIndex, setSelectedIndex, groups, displayItems } =
       useTantouModalContent(data);
 
@@ -22,7 +16,9 @@ export const TantouModalContent: React.FC<TantouModalContentProps> = React.memo(
         {/* Header */}
         <header className={styles.header}>
           <h2 className={styles.modalTitle}>{title}</h2>
-          <CloseButton onClick={onClose} />
+          <button type="button" className={styles.button} onClick={onClose}>
+            ✕
+          </button>
         </header>
 
         {/* Tab List */}
@@ -61,8 +57,7 @@ export const TantouModalContent: React.FC<TantouModalContentProps> = React.memo(
         </footer>
       </div>
     );
-  },
-);
+  });
 
 TantouModalContent.displayName = "TantouModalContent";
 export default TantouModalContent;

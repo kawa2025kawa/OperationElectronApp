@@ -1,5 +1,7 @@
+// src/renderer/components/ui/modal/globalModalManager.css.ts
+
 import { style } from "@vanilla-extract/css";
-import { tokens, themeTransition } from "@renderer/styles/tokens";
+import { themeTransition, tokens } from "@renderer/styles/tokens";
 
 /* =======================================
  * 背景オーバーレイ
@@ -32,8 +34,12 @@ export const contentWrapper = style([
     overflow: "hidden",
     boxSizing: "border-box",
 
-    // 💡 デフォルトサイズを CSS 側で定義
-    width: "min(60vw, 700px)",
-    height: "min(70vh, 600px)",
+    // ★ Flexbox直下の%計算バグを防ぐため、ビューポート（画面）基準で85%を明示指定
+    width: "85vw",
+    height: "85vh",
+
+    // 中身の幅に影響されて変形（潰れ/伸縮）するのを完全に防ぐ
+    flexShrink: 0,
+    flexGrow: 0,
   },
 ]);

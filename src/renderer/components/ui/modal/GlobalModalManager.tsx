@@ -1,4 +1,4 @@
-//src\renderer\components\ui\modal\GlobalModalManager.t//
+// src/renderer/components/ui/modal/GlobalModalManager.tsx
 
 import React from "react";
 import { createPortal } from "react-dom";
@@ -57,10 +57,10 @@ export const GlobalModalManager: React.FC = () => {
           animate="visible"
           exit="exit"
           onClick={(e) => e.stopPropagation()}
-          // 💡 カスタム指定がある場合のみ動的にスタイルを適用
+          // ★ modalConfigに指定がない場合は undefined を渡してCSSの85vw/85vhを優先させる
           style={{
-            width: modalConfig?.width,
-            height: modalConfig?.height,
+            width: modalConfig?.width ?? undefined,
+            height: modalConfig?.height ?? undefined,
           }}
         >
           {modalContent}

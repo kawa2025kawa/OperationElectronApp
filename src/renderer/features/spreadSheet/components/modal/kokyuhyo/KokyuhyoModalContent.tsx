@@ -3,16 +3,11 @@
 import React from "react";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import type { Kokyuhyo } from "@shared/types/spreadsheetTypes";
-import * as styles from "./kokyuhyoModalContent.css";
+import type { SpreadSheetModalProps } from "../modalRegistry";
+import * as styles from "../modal.css";
 import { useKokyuhyoModalContent } from "./useKokyuhyoModalContent";
 
-interface KokyuhyoModalContentProps {
-  data: Kokyuhyo;
-  title: string;
-  onClose: () => void;
-}
-
-export const KokyuhyoModalContent: React.FC<KokyuhyoModalContentProps> =
+export const KokyuhyoModalContent: React.FC<SpreadSheetModalProps<Kokyuhyo>> =
   React.memo(({ data, title, onClose }) => {
     const { contact, scheduleLink, schedules, handleOpenSchedule } =
       useKokyuhyoModalContent(data);
@@ -48,7 +43,7 @@ export const KokyuhyoModalContent: React.FC<KokyuhyoModalContentProps> =
           {schedules.map((item) => (
             <div key={item.label} className={styles.tableGrid}>
               {/* 左側：日付（2行結合） */}
-              <div className={styles.dateCell}>
+              <div className={styles.cell.date}>
                 <div className={styles.value}>{item.label}</div>
                 <div className={styles.label}>
                   {item.date.text}
@@ -57,25 +52,25 @@ export const KokyuhyoModalContent: React.FC<KokyuhyoModalContentProps> =
               </div>
 
               {/* 1行目：表頭（ヘッダー） */}
-              <div className={styles.headerCell}>区分</div>
-              <div className={styles.headerCell}>勤務</div>
-              <div className={styles.headerCell}>備考</div>
+              <div className={styles.cell.header}>区分</div>
+              <div className={styles.cell.header}>勤務</div>
+              <div className={styles.cell.header}>備考</div>
 
               {/* 2行目：AM */}
-              <div className={styles.sectionCell}>AM</div>
-              <div className={styles.dataCell}>
+              <div className={styles.cell.section}>AM</div>
+              <div className={styles.cell.data}>
                 {item.schedule?.amStatus ?? "-"}
               </div>
-              <div className={styles.dataCell}>
+              <div className={styles.cell.data}>
                 {item.schedule?.amDetail ?? "-"}
               </div>
 
               {/* 3行目：PM */}
-              <div className={styles.sectionCell}>PM</div>
-              <div className={styles.dataCell}>
+              <div className={styles.cell.section}>PM</div>
+              <div className={styles.cell.data}>
                 {item.schedule?.pmStatus ?? "-"}
               </div>
-              <div className={styles.dataCell}>
+              <div className={styles.cell.data}>
                 {item.schedule?.pmDetail ?? "-"}
               </div>
             </div>

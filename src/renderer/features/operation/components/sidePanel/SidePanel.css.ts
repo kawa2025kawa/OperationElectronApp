@@ -178,7 +178,7 @@ export const menuDropdownContent = style([
     padding: tokens.space.sm,
     borderRadius: tokens.radius.lg,
     border: `2px solid ${tokens.color.border.subtle}`,
-    backgroundColor: tokens.color.bg.frostedGlass,
+    backgroundColor: tokens.glass.surface,
     backdropFilter: "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",
     boxShadow: tokens.shadow.raised.high,

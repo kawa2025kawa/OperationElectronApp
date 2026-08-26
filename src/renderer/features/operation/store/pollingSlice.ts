@@ -1,11 +1,13 @@
-import { toast } from "sonner";
+﻿import { toast } from "sonner";
 import type { StateCreator } from "zustand";
+
 import { commands } from "@shared/api/commands";
 import type { AppState } from "@shared/store/index";
 
 export interface PollingSlice {
   isPolling: boolean;
   lastPollTime: string | null;
+
   setIsPolling: (status: boolean) => void;
   updateLastPollTime: () => void;
   startPolling: () => Promise<void>;
@@ -22,44 +24,54 @@ export const createPollingSlice: StateCreator<
   lastPollTime: null,
 
   setIsPolling: (status: boolean) =>
-    set((s: AppState) => {
-      s.isPolling = status;
+    set((state: AppState) => {
+      state.isPolling = status;
     }),
 
   updateLastPollTime: () =>
-    set((s: AppState) => {
-      s.lastPollTime = new Date().toISOString();
+    set((state: AppState) => {
+      state.lastPollTime = new Date().toISOString();
     }),
 
   startPolling: async () => {
-    if (get().isPolling) return console.warn("[Polling] Already polling");
+    if (get().isPolling) {
+      console.warn("[Polling] Already polling");
+      return;
+    }
+
     try {
       await commands.startPolling();
       toast.success("ポーリングを開始しました");
-      set((s: AppState) => {
-        s.isPolling = true;
-        s.lastPollTime = new Date().toISOString();
+
+      set((state: AppState) => {
+        state.isPolling = true;
+        state.lastPollTime = new Date().toISOString();
       });
     } catch (error: unknown) {
       console.error("[startPolling] Failed:", error);
-      set((s: AppState) => {
-        s.isPolling = false;
+
+      set((state: AppState) => {
+        state.isPolling = false;
       });
+
       throw error;
     }
   },
 
   stopPolling: async () => {
-    if (!get().isPolling)
-      return console.warn("[Polling] Polling is not running");
+    if (!get().isPolling) {
+      console.warn("[Polling] Polling is not running");
+      return;
+    }
+
     try {
       await commands.stopPolling();
       toast.success("ポーリングを停止しました");
     } catch (error: unknown) {
       console.error("[stopPolling] Failed:", error);
     } finally {
-      set((s: AppState) => {
-        s.isPolling = false;
+      set((state: AppState) => {
+        state.isPolling = false;
       });
     }
   },

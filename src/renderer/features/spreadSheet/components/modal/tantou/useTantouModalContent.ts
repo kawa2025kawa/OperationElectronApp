@@ -43,7 +43,7 @@ export const tantouViewConfig: AppViewDefinition = {
   sheetId: SHEET_IDS.TANTOU,
   modalConfig: {
     modalType: "sheet_tantou",
-    modalSize: { width: "60vw", height: "70vh" },
+    modalSize: { width: "70vw", height: "70vh" },
   },
   columns: TANTOU_COLUMNS as readonly Column<unknown>[],
 };

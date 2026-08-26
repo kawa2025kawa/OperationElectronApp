@@ -24,7 +24,7 @@ export const panel = style([
 
     borderRadius: tokens.radius.lg,
     border: `2px solid ${tokens.color.border.subtle}`,
-    backgroundColor: tokens.color.bg.frostedGlass,
+    backgroundColor: tokens.glass.surface,
 
     backdropFilter: "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",

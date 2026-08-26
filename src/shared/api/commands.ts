@@ -38,10 +38,14 @@ export const commands = {
       "initializeStatus",
     ),
 
-  // Scripts / Jobs
-  executeScript: async (scriptId: string): Promise<string> => {
+  // Scripts / Jobs (filePath をオプショナル受入可能に拡張)
+  executeScript: async (
+    scriptId: string,
+    filePath?: string | string[],
+  ): Promise<string> => {
     const result = await window.electronAPI.invoke<string>("executeScript", {
       scriptId,
+      filePath,
     });
     return result ?? "";
   },

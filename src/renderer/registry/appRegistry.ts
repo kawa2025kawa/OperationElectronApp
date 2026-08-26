@@ -1,12 +1,9 @@
-// src/renderer/registry/appRegistry.ts
-
 import type React from "react";
 import { useAppStore } from "@shared/store";
 import { APP_VIEW_IDS, type AppViewId } from "@shared/types/uiType";
 import type { AppViewDefinition } from "@shared/types/appRegistryType";
 
 // --- Configs ---
-import { operationViewConfig } from "@renderer/features/operation/config/operationView";
 import { shopViewConfig } from "@renderer/features/spreadSheet/components/modal/shop/useShopModalContent";
 import { tantouViewConfig } from "@renderer/features/spreadSheet/components/modal/tantou/useTantouModalContent";
 import { jugyoinViewConfig } from "@renderer/features/spreadSheet/components/modal/jugyoin/useJugyoinModalContent";
@@ -18,7 +15,12 @@ export type * from "@shared/types/appRegistryType";
  * 1. App View Registry
  * ============================================================================ */
 export const APP_REGISTRY: Record<AppViewId, AppViewDefinition> = {
-  [APP_VIEW_IDS.OPERATION]: operationViewConfig,
+  [APP_VIEW_IDS.OPERATION]: {
+    id: APP_VIEW_IDS.OPERATION,
+    title: "Operation",
+    isProtected: false,
+    sidebarMenu: { show: true, order: 1 },
+  },
   [APP_VIEW_IDS.KOKYUHYO]: kokyuhyoViewConfig,
   [APP_VIEW_IDS.JUGYOIN]: jugyoinViewConfig,
   [APP_VIEW_IDS.SHOP]: shopViewConfig,

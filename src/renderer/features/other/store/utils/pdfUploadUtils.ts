@@ -1,6 +1,4 @@
-﻿// src/shared/store/slices/utils/pdfUploadUtils.ts
-
-import { getFileName, hasExtension } from "@shared/utils/fileUtils";
+﻿import { getFileName, hasExtension } from "@shared/utils/fileUtils";
 import type { ValidatedPdf, PdfUploadState } from "../pdfUploadSlice";
 
 const DEFAULT_EXPIRE_OFFSET_DAYS = 7;
