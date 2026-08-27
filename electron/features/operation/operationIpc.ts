@@ -1,31 +1,25 @@
-﻿//electron\features\operation\operationIpc.ts
-
-import { ipcMain } from "electron";
-import type { JobStatus, OperationItem } from "@shared/types/operationType";
-import {
-  registerTargets as registerOperationTargets,
-  getTargetByKanriNo,
-} from "@electron/features/operation/targetManager";
-import {
-  registerTargets as registerStatusTargets,
-  updateManualStatus,
-  deleteAllStatuses,
-  initializeStatuses,
-} from "@electron/features/operation/statusManager";
-import { fetchTrackerByJobId } from "@electron/features/operation/tracker";
+﻿import { executeJob } from "@electron/features/operation/jobRunner";
 import {
   startPolling,
   stopPolling,
 } from "@electron/features/operation/polling";
-import { executeJob } from "@electron/features/operation/jobRunner";
+import {
+  deleteAllStatuses,
+  getTargetByKanriNo,
+  initializeStatuses,
+  registerTargets,
+  updateManualStatus,
+} from "@electron/features/operation/statusManager";
+import { fetchTrackerByJobId } from "@electron/features/operation/services/trackerServiceClient";
+import type { JobStatus, OperationItem } from "@shared/types/operationType";
+import { ipcMain } from "electron";
 
 export function registerOperationIpc(): void {
   ipcMain.handle(
     "registerTargets",
     async (_event, args: { items?: OperationItem[] }) => {
       const items = args?.items ?? [];
-      registerOperationTargets(items);
-      registerStatusTargets(items);
+      registerTargets(items);
     },
   );
 
@@ -53,7 +47,6 @@ export function registerOperationIpc(): void {
   ipcMain.handle("startPolling", startPolling);
   ipcMain.handle("stopPolling", stopPolling);
 
-  // Script Job 実行ハンドラー（filePath を引数へ追加）
   ipcMain.handle(
     "executeScript",
     async (
@@ -66,6 +59,7 @@ export function registerOperationIpc(): void {
       return executeJob(args.scriptId, args.filePath);
     },
   );
+
   ipcMain.handle(
     "fetchSingleJobStatus",
     async (_event, args?: { kanriNo?: string }) => {

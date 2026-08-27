@@ -1,10 +1,10 @@
-﻿import React from "react";
+﻿// src/renderer/features/spreadSheet/components/modal/modalRegistry.ts
+import React from "react";
 import {
   SHEET_IDS,
   type SheetId,
   type SheetRowMap,
 } from "@shared/types/spreadsheetTypes";
-
 import { JugyoinModalContent } from "./jugyoin/JugyoinModalContent";
 import { KokyuhyoModalContent } from "./kokyuhyo/KokyuhyoModalContent";
 import { ShopModalContent } from "./shop/ShopModalContent";
@@ -12,11 +12,10 @@ import { TantouModalContent } from "./tantou/TantouModalContent";
 
 export interface SpreadSheetModalProps<T = unknown> {
   data: T;
-  title: string;
-  onClose: () => void;
+  title?: string;
+  onClose?: () => void;
 }
 
-// 各 SheetId とそれに対応するモーダルコンポーネントの型定義マッピング
 type ModalComponentMap = {
   [K in SheetId]: React.ComponentType<SpreadSheetModalProps<SheetRowMap[K]>>;
 };

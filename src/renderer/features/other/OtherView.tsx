@@ -57,4 +57,4 @@ export const OtherView: React.FC = () => {
   );
 };
 
-export default OtherView;
+OtherView;

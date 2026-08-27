@@ -89,20 +89,3 @@ export const panelArea = style([
     },
   },
 ]);
-
-export const panelContainer = style([
-  baseFlexCol,
-  {
-    gap: tokens.space.lg,
-
-    "@media": {
-      "screen and (max-width: 1024px)": {
-        flexDirection: "row",
-      },
-
-      "screen and (max-width: 768px)": {
-        flexDirection: "column",
-      },
-    },
-  },
-]);

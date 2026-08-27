@@ -91,14 +91,23 @@ const cellBase = style({
 });
 
 /** 🎯 Header / Body 共用の配置バリエーション */
-export const alignVariants = styleVariants({
+const alignVariants = styleVariants({
   left: { justifyContent: "flex-start", textAlign: "left" },
   center: { justifyContent: "center", textAlign: "center" },
   right: { justifyContent: "flex-end", textAlign: "right" },
 });
 
-export const thAlignVariants = alignVariants;
-export const tdAlignVariants = alignVariants;
+export const thAlignVariants = styleVariants({
+  left: { justifyContent: "flex-start", textAlign: "left" },
+  center: { justifyContent: "center", textAlign: "center" },
+  right: { justifyContent: "flex-end", textAlign: "right" },
+});
+
+export const tdAlignVariants = styleVariants({
+  left: { justifyContent: "flex-start", textAlign: "left" },
+  center: { justifyContent: "center", textAlign: "center" },
+  right: { justifyContent: "flex-end", textAlign: "right" },
+});
 
 export const thBase = style([
   themeTransition,

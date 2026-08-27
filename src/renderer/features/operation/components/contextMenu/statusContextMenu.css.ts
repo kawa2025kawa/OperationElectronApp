@@ -56,35 +56,6 @@ export const itemBase = style({
   },
 });
 
-export const closeButton = style({
-  appearance: "none",
-  display: "grid",
-  placeItems: "center",
-  width: "24px",
-  height: "24px",
-  padding: 0,
-  border: "none",
-  borderRadius: tokens.radius.sm,
-  background: "transparent",
-  color: tokens.color.text.hover,
-  fontSize: "18px",
-  lineHeight: 1,
-  cursor: "pointer",
-  transition: `color ${tokens.transition.ease}, background-color ${tokens.transition.ease}`,
-
-  selectors: {
-    "&:hover": {
-      backgroundColor: "rgba(255, 255, 255, 0.08)",
-      color: tokens.color.text.base,
-    },
-
-    "&:focus-visible": {
-      outline: `2px solid ${tokens.color.border.default}`,
-      outlineOffset: "2px",
-    },
-  },
-});
-
 export const itemVariants = styleVariants({
   SCHEDULED: {
     color: tokens.color.status.scheduled,

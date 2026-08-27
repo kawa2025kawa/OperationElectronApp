@@ -1,5 +1,6 @@
+// src/renderer/registry/appRegistry.ts
+
 import type React from "react";
-import { useAppStore } from "@shared/store";
 import { APP_VIEW_IDS, type AppViewId } from "@shared/types/uiType";
 import type { AppViewDefinition } from "@shared/types/appRegistryType";
 
@@ -12,7 +13,7 @@ import { kokyuhyoViewConfig } from "@renderer/features/spreadSheet/components/mo
 export type * from "@shared/types/appRegistryType";
 
 /* ============================================================================
- * 1. App View Registry
+ * 1. App View Registry Definition
  * ============================================================================ */
 export const APP_REGISTRY: Record<AppViewId, AppViewDefinition> = {
   [APP_VIEW_IDS.OPERATION]: {
@@ -46,27 +47,19 @@ export const APP_REGISTRY: Record<AppViewId, AppViewDefinition> = {
 };
 
 /* ============================================================================
- * 2. Setup Method
+ * 2. Setup Method (Component Binding)
  * ============================================================================ */
-interface CustomGlobal {
-  useAppStore?: typeof useAppStore;
-}
-
 export const setupAppRegistry = (
   componentMap?: Partial<Record<AppViewId, React.ComponentType<never>>>,
 ): void => {
-  if (componentMap) {
-    Object.entries(componentMap).forEach(([viewId, component]) => {
-      const registryItem = APP_REGISTRY[viewId as AppViewId];
-      if (registryItem && component) {
-        registryItem.component = component as React.ComponentType;
-      }
-    });
-  }
+  if (!componentMap) return;
 
-  if (typeof window !== "undefined") {
-    (globalThis as unknown as CustomGlobal).useAppStore = useAppStore;
-  }
+  Object.entries(componentMap).forEach(([viewId, component]) => {
+    const registryItem = APP_REGISTRY[viewId as AppViewId];
+    if (registryItem && component) {
+      registryItem.component = component as React.ComponentType;
+    }
+  });
 };
 
 /* ============================================================================
@@ -76,9 +69,4 @@ export function getAppViewConfig(viewId: string): AppViewDefinition {
   return (
     APP_REGISTRY[viewId as AppViewId] ?? APP_REGISTRY[APP_VIEW_IDS.OPERATION]
   );
-}
-
-export function isProtectedView(viewId: string): boolean {
-  const config = APP_REGISTRY[viewId as AppViewId];
-  return config?.isProtected ?? false;
 }

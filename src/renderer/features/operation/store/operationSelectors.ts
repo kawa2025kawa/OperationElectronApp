@@ -6,15 +6,6 @@ import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
 
 export const selectCurrentMode = (state: AppState) => state.currentMode;
 
-export const selectSelectedOperationId = (state: AppState) =>
-  state.selectedIds.operation;
-
-export const selectSelectedIrregularId = (state: AppState) =>
-  state.selectedIds.irregular;
-
-export const selectSelectedTodayId = (state: AppState) =>
-  state.selectedIds.today;
-
 const getEntitiesByIds = (
   ids: string[],
   entities: Record<string, OperationItem>,
@@ -67,7 +58,7 @@ export const selectIrregularTableData = (state: AppState): OperationItem[] =>
     state.searchTerm.trim().toLowerCase(),
   );
 
-export const selectTodayTableData = (state: AppState): OperationItem[] =>
+const selectTodayTableData = (state: AppState): OperationItem[] =>
   filterIrregulars(
     getEntitiesByIds(state.todayIds, state.irregularEntities),
     state.searchTerm.trim().toLowerCase(),

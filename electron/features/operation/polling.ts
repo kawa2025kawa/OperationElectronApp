@@ -1,49 +1,85 @@
 ﻿import { evaluateAllTargetStatuses } from "@electron/features/operation/evaluators/pollingStatusEvaluator";
 import { triggerAutoStartJobs } from "@electron/features/operation/jobRunner";
 import {
-  isTrackerTarget,
+  getActiveTrackerTargets,
   syncTrackerStatuses,
 } from "@electron/features/operation/monitors/trackerMonitor";
-import { getAllTargets } from "@electron/features/operation/targetManager";
+import { getAllTargets } from "@electron/features/operation/statusManager";
 
+// ============================================================
+// State
+// ============================================================
 let timer: NodeJS.Timeout | null = null;
+let resolveSleep: (() => void) | null = null;
 let running = false;
 
-const formatTime = (timeMs: number) =>
+// ============================================================
+// Helpers
+// ============================================================
+const formatTime = (timeMs: number): string =>
   new Date(timeMs).toLocaleString("ja-JP", {
     timeZone: "Asia/Tokyo",
     hour12: false,
   });
 
-export function isPollingRunning(): boolean {
-  return running;
-}
-
-export function startPolling(): void {
-  if (running) {
-    console.warn("[Polling] already running");
-    return;
+function clearTimer(): void {
+  if (timer !== null) {
+    clearTimeout(timer);
+    timer = null;
   }
-  running = true;
-  console.log("[Polling] started");
-  void pollingLoop();
+  if (resolveSleep !== null) {
+    resolveSleep();
+    resolveSleep = null;
+  }
 }
 
-export function stopPolling(): void {
+function sleepUntilNextMinute(): Promise<void> {
+  const now = new Date();
+  const next = new Date(now);
+  next.setSeconds(0, 0);
+  next.setMinutes(next.getMinutes() + 1);
+
+  const delay = Math.max(0, next.getTime() - now.getTime());
+
+  return new Promise((resolve) => {
+    resolveSleep = resolve;
+    timer = setTimeout(() => {
+      timer = null;
+      resolveSleep = null;
+      resolve();
+    }, delay);
+  });
+}
+
+// ============================================================
+// Main Execution Functions
+// ============================================================
+async function runCycle(): Promise<void> {
+  const startedAt = Date.now();
+  const targets = getAllTargets();
+
+  console.log("[Polling] runCycle START", { count: targets.length });
+
+  if (!targets.length || !running) return;
+
+  evaluateAllTargetStatuses(targets, () => running);
   if (!running) return;
-  running = false;
-  clearTimer();
-  console.log("[Polling] stopped");
+
+  await syncTrackerStatuses(targets);
+  if (!running) return;
+
+  await triggerAutoStartJobs(targets, () => running);
+
+  console.log("[Polling] runCycle END", {
+    elapsedMs: Date.now() - startedAt,
+  });
 }
 
 async function pollingLoop(): Promise<void> {
   while (running) {
     const startedAt = Date.now();
     const targets = getAllTargets();
-    const trackerTargets = targets.filter(isTrackerTarget).map((t) => ({
-      kanriNo: t.kanriNo,
-      workName: t.workName,
-    }));
+    const trackerTargets = getActiveTrackerTargets(targets);
 
     console.log(
       `\n=================== [Polling Loop START: ${formatTime(startedAt)}] ===================`,
@@ -74,47 +110,26 @@ async function pollingLoop(): Promise<void> {
   }
 }
 
-async function runCycle(): Promise<void> {
-  const startedAt = Date.now();
-  const targets = getAllTargets();
-
-  console.log("[Polling] runCycle START", { targets: targets.length });
-
-  if (!targets.length || !running) return;
-
-  evaluateAllTargetStatuses(targets, () => running);
-  if (!running) return;
-
-  await syncTrackerStatuses(targets);
-  if (!running) return;
-
-  await triggerAutoStartJobs(targets, () => running);
-
-  console.log("[Polling] runCycle END", {
-    elapsedMs: Date.now() - startedAt,
-  });
+// ============================================================
+// Public APIs
+// ============================================================
+export function isPollingRunning(): boolean {
+  return running;
 }
 
-function clearTimer(): void {
-  if (timer !== null) {
-    clearTimeout(timer);
-    timer = null;
+export function startPolling(): void {
+  if (running) {
+    console.warn("[Polling] already running");
+    return;
   }
+  running = true;
+  console.log("[Polling] started");
+  void pollingLoop();
 }
 
-function sleepUntilNextMinute(): Promise<void> {
-  const now = new Date();
-  const next = new Date(now);
-  next.setSeconds(0, 0);
-  next.setMinutes(next.getMinutes() + 1);
-
-  return new Promise((resolve) => {
-    timer = setTimeout(
-      () => {
-        timer = null;
-        resolve();
-      },
-      Math.max(0, next.getTime() - now.getTime()),
-    );
-  });
+export function stopPolling(): void {
+  if (!running) return;
+  running = false;
+  clearTimer();
+  console.log("[Polling] stopped");
 }

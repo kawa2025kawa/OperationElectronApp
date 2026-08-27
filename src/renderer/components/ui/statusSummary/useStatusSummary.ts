@@ -83,4 +83,4 @@ export const useStatusSummary = ({
   };
 };
 
-export default useStatusSummary;
+useStatusSummary;

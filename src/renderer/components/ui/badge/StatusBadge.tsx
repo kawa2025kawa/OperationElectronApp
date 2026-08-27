@@ -19,4 +19,4 @@ export function StatusBadge({ status = "scheduled" }: StatusBadgeProps) {
   );
 }
 
-export default StatusBadge;
+StatusBadge;

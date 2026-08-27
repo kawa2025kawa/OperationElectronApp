@@ -63,4 +63,4 @@ export const StatusSummary: React.FC<StatusSummaryProps> = React.memo(
 
 StatusSummary.displayName = "StatusSummary";
 
-export default StatusSummary;
+StatusSummary;

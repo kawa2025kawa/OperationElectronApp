@@ -1,6 +1,12 @@
 //src\shared\types\initializationTypes.ts
 
-export type InitStatusValue = "LOADING" | "OK" | "NG" | "PENDING" | "CONNECTED" | string;
+type InitStatusValue =
+  | "LOADING"
+  | "OK"
+  | "NG"
+  | "PENDING"
+  | "CONNECTED"
+  | string;
 
 export interface InitStatus {
   operation: InitStatusValue;

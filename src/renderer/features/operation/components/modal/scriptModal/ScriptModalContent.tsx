@@ -59,4 +59,4 @@ export const ScriptModalContent: React.FC = React.memo(() => {
 
 ScriptModalContent.displayName = "ScriptModalContent";
 
-export default ScriptModalContent;
+ScriptModalContent;

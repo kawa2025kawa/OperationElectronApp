@@ -142,7 +142,7 @@ export const darkThemeClass = createTheme(
      * ======================================================== */
 
     glass: {
-      surface: "rgba(0, 0, 0, 0.45)",
+      surface: "rgba(20, 20, 25, 0.6)",
       surfaceSubtle: "rgba(0, 0, 0, 0.28)",
 
       border: "rgba(255, 255, 255, 0.08)",

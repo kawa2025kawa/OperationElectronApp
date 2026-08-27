@@ -1,10 +1,13 @@
-﻿import { useRef, useState } from "react";
+﻿// src/renderer/components/ui/fileDropZone/useFileDropZone.ts
+
+import { useRef, useState } from "react";
 
 export interface FileDropZoneItem {
   name: string;
   path: string;
 }
 
+// ★ export を追加
 export interface FileDropZoneProps {
   files?: FileDropZoneItem[];
   onFileSelect: (files: File[]) => void;

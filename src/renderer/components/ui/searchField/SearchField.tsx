@@ -26,4 +26,4 @@ export const SearchField: React.FC<SearchFieldProps> = ({
 );
 
 SearchField.displayName = "SearchField";
-export default SearchField;
+SearchField;

@@ -30,4 +30,4 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
 };
 
 CloseButton.displayName = "CloseButton";
-export default CloseButton;
+CloseButton;

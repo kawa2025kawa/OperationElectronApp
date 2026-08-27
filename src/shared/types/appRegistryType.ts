@@ -6,17 +6,17 @@ import type { SheetId } from "@shared/types/spreadsheetTypes";
 import type { Column } from "@shared/types/tableType";
 import type { AppViewId, GlobalModalConfig } from "@shared/types/uiType";
 
-export type ModalSize = {
+type ModalSize = {
   width: string;
   height: string;
 };
 
-export interface ActionStoreContext {
+interface ActionStoreContext {
   openGlobalModal: (content: ReactNode, config?: GlobalModalConfig) => void;
   closeGlobalModal: () => void;
 }
 
-export interface ViewActionDefinition<TItem = OperationItem> {
+interface ViewActionDefinition<TItem = OperationItem> {
   key: string;
   label: string;
   type: "modal" | "external" | "custom";
@@ -48,12 +48,4 @@ export interface AppViewDefinition {
   };
   columns?: readonly Column<unknown>[];
   actions?: readonly ViewActionDefinition[];
-}
-
-export interface ExtraModalDefinition {
-  modalType: string;
-  modalSize: ModalSize;
-  component?: ComponentType<Record<string, unknown>>;
-  columns?: readonly Column<unknown>[];
-  execute?: (store: ActionStoreContext) => void;
 }

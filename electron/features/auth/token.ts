@@ -15,7 +15,7 @@ const ACCOUNT_NAME = "session";
 // Token → Session
 // =====================================================
 
-export function tokenToSession(token: OAuthToken): AuthSession {
+function tokenToSession(token: OAuthToken): AuthSession {
   return {
     accessToken: token.accessToken,
     refreshToken: token.refreshToken,

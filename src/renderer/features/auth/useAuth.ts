@@ -1,10 +1,10 @@
 ﻿// src/renderer/features/auth/useAuth.ts
 
 import { useState } from "react";
-import { useToastStore } from "@renderer/components/ui/toast/toastStore";
+import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { useShallow } from "zustand/react/shallow";
 
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import { useAppStore } from "@shared/store";
 
 export const useAuth = () => {
@@ -51,7 +51,7 @@ export const useAuth = () => {
     } catch (error) {
       console.error("[Auth] Login failed:", error);
 
-      useToastStore
+      usePollingToastStore
         .getState()
         .addToast(
           error instanceof Error ? error.message : "ログインに失敗しました",

@@ -1,43 +1,58 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/tantou/TantouModalContent.tsx
-
-import React from "react";
+import React, { useMemo } from "react";
 import type { Tantou } from "@shared/types/spreadsheetTypes";
 import type { SpreadSheetModalProps } from "../modalRegistry";
-import * as styles from "../modal.css";
+import * as styles from "./TantouModalContent.css";
 import { useTantouModalContent } from "./useTantouModalContent";
 
+const formatDateWithDay = (date: Date): string => {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
+  const dayOfWeek = weekDays[date.getDay()];
+  return `${month}/${day}(${dayOfWeek})`;
+};
+
 export const TantouModalContent: React.FC<SpreadSheetModalProps<Tantou>> =
-  React.memo(({ data, title, onClose }) => {
-    const { selectedIndex, setSelectedIndex, groups, displayItems } =
+  React.memo(({ data }) => {
+    const { selectedIndex, setSelectedIndex, displayItems } =
       useTantouModalContent(data);
 
-    return (
-      <div className={styles.modalContainer}>
-        {/* Header */}
-        <header className={styles.header}>
-          <h2 className={styles.modalTitle}>{title}</h2>
-          <button type="button" className={styles.button} onClick={onClose}>
-            ✕
-          </button>
-        </header>
+    const { todayLabel, tomorrowLabel } = useMemo(() => {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      return {
+        todayLabel: `本日 ${formatDateWithDay(now)}`,
+        tomorrowLabel: `明日 ${formatDateWithDay(tomorrow)}`,
+      };
+    }, []);
 
+    return (
+      <div className={styles.mainContainer}>
         {/* Tab List */}
         <div className={styles.tabContainer}>
-          {groups.map((group, idx) => (
-            <button
-              key={group.title}
-              type="button"
-              className={styles.button}
-              data-variant="tab"
-              data-active={selectedIndex === idx}
-              onClick={() => setSelectedIndex(idx)}
-            >
-              {group.title}
-            </button>
-          ))}
+          <button
+            type="button"
+            className={styles.button}
+            data-variant="tab"
+            data-active={selectedIndex === 0}
+            onClick={() => setSelectedIndex(0)}
+          >
+            {todayLabel}
+          </button>
+          <button
+            type="button"
+            className={styles.button}
+            data-variant="tab"
+            data-active={selectedIndex === 1}
+            onClick={() => setSelectedIndex(1)}
+          >
+            {tomorrowLabel}
+          </button>
         </div>
 
-        {/* Main Content */}
+        {/* Card Grid Content */}
         <div className={styles.contentContainer}>
           <div className={styles.gridContainer}>
             {displayItems.map((item) => (
@@ -48,16 +63,8 @@ export const TantouModalContent: React.FC<SpreadSheetModalProps<Tantou>> =
             ))}
           </div>
         </div>
-
-        {/* Footer */}
-        <footer className={styles.footer}>
-          <button type="button" className={styles.button} onClick={onClose}>
-            閉じる
-          </button>
-        </footer>
       </div>
     );
   });
 
 TantouModalContent.displayName = "TantouModalContent";
-export default TantouModalContent;

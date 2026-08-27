@@ -91,4 +91,4 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
 
 OperationModal.displayName = "OperationModal";
 
-export default OperationModal;
+OperationModal;

@@ -10,7 +10,7 @@ interface StateContainerProps {
   children?: React.ReactNode;
 }
 
-export const StateContainer: React.FC<StateContainerProps> = React.memo(
+const StateContainer: React.FC<StateContainerProps> = React.memo(
   ({ icon, title, message, children }) => {
     return (
       <div className={styles.stateContainer}>
@@ -32,7 +32,7 @@ interface SuccessStateProps {
   children?: React.ReactNode;
 }
 
-export const SuccessState: React.FC<SuccessStateProps> = React.memo(
+const SuccessState: React.FC<SuccessStateProps> = React.memo(
   ({ title = "処理完了", message, onClickOk, children }) => {
     return (
       <>

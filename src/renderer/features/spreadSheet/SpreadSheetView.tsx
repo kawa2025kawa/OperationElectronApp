@@ -1,10 +1,13 @@
+// src/renderer/features/spreadSheet/SpreadSheetView.tsx
+
 import React, { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
+import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { useAppStore } from "@shared/store";
 import { type SheetId, type SheetRowMap } from "@shared/types/spreadsheetTypes";
 
-import { SPREADSHEET_MODAL_MAP } from "./components/modal/modalRegistry";
+import { SpreadSheetModal } from "./components/modal/SpreadSheetModal";
 import { SpreadSheetTable } from "./components/table/SpreadSheetTable";
 import { useSpreadSheetViewLogic } from "./useSpreadSheetViewLogic";
 import * as styles from "./spreadSheetView.css";
@@ -32,10 +35,7 @@ export const SpreadSheetView: React.FC = React.memo(() => {
       const modalConfig = config?.modalConfig;
       if (!modalConfig || !sheetId) return;
 
-      const ModalComponent = SPREADSHEET_MODAL_MAP[sheetId];
-      if (!ModalComponent) return;
-
-      // 🎯 修正箇所: unknown を挟んで型安全に安全キャスト
+      // 型安全に安全キャストしてタイトルを抽出
       const raw = row as unknown as Record<string, unknown>;
 
       // フォールバック付きタイトル抽出 (氏名 -> 店舗名 -> 設定タイトル)
@@ -46,7 +46,8 @@ export const SpreadSheetView: React.FC = React.memo(() => {
         "詳細情報";
 
       openGlobalModal(
-        <ModalComponent
+        <SpreadSheetModal
+          sheetId={sheetId}
           data={row as never}
           title={title}
           onClose={closeGlobalModal}
@@ -60,10 +61,11 @@ export const SpreadSheetView: React.FC = React.memo(() => {
     [config, sheetId, openGlobalModal, closeGlobalModal],
   );
 
+  // 🎯 修正: 文字列の直出しから EmptyState コンポーネントへ差し替え
   if (!sheetId) {
     return (
-      <div className={styles.errorMessage}>
-        有効なスプレッドシートが指定されていません。
+      <div className={styles.viewContainer}>
+        <EmptyState />
       </div>
     );
   }
@@ -90,4 +92,3 @@ export const SpreadSheetView: React.FC = React.memo(() => {
 });
 
 SpreadSheetView.displayName = "SpreadSheetView";
-export default SpreadSheetView;

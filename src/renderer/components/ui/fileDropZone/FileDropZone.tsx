@@ -1,8 +1,14 @@
-﻿import React from "react";
-import * as styles from "./fileDropZone.css";
-import { useFileDropZone, type FileDropZoneProps } from "./useFileDropZone";
+﻿// src/renderer/components/ui/fileDropZone/FileDropZone.tsx
 
-export type { FileDropZoneItem, FileDropZoneProps } from "./useFileDropZone";
+import React from "react";
+import * as styles from "./fileDropZone.css";
+
+// ★ useFileDropZone と FileDropZoneItem / FileDropZoneProps をまとめてインポート
+import {
+  useFileDropZone,
+  type FileDropZoneItem,
+  type FileDropZoneProps,
+} from "./useFileDropZone";
 
 export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
   ({
@@ -31,9 +37,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
 
     return (
       <div className={styles.container}>
-        {/* =====================================================
-         * Drop Zone
-         * ===================================================== */}
+        {/* Drop Zone */}
         <div
           role="button"
           tabIndex={disabled ? -1 : 0}
@@ -64,9 +68,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
           <p className={styles.labelText}>{label}</p>
         </div>
 
-        {/* =====================================================
-         * Selected Files
-         * ===================================================== */}
+        {/* Selected Files */}
         <div className={styles.selectedFilesContainer}>
           <div className={styles.selectedFilesHeader}>
             選択ファイル ({files.length})
@@ -78,7 +80,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
             </div>
           ) : (
             <div className={styles.selectedFilesList}>
-              {files.map((file, index) => (
+              {files.map((file: FileDropZoneItem, index: number) => (
                 <div
                   key={`${file.path}-${index}`}
                   className={styles.selectedFileRow}
@@ -126,5 +128,3 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
 );
 
 FileDropZone.displayName = "FileDropZone";
-
-export default FileDropZone;

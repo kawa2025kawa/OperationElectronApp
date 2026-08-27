@@ -1,7 +1,7 @@
 ﻿import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import type { AppState } from "@shared/store";
 
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/jobRunnerHelper";

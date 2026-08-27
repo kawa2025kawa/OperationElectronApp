@@ -1,56 +1,20 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/jugyoin/useJugyoinModalContent.ts
-
 import { useCallback } from "react";
 import { addDays } from "date-fns";
 import type { AppViewDefinition } from "@renderer/registry/appRegistry";
 import type { Column } from "@shared/types/tableType";
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import { SHEET_IDS, type Jugyoin } from "@shared/types/spreadsheetTypes";
 import { APP_VIEW_IDS } from "@shared/types/uiType";
 import { formatDateForHeader, getOffsetDate } from "@shared/utils/dateUtils";
-import { formatDateWithDay } from "@renderer/features/spreadSheet/Utils/scheduleUtils";
-
-// ----------------------------------------------------------------------------
-// 1. API Range & Key Mapping Config
-// ----------------------------------------------------------------------------
-
-export const JUGYOIN_RANGE_CONFIG = {
-  tabName: "JugyoinMasterData",
-  headerRow: 3,
-  startColumn: "A",
-  endColumn: "N",
-  dynamicRange: "JugyoinMasterData!A3:N10000",
-} as const;
-
-export const JUGYOIN_KEY_MAP = {
-  bumon: "department",
-  todayAmStatus: "today.amStatus",
-  todayAmDetail: "today.amDetail",
-  todayPmStatus: "today.pmStatus",
-  todayPmDetail: "today.pmDetail",
-  AM2: "tomorrow.amStatus",
-  AM2詳細: "tomorrow.amDetail",
-  PM2: "tomorrow.pmStatus",
-  PM2詳細: "tomorrow.pmDetail",
-  tomorrowAmStatus: "tomorrow.amStatus",
-  tomorrowAmDetail: "tomorrow.amDetail",
-  tomorrowPmStatus: "tomorrow.pmStatus",
-  tomorrowPmDetail: "tomorrow.pmDetail",
-  naisen: "contact.extension",
-  tanshuku: "contact.mobileShort",
-  contactMobile: "contact.mobile",
-} as const;
-
-// ----------------------------------------------------------------------------
-// 2. Table Columns & App View Definition
-// ----------------------------------------------------------------------------
+import { formatDateWithDay } from "@renderer/features/spreadSheet/utils/scheduleUtils";
 
 const DATE_LABELS = {
   today: formatDateForHeader(new Date()),
   tomorrow: formatDateForHeader(getOffsetDate(1)),
 } as const;
 
-export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
+const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   { key: "department", label: "部署", width: "15%" },
   { key: "name", label: "氏名", width: "15%" },
   {
@@ -111,7 +75,7 @@ export const jugyoinViewConfig: AppViewDefinition = {
   sidebarMenu: { show: true, order: 3 },
   sheetId: SHEET_IDS.JUGYOIN,
   search: {
-    placeholder: "氏名や部署で検索...",
+    placeholder: "検索...",
     searchKeys: ["name", "bumon", "naisen", "contactMobile"],
   },
   modalConfig: {
@@ -121,14 +85,9 @@ export const jugyoinViewConfig: AppViewDefinition = {
   columns: JUGYOIN_COLUMNS as readonly Column<unknown>[],
 };
 
-// ----------------------------------------------------------------------------
-// 3. Modal Logic
-// ----------------------------------------------------------------------------
-
 export function useJugyoinModalContent(data: Jugyoin) {
   const scheduleLink =
     data?.scheduleLink !== "-" ? data?.scheduleLink : undefined;
-
   const handleOpenSchedule = useCallback(() => {
     if (scheduleLink) void commands.openExternal(scheduleLink);
   }, [scheduleLink]);

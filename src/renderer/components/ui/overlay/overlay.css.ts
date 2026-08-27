@@ -130,7 +130,7 @@ const targetSweep = keyframes({
    Base Overlay & Layout
 ========================================= */
 
-export const overlayBase = style({
+const overlayBase = style({
   position: "fixed",
   inset: 0,
   display: "flex",

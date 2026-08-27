@@ -1,5 +1,4 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/tantou/useTantouModalContent.ts
-
 import type { AppViewDefinition } from "@renderer/registry/appRegistry";
 import type { Column } from "@shared/types/tableType";
 import { SHEET_IDS, type Tantou } from "@shared/types/spreadsheetTypes";
@@ -9,19 +8,7 @@ import {
   type TabGroupConfig,
 } from "../hooks/useSpreadSheetTabData";
 
-// ----------------------------------------------------------------------------
-// 1. API Range & Table Columns & App View Definition
-// ----------------------------------------------------------------------------
-
-export const TANTOU_RANGE_CONFIG = {
-  tabName: "KokyuhyoTantouMasterData",
-  headerRow: 2,
-  startColumn: "A",
-  endColumn: "J",
-  dynamicRange: "KokyuhyoTantouMasterData!A2:J10000",
-} as const;
-
-export const TANTOU_COLUMNS: readonly Column<Tantou>[] = [
+const TANTOU_COLUMNS: readonly Column<Tantou>[] = [
   { key: "today.hayaban", label: "早番", width: "10.5%" },
   { key: "today.shikai", label: "司会", width: "10.5%" },
   { key: "today.uketsuke", label: "受付", width: "10.5%" },
@@ -36,7 +23,7 @@ export const TANTOU_COLUMNS: readonly Column<Tantou>[] = [
 
 export const tantouViewConfig: AppViewDefinition = {
   id: APP_VIEW_IDS.TANTOU,
-  title: "tantou",
+  title: "Tantou",
   component: null,
   isProtected: true,
   sidebarMenu: { show: false, order: 99 },
@@ -47,10 +34,6 @@ export const tantouViewConfig: AppViewDefinition = {
   },
   columns: TANTOU_COLUMNS as readonly Column<unknown>[],
 };
-
-// ----------------------------------------------------------------------------
-// 2. Modal Fields & Logic
-// ----------------------------------------------------------------------------
 
 const TANTOU_FIELDS = [
   { key: "hayaban", label: "早番" },
@@ -82,8 +65,15 @@ const TANTOU_MODAL_GROUPS: readonly TabGroupConfig[] = [
 ] as const;
 
 export function useTantouModalContent(data: Tantou) {
-  return useSpreadSheetTabData(
-    data as unknown as Record<string, unknown>,
-    TANTOU_MODAL_GROUPS,
-  );
+  const { selectedIndex, setSelectedIndex, displayItems } =
+    useSpreadSheetTabData(
+      data as unknown as Record<string, unknown>,
+      TANTOU_MODAL_GROUPS,
+    );
+
+  return {
+    selectedIndex,
+    setSelectedIndex,
+    displayItems,
+  };
 }

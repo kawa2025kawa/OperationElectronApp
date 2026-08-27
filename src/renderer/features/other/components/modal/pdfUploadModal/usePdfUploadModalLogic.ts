@@ -8,7 +8,7 @@ import {
   type DragEvent,
 } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import { useAppStore } from "@shared/store";
 import { getFileName } from "@shared/utils/fileUtils";
 

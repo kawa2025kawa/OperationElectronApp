@@ -2,7 +2,7 @@
 
 import type { StateCreator } from "zustand";
 
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import type { AppState } from "@shared/store";
 import type { OperationItem } from "@shared/types/operationType";
 import type { StatusSummary } from "@shared/types/uiType";

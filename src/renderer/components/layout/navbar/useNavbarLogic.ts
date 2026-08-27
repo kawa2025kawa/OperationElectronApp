@@ -43,4 +43,4 @@ export const useNavbarLogic = () => {
   };
 };
 
-export default useNavbarLogic;
+useNavbarLogic;

@@ -1,4 +1,4 @@
-﻿export interface EmailTemplateContext {
+﻿interface EmailTemplateContext {
   lastName: string;
   nextTuesdayStr: string;
   links?: Record<string, string> | null;

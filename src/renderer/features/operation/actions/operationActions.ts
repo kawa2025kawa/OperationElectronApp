@@ -1,4 +1,4 @@
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
 import { useAppStore, type AppState } from "@shared/store";
 import { showToast } from "@shared/utils/toastUtils";
@@ -47,13 +47,13 @@ const getSelectionContext = (state: AppState) => {
   };
 };
 
-export function selectOperation(item: OperationItem): void {
+function selectOperation(item: OperationItem): void {
   const { setSelectedId } = getSelectionContext(getState());
 
   setSelectedId(item.kanriNo);
 }
 
-export function moveSelectionDown(): void {
+function moveSelectionDown(): void {
   const { data, currentId, setSelectedId } = getSelectionContext(getState());
 
   if (data.length === 0) {
@@ -69,7 +69,7 @@ export function moveSelectionDown(): void {
   setSelectedId(data[Math.max(0, nextIndex)].kanriNo);
 }
 
-export function moveSelectionUp(): void {
+function moveSelectionUp(): void {
   const { data, currentId, setSelectedId } = getSelectionContext(getState());
 
   if (data.length === 0) {
@@ -85,7 +85,7 @@ export function moveSelectionUp(): void {
   setSelectedId(data[previousIndex].kanriNo);
 }
 
-export async function executeOperationAction(actionKey: string): Promise<void> {
+async function executeOperationAction(actionKey: string): Promise<void> {
   const state = getState();
   const selectedItem = selectActiveSelectedItem(state);
 

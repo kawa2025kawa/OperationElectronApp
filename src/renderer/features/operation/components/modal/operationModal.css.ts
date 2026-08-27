@@ -103,16 +103,6 @@ export const contentFlexContainer = style({
   boxSizing: "border-box",
 });
 
-export const mainMessage = style({
-  fontSize: "clamp(14px, 2.2vmin, 18px)",
-  fontWeight: tokens.font.weight.bold,
-  color: tokens.color.text.base,
-  textAlign: "center",
-  margin: 0,
-  padding: "0.5vmin 0",
-  flexShrink: 0,
-});
-
 export const sectionTitle = style({
   fontSize: "clamp(12px, 2vmin, 16px)",
   fontWeight: tokens.font.weight.bold,
@@ -140,7 +130,7 @@ export const commentBox = style([
   },
 ]);
 
-export const commentBoxError = style([
+const commentBoxError = style([
   commentBox,
   {
     borderColor: tokens.color.status?.error ?? "#f87171",
@@ -210,30 +200,6 @@ export const linkValue = style({
     },
   },
 });
-
-export const emptyContainer = style({
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  width: "100%",
-  height: "100%",
-  minHeight: 0,
-  flex: 1,
-  overflow: "hidden",
-});
-
-export const emptyText = style([
-  themeTransition,
-  {
-    fontSize: "clamp(24px, 6vmin, 64px)",
-    fontWeight: tokens.font.weight.bold,
-    opacity: 0.12,
-    color: tokens.color.text.base,
-    transform: "rotate(-6deg)",
-    whiteSpace: "nowrap",
-    userSelect: "none",
-  },
-]);
 
 /* =======================================
  * 5. アクションボタン領域

@@ -13,7 +13,7 @@ const PREVIOUS_DAY_JOB_PATTERNS = [
   "BENMSEXP_",
 ] as const;
 
-export function formatTrackerDate(date: Date): string {
+function formatTrackerDate(date: Date): string {
   const yyyy = date.getUTCFullYear();
   const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
   const dd = String(date.getUTCDate()).padStart(2, "0");
@@ -23,7 +23,7 @@ export function formatTrackerDate(date: Date): string {
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}Z`;
 }
 
-export function createScheduledDate(scheduledTime?: string | null): Date {
+function createScheduledDate(scheduledTime?: string | null): Date {
   const date = new Date();
   if (!scheduledTime?.trim()) {
     date.setSeconds(0, 0);

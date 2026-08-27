@@ -26,17 +26,3 @@ export const tableArea = style({
   minHeight: 0,
   width: "100%",
 });
-
-export const tablePadding = style({
-  padding: `${tokens.space.xs} ${tokens.space.sm}`,
-  boxSizing: "border-box",
-  height: "100%",
-});
-
-export const errorMessage = style({
-  padding: tokens.space.xl,
-  color: tokens.color.status.error,
-  fontSize: tokens.font.size.md,
-  fontWeight: tokens.font.weight.bold,
-  textAlign: "center",
-});

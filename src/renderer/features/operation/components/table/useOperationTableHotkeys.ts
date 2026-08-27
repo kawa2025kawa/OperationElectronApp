@@ -2,6 +2,8 @@
 import { useAppStore } from "@shared/store";
 import type { ViewMode } from "@shared/types/uiType";
 import { completeSelectedOperation } from "@renderer/features/operation/actions/operationActions";
+// 🎯 修正: 候補に出ていた正しい関数名 suppressNextSuccessToast をインポート
+import { suppressNextSuccessToast } from "@shared/utils/statusToastSuppression";
 
 export const useTableHotkeys = (
   targetMode: ViewMode,
@@ -35,6 +37,9 @@ export const useTableHotkeys = (
       } else if (e.key === "Enter") {
         e.preventDefault();
         if (!selectedId) return;
+
+        // 🎯 修正: 正しい関数名で呼び出し
+        suppressNextSuccessToast(selectedId);
         void completeSelectedOperation();
       }
     };

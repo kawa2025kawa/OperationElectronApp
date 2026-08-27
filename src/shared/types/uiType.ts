@@ -1,6 +1,5 @@
 // src/shared/types/uiType.ts
 
-import type { ReactNode } from "react";
 import type { JobStatus } from "@shared/types/operationType";
 
 /* =====================================================
@@ -22,29 +21,23 @@ export type AppViewId = (typeof APP_VIEW_IDS)[keyof typeof APP_VIEW_IDS];
 /**
  * OperationModal 用のモーダル種別
  */
-export const OPERATION_MODAL_TYPES = {
+const OPERATION_MODAL_TYPES = {
   SUMMARY: "summary",
   LINK: "link",
 } as const;
 
-export type OperationModalType =
-  (typeof OPERATION_MODAL_TYPES)[keyof typeof OPERATION_MODAL_TYPES];
-
 /**
  * OtherModal 用のモーダル種別
  */
-export const OTHER_MODAL_TYPES = {
+const OTHER_MODAL_TYPES = {
   PDF_UPLOAD: "pdfUpload",
   GMAIL: "gmail",
 } as const;
 
-export type OtherModalType =
-  (typeof OTHER_MODAL_TYPES)[keyof typeof OTHER_MODAL_TYPES];
-
 /**
  * 全モーダル種別の統合定義（互換性維持用）
  */
-export const EXTRA_MODAL_TYPES = {
+const EXTRA_MODAL_TYPES = {
   ...OPERATION_MODAL_TYPES,
   ...OTHER_MODAL_TYPES,
   JC: "jc",
@@ -55,7 +48,7 @@ export const EXTRA_MODAL_TYPES = {
 export type ExtraModalType =
   (typeof EXTRA_MODAL_TYPES)[keyof typeof EXTRA_MODAL_TYPES];
 
-export const VIEW_MODES = ["operation", "irregular", "today"] as const;
+const VIEW_MODES = ["operation", "irregular", "today"] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
 
 /* =====================================================
@@ -72,15 +65,8 @@ export const STATUS_ORDER = [
 ] as const satisfies readonly JobStatus[];
 
 export const SUMMARY_ORDER = ["progress", "total", ...STATUS_ORDER] as const;
-
 export type SummaryDisplayKey = (typeof SUMMARY_ORDER)[number];
-
-const STATUS_SET = new Set<string>(STATUS_ORDER);
-export const isStatusCounter = (value: string): value is JobStatus =>
-  STATUS_SET.has(value);
-
 export type StatusSummary = Record<JobStatus | "total" | "progress", number>;
-
 export const EMPTY_STATUS_SUMMARY: StatusSummary = {
   total: 0,
   progress: 0,
@@ -113,25 +99,3 @@ export interface GlobalModalConfig {
   width?: string;
   height?: string;
 }
-
-export interface GlobalModalSlice {
-  modalContent: ReactNode | null;
-  modalConfig: GlobalModalConfig | null;
-  openGlobalModal: (content: ReactNode, config?: GlobalModalConfig) => void;
-  closeGlobalModal: () => void;
-}
-
-export type ModalMode = "execute" | "completed" | "error";
-
-export type SpreadSheetTab = Extract<
-  AppViewId,
-  "shop" | "kokyuhyo" | "jugyoin" | "tantou"
->;
-
-/**
- * JobStatus または任意のステータス文字列から安全に日本語ラベルを取得するヘルパー
- */
-export const getStatusLabel = (status?: string | null): string => {
-  if (!status) return "-";
-  return STATUS_LABEL[status as keyof typeof STATUS_LABEL] || status;
-};

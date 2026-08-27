@@ -1,3 +1,5 @@
+//src\renderer\features\operation\components\table\OperationTable.tsx
+
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { OperationItem } from "@shared/types/operationType";
@@ -89,4 +91,4 @@ export const UnifiedTable: React.FC = React.memo(() => {
 
 UnifiedTable.displayName = "UnifiedTable";
 
-export default UnifiedTable;
+UnifiedTable;

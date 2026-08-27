@@ -93,7 +93,7 @@ export function applyPersistedStatuses(
   return result;
 }
 
-export function resetEntityStatus(entity: OperationItem): OperationItem {
+function resetEntityStatus(entity: OperationItem): OperationItem {
   return {
     ...entity,
     status: JOB_STATUS.SCHEDULED,

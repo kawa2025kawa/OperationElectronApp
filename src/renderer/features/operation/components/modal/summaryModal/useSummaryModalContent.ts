@@ -59,4 +59,4 @@ export const useSummaryModalContent = ({
   };
 };
 
-export default useSummaryModalContent;
+useSummaryModalContent;

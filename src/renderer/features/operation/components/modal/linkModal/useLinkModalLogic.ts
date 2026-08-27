@@ -1,6 +1,8 @@
-﻿import React, { useCallback } from "react";
+﻿//src\renderer\features\operation\components\modal\linkModal\useLinkModalLogic.ts
+
+import React, { useCallback } from "react";
 import { toast } from "sonner";
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import { useAppStore } from "@shared/store";
 import type { OperationItem } from "@shared/types/operationType";
 import { selectActiveSelectedItem } from "@renderer/features/operation/store/operationSelectors";
@@ -53,4 +55,4 @@ export const useLinkModalLogic = () => {
   };
 };
 
-export default useLinkModalLogic;
+useLinkModalLogic;

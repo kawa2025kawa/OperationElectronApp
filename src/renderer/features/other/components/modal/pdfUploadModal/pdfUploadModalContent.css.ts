@@ -90,7 +90,7 @@ export const button = style({
 // UI Panels & Lists
 // ============================================================
 
-export const pressed = style([
+const pressed = style([
   themeTransition,
   {
     width: "100%",
@@ -102,7 +102,7 @@ export const pressed = style([
   },
 ]);
 
-export const text = style({
+const text = style({
   minWidth: 0,
   overflow: "hidden",
   whiteSpace: "nowrap",

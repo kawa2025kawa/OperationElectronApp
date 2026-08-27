@@ -26,4 +26,4 @@ export const FooterActionButton: React.FC<FooterActionButtonProps> = React.memo(
 
 FooterActionButton.displayName = "FooterActionButton";
 
-export default FooterActionButton;
+FooterActionButton;

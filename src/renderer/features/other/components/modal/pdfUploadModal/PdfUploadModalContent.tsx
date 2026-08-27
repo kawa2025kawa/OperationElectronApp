@@ -199,4 +199,4 @@ export const PdfUploadModalContent: React.FC<PdfUploadModalContentProps> =
   });
 
 PdfUploadModalContent.displayName = "PdfUploadModalContent";
-export default PdfUploadModalContent;
+PdfUploadModalContent;

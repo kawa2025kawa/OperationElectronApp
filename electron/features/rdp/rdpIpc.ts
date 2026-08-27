@@ -30,7 +30,7 @@ const RDP_TARGETS: RdpTargetWithAuth[] = [
   {
     id: "target_192_88_100_1",
     host: "192.88.100.1",
-    name: "DB",
+    name: "マスタメンテ",
     username: "Administrator",
     password: process.env.RDP_PASS_DB ?? "Belcedp",
   },

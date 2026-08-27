@@ -98,7 +98,7 @@ const TableRow = React.memo(
 // SpreadSheetTable
 // --------------------------------------------------------------------------
 
-export const SpreadSheetTableComponent = <T extends object>({
+const SpreadSheetTableComponent = <T extends object>({
   data,
   columns,
   rowKey,
@@ -162,4 +162,4 @@ export const SpreadSheetTable = React.memo(SpreadSheetTableComponent) as <
 
 SpreadSheetTableComponent.displayName = "SpreadSheetTable";
 
-export default SpreadSheetTable;
+SpreadSheetTable;

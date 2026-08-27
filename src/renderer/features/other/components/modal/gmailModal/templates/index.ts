@@ -61,7 +61,7 @@ export function getEmailTemplate(kanriNo?: string): EmailTemplate {
   return TEMPLATES_BY_KANRI_NO[kanriNo as EmailTemplateKey] ?? defaultTemplate;
 }
 
-export function getEmailTemplateKey(kanriNo?: string): EmailTemplateKey | null {
+function getEmailTemplateKey(kanriNo?: string): EmailTemplateKey | null {
   if (!kanriNo) {
     return null;
   }
@@ -71,7 +71,7 @@ export function getEmailTemplateKey(kanriNo?: string): EmailTemplateKey | null {
     : null;
 }
 
-export function getEmailTemplateLabel(key: EmailTemplateKey): string {
+function getEmailTemplateLabel(key: EmailTemplateKey): string {
   return (
     EMAIL_TEMPLATE_OPTIONS.find((option) => option.key === key)?.label ?? key
   );

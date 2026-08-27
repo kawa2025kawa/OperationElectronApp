@@ -1,9 +1,8 @@
-﻿// src/renderer/components/ui/toast/Toast.tsx
+﻿//src\renderer\components\ui\toast\PollingToast.tsx
 
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-
-import { useToastStore, type ToastType } from "./toastStore";
-import * as styles from "./toast.css";
+import { usePollingToastStore, type ToastType } from "./pollingToastStore";
+import * as styles from "./pollingToast.css";
 
 const ICONS: Record<ToastType, string> = {
   success: "✓",
@@ -12,10 +11,10 @@ const ICONS: Record<ToastType, string> = {
   info: "i",
 };
 
-export const Toast = () => {
-  const toasts = useToastStore((state) => state.toasts);
-  const removeToast = useToastStore((state) => state.removeToast);
-  const clearAllToasts = useToastStore((state) => state.clearAllToasts);
+export const PollingToast = () => {
+  const toasts = usePollingToastStore((state) => state.toasts);
+  const removeToast = usePollingToastStore((state) => state.removeToast);
+  const clearAllToasts = usePollingToastStore((state) => state.clearAllToasts);
 
   if (toasts.length === 0) {
     return null;
@@ -56,5 +55,3 @@ export const Toast = () => {
     </section>
   );
 };
-
-export default Toast;

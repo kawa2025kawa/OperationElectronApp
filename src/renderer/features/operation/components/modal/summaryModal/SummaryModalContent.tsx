@@ -29,4 +29,4 @@ export const SummaryModalContent: React.FC<SummaryModalContentProps> =
 
 SummaryModalContent.displayName = "SummaryModalContent";
 
-export default SummaryModalContent;
+SummaryModalContent;

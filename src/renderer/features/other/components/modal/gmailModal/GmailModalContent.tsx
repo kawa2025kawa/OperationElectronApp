@@ -155,4 +155,4 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
 );
 
 GmailModalContent.displayName = "GmailModalContent";
-export default GmailModalContent;
+GmailModalContent;

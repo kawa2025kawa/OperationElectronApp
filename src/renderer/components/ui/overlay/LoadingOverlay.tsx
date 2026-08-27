@@ -77,4 +77,4 @@ const LoadingOverlayComponent: React.FC<LoadingOverlayProps> = ({
 
 export const LoadingOverlay = React.memo(LoadingOverlayComponent);
 
-export default LoadingOverlay;
+LoadingOverlay;

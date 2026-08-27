@@ -1,13 +1,13 @@
 ﻿import Workbook from "exceljs";
 
-import { parseRealYosanAmount } from "./amount";
+import { parseRealYosanAmount } from "../shared/parseAmount";
 import { extractStoreCode, isTotalRow } from "./store";
 
 const TARGET_SHEET_NAME = "店舗毎（税抜き）";
 
-export type RealYosanMap = Map<string, number>;
+type RealYosanMap = Map<string, number>;
 
-export interface RealYosanStatistics {
+interface RealYosanStatistics {
   storeHeaderCount: number;
   totalRowCount: number;
   validTotalCount: number;
@@ -15,7 +15,7 @@ export interface RealYosanStatistics {
   ignoredRowCount: number;
 }
 
-export interface RealYosanResult {
+interface RealYosanResult {
   resultMap: RealYosanMap;
   statistics: RealYosanStatistics;
   storeTotal: number;

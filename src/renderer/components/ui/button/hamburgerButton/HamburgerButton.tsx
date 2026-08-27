@@ -25,4 +25,4 @@ export const HamburgerButton: React.FC = () => {
   );
 };
 
-export default HamburgerButton;
+HamburgerButton;

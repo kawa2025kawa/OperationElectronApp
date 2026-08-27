@@ -1,7 +1,7 @@
 ﻿// src/renderer/features/operation/services/scriptJobService.ts
 
 import { toast } from "sonner";
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import type { AppState } from "@shared/store";
 import {
   type JobExecutionOptions,

@@ -1,12 +1,4 @@
-﻿// electron/features/operation/statusManager.ts
-
-import {
-  JOB_STATUS,
-  type JobStatus,
-  type OperationItem,
-  type OperationStatusFields,
-} from "@shared/types/operationType";
-import { evaluateAllTargetStatuses } from "@electron/features/operation/evaluators/pollingStatusEvaluator";
+﻿import { evaluateAllTargetStatuses } from "@electron/features/operation/evaluators/pollingStatusEvaluator";
 import { broadcastStatusUpdate } from "@electron/features/operation/helpers/statusNotifier";
 import {
   deleteStatusFile,
@@ -15,38 +7,58 @@ import {
   type PersistedStatus,
 } from "@electron/features/operation/helpers/statusStorage";
 import { isPollingRunning } from "@electron/features/operation/polling";
-import { getAllTargets } from "@electron/features/operation/targetManager";
+import {
+  JOB_STATUS,
+  type JobStatus,
+  type OperationItem,
+  type OperationStatusFields,
+} from "@shared/types/operationType";
 
 export type { PersistedStatus };
 export type StatusUpdate = Partial<OperationStatusFields> & {
   kanriNo: string | number;
 };
 
+// State (targetManager の Map を統合)
+const apiTargets = new Map<string, OperationItem>();
 const memoryStatuses = new Map<string, PersistedStatus>();
 
-export async function initializeStatuses(): Promise<
-  Record<string, PersistedStatus>
-> {
-  memoryStatuses.clear();
-  // loadStatusesFromFile 内部で古いログ/ステータスファイルの cleanup 処理が自動実行されます
-  const data = await loadStatusesFromFile();
-  for (const [kanriNo, status] of Object.entries(data)) {
-    memoryStatuses.set(String(kanriNo), sanitizeStatus(status));
-  }
-  return Object.fromEntries(memoryStatuses);
-}
-
+// ============================================================
+// Target Management
+// ============================================================
 export function registerTargets(items: OperationItem[]): void {
+  apiTargets.clear();
   let changed = false;
+
   for (const item of items) {
     const key = String(item.kanriNo);
-    if (!key || memoryStatuses.has(key)) continue;
-    memoryStatuses.set(key, sanitizeStatus(item));
-    changed = true;
+    if (!key) continue;
+
+    apiTargets.set(key, item);
+
+    if (!memoryStatuses.has(key)) {
+      memoryStatuses.set(key, sanitizeStatus(item));
+      changed = true;
+    }
   }
+
   if (changed) schedulePersistStatuses(memoryStatuses);
+  console.log("[StatusManager] Targets registered:", {
+    count: apiTargets.size,
+  });
 }
 
+export function getTargetByKanriNo(kanriNo: string): OperationItem | undefined {
+  return apiTargets.get(String(kanriNo));
+}
+
+export function getAllTargets(): OperationItem[] {
+  return [...apiTargets.values()];
+}
+
+// ============================================================
+// Status Management
+// ============================================================
 export function getStatus(
   kanriNo: string | number,
 ): PersistedStatus | undefined {
@@ -70,24 +82,28 @@ export function getMergedEntity(target: OperationItem): OperationItem {
   };
 }
 
-export function getAllStatuses(): Array<PersistedStatus & { kanriNo: string }> {
-  return [...memoryStatuses.entries()].map(([kanriNo, status]) => ({
-    kanriNo,
-    ...status,
-  }));
-}
-
-export function updateStatus(update: StatusUpdate): boolean {
+export function updateStatus(
+  update: StatusUpdate,
+  options?: { isManual?: boolean },
+): boolean {
   const key = String(update.kanriNo);
   if (!key) return false;
 
   const previous = memoryStatuses.get(key);
   const next = sanitizeStatus({ ...previous, ...update });
-
   if (JSON.stringify(previous) === JSON.stringify(next)) return false;
 
   memoryStatuses.set(key, next);
-  broadcastStatusUpdate(key, next);
+
+  // 手動更新（isManual: true）ではない場合（＝Polling等による自動検出時）のみ通知を送信
+  if (!options?.isManual) {
+    const target = getTargetByKanriNo(key);
+    broadcastStatusUpdate(key, {
+      ...next,
+      ...(target?.workName ? { workName: target.workName } : {}),
+    });
+  }
+
   schedulePersistStatuses(memoryStatuses);
   return true;
 }
@@ -97,12 +113,16 @@ export function updateManualStatus(
   status: JobStatus,
   comment: string,
 ): void {
-  updateStatus({
-    kanriNo,
-    status,
-    comment,
-    endTime: new Date().toISOString(),
-  });
+  // 第2引数に { isManual: true } を渡して手動変更であることを明示し、トースト通知をスキップ
+  updateStatus(
+    {
+      kanriNo,
+      status,
+      comment,
+      endTime: new Date().toISOString(),
+    },
+    { isManual: true },
+  );
 
   if (isPollingRunning()) {
     evaluateAllTargetStatuses(getAllTargets(), isPollingRunning);
@@ -111,7 +131,19 @@ export function updateManualStatus(
 
 export async function deleteAllStatuses(): Promise<void> {
   memoryStatuses.clear();
+  apiTargets.clear();
   await deleteStatusFile();
+}
+
+export async function initializeStatuses(): Promise<
+  Record<string, PersistedStatus>
+> {
+  memoryStatuses.clear();
+  const data = await loadStatusesFromFile();
+  for (const [kanriNo, status] of Object.entries(data)) {
+    memoryStatuses.set(String(kanriNo), sanitizeStatus(status));
+  }
+  return Object.fromEntries(memoryStatuses);
 }
 
 function sanitizeStatus(

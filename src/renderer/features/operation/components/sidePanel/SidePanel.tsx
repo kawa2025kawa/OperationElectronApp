@@ -112,4 +112,4 @@ export const SidePanel: React.FC = React.memo(() => {
 
 SidePanel.displayName = "SidePanel";
 
-export default SidePanel;
+SidePanel;

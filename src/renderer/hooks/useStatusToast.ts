@@ -1,180 +1,80 @@
-// src/renderer/hooks/useStatusToast.ts
-
-import { useEffect, useRef } from "react";
-
-import { commands } from "@shared/api/commands";
+import { useEffect } from "react";
 import { useAppStore } from "@shared/store/index";
+import {
+  usePollingToastStore,
+  type ToastType,
+} from "@renderer/components/ui/toast/pollingToastStore";
 import { consumeSuppressedSuccessToast } from "@shared/utils/statusToastSuppression";
-import { showToast, type ToastType } from "@shared/utils/toastUtils";
+import type {
+  JobStatus,
+  OperationItem,
+  OperationStatusFields,
+} from "@shared/types/operationType";
 
-import type { JobStatus } from "@shared/types/operationType";
-
-type PendingToast = {
-  kanriNo: string;
-  status: JobStatus;
-  displayName: string;
+export type StatusUpdateEventPayload = {
+  status: OperationStatusFields & {
+    kanriNo: string;
+    workName?: string;
+    jobId?: string;
+  };
 };
 
-const BATCH_DELAY = 500;
-const INITIAL_LOOP_DELAY = 5000;
-
-const TARGET_STATUSES: JobStatus[] = ["success", "ready", "error"];
-
-const prevStatusMap = new Map<string, JobStatus>();
+function getToastType(status: JobStatus): ToastType {
+  switch (status) {
+    case "success":
+      return "success";
+    case "error":
+      return "error";
+    case "running":
+    case "scriptRunning":
+      return "info";
+    default:
+      return "warning";
+  }
+}
 
 export const useStatusToast = (): void => {
   const isPolling = useAppStore((state) => state.isPolling);
-
-  const pendingRef = useRef<PendingToast[]>([]);
-  const timerRef = useRef<number | null>(null);
-  const isFirstLoopRef = useRef(true);
+  const addToast = usePollingToastStore((state) => state.addToast);
 
   useEffect(() => {
-    if (!isPolling) {
-      isFirstLoopRef.current = true;
-      prevStatusMap.clear();
+    if (!isPolling) return;
 
-      if (timerRef.current !== null) {
-        window.clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
+    const unsubscribe = window.electronAPI.on(
+      "operationStatusUpdated",
+      (...args: unknown[]) => {
+        const eventData = args[0] as StatusUpdateEventPayload | undefined;
+        const targetStatus = eventData?.status;
 
-      pendingRef.current = [];
+        if (!targetStatus || !targetStatus.status) return;
 
-      return;
-    }
+        const kanriNo = String(targetStatus.kanriNo);
 
-    let cleanup: (() => void) | undefined;
+        // 1. Store（OperationTable描画元）のステータスを更新
+        useAppStore
+          .getState()
+          .updateItemStatus(targetStatus as unknown as OperationItem);
 
-    const firstLoopTimer = window.setTimeout(() => {
-      isFirstLoopRef.current = false;
-    }, INITIAL_LOOP_DELAY);
-
-    try {
-      cleanup = commands.onOperationStatusUpdated((update) => {
-        const kanriNo = String(update.kanriNo ?? "");
-
-        if (!kanriNo) {
+        // 2. 手動操作（Enter押下時等）でセットされた抑止フラグがある場合はトースト通知を即破棄
+        if (consumeSuppressedSuccessToast(kanriNo)) {
           return;
         }
 
-        const currentStatus = update.status as JobStatus | undefined;
+        const type = getToastType(targetStatus.status);
 
-        if (!currentStatus) {
-          return;
-        }
+        // 3. JobID がある場合は JobID、無ければ workName で表示メッセージを作成
+        const rawJobId = targetStatus.jobId?.trim();
+        const hasJobId = Boolean(rawJobId && rawJobId !== "-");
+        const nameLabel = hasJobId
+          ? rawJobId
+          : (targetStatus.workName ?? `管理No.${targetStatus.kanriNo}`);
 
-        const previousStatus = prevStatusMap.get(kanriNo);
-
-        if (currentStatus === previousStatus) {
-          return;
-        }
-
-        prevStatusMap.set(kanriNo, currentStatus);
-
-        if (isFirstLoopRef.current) {
-          return;
-        }
-
-        if (!TARGET_STATUSES.includes(currentStatus)) {
-          return;
-        }
-
-        /**
-         * Enterによる完了処理で発生したSUCCESSは通知しない。
-         *
-         * ERRORはここでは抑制しない。
-         */
-        if (
-          currentStatus === "success" &&
-          consumeSuppressedSuccessToast(kanriNo)
-        ) {
-          return;
-        }
-
-        const state = useAppStore.getState();
-
-        const item =
-          state.operationEntities[kanriNo] ?? state.irregularEntities[kanriNo];
-
-        pendingRef.current.push({
-          kanriNo,
-          status: currentStatus,
-          displayName: item?.workName ?? "",
-        });
-
-        if (timerRef.current !== null) {
-          return;
-        }
-
-        timerRef.current = window.setTimeout(() => {
-          flush(pendingRef.current);
-
-          pendingRef.current = [];
-          timerRef.current = null;
-        }, BATCH_DELAY);
-      });
-    } catch (error) {
-      console.error("[Toast] Failed to setup status toast listener:", error);
-    }
+        addToast(`${nameLabel} ${targetStatus.status}`, type);
+      },
+    );
 
     return () => {
-      cleanup?.();
-
-      if (timerRef.current !== null) {
-        window.clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-
-      window.clearTimeout(firstLoopTimer);
+      unsubscribe();
     };
-  }, [isPolling]);
-};
-
-const getToastType = (status: JobStatus): ToastType => {
-  switch (status) {
-    case "error":
-      return "error";
-
-    case "success":
-      return "success";
-
-    case "ready":
-    default:
-      return "info";
-  }
-};
-
-const flush = (list: PendingToast[]): void => {
-  if (list.length === 0) {
-    return;
-  }
-
-  if (list.length === 1) {
-    const [toast] = list;
-
-    if (!toast) {
-      return;
-    }
-
-    const message = `${toast.kanriNo}.${toast.displayName}  ${toast.status}`;
-
-    showToast(message, getToastType(toast.status));
-
-    return;
-  }
-
-  const hasError = list.some((toast) => toast.status === "error");
-
-  const first = list[0];
-
-  if (!first) {
-    return;
-  }
-
-  const message = `${first.kanriNo}.${first.displayName} 他${
-    list.length - 1
-  }件`;
-
-  showToast(message, hasError ? "error" : "success");
+  }, [isPolling, addToast]);
 };

@@ -13,13 +13,13 @@ export const hasValidJobId = (item: OperationItem): boolean => {
   return Boolean("jobId" in item && item.jobId && item.jobId !== "-");
 };
 
-export interface JobIdSummary {
+interface JobIdSummary {
   total: number;
   successCount: number;
   allCompleted: boolean;
 }
 
-export function calculateJobIdSummary(items: OperationItem[]): JobIdSummary {
+function calculateJobIdSummary(items: OperationItem[]): JobIdSummary {
   const jobIdItems = items.filter(hasValidJobId);
   const total = jobIdItems.length;
   if (total === 0) {

@@ -11,9 +11,9 @@ import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/
 // Types
 // ============================================================
 
-export type PrimaryAction = () => void | string | Promise<void | string>;
+type PrimaryAction = () => void | string | Promise<void | string>;
 
-export interface PrimaryActionOptions {
+interface PrimaryActionOptions {
   disabled?: boolean;
 }
 
@@ -159,4 +159,4 @@ export const useOperationModalLogic = ({
   };
 };
 
-export default useOperationModalLogic;
+useOperationModalLogic;

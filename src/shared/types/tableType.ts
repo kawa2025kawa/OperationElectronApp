@@ -1,9 +1,9 @@
 // src/shared/types/tableType.ts
 import type { ReactNode } from "react";
 
-export type TableAlign = "left" | "center" | "right";
+type TableAlign = "left" | "center" | "right";
 
-export interface TableColumnMeta {
+interface TableColumnMeta {
   width?: string | number;
   align?: TableAlign;
 }

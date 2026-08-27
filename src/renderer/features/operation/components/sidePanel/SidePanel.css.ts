@@ -135,7 +135,7 @@ export const menuButton = style([
     letterSpacing: "0.05em",
     cursor: "pointer",
     backgroundColor: tokens.color.bg.base,
-    boxShadow: tokens.shadow.raised.low,
+    boxShadow: tokens.shadow.raised.high,
     backgroundImage: tokens.gradient.brand,
     WebkitBackgroundClip: "text",
     backgroundClip: "text",
@@ -162,28 +162,29 @@ export const menuDropdownContent = style([
   {
     width: "var(--radix-dropdown-menu-trigger-width)",
     boxSizing: "border-box",
-
     height: "200px",
     maxHeight: "var(--radix-dropdown-menu-content-available-height, 60vh)",
     overflowY: "auto",
     scrollbarWidth: "none",
-
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
     gridTemplateRows: "repeat(2, 1fr)",
     justifyItems: "center",
     alignItems: "center",
     gap: tokens.space.xs,
-
     padding: tokens.space.sm,
     borderRadius: tokens.radius.lg,
+
+    // 🎯 1. 境界線を少し明るくしてガラスの縁（エッジ）を強調
     border: `2px solid ${tokens.color.border.subtle}`,
+
     backgroundColor: tokens.glass.surface,
-    backdropFilter: "blur(12px)",
-    WebkitBackdropFilter: "blur(12px)",
+    backdropFilter: "blur(12px) saturate(180%)",
+    // 🎯 3. ブラーの強度を倍増 + 彩度（saturate）と明るさ（brightness）を補正
+    WebkitBackdropFilter: "blur(24px) saturate(200%) brightness(1.2)",
+
     boxShadow: tokens.shadow.raised.high,
     zIndex: contextMenuTokens.zIndex + 1,
-    isolation: "isolate",
     transformOrigin: "top center",
 
     selectors: {

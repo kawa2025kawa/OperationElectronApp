@@ -1,7 +1,7 @@
 ﻿// electron/features/operation/components/modal/scriptModal/useScriptModalContent.ts
 
 import { useCallback, useEffect, useState } from "react";
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import { useAppStore } from "@shared/store";
 import { selectActiveSelectedItem } from "@renderer/features/operation/store/operationSelectors";
 import type { ModalContentProps } from "@renderer/features/operation/components/modal/useOperationModalLogic";
@@ -124,4 +124,4 @@ export const useScriptModalContent = ({
   };
 };
 
-export default useScriptModalContent;
+useScriptModalContent;

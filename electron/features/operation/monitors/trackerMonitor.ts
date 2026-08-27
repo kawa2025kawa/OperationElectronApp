@@ -1,14 +1,13 @@
-﻿// electron/features/operation/monitors/trackerMonitor.ts
-import type { OperationItem } from "@shared/types/operationType";
-import { JOB_STATUS } from "@shared/types/operationType";
-import {
+﻿import {
   getStatus,
   updateStatus,
 } from "@electron/features/operation/statusManager";
 import {
   applyTrackerItem,
   fetchTrackerByJobId,
-} from "@electron/features/operation/tracker";
+} from "@electron/features/operation/services/trackerServiceClient";
+import type { OperationItem } from "@shared/types/operationType";
+import { JOB_STATUS } from "@shared/types/operationType";
 
 /**
  * Target オブジェクトが有効な JobID を保持しているか判定
@@ -25,15 +24,12 @@ export function hasJobId(target: OperationItem): boolean {
 /**
  * ステータスが完了状態（成功またはエラー）か判定
  */
-export function isCompleted(status?: string | null): boolean {
+function isCompleted(status?: string | null): boolean {
   return status === JOB_STATUS.SUCCESS || status === JOB_STATUS.ERROR;
 }
 
 /**
  * Tracker API 監視対象のターゲットか判定
- * 1. 有効な JobID を保持している
- * 2. 完了状態（success / error）ではない
- * 3. ready / running / scriptRunning のいずれかである
  */
 export function isTrackerTarget(target: OperationItem): boolean {
   if (!hasJobId(target)) {
@@ -51,9 +47,21 @@ export function isTrackerTarget(target: OperationItem): boolean {
 }
 
 /**
+ * 外部（Polling等）向け：監視対象となるターゲットのデバッグ情報を抽出
+ */
+export function getActiveTrackerTargets(targets: OperationItem[]): Array<{
+  kanriNo: string | number;
+  workName?: string;
+}> {
+  return targets
+    .filter(isTrackerTarget)
+    .map((t) => ({ kanriNo: t.kanriNo, workName: t.workName }));
+}
+
+/**
  * 単一ターゲットの Tracker API 状態を取得して同期更新
  */
-export async function updateTracker(target: OperationItem): Promise<void> {
+async function updateTracker(target: OperationItem): Promise<void> {
   try {
     const [tracker] = await fetchTrackerByJobId(target);
     if (!tracker) return;

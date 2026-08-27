@@ -2,7 +2,7 @@
 const TOTAL_ROW_REGEX = /^合[\s\u3000]*計$/;
 const EXISTING_STORE_REGEX = /既存/;
 
-export function parseCellString(value: unknown): string {
+function parseCellString(value: unknown): string {
   if (value == null) {
     return "";
   }
@@ -71,25 +71,7 @@ export function isTotalRow(value: unknown): boolean {
   return TOTAL_ROW_REGEX.test(text);
 }
 
-export function isIgnoredStoreLabel(value: unknown): boolean {
-  const text = parseCellString(value);
-
-  if (!text) {
-    return true;
-  }
-
-  if (text === "全店") {
-    return true;
-  }
-
-  if (EXISTING_STORE_REGEX.test(text)) {
-    return true;
-  }
-
-  return false;
-}
-
-export function sortStoreCodes(
+function sortStoreCodes(
   entries: Iterable<[string, number]>,
 ): [string, number][] {
   return [...entries].sort(([codeA], [codeB]) => {

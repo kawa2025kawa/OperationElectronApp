@@ -71,4 +71,4 @@ export const GlobalModalManager: React.FC = () => {
   );
 };
 
-export default GlobalModalManager;
+GlobalModalManager;

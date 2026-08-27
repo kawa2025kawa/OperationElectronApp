@@ -1,0 +1,9 @@
+﻿{
+  "entry": ["electron/main.ts!", "electron/preload.ts!"],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "electron/**/*.{ts,tsx}",
+    "!src/shared/types/electron.d.ts"
+  ],
+  "ignoreBinaries": ["mstsc"]
+}

@@ -69,5 +69,3 @@ export const MainView: React.FC = React.memo(() => {
 });
 
 MainView.displayName = "MainView";
-
-export default MainView;

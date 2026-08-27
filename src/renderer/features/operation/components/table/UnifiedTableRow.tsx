@@ -1,9 +1,15 @@
-﻿import React, { useCallback } from "react";
+﻿// src/renderer/features/operation/components/table/UnifiedTableRow.tsx
+
+import React, { useCallback } from "react";
+import * as ContextMenu from "@radix-ui/react-context-menu";
+
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { StatusContextMenu } from "@renderer/features/operation/components/contextMenu/StatusContextMenu";
+
 import { useAppStore } from "@shared/store";
 import type { OperationItem } from "@shared/types/operationType";
 import type { Column } from "@shared/types/tableType";
+
 import * as styles from "./operationTable.css";
 
 interface TableRowProps {
@@ -44,11 +50,15 @@ export const UnifiedTableRow: React.FC<TableRowProps> = React.memo(
           if (column.key === "status") {
             return (
               <td key="status" className={`${styles.tdBase} ${alignClass}`}>
-                <StatusContextMenu kanriNo={item.kanriNo}>
-                  <div className={styles.statusCellWrapper}>
-                    <StatusBadge status={item.status ?? undefined} />
-                  </div>
-                </StatusContextMenu>
+                <ContextMenu.Root>
+                  <ContextMenu.Trigger asChild>
+                    <div className={styles.statusCellWrapper}>
+                      <StatusBadge status={item.status ?? undefined} />
+                    </div>
+                  </ContextMenu.Trigger>
+
+                  <StatusContextMenu kanriNo={item.kanriNo} />
+                </ContextMenu.Root>
               </td>
             );
           }
@@ -78,4 +88,4 @@ export const UnifiedTableRow: React.FC<TableRowProps> = React.memo(
 
 UnifiedTableRow.displayName = "UnifiedTableRow";
 
-export default UnifiedTableRow;
+UnifiedTableRow;

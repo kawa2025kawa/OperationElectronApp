@@ -1,6 +1,6 @@
 ﻿// src/renderer/features/operation/helpers/statusEvaluator.ts
 
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import type { AppState } from "@shared/store";
 import {
   JOB_STATUS,

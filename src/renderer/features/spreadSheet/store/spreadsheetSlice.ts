@@ -10,11 +10,9 @@ import {
   type SheetId,
 } from "@shared/types/spreadsheetTypes";
 import { fetchSheetValues } from "../helpers/spreadsheetMapper";
+import { ALL_SHEET_IDS } from "../services/spreadsheetConfig";
 
-const DEV_MOCK_ACCESS_TOKEN = "dev-mock-access-token";
 const EMPTY_ROWS: readonly unknown[] = [];
-// 🎯 SHEET_IDS の値から直接 SheetId[] 配列を作成
-const ALL_SHEET_IDS = Object.values(SHEET_IDS) as SheetId[];
 
 const PROGRESS_MAPPING: Partial<Record<SheetId, keyof AppState["initStatus"]>> =
   {
@@ -44,10 +42,10 @@ export const createSpreadSheetSlice: StateCreator<
   SpreadSheetSlice
 > = (set, get) => ({
   sheetData: Object.fromEntries(
-    ALL_SHEET_IDS.map((id) => [id, null]),
+    ALL_SHEET_IDS.map((id: SheetId) => [id, null]),
   ) as Record<SheetId, SheetDataResponse | null>,
   isSheetFetching: Object.fromEntries(
-    ALL_SHEET_IDS.map((id) => [id, false]),
+    ALL_SHEET_IDS.map((id: SheetId) => [id, false]),
   ) as Record<SheetId, boolean>,
 
   setIsSheetFetching: (sheetId, isFetching) => {
@@ -74,11 +72,6 @@ export const createSpreadSheetSlice: StateCreator<
     state.setIsSheetFetching(sheetId, true);
 
     try {
-      if (token === DEV_MOCK_ACCESS_TOKEN) {
-        state.updateSheetData(sheetId, { sheetType: "Raw", data: [] });
-        return true;
-      }
-
       const result = await fetchSheetValues(sheetId, token);
 
       if (result.status === 401) {

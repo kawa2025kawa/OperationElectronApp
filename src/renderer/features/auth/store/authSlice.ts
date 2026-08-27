@@ -1,9 +1,6 @@
 ﻿// src/renderer/features/auth/store/authSlice.ts
-
-import { useToastStore } from "@renderer/components/ui/toast/toastStore";
 import type { StateCreator } from "zustand";
-
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import type { AppState } from "@shared/store";
 
 // ============================================================
@@ -242,10 +239,6 @@ export const createAuthSlice: StateCreator<
       }
     });
 
-    useToastStore
-      .getState()
-      .addToast("Googleログインに成功しました", "success");
-
     void get().prefetchSheets(accessToken);
   },
 
@@ -260,19 +253,10 @@ export const createAuthSlice: StateCreator<
       set((state) => {
         clearAuthState(state);
       });
-
-      useToastStore.getState().addToast("ログアウトしました", "success");
     } catch (error) {
       console.error("[Auth] Logout failed:", error);
-
-      useToastStore
-        .getState()
-        .addToast(
-          error instanceof Error ? error.message : "ログアウト失敗",
-          "error",
-        );
     }
   },
 });
 
-export default createAuthSlice;
+createAuthSlice;

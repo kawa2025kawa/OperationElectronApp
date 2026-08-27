@@ -1,9 +1,10 @@
 ﻿//electron\features\operation\jobs\scripts\helpers\job-e29\meis-yosan.ts
 
 import fs from "fs-extra";
-import { parseAmount } from "./amount";
-import { parseCsv } from "./csv";
-export type MeisYosanMap = Map<string, number>;
+import { parseAmount } from "../shared/parseAmount"; // sharedへ変更
+import { parseCsv } from "../shared/parseCsvLine"; // sharedへ変更[cite: 1]
+
+type MeisYosanMap = Map<string, number>;
 
 const FORBIDDEN_KEYS = new Set([
   "11",
@@ -16,15 +17,14 @@ const FORBIDDEN_KEYS = new Set([
   "98",
 ]);
 
-export interface MeisYosanStatistics {
+interface MeisYosanStatistics {
   rowCount: number;
   validRowCount: number;
   ignoredRowCount: number;
   forbiddenRowCount: number;
   invalidAmountCount: number;
 }
-
-export interface MeisYosanResult {
+interface MeisYosanResult {
   resultMap: MeisYosanMap;
   statistics: MeisYosanStatistics;
 }

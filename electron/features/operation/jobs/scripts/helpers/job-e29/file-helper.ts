@@ -1,7 +1,12 @@
-﻿//electron\features\operation\jobs\scripts\helpers\job-e29\file-helper.ts
+﻿// electron/features/operation/jobs/scripts/helpers/job-e29/file-helper.ts
 
 import path from "path";
-import type { InputFiles } from "./types";
+
+// このファイル内用の型定義（exportなし）
+interface InputFiles {
+  realYosanPath: string;
+  meis0120Path: string;
+}
 
 export function findJobE29InputFiles(inputPaths: string[]): InputFiles {
   let realYosanPath: string | undefined;

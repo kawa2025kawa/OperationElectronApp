@@ -1,4 +1,4 @@
-﻿//electron\features\operation\jobs\scripts\helpers\job-e29\amount.ts
+﻿//electron\features\operation\jobs\scripts\helpers\shared\parseAmount.ts
 
 export function parseAmount(value: unknown): number | null {
   if (value == null) {
@@ -82,6 +82,6 @@ export function parseRealYosanAmount(value: unknown): number | null {
   return amountInThousands * 1000;
 }
 
-export function formatYen(amount: number): string {
+function formatYen(amount: number): string {
   return `${amount.toLocaleString("ja-JP")}円`;
 }

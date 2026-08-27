@@ -56,46 +56,10 @@ export const mainContent = style({
   flexDirection: "column",
 });
 
-/**
- * 5. MainView 内のラッパー（アニメーションコンポーネントの親拡大用）
- */
-export const mainContentWrapper = style({
-  display: "flex",
-  flexDirection: "column",
-  height: "100%", // 高さを途切れさせないよう100%継承
-  width: "100%",
-  position: "relative",
-});
-
 // ビューコンポーネント配置用ラッパー
 export const viewWrapper = style({
   flex: 1,
   minHeight: 0,
   display: "flex",
   flexDirection: "column",
-});
-
-/**
- * 6. アニメーション用の共通ラッパー
- */
-export const animatedContent = style({
-  display: "flex",
-  flexDirection: "column",
-  flex: 1,
-  height: "100%",
-  width: "100%",
-  minHeight: 0,
-});
-
-/**
- * 7. 各画面（OperationView や SpreadSheetView）の器
- * これが「フッター以外の余った領域」をすべて抱え込んで膨らむため、
- * フッターが必要な画面では一番下に押し下げられます。
- */
-export const viewContainer = style({
-  flex: 1, // これ自身が役割として余白をすべて引き受け、フッターを底に落とす
-  display: "flex",
-  flexDirection: "column",
-  minHeight: 0,
-  position: "relative",
 });

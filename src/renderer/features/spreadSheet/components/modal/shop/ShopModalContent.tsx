@@ -1,25 +1,17 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/shop/ShopModalContent.tsx
-
 import React from "react";
-import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import type { Shop } from "@shared/types/spreadsheetTypes";
 import type { SpreadSheetModalProps } from "../modalRegistry";
-import * as styles from "../modal.css";
+import * as styles from "./ShopModalContent.css";
 import { useShopModalContent } from "./useShopModalContent";
 
 export const ShopModalContent: React.FC<SpreadSheetModalProps<Shop>> =
-  React.memo(({ data, title, onClose }) => {
+  React.memo(({ data }) => {
     const { selectedIndex, setSelectedIndex, groups, displayItems } =
       useShopModalContent(data);
 
     return (
-      <div className={styles.modalContainer}>
-        {/* Header */}
-        <header className={styles.header}>
-          <h2 className={styles.modalTitle}>{title}</h2>
-          <CloseButton onClick={onClose} />
-        </header>
-
+      <div className={styles.mainContainer}>
         {/* Tab List */}
         <div className={styles.tabContainer}>
           {groups.map((group, idx) => (
@@ -36,7 +28,7 @@ export const ShopModalContent: React.FC<SpreadSheetModalProps<Shop>> =
           ))}
         </div>
 
-        {/* Main Content */}
+        {/* Card Grid Content */}
         <div className={styles.contentContainer}>
           <div className={styles.gridContainer}>
             {displayItems.map((item) => (
@@ -51,16 +43,8 @@ export const ShopModalContent: React.FC<SpreadSheetModalProps<Shop>> =
             ))}
           </div>
         </div>
-
-        {/* Footer */}
-        <footer className={styles.footer}>
-          <button type="button" className={styles.button} onClick={onClose}>
-            閉じる
-          </button>
-        </footer>
       </div>
     );
   });
 
 ShopModalContent.displayName = "ShopModalContent";
-export default ShopModalContent;

@@ -19,8 +19,6 @@ export const useFooterLogic = () => {
     currentView,
     searchTerm,
     setSearchTerm,
-    openGlobalModal,
-    closeGlobalModal,
   } = useAppStore(
     useShallow((state) => ({
       is1CActive: state.is1CActive,
@@ -31,8 +29,6 @@ export const useFooterLogic = () => {
       currentView: state.currentView,
       searchTerm: state.searchTerm,
       setSearchTerm: state.setSearchTerm,
-      openGlobalModal: state.openGlobalModal,
-      closeGlobalModal: state.closeGlobalModal,
     })),
   );
 
@@ -106,8 +102,5 @@ export const useFooterLogic = () => {
     handleToggle1C,
     handleToggle2C,
     handleToggle3C,
-
-    openGlobalModal,
-    closeGlobalModal,
   };
 };

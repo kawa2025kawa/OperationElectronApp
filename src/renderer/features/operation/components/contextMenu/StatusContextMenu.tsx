@@ -1,22 +1,27 @@
-import React, { useCallback, useState } from "react";
+// src/renderer/features/operation/components/contextMenu/StatusContextMenu.tsx
+
+import React, { useCallback } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import clsx from "clsx";
+
 import { useAppStore } from "@shared/store";
-import { STATUS_LABEL, STATUS_ORDER } from "@shared/types/uiType";
 import type { JobStatus } from "@shared/types/operationType";
+import { STATUS_LABEL, STATUS_ORDER } from "@shared/types/uiType";
+
 import * as styles from "./statusContextMenu.css";
 
 interface Props {
-  children: React.ReactNode;
   kanriNo: string;
 }
 
-export const StatusContextMenu: React.FC<Props> = ({ children, kanriNo }) => {
-  const [open, setOpen] = useState(false);
+type StatusVariantKey = keyof typeof styles.itemVariants;
 
-  const updateJobStatus = useAppStore((s) => s.updateJobStatus);
+const getStatusVariantKey = (status: JobStatus): StatusVariantKey =>
+  status.toUpperCase() as StatusVariantKey;
 
-  // ステータス更新ハンドラーを固定化
+export const StatusContextMenu: React.FC<Props> = ({ kanriNo }) => {
+  const updateJobStatus = useAppStore((state) => state.updateJobStatus);
+
   const handleSelectStatus = useCallback(
     (status: JobStatus) => {
       void updateJobStatus({
@@ -29,44 +34,27 @@ export const StatusContextMenu: React.FC<Props> = ({ children, kanriNo }) => {
   );
 
   return (
-    <ContextMenu.Root open={open} onOpenChange={setOpen}>
-      <ContextMenu.Trigger asChild>{children}</ContextMenu.Trigger>
+    <ContextMenu.Portal>
+      <ContextMenu.Content className={styles.content}>
+        <div className={styles.header}>
+          <span className={styles.headerTitle}>Status</span>
+        </div>
 
-      <ContextMenu.Portal>
-        <ContextMenu.Content className={styles.content}>
-          <div className={styles.header}>
-            <span className={styles.headerTitle}>Status</span>
-
-            <button
-              type="button"
-              className={styles.closeButton}
-              aria-label="Close"
-              onClick={() => setOpen(false)}
-            >
-              ×
-            </button>
-          </div>
-
-          {STATUS_ORDER.map((status) => {
-            const cssVariantKey =
-              status.toUpperCase() as keyof typeof styles.itemVariants;
-
-            const toneClass = styles.itemVariants[cssVariantKey] ?? {};
-
-            return (
-              <ContextMenu.Item
-                key={status}
-                className={clsx(styles.itemBase, toneClass)}
-                onSelect={() => handleSelectStatus(status)}
-              >
-                {STATUS_LABEL[status]}
-              </ContextMenu.Item>
-            );
-          })}
-        </ContextMenu.Content>
-      </ContextMenu.Portal>
-    </ContextMenu.Root>
+        {STATUS_ORDER.map((status) => (
+          <ContextMenu.Item
+            key={status}
+            className={clsx(
+              styles.itemBase,
+              styles.itemVariants[getStatusVariantKey(status)],
+            )}
+            onSelect={() => handleSelectStatus(status)}
+          >
+            {STATUS_LABEL[status]}
+          </ContextMenu.Item>
+        ))}
+      </ContextMenu.Content>
+    </ContextMenu.Portal>
   );
 };
 
-export default StatusContextMenu;
+React.memo(StatusContextMenu);

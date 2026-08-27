@@ -1,7 +1,7 @@
 ﻿// src/renderer/features/operation/services/jcJobService.ts
 
 import { toast } from "sonner";
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import type { AppState } from "@shared/store";
 import { JOB_STATUS } from "@shared/types/operationType";
 import {

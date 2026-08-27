@@ -87,4 +87,4 @@ export const AuthView: React.FC = () => {
   );
 };
 
-export default AuthView;
+AuthView;

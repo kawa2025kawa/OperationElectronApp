@@ -2,12 +2,15 @@
 
 import irregularData from "@resources/json/irregularData.json";
 import operationData from "@resources/json/operationData.json";
-import { commands } from "@shared/api/commands";
+import { commands } from "@shared/service/commands";
 import { useAppStore } from "@shared/store";
 import type { OperationItem } from "@shared/types/operationType";
 
 const operations = operationData as OperationItem[];
 const irregulars = irregularData as OperationItem[];
+
+/** ローダー表示維持時間 (ms) */
+const APP_LOADER_DELAY_MS = 2000;
 
 const INITIAL_LOADING_STATUS = {
   operation: "LOADING",
@@ -56,6 +59,8 @@ async function initializeSheets(isAuthenticated: boolean): Promise<void> {
   }
 
   store.setInitStatus({ auth: "OK" });
+
+  // 各スプレッドシートの取得完了（全ステータス評価完了）まで待機
   await store.prefetchSheets(store.accessToken || undefined);
 }
 
@@ -96,14 +101,17 @@ function handleInitializationError(error: unknown): void {
 
 function markInitializationCompleted(): void {
   const store = useAppStore.getState();
-
   store.setInitStatus({
     operation: "OK",
     irregular: "OK",
   });
-
   store.recalculateSummary();
   store.setIsInitialLoaded(true);
+
+  // 全ステータス評価完了後、2秒間待ってからローダーを退場させる
+  window.setTimeout(() => {
+    store.setShowAppLoader(false);
+  }, APP_LOADER_DELAY_MS);
 }
 
 // ----------------------------------------------------------------------------

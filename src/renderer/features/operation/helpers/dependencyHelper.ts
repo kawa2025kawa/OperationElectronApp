@@ -11,7 +11,7 @@ import { hasValidJobId } from "./operationSummary";
 // Types
 // ============================================================
 
-export interface MissingDependency {
+interface MissingDependency {
   kanriNo: string;
   status: JobStatus | null | undefined;
   comment: string;
@@ -153,7 +153,7 @@ export function checkJobDependencies(
       };
 }
 
-export function getMissingDependencies(
+function getMissingDependencies(
   kanriNo: string,
   entities: Record<string, OperationItem>,
   activeFlags?: Record<string, boolean>,

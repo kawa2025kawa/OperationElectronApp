@@ -8,7 +8,7 @@ import {
   titleText,
 } from "@renderer/styles/tokens";
 
-export const SUMMARY_MODAL_SIZE = {
+const SUMMARY_MODAL_SIZE = {
   width: "min(80vw, 850px)",
   height: "min(75vh, 600px)",
 } as const;

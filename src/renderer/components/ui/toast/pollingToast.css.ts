@@ -1,4 +1,4 @@
-// src/renderer/components/ui/toast/toast.css.ts
+// src\renderer\components\ui\toast\pollingToast.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { themeTransition, tokens } from "@renderer/styles/tokens";
@@ -10,31 +10,23 @@ export const panel = style([
     top: "110px",
     right: "25px",
     bottom: "100px",
-
     width: "min(28vw, 520px)",
     maxHeight: "75vh",
-
     display: "flex",
     flexDirection: "column",
     gap: tokens.space.xs,
-
     zIndex: tokens.zIndex.toast,
     padding: tokens.space.xs,
     boxSizing: "border-box",
-
     borderRadius: tokens.radius.lg,
     border: `2px solid ${tokens.color.border.subtle}`,
     backgroundColor: tokens.glass.surface,
-
-    backdropFilter: "blur(12px)",
-    WebkitBackdropFilter: "blur(12px)",
-
+    backdropFilter: "blur(12px) saturate(180%)",
+    WebkitBackdropFilter: "blur(12px) saturate(180%)",
     boxShadow: tokens.shadow.raised.high,
-
     isolation: "isolate",
     overflowY: "auto",
     scrollbarWidth: "none",
-
     selectors: {
       "&::-webkit-scrollbar": {
         display: "none",
@@ -59,10 +51,8 @@ export const header = style({
 
 export const title = style({
   color: tokens.color.text.base,
-
   fontSize: tokens.font.size.sm,
   fontWeight: tokens.font.weight.bold,
-
   whiteSpace: "nowrap",
 });
 
@@ -70,7 +60,6 @@ export const list = style({
   display: "flex",
   flexDirection: "column",
   gap: tokens.space.xs,
-
   width: "100%",
 });
 
@@ -78,7 +67,6 @@ export const item = style([
   themeTransition,
   {
     position: "relative",
-
     display: "flex",
     alignItems: "center",
     gap: tokens.space.md,

@@ -22,4 +22,4 @@ export const OperationView: React.FC = React.memo(() => {
 
 OperationView.displayName = "OperationView";
 
-export default OperationView;
+OperationView;

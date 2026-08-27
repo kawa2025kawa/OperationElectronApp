@@ -21,7 +21,7 @@ export interface TrackerApiResponse {
   data: TrackerApiResponseItem[];
 }
 
-export function normalizeStatus(status?: string[]): JobStatus | undefined {
+function normalizeStatus(status?: string[]): JobStatus | undefined {
   if (!status?.length) return undefined;
   const values = status.map((v) => v.toLowerCase());
   if (

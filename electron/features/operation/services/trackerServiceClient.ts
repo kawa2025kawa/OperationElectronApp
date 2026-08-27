@@ -1,18 +1,16 @@
-﻿//electron\services\operation\tracker.ts
-
-import type { OperationItem } from "@shared/types/operationType";
+﻿import type { OperationItem } from "@shared/types/operationType";
 import {
   applyTrackerItem,
   normalizeItem,
   type TrackerApiResponse,
-} from "./helpers/trackerMapper";
+} from "../helpers/trackerMapper";
 import {
   addKanshiTime,
   buildFallbackTrackerUrl,
   buildTrackerUrl,
   getTargetTime,
-} from "./helpers/trackerUrlHelper";
-import { sleep, validateJobId } from "./helpers/trackerValidationHelper";
+} from "../helpers/trackerUrlHelper";
+import { sleep, validateJobId } from "../helpers/trackerValidationHelper";
 
 // ============================================================
 // Constants
@@ -21,7 +19,7 @@ const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [2_000, 4_000];
 
 // ============================================================
-// Public
+// Public APIs
 // ============================================================
 export async function fetchTrackerByJobId(
   target: OperationItem,
@@ -29,6 +27,7 @@ export async function fetchTrackerByJobId(
   const jobId = validateJobId(target);
   const from = getTargetTime(jobId, target.scheduledTime);
   const to = addKanshiTime(from, target.kanshiTime);
+
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       const result = await requestTracker(jobId, from, to);
@@ -54,8 +53,10 @@ export async function fetchTrackerByJobId(
   return [];
 }
 
+export { applyTrackerItem };
+
 // ============================================================
-// HTTP
+// HTTP Requests
 // ============================================================
 async function requestTracker(
   jobId: string,
@@ -69,7 +70,6 @@ async function requestTracker(
   }
 
   const primaryJson = (await primaryResponse.json()) as TrackerApiResponse;
-
   if (primaryJson.count > 0 && primaryJson.data.length > 0) {
     return primaryJson.data.map(normalizeItem);
   }
@@ -83,6 +83,3 @@ async function requestTracker(
   const fallbackJson = (await fallbackResponse.json()) as TrackerApiResponse;
   return (fallbackJson.data ?? []).map(normalizeItem);
 }
-
-// applyTrackerItem も別ファイルからの再エクスポートに変更
-export { applyTrackerItem };

@@ -1,4 +1,4 @@
-﻿// src/shared/api/commands.ts
+﻿// src/shared/service/commands.ts
 
 import type { AuthSession } from "@shared/types/authTypes";
 import type { JobStatus, OperationItem } from "@shared/types/operationType";

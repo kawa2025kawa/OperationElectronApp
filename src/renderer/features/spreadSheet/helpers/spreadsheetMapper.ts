@@ -1,18 +1,6 @@
 // src/renderer/features/spreadSheet/helpers/spreadsheetMapper.ts
 
-import {
-  SHOP_RANGE_CONFIG,
-  SHOP_KEY_MAP,
-} from "@renderer/features/spreadSheet/components/modal/shop/useShopModalContent";
-import { TANTOU_RANGE_CONFIG } from "@renderer/features/spreadSheet/components/modal/tantou/useTantouModalContent";
-import {
-  JUGYOIN_RANGE_CONFIG,
-  JUGYOIN_KEY_MAP,
-} from "@renderer/features/spreadSheet/components/modal/jugyoin/useJugyoinModalContent";
-import {
-  KOKYUHYO_RANGE_CONFIG,
-  KOKYUHYO_KEY_MAP,
-} from "@renderer/features/spreadSheet/components/modal/kokyuhyo/useKokyuhyoModalContent";
+import { getSheetRangeConfig } from "@renderer/features/spreadSheet/services/spreadsheetConfig";
 import {
   MASTER_SPREADSHEET_ID,
   SHEET_IDS,
@@ -24,41 +12,9 @@ import {
   type TantouDailyDetails,
 } from "@shared/types/spreadsheetTypes";
 
-// 🎯 設定マップを一括定義して switch 文を撲滅
-const RANGE_CONFIG_MAP: Record<
-  SheetId,
-  { headerRow: number; dynamicRange: string; keyMap?: Record<string, string> }
-> = {
-  [SHEET_IDS.SHOP]: {
-    headerRow: SHOP_RANGE_CONFIG.headerRow,
-    dynamicRange: SHOP_RANGE_CONFIG.dynamicRange,
-    keyMap: SHOP_KEY_MAP,
-  },
-  [SHEET_IDS.TANTOU]: {
-    headerRow: TANTOU_RANGE_CONFIG.headerRow,
-    dynamicRange: TANTOU_RANGE_CONFIG.dynamicRange,
-  },
-  [SHEET_IDS.JUGYOIN]: {
-    headerRow: JUGYOIN_RANGE_CONFIG.headerRow,
-    dynamicRange: JUGYOIN_RANGE_CONFIG.dynamicRange,
-    keyMap: JUGYOIN_KEY_MAP,
-  },
-  [SHEET_IDS.KOKYUHYO]: {
-    headerRow: KOKYUHYO_RANGE_CONFIG.headerRow,
-    dynamicRange: KOKYUHYO_RANGE_CONFIG.dynamicRange,
-    keyMap: KOKYUHYO_KEY_MAP,
-  },
-};
-
-export const getSheetRangeConfig = (sheetId: SheetId) =>
-  RANGE_CONFIG_MAP[sheetId] ?? {
-    headerRow: 1,
-    dynamicRange: `${sheetId}!1:10000`,
-  };
-
 const EMPTY_VALUE = "-";
 
-export function sanitizeHeader(text: string): string {
+function sanitizeHeader(text: string): string {
   return text ? text.replace(/[\r\n\t\s]+/g, "").trim() : "";
 }
 
@@ -85,7 +41,7 @@ function setNestedValue(
   }
 }
 
-export function parseRawSheetRows<T = Record<string, unknown>>(
+function parseRawSheetRows<T = Record<string, unknown>>(
   rawRows: string[][],
   sheetId: SheetId,
   keyMap?: Record<string, string>,
@@ -147,7 +103,7 @@ function getFirstValue(
   return EMPTY_VALUE;
 }
 
-export function buildDailyDetails(
+function buildDailyDetails(
   rowObj: Record<string, unknown>,
 ): TantouDailyDetails {
   return {
@@ -170,7 +126,7 @@ export function buildDailyDetails(
   };
 }
 
-export function parseTantouSheet(rawRows: string[][]): Tantou {
+function parseTantouSheet(rawRows: string[][]): Tantou {
   const parsedRows = parseRawSheetRows<Record<string, unknown>>(
     rawRows,
     SHEET_IDS.TANTOU,

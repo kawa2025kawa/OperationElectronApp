@@ -4,12 +4,6 @@ import React from "react";
 import type { OperationItem } from "@shared/types/operationType";
 import type { Column } from "@shared/types/tableType";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
-import type { ModalContentProps } from "../useOperationModalLogic";
-
-export interface SummaryModalContentProps extends ModalContentProps {
-  items: OperationItem[];
-  title?: string;
-}
 
 export const SUMMARY_COLUMNS: Column<OperationItem>[] = [
   {

@@ -3,6 +3,8 @@
 import type { StateCreator } from "zustand";
 import type { AppState } from "@shared/store";
 import type { ViewMode } from "@shared/types/uiType";
+import { getAppViewConfig } from "@renderer/registry/appRegistry";
+import { AuthView } from "@renderer/features/auth/AuthView";
 
 type SelectedIds = Record<ViewMode, string | null>;
 
@@ -75,3 +77,21 @@ export const createNavigationSlice: StateCreator<
       state.selectedIds[mode] = id;
     }),
 });
+
+// ============================================================
+// Selectors
+// ============================================================
+
+/**
+ * 現在の表示対象 View コンポーネントを判別・返却する Selector
+ * 未認証かつ保護対象（isProtected）の画面の場合は AuthView を返す
+ */
+export const selectActiveViewComponent = (state: AppState) => {
+  const viewConfig = getAppViewConfig(state.currentView);
+
+  if (!state.isAuthenticated && viewConfig.isProtected) {
+    return AuthView;
+  }
+
+  return viewConfig.component;
+};

@@ -21,7 +21,7 @@ const IGNORED_STATUSES = new Set<string>([
   JOB_STATUS.ERROR,
 ]);
 
-export function getAllCurrentEntitiesMap(
+function getAllCurrentEntitiesMap(
   targets: OperationItem[],
 ): Record<string, OperationItem> {
   const map: Record<string, OperationItem> = {};

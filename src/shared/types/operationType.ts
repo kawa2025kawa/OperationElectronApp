@@ -25,7 +25,7 @@ export const JOB_STATUS = {
 // ============================================================
 // Job Dependencies (依存関係定義)
 // ============================================================
-export type DependencyCondition = "every" | "some";
+type DependencyCondition = "every" | "some";
 
 export interface JobDependency {
   dependsOn: string[];
@@ -52,21 +52,11 @@ export interface OperationStatusFields {
   info?: string | null;
 }
 
-/** Tracker API等の外部照会用レスポンス (jobId 基準) */
-export interface ApiResult extends OperationStatusFields {
-  jobId?: string;
-}
-
-/** スクリプト実行結果・StatusManager更新用 (kanriNo 基準) */
-export interface ScriptResult extends OperationStatusFields {
-  kanriNo: string;
-}
-
 // ============================================================
 // Supporting Types
 // ============================================================
 
-export interface GmailTemplate {
+interface GmailTemplate {
   to?: string;
   cc?: string;
   subject?: string;

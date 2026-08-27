@@ -2,7 +2,7 @@
 
 import type { StoreDiffResult, StoreYosanMap } from "./types";
 
-export function formatYen(amount: number): string {
+function formatYen(amount: number): string {
   return `${amount.toLocaleString("ja-JP")}円`;
 }
 

@@ -27,7 +27,7 @@ export type SheetType = (typeof SHEET_TYPES)[keyof typeof SHEET_TYPES] | "Raw";
 /* =====================================================
    2. Data Models (Entities)
    ===================================================== */
-export interface PrinterInfo {
+interface PrinterInfo {
   type?: string;
   maker?: string;
   model: string;
@@ -37,13 +37,13 @@ export interface PrinterInfo {
   contractId: string;
 }
 
-export interface ContactInfo {
+interface ContactInfo {
   extension: string;
   mobileShort: string;
   mobile: string;
 }
 
-export interface DailySchedule {
+interface DailySchedule {
   date: string;
   amStatus: string;
   amDetail: string;
@@ -135,7 +135,7 @@ export interface SheetDataResponse {
 import type React from "react";
 import type { Column } from "@shared/types/tableType";
 
-export type SpreadSheetEntity = Shop | Kokyuhyo | Jugyoin | Tantou;
+type SpreadSheetEntity = Shop | Kokyuhyo | Jugyoin | Tantou;
 
 export interface SpreadSheetTableProps<T extends object = SpreadSheetEntity> {
   data: T[];

@@ -5,7 +5,7 @@ import { useAppStore } from "@shared/store";
 import { SHEET_IDS, type Tantou } from "@shared/types/spreadsheetTypes";
 import { APP_REGISTRY, getAppViewConfig } from "@renderer/registry/appRegistry";
 import { APP_VIEW_IDS } from "@shared/types/uiType";
-import { TantouModalContent } from "@renderer/features/spreadSheet/components/modal/tantou/TantouModalContent";
+import { SpreadSheetModal } from "@renderer/features/spreadSheet/components/modal/SpreadSheetModal";
 import * as styles from "./tantouButton.css";
 
 export const TantouButton: React.FC = () => {
@@ -34,7 +34,8 @@ export const TantouButton: React.FC = () => {
 
     if (tantouData) {
       openGlobalModal(
-        <TantouModalContent
+        <SpreadSheetModal
+          sheetId={SHEET_IDS.TANTOU}
           data={tantouData}
           title={getAppViewConfig(APP_VIEW_IDS.TANTOU).title}
           onClose={closeGlobalModal}
@@ -54,4 +55,4 @@ export const TantouButton: React.FC = () => {
   );
 };
 
-export default TantouButton;
+TantouButton.displayName = "TantouButton";

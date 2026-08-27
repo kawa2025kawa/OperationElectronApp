@@ -34,7 +34,7 @@ export function schedulePersistStatuses(
   }, STATUS_SAVE_DEBOUNCE_MS);
 }
 
-export async function persistStatuses(
+async function persistStatuses(
   memoryStatuses: Map<string, PersistedStatus>,
 ): Promise<void> {
   if (saveInProgress || !savePending) return;
@@ -58,7 +58,7 @@ export async function persistStatuses(
   }
 }
 
-export async function flushStatusPersistence(
+async function flushStatusPersistence(
   memoryStatuses: Map<string, PersistedStatus>,
 ): Promise<void> {
   if (saveTimer) {
@@ -68,7 +68,7 @@ export async function flushStatusPersistence(
   await persistStatuses(memoryStatuses);
 }
 
-export async function cleanupOldStatusFiles(): Promise<void> {
+async function cleanupOldStatusFiles(): Promise<void> {
   try {
     const dir = app.getPath("userData");
     const todaySuffix = getTodaySuffix();

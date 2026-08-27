@@ -632,7 +632,7 @@
     "scheduledTime": "16:40",
     "workName": "請求データファイル確認",
     "script": true,
-    "autoStart": false,
+    "autoStart": true,
     "manual": true,
     "link": {
       "SEIKYUDTフォルダ": "//172.25.101.51/if/WEB-SV/RCV/SV"

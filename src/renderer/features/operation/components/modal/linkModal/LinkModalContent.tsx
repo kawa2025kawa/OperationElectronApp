@@ -41,4 +41,4 @@ export const LinkModalContent: React.FC = React.memo(() => {
 
 LinkModalContent.displayName = "LinkModalContent";
 
-export default LinkModalContent;
+LinkModalContent;

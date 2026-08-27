@@ -38,16 +38,6 @@ export const brandGradientText = style({
   color: "transparent",
 });
 
-export const hideScrollbar = style({
-  scrollbarWidth: "none",
-  msOverflowStyle: "none",
-  selectors: {
-    "&::-webkit-scrollbar": {
-      display: "none",
-    },
-  },
-});
-
 export const glassBackdrop = style({
   backdropFilter: "blur(8px)",
   WebkitBackdropFilter: "blur(8px)",

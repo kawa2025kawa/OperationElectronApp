@@ -9,19 +9,6 @@ export const getOffsetDate = (offsetDays: number): Date => {
 };
 
 /**
- * 日付を指定フォーマットの文字列に変換 (デフォルト: yyyy/MM/dd)
- */
-export const formatDate = (
-  dateInput: Date | string | null | undefined,
-  formatStr = "yyyy/MM/dd",
-): string => {
-  if (!dateInput) return "";
-  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
-  if (isNaN(date.getTime())) return "";
-  return format(date, formatStr, { locale: ja });
-};
-
-/**
  * 日本語の日時フォーマット (例: 2026年08月12日 10:08)
  */
 export const formatToJapaneseDateTime = (dateStr?: string | null): string => {

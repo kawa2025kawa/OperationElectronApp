@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import { Toast } from "@renderer/components/ui/toast/Toast";
+import { PollingToast } from "@renderer/components/ui/toast/PollingToast";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { GlobalModalManager } from "@renderer/components/ui/modal/GlobalModalManager";
 import { MainView } from "@renderer/layout/MainView";
@@ -12,11 +12,11 @@ import { useAppLogic } from "@renderer/hooks/useAppLogic";
 // Registry & Views
 import { setupAppRegistry } from "@renderer/registry/appRegistry";
 import { APP_VIEW_IDS } from "@shared/types/uiType";
-import OperationView from "@renderer/features/operation/OperationView";
 import { RdpView } from "@renderer/features/remoteDesktop/RdpView";
-import AuthView from "@renderer/features/auth/AuthView";
-import SpreadSheetView from "@renderer/features/spreadSheet/SpreadSheetView";
-import OtherView from "@renderer/features/other/OtherView";
+import { OperationView } from "@renderer/features/operation/OperationView";
+import { AuthView } from "@renderer/features/auth/AuthView";
+import { SpreadSheetView } from "@renderer/features/spreadSheet/SpreadSheetView";
+import { OtherView } from "@renderer/features/other/OtherView";
 
 // レンダラー起動時に View コンポーネントを一度だけ動的バインド
 setupAppRegistry({
@@ -55,7 +55,7 @@ export const App: React.FC = () => {
   return (
     <>
       <MainView />
-      <Toast />
+      <PollingToast />
       <GlobalModalManager />
       <LoadingOverlay
         isOpen={isGlobalProcessing}
@@ -65,5 +65,3 @@ export const App: React.FC = () => {
     </>
   );
 };
-
-export default App;
