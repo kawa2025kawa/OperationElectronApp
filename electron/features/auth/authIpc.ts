@@ -1,4 +1,6 @@
-﻿import { ipcMain } from "electron";
+﻿//electron\features\auth\authIpc.ts
+
+import { ipcMain } from "electron";
 import { GoogleOAuthService } from "../spreadsheet/googleOAuthService";
 
 const authService = new GoogleOAuthService();

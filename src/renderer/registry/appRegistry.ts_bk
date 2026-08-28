@@ -21,10 +21,6 @@ export const APP_REGISTRY: Record<AppViewId, AppViewDefinition> = {
     title: "Operation",
     isProtected: false,
     sidebarMenu: { show: true, order: 1 },
-    search: {
-      placeholder: "管理番号・業務名で検索...",
-      searchKeys: ["kanriNo", "workName", "jobId"],
-    },
   },
   [APP_VIEW_IDS.KOKYUHYO]: kokyuhyoViewConfig,
   [APP_VIEW_IDS.JUGYOIN]: jugyoinViewConfig,

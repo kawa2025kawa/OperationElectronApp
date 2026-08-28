@@ -197,11 +197,9 @@ export const authButton = style([
     selectors: {
       "&:hover:not(:disabled)": {
         backgroundColor: tokens.color.accent.hover,
-        transform: "translateY(-1px)",
         boxShadow: tokens.shadow.raised.md,
       },
       "&:active:not(:disabled)": {
-        transform: "translateY(0)",
         boxShadow: tokens.shadow.pressed.md,
       },
       "&:disabled": {

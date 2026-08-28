@@ -1,23 +1,12 @@
 import { useEffect } from "react";
 import { useAppStore } from "@shared/store/index";
+import { commands } from "@shared/service/commands";
 import {
   usePollingToastStore,
   type ToastType,
 } from "@renderer/components/ui/toast/pollingToastStore";
 import { consumeSuppressedSuccessToast } from "@shared/utils/statusToastSuppression";
-import type {
-  JobStatus,
-  OperationItem,
-  OperationStatusFields,
-} from "@shared/types/operationType";
-
-export type StatusUpdateEventPayload = {
-  status: OperationStatusFields & {
-    kanriNo: string;
-    workName?: string;
-    jobId?: string;
-  };
-};
+import type { JobStatus, OperationItem } from "@shared/types/operationType";
 
 function getToastType(status: JobStatus): ToastType {
   switch (status) {
@@ -40,41 +29,38 @@ export const useStatusToast = (): void => {
   useEffect(() => {
     if (!isPolling) return;
 
-    const unsubscribe = window.electronAPI.on(
-      "operationStatusUpdated",
-      (...args: unknown[]) => {
-        const eventData = args[0] as StatusUpdateEventPayload | undefined;
-        const targetStatus = eventData?.status;
+    const cleanup = commands.onOperationStatusUpdated(
+      (update: OperationItem) => {
+        if (!update || !update.status) return;
 
-        if (!targetStatus || !targetStatus.status) return;
-
-        const kanriNo = String(targetStatus.kanriNo);
+        const kanriNo = String(update.kanriNo);
 
         // 1. Store（OperationTable描画元）のステータスを更新
-        useAppStore
-          .getState()
-          .updateItemStatus(targetStatus as unknown as OperationItem);
+        useAppStore.getState().updateItemStatus(update);
 
         // 2. 手動操作（Enter押下時等）でセットされた抑止フラグがある場合はトースト通知を即破棄
         if (consumeSuppressedSuccessToast(kanriNo)) {
           return;
         }
 
-        const type = getToastType(targetStatus.status);
+        const type = getToastType(update.status);
 
         // 3. JobID がある場合は JobID、無ければ workName で表示メッセージを作成
-        const rawJobId = targetStatus.jobId?.trim();
+        const rawJobId =
+          "jobId" in update && typeof update.jobId === "string"
+            ? update.jobId.trim()
+            : undefined;
         const hasJobId = Boolean(rawJobId && rawJobId !== "-");
         const nameLabel = hasJobId
           ? rawJobId
-          : (targetStatus.workName ?? `管理No.${targetStatus.kanriNo}`);
+          : (update.workName ?? `管理No.${update.kanriNo}`);
 
-        addToast(`${nameLabel} ${targetStatus.status}`, type);
+        addToast(`${nameLabel} ${update.status}`, type);
       },
     );
 
     return () => {
-      unsubscribe();
+      cleanup();
     };
   }, [isPolling, addToast]);
 };

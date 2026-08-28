@@ -48,7 +48,6 @@ export const searchField = style({
     },
     "&:focus": {
       boxShadow: `${tokens.shadow.glow.brand}, ${tokens.shadow.raised.md}`,
-      transform: "translateY(-1px)",
     },
     "&:active": {
       boxShadow: tokens.shadow.pressed.low,

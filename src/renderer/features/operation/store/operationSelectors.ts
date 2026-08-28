@@ -1,8 +1,8 @@
-//src\renderer\features\operation\store\operationSelectors.ts
+// src/renderer/features/operation/store/operationSelectors.ts
 
 import type { AppState } from "@shared/store";
-import { STATUS_LABEL } from "@shared/types/uiType";
 import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
+import { STATUS_LABEL } from "@shared/types/uiType";
 
 export const selectCurrentMode = (state: AppState) => state.currentMode;
 
@@ -14,54 +14,60 @@ const getEntitiesByIds = (
     .map((id) => entities[id])
     .filter((item): item is OperationItem => Boolean(item));
 
-const matchesSearch = (
-  targets: Array<string | null | undefined>,
+const containsTerm = (obj: unknown, term: string): boolean => {
+  if (obj == null) return false;
+  if (
+    typeof obj === "string" ||
+    typeof obj === "number" ||
+    typeof obj === "boolean"
+  ) {
+    return String(obj).toLowerCase().includes(term);
+  }
+  if (Array.isArray(obj)) {
+    return obj.some((item) => containsTerm(item, term));
+  }
+  if (typeof obj === "object" && obj !== null) {
+    return Object.values(obj as Record<string, unknown>).some((val) =>
+      containsTerm(val, term),
+    );
+  }
+  return false;
+};
+
+const filterTableItems = (
+  items: OperationItem[],
   term: string,
-): boolean => !term || targets.some((val) => val?.toLowerCase().includes(term));
-
-const filterOperations = (items: OperationItem[], term: string) =>
-  items.filter((item) =>
-    matchesSearch(
-      [
-        item.workName,
-        "jobId" in item ? item.jobId : null,
-        item.kanriNo,
-        item.status,
-        item.status ? STATUS_LABEL[item.status] : undefined,
-      ],
-      term,
-    ),
-  );
-
-const filterIrregulars = (items: OperationItem[], term: string) =>
-  items.filter((item) =>
-    matchesSearch(
-      [
-        item.workName,
-        item.kanriNo,
-        "cycle1" in item ? item.cycle1 : null,
-        "cycle2" in item ? item.cycle2 : null,
-      ],
-      term,
-    ),
-  );
+  _isIrregular = false,
+): OperationItem[] => {
+  if (!term) return items;
+  return items.filter((item) => {
+    const statusText = item.status ? STATUS_LABEL[item.status] : undefined;
+    return (
+      containsTerm(item, term) ||
+      (statusText ? statusText.toLowerCase().includes(term) : false)
+    );
+  });
+};
 
 export const selectOperationTableData = (state: AppState): OperationItem[] =>
-  filterOperations(
+  filterTableItems(
     getEntitiesByIds(state.operationIds, state.operationEntities),
     state.searchTerm.trim().toLowerCase(),
+    false,
   );
 
 export const selectIrregularTableData = (state: AppState): OperationItem[] =>
-  filterIrregulars(
+  filterTableItems(
     getEntitiesByIds(state.irregularIds, state.irregularEntities),
     state.searchTerm.trim().toLowerCase(),
+    true,
   );
 
 const selectTodayTableData = (state: AppState): OperationItem[] =>
-  filterIrregulars(
+  filterTableItems(
     getEntitiesByIds(state.todayIds, state.irregularEntities),
     state.searchTerm.trim().toLowerCase(),
+    true,
   );
 
 export const selectFilteredOperationIds = (state: AppState): string[] =>

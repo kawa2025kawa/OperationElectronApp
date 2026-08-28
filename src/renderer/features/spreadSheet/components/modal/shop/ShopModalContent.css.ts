@@ -100,7 +100,6 @@ export const card = style([
     selectors: {
       "&:hover": {
         boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
-        transform: "translateY(-1px)",
       },
       '&[data-full-width="true"]': {
         gridColumn: "1 / -1",

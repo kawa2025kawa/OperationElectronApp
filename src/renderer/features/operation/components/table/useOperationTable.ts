@@ -1,3 +1,5 @@
+//src\renderer\features\operation\components\table\useOperationTable.ts
+
 import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@shared/store";

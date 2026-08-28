@@ -29,22 +29,15 @@ function encodeMimeHeader(value: string): string {
   return `=?UTF-8?B?${toBase64(value)}?=`;
 }
 
-function normalizeCrlf(text: string): string {
-  return text.replace(/\r\n/g, "\n").replace(/\n/g, "\r\n");
-}
-
 function buildRawMessage({
   from,
   to,
   cc,
   subject,
   body,
-}: CreateDraftParams & { from?: string | null }): string {
-  const isValidFrom = Boolean(from && from.includes("@") && from !== "me");
-  const normalizedBody = normalizeCrlf(body);
-
+}: CreateDraftParams & { from: string }): string {
   const headers = [
-    ...(isValidFrom ? [`From: ${from}`] : []),
+    `From: ${from}`,
     `To: ${to}`,
     ...(cc?.trim() ? [`Cc: ${cc.trim()}`] : []),
     `Subject: ${encodeMimeHeader(subject)}`,
@@ -52,7 +45,7 @@ function buildRawMessage({
     'Content-Type: text/plain; charset="UTF-8"',
     "Content-Transfer-Encoding: 8bit",
   ];
-  return toBase64Url(`${headers.join("\r\n")}\r\n\r\n${normalizedBody}`);
+  return toBase64Url(`${headers.join("\r\n")}\r\n\r\n${body}`);
 }
 
 export const gmailService = {
@@ -64,10 +57,11 @@ export const gmailService = {
 
     const raw = buildRawMessage({
       ...params,
-      from: userEmail,
+      from: userEmail || "me",
     });
 
     try {
+      // API側の仕様に合わせて raw 文字列を正しく渡す
       await commands.createGmailDraft({ accessToken, raw });
     } catch (error) {
       const message = error instanceof Error ? error.message : "不明なエラー";

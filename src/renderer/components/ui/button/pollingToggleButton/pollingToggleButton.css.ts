@@ -29,7 +29,6 @@ export const button = style({
   selectors: {
     "&:hover": {
       boxShadow: tokens.shadow.glow.cyan,
-      transform: "translateY(-0.0625rem)",
     },
 
     "&[aria-pressed='true']": {

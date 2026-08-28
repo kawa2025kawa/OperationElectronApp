@@ -1,4 +1,6 @@
-﻿import { app } from "electron";
+﻿//electron\features\auth\credentials.ts
+
+import { app } from "electron";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 

@@ -1,11 +1,12 @@
-﻿// src/renderer/features/auth/useAuth.ts
-
-import { useState } from "react";
+﻿import { useState } from "react";
 import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { useShallow } from "zustand/react/shallow";
 
 import { commands } from "@shared/service/commands";
 import { useAppStore } from "@shared/store";
+
+// タイムアウト時間（例: 3分）
+const AUTH_TIMEOUT_MS = 180000;
 
 export const useAuth = () => {
   const [isLoginProcessing, setIsLoginProcessing] = useState(false);
@@ -28,14 +29,24 @@ export const useAuth = () => {
 
     setIsLoginProcessing(true);
     setGlobalProcessing({
-      message: "認証処理中...",
+      message: "認証処理中（ブラウザでログインを完了してください）...",
       target: "認証処理中",
     });
 
     try {
       console.log("[Auth] Starting Google login...");
 
-      const session = await commands.login();
+      // ブラウザを閉じたまま放置された場合のフロント側タイムアウト保護
+      const loginPromise = commands.login();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () =>
+            reject(new Error("認証タイムアウト：ログイン処理が中断されました")),
+          AUTH_TIMEOUT_MS,
+        ),
+      );
+
+      const session = await Promise.race([loginPromise, timeoutPromise]);
 
       if (!session?.accessToken) {
         throw new Error("アクセストークンの取得に失敗しました");
@@ -58,6 +69,7 @@ export const useAuth = () => {
           "error",
         );
     } finally {
+      // 成功・失敗・タイムアウトのいずれでも必ずローディングを解除する
       setIsLoginProcessing(false);
       setGlobalProcessing(null);
     }

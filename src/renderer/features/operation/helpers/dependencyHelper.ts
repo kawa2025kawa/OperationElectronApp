@@ -5,7 +5,7 @@ import type {
   JobStatus,
   OperationItem,
 } from "@shared/types/operationType";
-import { hasValidJobId } from "./operationSummary";
+import { hasValidJobId } from "./operationEntities";
 
 // ============================================================
 // Types
@@ -151,15 +151,6 @@ export function checkJobDependencies(
         ok: false,
         missingDependencies: results.filter((r) => !r.ok).map((r) => r.missing),
       };
-}
-
-function getMissingDependencies(
-  kanriNo: string,
-  entities: Record<string, OperationItem>,
-  activeFlags?: Record<string, boolean>,
-): MissingDependency[] {
-  return checkJobDependencies(kanriNo, entities, activeFlags)
-    .missingDependencies;
 }
 
 export function getDependentKanriNos(

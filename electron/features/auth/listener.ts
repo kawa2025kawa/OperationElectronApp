@@ -6,6 +6,7 @@ export interface OAuthCallback {
 }
 
 const HOST = "127.0.0.1";
+const DEFAULT_TIMEOUT_MS = 60000; // 1分（60秒）応答がなければタイムアウト
 
 const createHtmlPage = (title: string, message: string) =>
   `
@@ -31,15 +32,21 @@ const INVALID_REQUEST_RESPONSE = createHtmlPage(
 export function startListener(
   port: number,
   expectedState: string,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
 ): Promise<OAuthCallback> {
   return new Promise((resolve, reject) => {
     let settled = false;
+    let timer: NodeJS.Timeout | null = null;
 
     const server = http.createServer((req, res) => {
       void handleRequest(req, res);
     });
 
     const closeAndCleanup = async () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
       if (server.listening) {
         await new Promise<void>((r) => server.close(() => r()));
       }
@@ -64,6 +71,19 @@ export function startListener(
       action();
     };
 
+    // 1. タイムアウト監視（ブラウザが閉じられる・放置された場合）
+    timer = setTimeout(async () => {
+      if (settled) return;
+      settled = true;
+      await closeAndCleanup();
+      reject(
+        new Error(
+          "認証がタイムアウトしました。ブラウザで再度ログインをやり直してください。",
+        ),
+      );
+    }, timeoutMs);
+
+    // 2. リクエスト処理
     async function handleRequest(
       req: http.IncomingMessage,
       res: http.ServerResponse,
@@ -98,6 +118,7 @@ export function startListener(
       );
     }
 
+    // 3. エラーハンドリング
     server.once("error", async (err) => {
       if (settled) return;
       settled = true;

@@ -1,0 +1,16 @@
+# Comprehensive Refactoring Memo (Phase 3)
+
+## 1. spreadSheet フィーチャーのモーダル Hook インライン化
+- `useJugyoinModalContent.ts` ➔ `JugyoinModalContent.tsx` にインライン化
+- `useKokyuhyoModalContent.ts` ➔ `KokyuhyoModalContent.tsx` にインライン化
+- `useShopModalContent.ts` ➔ `ShopModalContent.tsx` にインライン化
+- `useTantouModalContent.ts` ➔ `TantouModalContent.tsx` にインライン化
+
+## 2. other フィーチャーのモジュール集約
+- `useGmailModalContent.ts` ➔ `GmailModalContent.tsx` にインライン化
+- `usePdfUploadModalLogic.ts` ➔ `PdfUploadModalContent.tsx` にインライン化
+- `gmailModal/templates/` (popLabel.ts, shelfLabel.ts, tvUriage.ts, types.ts) ➔ `gmailTemplates.ts` に一本化
+
+## ルール順守
+- エイリアス import (`@shared/...`, `@renderer/...`)
+- UTF-8 (BOMなし) 保存

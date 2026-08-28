@@ -1,4 +1,4 @@
-﻿// src/renderer/features/operation/components/table/UnifiedTableRow.tsx
+﻿﻿// src/renderer/features/operation/components/table/UnifiedTableRow.tsx
 
 import React, { useCallback } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";

@@ -40,10 +40,6 @@ export const useFooterLogic = () => {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setInputValue(searchTerm);
-  }, [searchTerm]);
-
-  useEffect(() => {
     return () => {
       if (timerRef.current !== null) {
         clearTimeout(timerRef.current);

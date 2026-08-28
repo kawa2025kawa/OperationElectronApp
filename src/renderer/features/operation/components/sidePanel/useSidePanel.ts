@@ -1,4 +1,6 @@
-﻿import React, { useCallback, useMemo } from "react";
+// src/renderer/features/operation/components/sidePanel/useSidePanel.ts
+
+import React, { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { commands } from "@shared/service/commands";
@@ -8,7 +10,6 @@ import { formatToJapaneseDateTime } from "@shared/utils/dateUtils";
 
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/operationSelectors";
-import { useLinkModalLogic } from "../modal/linkModal/useLinkModalLogic";
 import { OperationModal } from "../modal/OperationModal";
 
 export interface InfoRowData {
@@ -64,7 +65,22 @@ export const useSidePanel = () => {
     }),
   );
 
-  const { isLinkActive, openLinkModal } = useLinkModalLogic();
+  const isLinkActive = useCallback((item: OperationItem): boolean => {
+    return Boolean(item.link && Object.keys(item.link).length > 0);
+  }, []);
+
+  const openLinkModal = useCallback(() => {
+    openGlobalModal(
+      React.createElement(OperationModal, {
+        type: "link",
+        onClose: closeGlobalModal,
+      }),
+      {
+        title: "Link",
+        ...DEFAULT_MODAL_SIZE,
+      },
+    );
+  }, [openGlobalModal, closeGlobalModal]);
 
   // アクション一覧のインスタンスを生成・保持
   const actions = useMemo<SidePanelAction[]>(
@@ -170,5 +186,3 @@ export const useSidePanel = () => {
     executeAction,
   };
 };
-
-useSidePanel;

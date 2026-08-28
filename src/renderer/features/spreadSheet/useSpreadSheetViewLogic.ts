@@ -1,4 +1,4 @@
-﻿//src\renderer\features\spreadSheet\useSpreadSheetViewLogic.ts
+//src\renderer\features\spreadSheet\useSpreadSheetViewLogic.ts
 
 import { useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -29,8 +29,13 @@ export function useSpreadSheetViewLogic() {
     }
   }, [sheetId, hasData, isFetching, fetchSheetData]);
 
+  const searchKeys = config?.search?.searchKeys;
+  const skipFilter = config?.search?.skipFilter;
+
   const data = useAppStore(
-    useShallow((state: AppState) => selectFilteredSheetRows(sheetId)(state)),
+    useShallow((state: AppState) =>
+      selectFilteredSheetRows(sheetId, searchKeys, skipFilter)(state),
+    ),
   );
 
   const columns = useMemo(
