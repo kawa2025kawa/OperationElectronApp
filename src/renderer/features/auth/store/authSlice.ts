@@ -1,7 +1,8 @@
 ﻿// src/renderer/features/auth/store/authSlice.ts
 import type { StateCreator } from "zustand";
-import { commands } from "@shared/service/commands";
-import type { AppState } from "@shared/store";
+import { commands } from "@renderer/services/commands";
+
+import type { AppState } from "@renderer/store";
 
 // ============================================================
 // Types

@@ -89,14 +89,14 @@ const baseCell = style([
 ]);
 
 export const label = style({
-  fontSize: tokens.font.size.sm,
+  fontSize: tokens.font.size.lg,
   fontWeight: tokens.font.weight.medium,
   color: tokens.color.text.base,
   opacity: 0.8,
 });
 
 export const value = style({
-  fontSize: tokens.font.size.md,
+  fontSize: tokens.font.size.lg,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.base,
 });

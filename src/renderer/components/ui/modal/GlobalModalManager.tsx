@@ -4,7 +4,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { useShallow } from "zustand/react/shallow";
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 import * as styles from "./globalModalManager.css";
 
 const overlayVariants: Variants = {

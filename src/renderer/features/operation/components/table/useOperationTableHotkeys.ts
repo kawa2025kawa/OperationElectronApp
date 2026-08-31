@@ -1,5 +1,5 @@
 ﻿import { useEffect } from "react";
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 import type { ViewMode } from "@shared/types/uiType";
 import { completeSelectedOperation } from "@renderer/features/operation/actions/operationActions";
 // 🎯 修正: 候補に出ていた正しい関数名 suppressNextSuccessToast をインポート

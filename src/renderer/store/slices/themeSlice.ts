@@ -1,7 +1,7 @@
 ﻿// src/shared/store/slices/themeSlice.ts
 
 import type { StateCreator } from "zustand";
-import type { AppState } from "@shared/store";
+import type { AppState } from "@renderer/store";
 
 export interface ThemeSlice {
   theme: "dark" | "light";

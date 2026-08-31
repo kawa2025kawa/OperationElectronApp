@@ -1,4 +1,6 @@
-﻿import {
+﻿// electron/features/operation/monitors/trackerMonitor.ts
+
+import {
   getStatus,
   updateStatus,
 } from "@electron/features/operation/statusManager";
@@ -22,23 +24,12 @@ export function hasJobId(target: OperationItem): boolean {
 }
 
 /**
- * ステータスが完了状態（成功またはエラー）か判定
- */
-function isCompleted(status?: string | null): boolean {
-  return status === JOB_STATUS.SUCCESS || status === JOB_STATUS.ERROR;
-}
-
-/**
  * Tracker API 監視対象のターゲットか判定
  */
 export function isTrackerTarget(target: OperationItem): boolean {
-  if (!hasJobId(target)) {
-    return false;
-  }
+  if (!hasJobId(target)) return false;
+
   const currentStatus = getStatus(target.kanriNo)?.status;
-  if (isCompleted(currentStatus)) {
-    return false;
-  }
   return (
     currentStatus === JOB_STATUS.READY ||
     currentStatus === JOB_STATUS.RUNNING ||

@@ -1,10 +1,10 @@
-// src/renderer/features/operation/components/modal/scriptModal/ScriptModalContent.tsx
+﻿// src/renderer/features/operation/components/modal/scriptModal/ScriptModalContent.tsx
 
 import React, { useCallback, useEffect, useState } from "react";
 import { FileDropZone } from "@renderer/components/ui/fileDropZone/FileDropZone";
 import { selectActiveSelectedItem } from "@renderer/features/operation/store/operationSelectors";
-import { commands } from "@shared/service/commands";
-import { useAppStore } from "@shared/store";
+import { commands } from "@renderer/services/commands";
+import { useAppStore } from "@renderer/store";
 import { useOperationModalContext } from "../OperationModalContext";
 import * as styles from "./scriptModalContent.css";
 
@@ -13,7 +13,7 @@ export interface ScriptFileItem {
   path: string;
 }
 
-type ExecutionState = "idle" | "completed";
+type ExecutionState = "idle" | "completed" | "error";
 
 const DROP_ZONE_KANRI_NOS = new Set(["E5", "E29", "E30"]);
 
@@ -51,11 +51,12 @@ export const ScriptModalContent: React.FC = React.memo(() => {
   const kanriNo = selectedItem?.kanriNo;
   const normalizedKanriNo = String(kanriNo ?? "").trim();
 
-  const isCompleted = executionState === "completed";
+  const isFinished = executionState !== "idle";
+  const isError = executionState === "error";
   const isFileSelectionRequired = requiresFileSelection(normalizedKanriNo);
-  const isDropZoneVisible = !isCompleted && isFileSelectionRequired;
+  const isDropZoneVisible = !isFinished && isFileSelectionRequired;
   const isExecutable =
-    !isCompleted && (!isFileSelectionRequired || selectedFiles.length > 0);
+    !isFinished && (!isFileSelectionRequired || selectedFiles.length > 0);
 
   const handleFileSelect = useCallback((files: File[]) => {
     const items = convertFilesToItems(files);
@@ -88,12 +89,13 @@ export const ScriptModalContent: React.FC = React.memo(() => {
       try {
         const resultComment = await runScriptJob(String(kanriNo), filePaths);
         setExecutionResult(resultComment);
+        setExecutionState("completed");
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         setExecutionResult(errorMsg);
+        setExecutionState("error");
       } finally {
         setSelectedFiles([]);
-        setExecutionState("completed");
       }
     };
 
@@ -111,27 +113,30 @@ export const ScriptModalContent: React.FC = React.memo(() => {
     selectedFiles,
   ]);
 
-  const isErrorResult = executionResult?.includes("【相違あり】") ?? false;
+  const isDiffResult = executionResult?.includes("【相違あり】") ?? false;
+  const isHighlightError = isError || isDiffResult;
 
-  const messageText = isCompleted
-    ? isErrorResult
-      ? "相違が発生しました"
-      : "処理が完了しました"
-    : isDropZoneVisible
+  const getMessageText = (): string => {
+    if (isError) return "エラーが発生しました";
+    if (executionState === "completed") {
+      return isDiffResult ? "相違が発生しました" : "処理が完了しました";
+    }
+    return isDropZoneVisible
       ? "実行対象のファイルを選択またはドロップしてください"
       : "「実行」ボタンを押して処理を開始してください";
+  };
 
   return (
     <div className={styles.contentFlexContainer}>
       <div className={styles.messageContainer}>
-        <p className={styles.mainMessage}>{messageText}</p>
+        <p className={styles.mainMessage}>{getMessageText()}</p>
       </div>
 
       <div className={styles.bottomArea}>
-        {isCompleted && executionResult ? (
+        {isFinished && executionResult ? (
           <div
             className={
-              isErrorResult ? styles.commentBoxError : styles.commentBox
+              isHighlightError ? styles.commentBoxError : styles.commentBox
             }
           >
             {executionResult}

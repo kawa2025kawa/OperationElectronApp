@@ -1,12 +1,12 @@
 ﻿// src/shared/store/slices/initSlice.ts
 
 import type { StateCreator } from "zustand";
-import type { AppState } from "@shared/store";
+import type { AppState } from "@renderer/store";
 import {
   INITIAL_INIT_STATUS,
   type InitStatus,
 } from "@shared/types/initializationTypes";
-import { appService } from "./services/appService"; // ★ appService を直接参照[cite: 1]
+import { appService } from "@renderer/services/appService";
 
 export interface InitSlice {
   isInitialLoaded: boolean;

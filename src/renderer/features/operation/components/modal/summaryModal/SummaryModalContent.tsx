@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { DataTable } from "@renderer/components/ui/table/DataTable";
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 import type { OperationItem } from "@shared/types/operationType";
 import type { Column } from "@shared/types/tableType";
 import type { StatusSummary } from "@shared/types/uiType";
@@ -82,11 +82,7 @@ export const SummaryModalContent: React.FC<SummaryModalContentProps> =
 
     return (
       <div className={styles.container}>
-        <DataTable
-          data={items}
-          columns={SUMMARY_COLUMNS}
-          rowKey="kanriNo"
-        />
+        <DataTable data={items} columns={SUMMARY_COLUMNS} rowKey="kanriNo" />
       </div>
     );
   });

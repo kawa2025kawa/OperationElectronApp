@@ -1,6 +1,6 @@
 ﻿//src\renderer\features\remoteDesktop\services\rdpService.ts
 
-import { commands } from "@shared/service/commands";
+import { commands } from "@renderer/services/commands";
 import type { RdpTarget } from "@shared/types/rdpTypes";
 
 export const rdpService = {

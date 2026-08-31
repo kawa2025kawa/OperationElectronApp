@@ -1,10 +1,10 @@
-import { commands } from "@shared/service/commands";
+import { commands } from "@renderer/services/commands";
 import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
-import { useAppStore, type AppState } from "@shared/store";
-import { showToast } from "@shared/utils/toastUtils";
+import { useAppStore, type AppState } from "@renderer/store";
+import { showToast } from "@renderer/utils/toastUtils";
 import { suppressNextSuccessToast } from "@shared/utils/statusToastSuppression";
 
-import { checkJobDependencies } from "@renderer/features/operation/helpers/dependencyHelper";
+import { checkJobDependencies } from "@shared/utils/dependencyHelper";
 import {
   selectActiveSelectedItem,
   selectIrregularTableData,

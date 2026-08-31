@@ -1,7 +1,7 @@
 ﻿import React, { useCallback } from "react";
 import { clsx } from "clsx";
 import { animateFadeIn } from "@renderer/styles/tokens";
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 import { GmailModalContent } from "./components/modal/gmailModal/GmailModalContent";
 import { PdfUploadModalContent } from "./components/modal/pdfUploadModal/PdfUploadModalContent";
 import * as styles from "./otherView.css";

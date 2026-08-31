@@ -1,17 +1,14 @@
 ﻿//src\renderer\hooks\useMainViewLogic.ts
-
-import { useAppStore } from "@shared/store";
-import { selectActiveViewComponent } from "@shared/store/slices/navigationSlice";
+import { useAppStore } from "@renderer/store";
 import { useAutoUpdate } from "@renderer/hooks/useAutoUpdate";
-import { useStatusToast } from "@renderer/hooks/useStatusToast";
+import { APP_REGISTRY } from "@renderer/registry/appRegistry";
 
 export const useMainViewLogic = () => {
   useAutoUpdate();
-  useStatusToast();
 
   const currentView = useAppStore((s) => s.currentView);
   const isSidebarOpen = useAppStore((s) => s.isSidebarOpen);
-  const ViewComponent = useAppStore(selectActiveViewComponent);
+  const ViewComponent = APP_REGISTRY[currentView]?.component ?? null;
 
   return {
     currentView,

@@ -2,8 +2,8 @@
 import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { useShallow } from "zustand/react/shallow";
 
-import { commands } from "@shared/service/commands";
-import { useAppStore } from "@shared/store";
+import { commands } from "@renderer/services/commands";
+import { useAppStore } from "@renderer/store";
 
 // タイムアウト時間（例: 3分）
 const AUTH_TIMEOUT_MS = 180000;

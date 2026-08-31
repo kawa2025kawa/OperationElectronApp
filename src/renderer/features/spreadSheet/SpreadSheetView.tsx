@@ -4,7 +4,7 @@ import React, { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 import { type SheetId, type SheetRowMap } from "@shared/types/spreadsheetTypes";
 
 import { SpreadSheetModal } from "./components/modal/SpreadSheetModal";

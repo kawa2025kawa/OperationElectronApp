@@ -1,7 +1,7 @@
 // src/renderer/hooks/useAutoUpdate.ts
 
 import { useEffect } from "react";
-import { commands } from "@shared/service/commands";
+import { commands } from "@renderer/services/commands";
 
 const UPDATE_EXE_PATH =
   "\\\\S0088210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp\\OperationElectronApp-setup.exe";

@@ -1,6 +1,6 @@
 // src/renderer/features/operation/store/operationSelectors.ts
 
-import type { AppState } from "@shared/store";
+import type { AppState } from "@renderer/store";
 import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
 import { STATUS_LABEL } from "@shared/types/uiType";
 

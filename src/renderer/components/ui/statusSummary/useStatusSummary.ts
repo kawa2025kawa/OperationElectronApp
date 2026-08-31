@@ -1,7 +1,7 @@
 ﻿// src/renderer/components/ui/statusSummary/useStatusSummary.ts
 
 import { useCallback, useMemo } from "react";
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 import type { OperationItem } from "@shared/types/operationType";
 import {
   STATUS_LABEL,

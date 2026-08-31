@@ -4,7 +4,7 @@ import React, { useCallback } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import clsx from "clsx";
 
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 import type { JobStatus } from "@shared/types/operationType";
 import { STATUS_LABEL, STATUS_ORDER } from "@shared/types/uiType";
 

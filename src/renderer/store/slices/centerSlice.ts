@@ -1,7 +1,8 @@
 // src/shared/store/slices/centerSlice.ts
 
 import type { StateCreator } from "zustand";
-import type { AppState } from "@shared/store/index";
+import type { AppState } from "@renderer/store";
+import { commands } from "@renderer/services/commands";
 
 export interface CenterSlice {
   is1CActive: boolean;
@@ -22,18 +23,25 @@ export const createCenterSlice: StateCreator<
   is3CActive: false,
 
   toggleCenterPill: (key) => {
-    // 1. センターフラグの状態を安全にトグル更新
+    // 1. センターフラグの更新
     set((state: AppState) => {
       state[key] = !state[key];
     });
 
-    // 2. フラグ変更に伴う件数サマリーの再計算
-    get().recalculateSummary();
+    const state = get();
+
+    // 2. Main プロセスへ最新のセンターフラグを送信して同期
+    const activeFlags = {
+      is1CActive: state.is1CActive,
+      is2CActive: state.is2CActive,
+      is3CActive: state.is3CActive,
+    };
+    void commands.setActiveFlags?.(activeFlags);
+
+    // 3. 画面側サマリーの再計算
+    state.recalculateSummary();
   },
 });
 
-/**
- * 🎯 セレクター: 1C / 2C / 3C の3つすべてが active (true) であるか判定する合成値 D
- */
 export const selectIsAllCenterActive = (state: AppState): boolean =>
   state.is1CActive && state.is2CActive && state.is3CActive;

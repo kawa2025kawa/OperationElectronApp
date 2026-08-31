@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 import { getValueByPath } from "@shared/utils/getValueByPath";
-import type { AppState } from "@shared/store";
+import type { AppState } from "@renderer/store";
 import {
   SHEET_IDS,
   type SheetDataResponse,

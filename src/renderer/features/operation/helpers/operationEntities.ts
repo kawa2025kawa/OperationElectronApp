@@ -1,18 +1,17 @@
-// src/renderer/features/operation/helpers/operationEntities.ts
+﻿// src/renderer/features/operation/helpers/operationEntities.ts
 
-import type { AppState } from "@shared/store";
-import { JOB_STATUS, type JobStatus, type OperationItem } from "@shared/types/operationType";
+import type { AppState } from "@renderer/store";
+import {
+  JOB_STATUS,
+  type JobStatus,
+  type OperationItem,
+} from "@shared/types/operationType";
 import {
   EMPTY_STATUS_SUMMARY,
   STATUS_ORDER,
   type StatusSummary,
 } from "@shared/types/uiType";
 import { isIrregularToday } from "@shared/utils/isIrregularToday";
-import { calculateNextStatus } from "./statusEvaluator";
-
-// ============================================================
-// Summary Constants & Types
-// ============================================================
 
 export const INITIAL_SUMMARY: StatusSummary = { ...EMPTY_STATUS_SUMMARY };
 const VALID_STATUSES = new Set<string>(STATUS_ORDER);
@@ -21,15 +20,13 @@ export const hasValidJobId = (item: OperationItem): boolean => {
   return Boolean("jobId" in item && item.jobId && item.jobId !== "-");
 };
 
-// ============================================================
-// Entity Getters & Operations
-// ============================================================
-
 export function getAllEntitiesMap(
   state: Pick<AppState, "operationEntities" | "irregularEntities">,
 ): Record<string, OperationItem> {
   return { ...state.operationEntities, ...state.irregularEntities };
 }
+
+export const getAllEntities = getAllEntitiesMap;
 
 export function getAllEntitiesArray(state: AppState): OperationItem[] {
   const ops = Object.values(state.operationEntities ?? {});
@@ -39,9 +36,6 @@ export function getAllEntitiesArray(state: AppState): OperationItem[] {
   );
   return [...ops, ...todayIrregulars];
 }
-
-// 互換性のためのエイリアス
-export const getAllEntities = getAllEntitiesMap;
 
 export function findEntityByKanriNo(
   state: Pick<AppState, "operationEntities" | "irregularEntities">,
@@ -64,16 +58,11 @@ export function mapRawEntities(
   return entities;
 }
 
-// ============================================================
-// Summary Calculation
-// ============================================================
-
 export function calculateSummary(
   input: Record<string, OperationItem> | OperationItem[],
-  activeFlags?: Record<string, boolean>,
+  _activeFlags?: Record<string, boolean>,
 ): StatusSummary {
   const items = Array.isArray(input) ? input : Object.values(input ?? {});
-  const allEntitiesMap = mapRawEntities(items);
   const summary: StatusSummary = {
     ...INITIAL_SUMMARY,
     total: items.length,
@@ -81,22 +70,7 @@ export function calculateSummary(
 
   for (const item of items) {
     if (!item) continue;
-    const rawStatus = item.status
-      ? (String(item.status).toLowerCase() as JobStatus)
-      : undefined;
-
-    // 明示的に予定 (scheduled) 等がセットされている場合、計算による ready 自動変換を行わず rawStatus を優先
-    const computedStatus =
-      rawStatus === "scheduled"
-        ? "scheduled"
-        : calculateNextStatus(
-            item,
-            rawStatus,
-            allEntitiesMap,
-            activeFlags,
-          );
-
-    const statusKey = computedStatus as JobStatus;
+    const statusKey = (item.status?.toLowerCase() ?? "") as JobStatus;
     if (VALID_STATUSES.has(statusKey)) {
       summary[statusKey] = (summary[statusKey] ?? 0) + 1;
     }
@@ -106,10 +80,6 @@ export function calculateSummary(
     summary.total > 0 ? Math.round((summary.success / summary.total) * 100) : 0;
   return summary;
 }
-
-// ============================================================
-// Status Factory & Merge Utilities
-// ============================================================
 
 const mergeStr = (
   next?: string | null,
@@ -177,29 +147,23 @@ export const createSuccessStatus = (
   status: JobStatus = JOB_STATUS.SUCCESS,
 ) => createBaseStatus(kanriNo, item, status, comment);
 
-// ============================================================
-// State Status Updates & Reset
-// ============================================================
-
-function applyStatusUpdateToEntity(
-  entity: OperationItem,
-  update: OperationItem,
-  allEntities: Record<string, OperationItem>,
-  activeFlags?: Record<string, boolean>,
-): { cloned: OperationItem; statusChanged: boolean } {
-  const previousStatus = entity.status;
-  const cloned = { ...entity };
-  mergeStatus(cloned, update);
-  cloned.status = calculateNextStatus(
-    cloned,
-    update.status ?? undefined,
-    allEntities,
-    activeFlags,
-  );
-  return {
-    cloned,
-    statusChanged: previousStatus !== cloned.status,
-  };
+export function resetAllEntityStatuses(state: AppState): void {
+  for (const targetKey of ["operationEntities", "irregularEntities"] as const) {
+    const targetGroup = state[targetKey];
+    for (const [key, entity] of Object.entries(targetGroup)) {
+      targetGroup[key] = {
+        ...(entity as OperationItem),
+        status: JOB_STATUS.SCHEDULED,
+        comment: null,
+        startTime: null,
+        endTime: null,
+        expectedStartTime: null,
+        expectedEndTime: null,
+        substatus: null,
+        info: null,
+      };
+    }
+  }
 }
 
 export function updateEntityInState(
@@ -209,78 +173,25 @@ export function updateEntityInState(
   const kanriNo = String(update.kanriNo);
   let updated = false;
   let statusChanged = false;
-  const allEntities = getAllEntitiesMap(state);
-  const activeFlags = {
-    is1CActive: Boolean(state.is1CActive),
-    is2CActive: Boolean(state.is2CActive),
-    is3CActive: Boolean(state.is3CActive),
-  };
 
   for (const targetKey of ["operationEntities", "irregularEntities"] as const) {
     const targetGroup = state[targetKey];
     const entity = targetGroup[kanriNo];
     if (!entity) continue;
 
-    const result = applyStatusUpdateToEntity(
-      entity,
-      update,
-      allEntities,
-      activeFlags,
-    );
-    targetGroup[kanriNo] = result.cloned;
+    const previousStatus = entity.status;
+    const cloned = { ...entity };
+    mergeStatus(cloned, update);
+
+    targetGroup[kanriNo] = cloned;
     updated = true;
-    if (result.statusChanged) {
+    if (previousStatus !== cloned.status) {
       statusChanged = true;
     }
   }
 
   return { updated, statusChanged };
 }
-
-export function applyPersistedStatuses(
-  entities: Record<string, OperationItem>,
-  statuses: Record<string, OperationItem>,
-): Record<string, OperationItem> {
-  const result = { ...entities };
-  for (const [kanriNo, status] of Object.entries(statuses)) {
-    if (result[kanriNo]) {
-      const { cloned } = applyStatusUpdateToEntity(
-        result[kanriNo],
-        status,
-        result,
-      );
-      result[kanriNo] = cloned;
-    }
-  }
-  return result;
-}
-
-function resetEntityStatus(entity: OperationItem): OperationItem {
-  return {
-    ...entity,
-    status: JOB_STATUS.SCHEDULED,
-    comment: null,
-    startTime: null,
-    endTime: null,
-    expectedStartTime: null,
-    expectedEndTime: null,
-    substatus: null,
-    info: null,
-  };
-}
-
-export function resetAllEntityStatuses(state: AppState): void {
-  for (const targetKey of ["operationEntities", "irregularEntities"] as const) {
-    const targetGroup = state[targetKey];
-    for (const [key, entity] of Object.entries(targetGroup)) {
-      targetGroup[key] = resetEntityStatus(entity as OperationItem);
-    }
-  }
-}
-
-// ============================================================
-// Job Runner Helper
-// ============================================================
 
 const MIN_DISPLAY_TIME_MS = 3000;
 
@@ -310,34 +221,24 @@ export async function runJobWithGlobalProcessing(
   }
 }
 
-// ============================================================
-// Initial Data Factory
-// ============================================================
-
-export interface InitializedOperationData {
-  operationIds: string[];
-  operationEntities: Record<string, OperationItem>;
-  irregularIds: string[];
-  irregularEntities: Record<string, OperationItem>;
-  todayIds: string[];
-}
-
 export function buildInitialOperationData(
   operations: OperationItem[],
   irregulars: OperationItem[],
   statuses: Record<string, OperationItem>,
-): InitializedOperationData {
+) {
+  const opMap = mapRawEntities(operations);
+  const irrMap = mapRawEntities(irregulars);
+
+  for (const [kanriNo, status] of Object.entries(statuses)) {
+    if (opMap[kanriNo]) mergeStatus(opMap[kanriNo], status);
+    if (irrMap[kanriNo]) mergeStatus(irrMap[kanriNo], status);
+  }
+
   return {
     operationIds: operations.map(({ kanriNo }) => String(kanriNo)),
-    operationEntities: applyPersistedStatuses(
-      mapRawEntities(operations),
-      statuses,
-    ),
+    operationEntities: opMap,
     irregularIds: irregulars.map(({ kanriNo }) => String(kanriNo)),
-    irregularEntities: applyPersistedStatuses(
-      mapRawEntities(irregulars),
-      statuses,
-    ),
+    irregularEntities: irrMap,
     todayIds: irregulars
       .filter(isIrregularToday)
       .map(({ kanriNo }) => String(kanriNo)),

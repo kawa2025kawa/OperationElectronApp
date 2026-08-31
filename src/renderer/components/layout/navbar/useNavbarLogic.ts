@@ -4,7 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { APP_VIEW_IDS } from "@shared/types/uiType";
-import { useAppStore, type AppState } from "@shared/store";
+import { useAppStore, type AppState } from "@renderer/store";
 
 export const useNavbarLogic = () => {
   const { currentView, toggleSidebar, currentMode, summary, isInitialLoaded } =

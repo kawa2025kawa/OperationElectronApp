@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
-import { useAppStore, type AppState } from "@shared/store";
+import { useAppStore, type AppState } from "@renderer/store";
 import { selectFilteredSheetRows } from "./store/spreadsheetSlice";
 import { type SheetId } from "@shared/types/spreadsheetTypes";
 

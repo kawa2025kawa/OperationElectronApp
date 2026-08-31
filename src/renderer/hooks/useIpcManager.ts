@@ -1,6 +1,8 @@
+// src/renderer/hooks/useIpcManager.ts
+
 import { useEffect } from "react";
-import { useAppStore } from "@shared/store/index";
-import { commands } from "@shared/service/commands";
+import { useAppStore } from "@renderer/store/index";
+import { commands } from "@renderer/services/commands";
 import { handleStatusToastNotification } from "@renderer/components/ui/toast/statusToastHandler";
 
 export const useIpcManager = (): void => {

@@ -1,78 +1,57 @@
 ﻿// src/renderer/components/ui/toast/statusToastHandler.ts
 
-import { useAppStore } from "@shared/store/index";
+import { useAppStore } from "@renderer/store/index";
 import { consumeSuppressedSuccessToast } from "@shared/utils/statusToastSuppression";
 import { usePollingToastStore, type ToastType } from "./pollingToastStore";
-import type {
-  JobStatus,
-  OperationItem,
-  OperationJobItem,
-} from "@shared/types/operationType";
+import type { JobStatus, OperationItem } from "@shared/types/operationType";
 
-const TARGET_STATUSES: Set<JobStatus> = new Set(["success", "ready", "error"]);
 const prevStatusMap = new Map<string, JobStatus>();
 
-const TOAST_TYPE_MAP: Record<JobStatus, ToastType> = {
+const TOAST_TYPE_MAP: Partial<Record<JobStatus, ToastType>> = {
   error: "error",
   success: "success",
   ready: "info",
-  running: "info",
-  scriptRunning: "info",
-  waiting: "info",
-  scheduled: "info",
-};
-
-/** OperationJobItem（jobIdを持つ型）かどうかを判定する Type Guard */
-const isOperationJobItem = (item?: OperationItem): item is OperationJobItem =>
-  Boolean(item && "jobId" in item);
-
-/** トースト表示用の識別名（JobID または workName）を取得 */
-const getToastNameLabel = (item?: OperationItem): string => {
-  if (isOperationJobItem(item)) {
-    const jobId = item.jobId?.trim();
-    if (jobId && jobId !== "-") {
-      return jobId;
-    }
-  }
-  return item?.workName ?? "";
 };
 
 export const handleStatusToastNotification = (
   update: OperationItem,
-  options?: { isManual?: boolean }, // 🎯 手動呼び出しを識別するオプション追加
+  options?: { isManual?: boolean },
 ): void => {
-  // 🎯 1. 明示的な手動操作フラグがある場合は即リターン（トーストを出さない）
-  if (options?.isManual) return;
+  // 手動操作時、またはポーリングOFF時はトーストを出さない
+  const state = useAppStore.getState();
+  if (options?.isManual || !state.isPolling) return;
 
   const kanriNo = update?.kanriNo ? String(update.kanriNo) : null;
   const currentStatus = update?.status;
-
   if (!kanriNo || !currentStatus) return;
 
-  const previousStatus = prevStatusMap.get(kanriNo);
-  if (currentStatus === previousStatus) return;
-
-  // ステータス記憶の更新
+  // 1. ステータスに変化がなければ即リターン＆更新
+  if (currentStatus === prevStatusMap.get(kanriNo)) return;
   prevStatusMap.set(kanriNo, currentStatus);
 
-  if (!TARGET_STATUSES.has(currentStatus)) return;
+  // 2. トースト対象外のステータスなら即リターン
+  const toastType = TOAST_TYPE_MAP[currentStatus];
+  if (!toastType) return;
 
-  // 🎯 2. 手動更新時に発行された成功通知抑止フラグのチェック
+  // 3. 手動成功通知の抑止チェック
   if (currentStatus === "success" && consumeSuppressedSuccessToast(kanriNo)) {
     return;
   }
 
-  const state = useAppStore.getState();
   const item =
     state.operationEntities[kanriNo] ?? state.irregularEntities[kanriNo];
 
-  // 🎯 3. 自動開始対象（autoStart: true）かつ、手動フラグ（manual）が true でない場合のみトーストを出す
-  if (!item?.autoStart || item?.manual === true) return;
+  // 4. 自動開始対象外または手動実行時は非表示
+  if (!item?.autoStart || item?.manual) return;
 
-  const nameLabel = getToastNameLabel(item);
+  // 表示名のフォールバック処理（workNameがない場合に空表示になる問題を防止）
+  const nameLabel =
+    item?.workName ||
+    update.workName ||
+    ("jobId" in update && update.jobId ? String(update.jobId) : null) ||
+    `管理No.${kanriNo}`;
 
-  usePollingToastStore.getState().addToast(`${nameLabel} ${currentStatus}`, {
-    type: TOAST_TYPE_MAP[currentStatus] ?? "info",
-    isAutoMonitored: true,
-  });
+  usePollingToastStore
+    .getState()
+    .addToast(`${nameLabel} ${currentStatus}`, toastType);
 };

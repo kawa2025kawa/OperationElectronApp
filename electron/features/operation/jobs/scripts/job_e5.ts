@@ -5,35 +5,26 @@ import path from "path";
 import iconv from "iconv-lite";
 
 const INPUT_FILE_NAME = "TENF0140.csv";
+const OUTPUT_DIR = "\\\\C0088150\\nec\\ftp";
 const OUTPUT_FILE1 = "TENF0140.dat";
 const OUTPUT_FILE2 = "TENF0140.dmy";
 const ENCODING = "Windows-31J";
 
+/** 入力ファイルパスの検証と取得 */
 function resolveInputFilePath(inputFilePath?: string | string[]): string {
-  if (!inputFilePath) {
-    throw new Error(
-      "処理対象のファイルが指定されていません。TENF0140.csvを1ファイル指定してください。",
-    );
-  }
-
   const filePaths = Array.isArray(inputFilePath)
     ? inputFilePath
-    : [inputFilePath];
+    : inputFilePath
+      ? [inputFilePath]
+      : [];
 
-  if (filePaths.length !== 1) {
+  if (filePaths.length !== 1 || !filePaths[0]) {
     throw new Error(
-      "処理対象のファイルはTENF0140.csvの1ファイルのみ指定してください。",
+      `処理対象のファイルは${INPUT_FILE_NAME}の1ファイルのみ指定してください。`,
     );
   }
 
   const filePath = filePaths[0];
-
-  if (!filePath) {
-    throw new Error(
-      "処理対象のファイルが指定されていません。TENF0140.csvを指定してください。",
-    );
-  }
-
   const fileName = path.basename(filePath);
 
   if (fileName !== INPUT_FILE_NAME) {
@@ -47,23 +38,16 @@ function resolveInputFilePath(inputFilePath?: string | string[]): string {
 
 function normalizeCode(value: string, digits: number): string {
   const text = value.trim();
-
-  if (!text) {
-    return "";
-  }
+  if (!text) return "";
 
   const number = Number(text);
-
-  if (!Number.isFinite(number)) {
-    return text;
-  }
+  if (!Number.isFinite(number)) return text;
 
   return String(number).padStart(digits, "0");
 }
 
 function parseCsvLine(line: string): string[] {
   const columns: string[] = [];
-
   let current = "";
   let inQuotes = false;
 
@@ -76,7 +60,6 @@ function parseCsvLine(line: string): string[] {
         index++;
         continue;
       }
-
       inQuotes = !inQuotes;
       continue;
     }
@@ -91,7 +74,6 @@ function parseCsvLine(line: string): string[] {
   }
 
   columns.push(current.trim());
-
   return columns;
 }
 
@@ -108,29 +90,16 @@ function transformCsv(text: string): string[][] {
 
   for (const line of lines) {
     const columns = parseCsvLine(line);
-
-    if (columns.length < 11) {
-      continue;
-    }
-
-    const deptCode = normalizeCode(columns[2], 2);
-    const storeCode = normalizeCode(columns[6], 3);
-
-    const startDate = columns[4];
-    const endDate = columns[5];
-
-    const value1 = columns[8];
-    const value2 = columns[9];
-    const value3 = columns[10];
+    if (columns.length < 11) continue;
 
     shapedRows.push([
-      deptCode,
-      storeCode,
-      value1,
-      value2,
-      value3,
-      startDate,
-      endDate,
+      normalizeCode(columns[2], 2),
+      normalizeCode(columns[6], 3),
+      columns[8],
+      columns[9],
+      columns[10],
+      columns[4],
+      columns[5],
     ]);
   }
 
@@ -143,7 +112,6 @@ function transformCsv(text: string): string[][] {
 
 function createOutputBuffer(rows: string[][]): Buffer {
   const outputText = rows.map((row) => row.join(",")).join("\n") + "\n";
-
   return iconv.encode(outputText, ENCODING);
 }
 
@@ -153,13 +121,11 @@ export async function runJobE5(
   const csvFilePath = resolveInputFilePath(inputFilePath);
 
   const stat = await fs.stat(csvFilePath);
-
   if (!stat.isFile()) {
     throw new Error(
       `処理対象のファイル (${INPUT_FILE_NAME}) がファイルではありません。`,
     );
   }
-
   if (stat.size === 0) {
     throw new Error(
       `処理対象のファイル (${INPUT_FILE_NAME}) が空 (0バイト) です。`,
@@ -167,23 +133,20 @@ export async function runJobE5(
   }
 
   const rawBuffer = await fs.readFile(csvFilePath);
-
   const text = iconv.decode(rawBuffer, ENCODING);
-
   const shapedRows = transformCsv(text);
-
   const outputBuffer = createOutputBuffer(shapedRows);
 
-  const outputDirectory = path.dirname(csvFilePath);
+  // 出力先フォルダの存在確認・作成（ネットワークパス対応）
+  await fs.ensureDir(OUTPUT_DIR);
 
-  const outputFilePath1 = path.join(outputDirectory, OUTPUT_FILE1);
-
-  const outputFilePath2 = path.join(outputDirectory, OUTPUT_FILE2);
+  const outputFilePath1 = path.join(OUTPUT_DIR, OUTPUT_FILE1);
+  const outputFilePath2 = path.join(OUTPUT_DIR, OUTPUT_FILE2);
 
   await Promise.all([
     fs.writeFile(outputFilePath1, outputBuffer),
     fs.writeFile(outputFilePath2, outputBuffer),
   ]);
 
-  return "CSV加工正常終了";
+  return "JACOS端末で「140」を送信して下さい";
 }

@@ -1,3 +1,4 @@
+// src/renderer/store/index.ts
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { subscribeWithSelector } from "zustand/middleware";
@@ -18,29 +19,6 @@ import {
   createSpreadSheetSlice,
   type SpreadSheetSlice,
 } from "@renderer/features/spreadSheet/store/spreadsheetSlice";
-
-// 🎯 uiSlice の代わりに分割した 5 つの Slice をインポート
-import {
-  createThemeSlice,
-  type ThemeSlice,
-} from "@shared/store/slices/themeSlice";
-import {
-  createNavigationSlice,
-  type NavigationSlice,
-} from "@shared/store/slices/navigationSlice";
-import {
-  createOverlaySlice,
-  type OverlaySlice,
-} from "@shared/store/slices/overlaySlice";
-import {
-  createModalSlice,
-  type ModalSlice,
-} from "@shared/store/slices/modalSlice";
-import {
-  createInitSlice,
-  type InitSlice,
-} from "@shared/store/slices/initSlice";
-
 import {
   createPdfUploadSlice,
   type PdfUploadSlice,
@@ -49,6 +27,16 @@ import {
   createPollingSlice,
   type PollingSlice,
 } from "@renderer/features/operation/store/pollingSlice";
+
+// Renderer?????Slice
+import { createThemeSlice, type ThemeSlice } from "./slices/themeSlice";
+import {
+  createNavigationSlice,
+  type NavigationSlice,
+} from "./slices/navigationSlice";
+import { createOverlaySlice, type OverlaySlice } from "./slices/overlaySlice";
+import { createModalSlice, type ModalSlice } from "./slices/modalSlice";
+import { createInitSlice, type InitSlice } from "./slices/initSlice";
 import { createCenterSlice, type CenterSlice } from "./slices/centerSlice";
 
 export type AppState = AuthSlice &
@@ -71,7 +59,6 @@ export const useAppStore = create<AppState>()(
       ...createOperationSlice(...a),
       ...createRdpSlice(...a),
       ...createSpreadSheetSlice(...a),
-      // 🎯 分割した Slice を展開
       ...createThemeSlice(...a),
       ...createNavigationSlice(...a),
       ...createOverlaySlice(...a),

@@ -2,18 +2,18 @@
 
 import type { StateCreator } from "zustand";
 
-import { commands } from "@shared/service/commands";
-import type { AppState } from "@shared/store";
+import { commands } from "@renderer/services/commands";
+import type { AppState } from "@renderer/store";
 import type { OperationItem } from "@shared/types/operationType";
 import type { StatusSummary } from "@shared/types/uiType";
 
 import {
   buildInitialOperationData,
+  findEntityByKanriNo,
   INITIAL_SUMMARY,
   resetAllEntityStatuses,
   updateEntityInState,
 } from "@renderer/features/operation/helpers/operationEntities";
-import { refreshDependentStatuses } from "@renderer/features/operation/helpers/statusEvaluator";
 
 import {
   executeJcJob,
@@ -21,10 +21,6 @@ import {
   filterSummaryItems,
   refreshSummary,
 } from "@renderer/features/operation/services/operationServices";
-
-// ============================================================
-// Types
-// ============================================================
 
 export interface OperationSlice {
   operationIds: string[];
@@ -56,10 +52,6 @@ export interface OperationSlice {
   getFilteredSummaryItems: (label: string) => OperationItem[];
 }
 
-// ============================================================
-// Slice Definition
-// ============================================================
-
 export const createOperationSlice: StateCreator<
   AppState,
   [["zustand/immer", never]],
@@ -87,13 +79,9 @@ export const createOperationSlice: StateCreator<
 
   updateItemStatus: (update) =>
     set((state: AppState) => {
-      const { updated, statusChanged } = updateEntityInState(state, update);
+      const { updated } = updateEntityInState(state, update);
 
       if (!updated) return;
-
-      if (statusChanged) {
-        refreshDependentStatuses(state, String(update.kanriNo));
-      }
 
       refreshSummary(state);
     }),
@@ -101,11 +89,14 @@ export const createOperationSlice: StateCreator<
   updateJobStatus: async ({ kanriNo, status, comment }) => {
     if (!status) return;
 
-    get().updateItemStatus({
-      kanriNo,
-      status,
-      comment: comment ?? "",
-    } as OperationItem);
+    const currentItem = findEntityByKanriNo(get(), kanriNo);
+    if (currentItem) {
+      get().updateItemStatus({
+        ...currentItem,
+        status,
+        comment: comment ?? currentItem.comment ?? "",
+      });
+    }
 
     try {
       await commands.updateJobStatus(kanriNo, status, comment);
@@ -131,19 +122,10 @@ export const createOperationSlice: StateCreator<
     });
   },
 
-  // ------------------------------------------------------------
-  // Delegated Services (Script / JC / Summary)
-  // ------------------------------------------------------------
+  runScriptJob: (kanriNo, filePath) =>
+    executeScriptJob(get(), kanriNo, filePath),
 
-  runScriptJob: async (kanriNo, filePath) => {
-    return await executeScriptJob(get(), kanriNo, filePath);
-  },
+  runJcJob: (kanriNo) => executeJcJob(get(), kanriNo),
 
-  runJcJob: async (kanriNo) => {
-    await executeJcJob(get(), kanriNo);
-  },
-
-  getFilteredSummaryItems: (label) => {
-    return filterSummaryItems(get(), label);
-  },
+  getFilteredSummaryItems: (label) => filterSummaryItems(get(), label),
 });

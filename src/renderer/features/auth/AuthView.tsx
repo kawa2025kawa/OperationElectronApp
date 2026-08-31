@@ -1,7 +1,7 @@
 import React from "react";
 import { clsx } from "clsx";
 
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 
 import * as styles from "./authView.css";
 import { useAuth } from "./useAuth";

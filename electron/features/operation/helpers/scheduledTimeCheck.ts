@@ -22,6 +22,16 @@ export function isScheduledTimePassed(
     return now >= amStart;
   }
 
+  if (str === "PM") {
+    const pmStart = new Date(now);
+    pmStart.setHours(12, 0, 0, 0);
+    const passed = now >= pmStart;
+    console.log(
+      `[DEV Check] scheduledTime: ${scheduledTimeStr}, now: ${now.toLocaleTimeString()}, passed: ${passed}`,
+    );
+    return passed;
+  }
+
   // "PM" 指定 (12:00)
   if (str === "PM") {
     const pmStart = new Date(now);

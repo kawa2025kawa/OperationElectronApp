@@ -1,7 +1,7 @@
 // src/renderer/components/layout/navbar/components/tantouButton/TantouButton.tsx
 
 import React, { useCallback } from "react";
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 import { SHEET_IDS, type Tantou } from "@shared/types/spreadsheetTypes";
 import { APP_REGISTRY, getAppViewConfig } from "@renderer/registry/appRegistry";
 import { APP_VIEW_IDS } from "@shared/types/uiType";

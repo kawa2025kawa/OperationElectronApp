@@ -1,8 +1,8 @@
 ﻿import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 
-import { commands } from "@shared/service/commands";
-import type { AppState } from "@shared/store/index";
+import { commands } from "@renderer/services/commands";
+import type { AppState } from "@renderer/store/index";
 
 export interface PollingSlice {
   isPolling: boolean;

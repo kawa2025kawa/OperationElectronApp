@@ -1,7 +1,7 @@
 ﻿// src/shared/store/slices/overlaySlice.ts
 
 import type { StateCreator } from "zustand";
-import type { AppState } from "@shared/store";
+import type { AppState } from "@renderer/store";
 
 interface GlobalProcessingState {
   message: string;

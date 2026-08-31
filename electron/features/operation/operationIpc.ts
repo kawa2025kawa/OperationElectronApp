@@ -1,4 +1,6 @@
-﻿import { executeJob } from "@electron/features/operation/jobRunner";
+﻿// electron/features/operation/operationIpc.ts
+
+import { executeJob } from "@electron/features/operation/jobRunner";
 import {
   startPolling,
   stopPolling,
@@ -8,6 +10,7 @@ import {
   getTargetByKanriNo,
   initializeStatuses,
   registerTargets,
+  setActiveFlags,
   updateManualStatus,
 } from "@electron/features/operation/statusManager";
 import { fetchTrackerByJobId } from "@electron/features/operation/services/trackerServiceClient";
@@ -20,6 +23,13 @@ export function registerOperationIpc(): void {
     async (_event, args: { items?: OperationItem[] }) => {
       const items = args?.items ?? [];
       registerTargets(items);
+    },
+  );
+
+  ipcMain.handle(
+    "setActiveFlags",
+    async (_event, flags: Record<string, boolean>) => {
+      setActiveFlags(flags ?? {});
     },
   );
 

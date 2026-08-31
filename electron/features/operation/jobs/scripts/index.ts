@@ -54,7 +54,7 @@ export async function dispatchScript(
     case "114":
       return runJob114();
     case "E5":
-      return runJobE5();
+      return runJobE5(filePath);
     case "E29":
       // ⭕ filePath (string | string[]) をそのまま委譲
       return runJobE29(filePath);

@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { useAppStore, type AppState } from "@shared/store";
+import { useAppStore, type AppState } from "@renderer/store";
 import { UnknownView } from "@renderer/layout/UnknownView";
 
 import * as styles from "./rdpView.css";

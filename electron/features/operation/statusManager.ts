@@ -1,4 +1,5 @@
-﻿import { evaluateAllTargetStatuses } from "@electron/features/operation/evaluators/pollingStatusEvaluator";
+﻿// electron/features/operation/statusManager.ts
+
 import { broadcastStatusUpdate } from "@electron/features/operation/helpers/statusNotifier";
 import {
   deleteStatusFile,
@@ -6,7 +7,10 @@ import {
   schedulePersistStatuses,
   type PersistedStatus,
 } from "@electron/features/operation/helpers/statusStorage";
-import { isPollingRunning } from "@electron/features/operation/polling";
+import {
+  isPollingRunning,
+  runCycle,
+} from "@electron/features/operation/polling";
 import {
   JOB_STATUS,
   type JobStatus,
@@ -19,9 +23,27 @@ export type StatusUpdate = Partial<OperationStatusFields> & {
   kanriNo: string | number;
 };
 
-// State (targetManager の Map を統合)
+// State
 const apiTargets = new Map<string, OperationItem>();
 const memoryStatuses = new Map<string, PersistedStatus>();
+
+// センターアクティブフラグの保持
+let activeFlags: Record<string, boolean> = {
+  is1CActive: false,
+  is2CActive: false,
+  is3CActive: false,
+};
+
+export function getActiveFlags(): Record<string, boolean> {
+  return activeFlags;
+}
+
+export function setActiveFlags(flags: Record<string, boolean>): void {
+  activeFlags = { ...flags };
+  if (isPollingRunning()) {
+    void runCycle();
+  }
+}
 
 // ============================================================
 // Target Management
@@ -95,7 +117,6 @@ export function updateStatus(
 
   memoryStatuses.set(key, next);
 
-  // 手動更新（isManual: true）ではない場合（＝Polling等による自動検出時）のみ通知を送信
   if (!options?.isManual) {
     const target = getTargetByKanriNo(key);
     broadcastStatusUpdate(key, {
@@ -113,7 +134,6 @@ export function updateManualStatus(
   status: JobStatus,
   comment: string,
 ): void {
-  // 第2引数に { isManual: true } を渡して手動変更であることを明示し、トースト通知をスキップ
   updateStatus(
     {
       kanriNo,
@@ -125,13 +145,12 @@ export function updateManualStatus(
   );
 
   if (isPollingRunning()) {
-    evaluateAllTargetStatuses(getAllTargets(), isPollingRunning);
+    void runCycle();
   }
 }
 
 export async function deleteAllStatuses(): Promise<void> {
   memoryStatuses.clear();
-  apiTargets.clear();
   await deleteStatusFile();
 }
 

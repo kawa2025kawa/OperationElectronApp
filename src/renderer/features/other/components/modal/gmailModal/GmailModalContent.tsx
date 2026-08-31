@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import { AuthView } from "@renderer/features/auth/AuthView";
 import { gmailService } from "@renderer/features/other/services/gmailService";
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 import * as styles from "./gmailModalContent.css";
 import {
   EMAIL_TEMPLATE_OPTIONS,
@@ -72,7 +72,9 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
     const lastName = familyName || "担当者";
     const nextTuesdayStr = getNextTuesdayString();
 
-    const [templateKey, setTemplateKey] = useState<EmailTemplateKey | null>(null);
+    const [templateKey, setTemplateKey] = useState<EmailTemplateKey | null>(
+      null,
+    );
     const [formValues, setFormValues] = useState<FormValues>({
       to: "",
       cc: "",
@@ -147,7 +149,9 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
 
         const elapsedTime = Date.now() - startTime;
         if (elapsedTime < 500) {
-          await new Promise((resolve) => setTimeout(resolve, 500 - elapsedTime));
+          await new Promise((resolve) =>
+            setTimeout(resolve, 500 - elapsedTime),
+          );
         }
 
         setIsExecuted(true);

@@ -1,13 +1,13 @@
 {
   "name": "operationelectronapp",
-  "version": "0.0.20",
+  "version": "0.0.22",
   "private": true,
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite --mode development",
     "build": "tsc -b && vite build",
-    "type-check": "tsc -b --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "package": "npm run build && electron-builder --publish never",
     "release": "node scripts/bump-version.js && npm run package && node scripts/release.js"

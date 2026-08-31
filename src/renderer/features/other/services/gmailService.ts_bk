@@ -1,7 +1,7 @@
 // src/renderer/features/other/services/gmailService.ts
 
-import { commands } from "@shared/service/commands";
-import { useAppStore } from "@shared/store";
+import { commands } from "@renderer/services/commands";
+import { useAppStore } from "@renderer/store";
 
 export interface CreateDraftParams {
   to: string;

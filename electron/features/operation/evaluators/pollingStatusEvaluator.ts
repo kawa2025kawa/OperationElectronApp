@@ -1,4 +1,4 @@
-﻿//electron\features\operation\evaluators\pollingStatusEvaluator.ts
+﻿// electron/features/operation/evaluators/pollingStatusEvaluator.ts
 
 import {
   JOB_STATUS,
@@ -6,7 +6,7 @@ import {
   type OperationItem,
 } from "@shared/types/operationType";
 
-import { checkJobDependencies } from "@renderer/features/operation/helpers/dependencyHelper";
+import { checkJobDependencies } from "@shared/utils/dependencyHelper";
 import { isScheduledTimePassed } from "@electron/features/operation/helpers/scheduledTimeCheck";
 import {
   getMergedEntity,
@@ -40,7 +40,6 @@ export function evaluateAllTargetStatuses(
   const now = new Date();
   const allEntities = getAllCurrentEntitiesMap(targets);
 
-  // activeFlags が指定されていない場合のデフォルト（全拠点有効とみなす）
   const flags = activeFlags ?? {
     is1CActive: true,
     is2CActive: true,
@@ -53,41 +52,39 @@ export function evaluateAllTargetStatuses(
     const currentStatus = getStatus(target.kanriNo)?.status;
     if (currentStatus && IGNORED_STATUSES.has(currentStatus)) continue;
 
-    // 1. 依存関係ルールのチェック
-    let hasUnmetDependency = false;
+    const jobId =
+      "jobId" in target && typeof target.jobId === "string"
+        ? target.jobId
+        : undefined;
+    const timePassed = isScheduledTimePassed(target.scheduledTime, jobId, now);
+
+    let nextStatus: Extract<JobStatus, "scheduled" | "waiting" | "ready">;
+
     if (target.dependency) {
+      // 1. 依存関係が存在するジョブ
       const depResult = checkJobDependencies(
         target.kanriNo,
         allEntities,
         flags,
       );
+
       if (!depResult.ok) {
-        hasUnmetDependency = true;
-      }
-    }
-
-    let nextStatus: Extract<JobStatus, "scheduled" | "waiting" | "ready">;
-
-    if (hasUnmetDependency) {
-      // 依存未解除 ➔ scheduled
-      nextStatus = JOB_STATUS.SCHEDULED;
-    } else {
-      // 2. 時刻のチェック
-      const jobId =
-        "jobId" in target && typeof target.jobId === "string"
-          ? target.jobId
-          : undefined;
-      const timePassed = isScheduledTimePassed(
-        target.scheduledTime,
-        jobId,
-        now,
-      );
-
-      if (!timePassed && target.scheduledTime?.trim()) {
-        // 時刻未到来 ➔ waiting
+        // 依存未解除 ➔ 予定 (scheduled)
+        nextStatus = JOB_STATUS.SCHEDULED;
+      } else if (!timePassed && target.scheduledTime?.trim()) {
+        // 依存クリア ＆ 予定時刻未到来 ➔ 待合 (waiting)
         nextStatus = JOB_STATUS.WAITING;
       } else {
-        // 時刻経過済み または 指定なし ➔ ready
+        // 依存クリア ＆ 予定時刻経過/指定なし ➔ 実行準備完了 (ready)
+        nextStatus = JOB_STATUS.READY;
+      }
+    } else {
+      // 2. 依存関係が存在しないジョブ
+      if (!timePassed && target.scheduledTime?.trim()) {
+        // 予定時刻未到来 ➔ 予定 (scheduled)
+        nextStatus = JOB_STATUS.SCHEDULED;
+      } else {
+        // 予定時刻経過/指定なし ➔ 実行準備完了 (ready)
         nextStatus = JOB_STATUS.READY;
       }
     }

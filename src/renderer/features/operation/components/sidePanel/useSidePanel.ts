@@ -1,10 +1,10 @@
-// src/renderer/features/operation/components/sidePanel/useSidePanel.ts
+﻿// src/renderer/features/operation/components/sidePanel/useSidePanel.ts
 
 import React, { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 
-import { commands } from "@shared/service/commands";
-import { useAppStore } from "@shared/store";
+import { commands } from "@renderer/services/commands";
+import { useAppStore } from "@renderer/store";
 import type { OperationItem } from "@shared/types/operationType";
 import { formatToJapaneseDateTime } from "@shared/utils/dateUtils";
 

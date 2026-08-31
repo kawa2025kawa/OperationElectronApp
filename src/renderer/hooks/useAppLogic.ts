@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { useAppStore, type AppState } from "@shared/store";
+import { useAppStore, type AppState } from "@renderer/store";
 import { darkThemeClass, lightThemeClass } from "@renderer/styles/tokens";
 
 export const useAppLogic = () => {

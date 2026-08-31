@@ -11,8 +11,8 @@ import { clsx } from "clsx";
 import { useShallow } from "zustand/react/shallow";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import { ErrorState } from "@renderer/components/ui/state/StateContainer";
-import { commands } from "@shared/service/commands";
-import { useAppStore } from "@shared/store";
+import { commands } from "@renderer/services/commands";
+import { useAppStore } from "@renderer/store";
 import { getFileName } from "@shared/utils/fileUtils";
 import * as styles from "./pdfUploadModalContent.css";
 

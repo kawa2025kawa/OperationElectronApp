@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 import type { AppViewId } from "@shared/types/uiType";
 
 const ORDERED_MENU_ITEMS = Object.values(APP_REGISTRY)

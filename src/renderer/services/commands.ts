@@ -11,6 +11,9 @@ export const commands = {
 
   stopPolling: (): Promise<void> => window.electronAPI.invoke("stopPolling"),
 
+  setActiveFlags: (flags: Record<string, boolean>): Promise<void> =>
+    window.electronAPI.invoke("setActiveFlags", flags),
+
   updateJobStatus: (
     kanriNo: string,
     status: JobStatus,

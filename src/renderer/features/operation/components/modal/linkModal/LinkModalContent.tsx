@@ -4,8 +4,8 @@ import React, { useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { selectActiveSelectedItem } from "@renderer/features/operation/store/operationSelectors";
-import { commands } from "@shared/service/commands";
-import { useAppStore } from "@shared/store";
+import { commands } from "@renderer/services/commands";
+import { useAppStore } from "@renderer/store";
 import * as styles from "../operationModal.css";
 import { useOperationModalContext } from "../OperationModalContext";
 

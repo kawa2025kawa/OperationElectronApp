@@ -1,10 +1,15 @@
-﻿import { evaluateAllTargetStatuses } from "@electron/features/operation/evaluators/pollingStatusEvaluator";
+﻿// electron/features/operation/polling.ts
+
+import { evaluateAllTargetStatuses } from "@electron/features/operation/evaluators/pollingStatusEvaluator";
+import {
+  getAllTargets,
+  getActiveFlags,
+} from "@electron/features/operation/statusManager";
 import { triggerAutoStartJobs } from "@electron/features/operation/jobRunner";
 import {
   getActiveTrackerTargets,
   syncTrackerStatuses,
 } from "@electron/features/operation/monitors/trackerMonitor";
-import { getAllTargets } from "@electron/features/operation/statusManager";
 
 // ============================================================
 // State
@@ -54,7 +59,11 @@ function sleepUntilNextMinute(): Promise<void> {
 // ============================================================
 // Main Execution Functions
 // ============================================================
-async function runCycle(): Promise<void> {
+
+/**
+ * ステータス評価 ➔ Tracker API同期 ➔ 自動起動スクリプト実行の一連サイクルを動かす
+ */
+export async function runCycle(): Promise<void> {
   const startedAt = Date.now();
   const targets = getAllTargets();
 
@@ -62,12 +71,15 @@ async function runCycle(): Promise<void> {
 
   if (!targets.length || !running) return;
 
-  evaluateAllTargetStatuses(targets, () => running);
+  // 1. 依存関係および予定時刻に基づくステータス評価
+  evaluateAllTargetStatuses(targets, () => running, getActiveFlags());
   if (!running) return;
 
+  // 2. Tracker API ステータス即時同期
   await syncTrackerStatuses(targets);
   if (!running) return;
 
+  // 3. READY 状態ジョブの自動起動実行
   await triggerAutoStartJobs(targets, () => running);
 
   console.log("[Polling] runCycle END", {

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import { gmailService } from "@renderer/features/other/services/gmailService";
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 import * as styles from "./gmailModalContent.css";
 import {
   EMAIL_TEMPLATE_OPTIONS,

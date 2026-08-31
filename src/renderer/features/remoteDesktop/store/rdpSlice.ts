@@ -2,7 +2,7 @@
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-import type { AppState } from "@shared/store";
+import type { AppState } from "@renderer/store";
 import { rdpService } from "@renderer/features/remoteDesktop/services/rdpService";
 import type { RdpTarget } from "@shared/types/rdpTypes";
 

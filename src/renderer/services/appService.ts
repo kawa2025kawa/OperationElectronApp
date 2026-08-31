@@ -1,9 +1,9 @@
-﻿// src/shared/store/slices/services/appService.ts
+﻿// src\renderer\services\appService.ts
 
 import irregularData from "@resources/json/irregularData.json";
 import operationData from "@resources/json/operationData.json";
-import { commands } from "@shared/service/commands";
-import { useAppStore } from "@shared/store";
+import { commands } from "@renderer/services/commands";
+import { useAppStore } from "@renderer/store";
 import type { OperationItem } from "@shared/types/operationType";
 
 const operations = operationData as OperationItem[];

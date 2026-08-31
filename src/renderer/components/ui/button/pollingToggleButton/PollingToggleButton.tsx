@@ -1,7 +1,7 @@
 ﻿import React, { useCallback, useEffect, useState } from "react";
-import { useAppStore } from "@shared/store";
+import { useAppStore } from "@renderer/store";
 import { useShallow } from "zustand/react/shallow";
-import { showToast } from "@shared/utils/toastUtils";
+import { showToast } from "@renderer/utils/toastUtils";
 import * as styles from "./pollingToggleButton.css";
 
 const POLLING_INTERVAL_SEC = 60;

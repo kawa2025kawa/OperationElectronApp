@@ -1,9 +1,9 @@
-// src/renderer/features/spreadSheet/components/modal/kokyuhyo/KokyuhyoModalContent.tsx
+﻿// src/renderer/features/spreadSheet/components/modal/kokyuhyo/KokyuhyoModalContent.tsx
 
 import React, { useCallback, useEffect } from "react";
 import { addDays } from "date-fns";
 import type { AppViewDefinition } from "@renderer/registry/appRegistry";
-import { commands } from "@shared/service/commands";
+import { commands } from "@renderer/services/commands";
 import { SHEET_IDS, type Kokyuhyo } from "@shared/types/spreadsheetTypes";
 import type { Column } from "@shared/types/tableType";
 import { APP_VIEW_IDS } from "@shared/types/uiType";
