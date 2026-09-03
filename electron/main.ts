@@ -3,7 +3,7 @@
 import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { setupIpcHandlers } from "./ipc";
+import { registerIpcHandlers } from "./ipc";
 import { stopPolling } from "@electron/features/operation/polling";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -93,7 +93,7 @@ async function loadRenderer(): Promise<void> {
 app
   .whenReady()
   .then(() => {
-    setupIpcHandlers();
+    registerIpcHandlers();
 
     createWindow();
 
