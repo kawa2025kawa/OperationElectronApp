@@ -3,7 +3,7 @@ import path from "node:path";
 import { app } from "electron";
 import { format } from "date-fns";
 import fs from "fs-extra";
-import type { OperationStatusFields } from "@shared/types/operationType";
+import type { OperationStatusFields } from "@shared/types/operation";
 
 export type PersistedStatus = OperationStatusFields;
 

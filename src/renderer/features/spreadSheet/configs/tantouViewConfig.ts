@@ -1,7 +1,7 @@
 ﻿import type { AppViewDefinition } from "@renderer/registry/appRegistry";
-import { SHEET_IDS, type Tantou } from "@shared/types/spreadsheetTypes";
-import type { Column } from "@shared/types/tableType";
-import { APP_VIEW_IDS } from "@shared/types/uiType";
+import { SHEET_IDS, type Tantou } from "@shared/types/spreadsheet";
+import type { Column } from "@shared/types/table";
+import { APP_VIEW_IDS } from "@shared/types/ui";
 
 export const TANTOU_COLUMNS: readonly Column<Tantou>[] = [
   { key: "today.hayaban", label: "早番", width: "10.5%" },

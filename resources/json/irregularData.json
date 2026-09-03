@@ -117,7 +117,7 @@
     "kanriNo": "E17",
     "cycle1": "月次",
     "cycle2": "1",
-    "scheduledTime": "17：00",
+    "scheduledTime": "17:00",
     "workName": "井ノ瀬運送PC再起動",
     "manual": true
   },
@@ -133,7 +133,7 @@
     "kanriNo": "E51",
     "cycle1": "月次",
     "cycle2": "5",
-    "scheduledTime": "18：15",
+    "scheduledTime": "18:15",
     "workName": "MD帳票サーバ再起動",
     "manual": true
   },
@@ -209,7 +209,7 @@
     "kanriNo": "E37",
     "cycle1": "月次",
     "cycle2": "月末",
-    "scheduledTime": "PM",
+    "scheduledTime": "17:00",
     "workName": "300/301作成&送信(PM)",
     "manual": true
   },

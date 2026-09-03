@@ -3,8 +3,8 @@ import React, { useMemo } from "react";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import { Button } from "@renderer/components/ui/button/basicButton/BasicButton";
 
-import type { OperationItem } from "@shared/types/operationType";
-import type { ExtraModalType } from "@shared/types/uiType";
+import type { OperationItem } from "@shared/types/operation";
+import type { ExtraModalType } from "@shared/types/ui";
 
 import { LinkModalContent } from "./linkModal/LinkModalContent";
 import { ScriptModalContent } from "./scriptModal/ScriptModalContent";

@@ -73,7 +73,7 @@ export const messageContainer = style([
 ]);
 
 export const mainMessage = style({
-  fontSize: tokens.font.fluid.md, // ★ clamp(16px, 2.2vmin, 20px) に置き換え
+  fontSize: tokens.font.fluid.md,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.base,
   textAlign: "center",
@@ -100,7 +100,7 @@ export const commentBox = style([
     minHeight: 0,
     padding: "1.5vmin 2vmin",
     color: tokens.color.text.base,
-    fontSize: tokens.font.fluid.md, // ★ ログ・メッセージ領域も fluid.md で統一（※15pxと16pxの1px差なら統一がおすすめ）
+    fontSize: tokens.font.fluid.md,
     fontFamily: tokens.font.mono,
     lineHeight: 1.6,
     wordBreak: "break-all",
@@ -118,3 +118,59 @@ export const commentBoxError = style([
     color: tokens.color.status?.error ?? "#f87171",
   },
 ]);
+
+/* =======================================
+ * 成果物リンク（ボタン）
+ * ======================================= */
+
+export const linkCardButton = style([
+  themeTransition,
+  {
+    appearance: "none",
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    width: "100%",
+    padding: "1vmin 1.5vmin",
+    backgroundColor: tokens.color.bg.base,
+    borderRadius: tokens.radius.md,
+    border: `1px solid ${tokens.color.border.subtle}`,
+    boxShadow: tokens.shadow.raised.md,
+    cursor: "pointer",
+    textAlign: "left",
+    gap: "1vmin",
+    outline: "none",
+    transition: tokens.transition.fast,
+    selectors: {
+      "&:hover, &:focus-visible": {
+        borderColor: tokens.color.accent.neonCyan,
+        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+        transform: "translateY(-1px)",
+      },
+      "&:active": {
+        boxShadow: tokens.shadow.pressed.low,
+        transform: "translateY(0)",
+      },
+    },
+  },
+]);
+
+export const linkLabel = style({
+  fontSize: "clamp(16px, 2vmin, 20px)",
+  fontWeight: tokens.font.weight.bold,
+  color: tokens.color.accent.neonCyan,
+  whiteSpace: "nowrap",
+  flexShrink: 0,
+});
+
+export const linkValue = style({
+  fontSize: "clamp(13px, 1.5vmin, 16px)",
+  color: tokens.color.text.base,
+  opacity: 0.8,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  width: "100%",
+  minWidth: 0,
+});

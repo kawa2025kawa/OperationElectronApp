@@ -4,6 +4,7 @@ import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { setupIpcHandlers } from "./ipc";
+import { stopPolling } from "@electron/features/operation/polling";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -84,7 +85,7 @@ async function loadRenderer(): Promise<void> {
   const rendererPath = path.join(__dirname, "../dist/index.html");
 
   console.log("[Electron] renderer:", rendererPath);
-  console.log("[Electron] preload:", path.join(__dirname, "preload.js"));
+  console.log("[Electron] preload:", path.join(__dirname, "preload.cjs"));
 
   await mainWindow.loadFile(rendererPath);
 }
@@ -106,6 +107,11 @@ app
     console.error("[Electron] startup failed", error);
     app.quit();
   });
+
+// アプリ終了時にポーリングループとタイマーを確実に破棄
+app.on("before-quit", () => {
+  stopPolling();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

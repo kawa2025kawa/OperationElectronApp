@@ -2,8 +2,8 @@
 
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import type { OperationItem } from "@shared/types/operationType";
-import type { Column } from "@shared/types/tableType";
+import type { OperationItem } from "@shared/types/operation";
+import type { Column } from "@shared/types/table";
 import { UnifiedTableRow } from "./UnifiedTableRow";
 import { useOperationTable } from "./useOperationTable";
 import * as styles from "./operationTable.css";

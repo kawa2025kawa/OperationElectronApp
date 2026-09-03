@@ -5,7 +5,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import type {
   SpreadSheetTableProps,
   TableRowProps,
-} from "@shared/types/spreadsheetTypes";
+} from "@shared/types/spreadsheet";
 
 const ROW_HEIGHT = 56;
 const ROW_GAP = 12;

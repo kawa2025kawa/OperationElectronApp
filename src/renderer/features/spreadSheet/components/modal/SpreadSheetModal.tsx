@@ -1,11 +1,76 @@
-﻿// src/renderer/features/spreadSheet/components/modal/SpreadSheetModal.tsx
-import React, { useMemo, useState } from "react";
+﻿import React, {
+  useMemo,
+  useState,
+  type PropsWithChildren,
+  type ReactNode,
+} from "react";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-import type { SheetId, SheetRowMap } from "@shared/types/spreadsheetTypes";
+import {
+  SHEET_IDS,
+  type SheetId,
+  type SheetRowMap,
+  type Shop,
+} from "@shared/types/spreadsheet";
 import { SPREADSHEET_MODAL_MAP } from "./modalRegistry";
-import { SpreadSheetModalProvider } from "./SpreadSheetModalProvider";
-import * as styles from "./SpreadSheetModal.css";
+import {
+  SpreadSheetModalContext,
+  type SpreadSheetModalContextType,
+} from "./spreadSheetModalContext";
+import { useShopModalFooter } from "./hooks/useShopModalFooter";
+import * as styles from "./spreadSheetModal.css";
 
+/* ============================================================================
+ * Provider (UI Scaffolding)
+ * ============================================================================ */
+export const SpreadSheetModalProvider: React.FC<
+  PropsWithChildren<{ value: SpreadSheetModalContextType }>
+> = ({ value, children }) => {
+  return (
+    <SpreadSheetModalContext.Provider value={value}>
+      {children}
+    </SpreadSheetModalContext.Provider>
+  );
+};
+
+/* ============================================================================
+ * Sub Component: ShopModalFooter (UI)
+ * ============================================================================ */
+export const ShopModalFooter: React.FC<{ data: Shop }> = React.memo(
+  ({ data }) => {
+    const { excelPath, pdfPath, handleOpen } = useShopModalFooter(data);
+
+    if (!excelPath && !pdfPath) return null;
+
+    return (
+      <>
+        {excelPath && (
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => void handleOpen(excelPath)}
+          >
+            Excel
+          </button>
+        )}
+        {pdfPath && (
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => void handleOpen(pdfPath)}
+          >
+            PDF
+          </button>
+        )}
+      </>
+    );
+  },
+);
+
+ShopModalFooter.displayName = "ShopModalFooter";
+
+/* ============================================================================
+ * Main Component: SpreadSheetModal (UI)
+ * ============================================================================ */
 export interface SpreadSheetModalProps<K extends SheetId = SheetId> {
   sheetId: K;
   data: SheetRowMap[K];
@@ -20,11 +85,13 @@ export const SpreadSheetModal = React.memo(
     title,
     onClose,
   }: SpreadSheetModalProps<K>) => {
-    const [headerRight, setHeaderRight] = useState<React.ReactNode>(null);
+    const [headerRight, setHeaderRight] = useState<ReactNode>(null);
+    const [footerLeft, setFooterLeft] = useState<ReactNode>(null);
 
     const contextValue = useMemo(
       () => ({
         setHeaderRight,
+        setFooterLeft,
         onClose,
       }),
       [onClose],
@@ -61,6 +128,13 @@ export const SpreadSheetModal = React.memo(
 
           {/* Footer */}
           <footer className={styles.actionContainer}>
+            <div className={styles.footerLeft}>
+              {sheetId === SHEET_IDS.SHOP ? (
+                <ShopModalFooter data={data as Shop} />
+              ) : (
+                footerLeft
+              )}
+            </div>
             <button type="button" className={styles.button} onClick={onClose}>
               閉じる
             </button>

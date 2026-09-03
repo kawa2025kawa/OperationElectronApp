@@ -10,7 +10,7 @@ import {
 } from "electron";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { UpdateInfo } from "@shared/types/updateTypes";
+import type { UpdateInfo } from "@shared/types/system";
 
 const UPDATE_DIRECTORY =
   "\\\\S0088210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp";

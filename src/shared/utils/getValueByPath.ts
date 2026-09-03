@@ -4,15 +4,13 @@ const isObject = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
 };
 
-/**
- * ネストされたオブジェクトから文字列のパス（例: "today.amStatus"）を指定して値を取得するユーティリティ。
- * 値が存在しない、または空文字の場合は "-" を返却します。
- */
-export const getValueByPath = (obj: Record<string, unknown>, path: string | undefined): string => {
-  if (!path) return "-";
+export const getValueByPath = (
+  obj: object | null | undefined,
+  path: string | undefined,
+): string => {
+  if (!obj || !path) return "-";
   const keys = path.split(".");
   let current: unknown = obj;
-
   for (const key of keys) {
     if (isObject(current)) {
       current = current[key];
@@ -20,6 +18,7 @@ export const getValueByPath = (obj: Record<string, unknown>, path: string | unde
       return "-";
     }
   }
-
-  return current !== null && current !== undefined && current !== "" ? String(current) : "-";
+  return current !== null && current !== undefined && current !== ""
+    ? String(current)
+    : "-";
 };

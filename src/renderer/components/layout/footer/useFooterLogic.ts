@@ -5,7 +5,7 @@ import type { ChangeEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
-import { APP_VIEW_IDS } from "@shared/types/uiType";
+import { APP_VIEW_IDS } from "@shared/types/ui";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { selectIsAllCenterActive } from "@renderer/store/slices/centerSlice";
 

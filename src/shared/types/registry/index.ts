@@ -1,22 +1,19 @@
-// src/shared/types/appRegistryType.ts
-
 import type { ComponentType, ReactNode } from "react";
-import type { OperationItem } from "@shared/types/operationType";
-import type { SheetId } from "@shared/types/spreadsheetTypes";
-import type { Column } from "@shared/types/tableType";
-import type { AppViewId, GlobalModalConfig } from "@shared/types/uiType";
+import type { SheetId } from "@shared/types/spreadsheet";
+import type { Column } from "@shared/types/table";
+import type { AppViewId, GlobalModalConfig } from "@shared/types/ui";
 
-type ModalSize = {
+export type ModalSize = {
   width: string;
   height: string;
 };
 
-interface ActionStoreContext {
+export interface ActionStoreContext {
   openGlobalModal: (content: ReactNode, config?: GlobalModalConfig) => void;
   closeGlobalModal: () => void;
 }
 
-interface ViewActionDefinition<TItem = OperationItem> {
+export interface ViewActionDefinition<TItem = unknown> {
   key: string;
   label: string;
   type: "modal" | "external" | "custom";
@@ -26,7 +23,7 @@ interface ViewActionDefinition<TItem = OperationItem> {
   execute: (item: TItem, store: ActionStoreContext) => Promise<void> | void;
 }
 
-export interface AppViewDefinition {
+export interface AppViewDefinition<TItem = unknown> {
   id: AppViewId;
   title: string;
   component?: ComponentType<Record<string, unknown>> | null;
@@ -46,6 +43,6 @@ export interface AppViewDefinition {
     modalSize: ModalSize;
     component?: ComponentType<Record<string, unknown>>;
   };
-  columns?: readonly Column<unknown>[];
-  actions?: readonly ViewActionDefinition[];
+  columns?: readonly Column<TItem>[];
+  actions?: readonly ViewActionDefinition<TItem>[];
 }

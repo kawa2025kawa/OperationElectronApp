@@ -1,7 +1,7 @@
 ﻿//src\renderer\features\remoteDesktop\services\rdpService.ts
 
 import { commands } from "@renderer/services/commands";
-import type { RdpTarget } from "@shared/types/rdpTypes";
+import type { RdpTarget } from "@shared/types/rdp";
 
 export const rdpService = {
   async fetchTargets(): Promise<RdpTarget[]> {

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { LoadingContent } from "./Overlay";
-import type { InitStatus } from "@shared/types/initializationTypes";
+import type { InitStatus } from "@shared/types/system";
 import * as styles from "./overlay.css";
 
 export interface LoadingOverlayProps {

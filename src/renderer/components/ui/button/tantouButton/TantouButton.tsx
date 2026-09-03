@@ -2,9 +2,9 @@
 
 import React, { useCallback } from "react";
 import { useAppStore } from "@renderer/store";
-import { SHEET_IDS, type Tantou } from "@shared/types/spreadsheetTypes";
+import { SHEET_IDS, type Tantou } from "@shared/types/spreadsheet";
 import { APP_REGISTRY, getAppViewConfig } from "@renderer/registry/appRegistry";
-import { APP_VIEW_IDS } from "@shared/types/uiType";
+import { APP_VIEW_IDS } from "@shared/types/ui";
 import { SpreadSheetModal } from "@renderer/features/spreadSheet/components/modal/SpreadSheetModal";
 import * as styles from "./tantouButton.css";
 

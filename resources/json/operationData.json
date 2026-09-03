@@ -96,7 +96,7 @@
     "script": true,
     "autoStart": true,
     "link": {
-      "file": "//192.88.100.1/diskD/execute/log"
+      "ログファイル": "//192.88.100.1/diskD/execute/log"
     },
     "dependency": {
       "dependsOn": ["14"],
@@ -152,7 +152,7 @@
     "script": true,
     "autoStart": true,
     "link": {
-      "チェックフォルダ": "//172.25.101.51/if/AUTOORD/RCV/SV"
+      "保存フォルダ": "//172.25.101.51/if/AUTOORD/RCV/SV"
     },
     "dependency": {
       "dependsOn": ["19"],
@@ -195,7 +195,7 @@
     "script": true,
     "autoStart": true,
     "link": {
-      "チェックフォルダ": "//172.25.101.51/if/MASTER/RCV/SV"
+      "保存フォルダ": "//172.25.101.51/if/MASTER/RCV/SV"
     },
     "dependency": {
       "dependsOn": ["24"],
@@ -219,7 +219,7 @@
     "script": true,
     "autoStart": true,
     "link": {
-      "チェックフォルダ": "//172.25.101.51/if/LOG/DCMEOB1"
+      "保存フォルダ": "//172.25.101.51/if/LOG/DCMEOB1"
     }
   },
   {
@@ -259,7 +259,7 @@
     "script": true,
     "autoStart": true,
     "link": {
-      "チェックファイル": "//192.88.1.220/log/SANSAN_TXT_LOAD.log"
+      "ログファイル": "//192.88.1.220/log/SANSAN_TXT_LOAD.log"
     }
   },
   {
@@ -317,7 +317,7 @@
     "script": true,
     "autoStart": true,
     "link": {
-      "チェックフォルダ": "//172.25.101.51/if/MASTER/RCV"
+      "保存フォルダ": "//172.25.101.51/if/MASTER/RCV"
     },
     "dependency": {
       "dependsOn": ["38"],
@@ -347,7 +347,7 @@
     "script": true,
     "autoStart": true,
     "link": {
-      "チェックフォルダ": "//172.25.101.51/if/LOG/DCMEOB1"
+      "保存フォルダ": "//172.25.101.51/if/LOG/DCMEOB1"
     }
   },
   {
@@ -437,7 +437,7 @@
     "script": true,
     "autoStart": false,
     "link": {
-      "操作マニュアル": "//172.25.101.51/if/WMSSLIP/RCV"
+      "保存フォルダ": "//172.25.101.51/if/WMSSLIP/RCV"
     },
     "dependency": {
       "dependsOn": ["N11"],
@@ -544,7 +544,7 @@
     "script": true,
     "autoStart": false,
     "link": {
-      "操作マニュアル": "//172.25.101.51/if/MASTER/RCV"
+      "保存フォルダ": "//172.25.101.51/if/MASTER/RCV"
     },
     "dependency": {
       "dependsOn": ["61"],
@@ -570,7 +570,7 @@
     "script": true,
     "autoStart": false,
     "link": {
-      "エラーファイル保存フォルダ": "//172.25.101.51/if/LOG/DCMMD",
+      "エラー保存フォルダ": "//172.25.101.51/if/LOG/DCMMD",
       "修正ファイル保存フォルダ": "//172.25.101.51/if/MASTER/RCV"
     },
     "dependency": {
@@ -635,7 +635,7 @@
     "autoStart": true,
     "manual": true,
     "link": {
-      "SEIKYUDTフォルダ": "//172.25.101.51/if/WEB-SV/RCV/SV"
+      "保存フォルダ": "//172.25.101.51/if/WEB-SV/RCV/SV"
     }
   },
   {
@@ -764,7 +764,7 @@
     "script": true,
     "autoStart": true,
     "link": {
-      "チェックフォルダ": "//172.25.101.51/if/LOG/DCMEOB1"
+      "保存フォルダ": "//172.25.101.51/if/LOG/DCMEOB1"
     },
     "dependency": {
       "dependsOn": ["67"],
@@ -794,8 +794,7 @@
     "workName": "WMS日付確認",
     "manual": true,
     "link": {
-      "操作マニュアル": "\\\\serverpathmanual",
-      "チェックフォルダ": "\\\\serverpathcheck"
+      "url": "http://192.88.1.192/belcta/login.php"
     },
     "dependency": {
       "dependsOn": ["76"],
@@ -831,7 +830,7 @@
     "script": true,
     "autoStart": true,
     "link": {
-      "操作マニュアル": "//172.25.101.51/if/MASTER/RCV/SV"
+      "保存フォルダ": "//172.25.101.51/if/MASTER/RCV/SV"
     },
     "dependency": {
       "dependsOn": ["79"],

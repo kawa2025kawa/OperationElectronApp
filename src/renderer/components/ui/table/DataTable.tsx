@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { clsx } from "clsx";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { getValueByPath } from "@shared/utils/getValueByPath";
-import type { Column } from "@shared/types/tableType";
+import type { Column } from "@shared/types/table";
 import * as styles from "./dataTable.css";
 
 export interface DataTableProps<T> {

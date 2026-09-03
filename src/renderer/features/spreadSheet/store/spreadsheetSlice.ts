@@ -1,4 +1,4 @@
-// src/renderer/features/spreadSheet/store/spreadsheetSlice.ts
+﻿// src/renderer/features/spreadSheet/store/spreadsheetSlice.ts
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
@@ -8,7 +8,7 @@ import {
   SHEET_IDS,
   type SheetDataResponse,
   type SheetId,
-} from "@shared/types/spreadsheetTypes";
+} from "@shared/types/spreadsheet";
 import { fetchSheetValues } from "../helpers/spreadsheetMapper";
 import { ALL_SHEET_IDS } from "../services/spreadsheetConfig";
 
@@ -25,11 +25,15 @@ const PROGRESS_MAPPING: Partial<Record<SheetId, keyof AppState["initStatus"]>> =
 export interface SpreadSheetSlice {
   sheetData: Record<SheetId, SheetDataResponse | null>;
   isSheetFetching: Record<SheetId, boolean>;
+  sheetErrors: Record<SheetId, string | null>;
+
   setIsSheetFetching(sheetId: SheetId, isFetching: boolean): void;
   updateSheetData(sheetId: SheetId, data: SheetDataResponse): void;
+  setSheetError(sheetId: SheetId, error: string | null): void;
+
   fetchSheetData(
     sheetId: SheetId,
-    forcedToken?: string,
+    forcedToken?: string | null,
     isRetry?: boolean,
   ): Promise<boolean>;
   prefetchSheets(latestToken?: string): Promise<void>;
@@ -44,9 +48,14 @@ export const createSpreadSheetSlice: StateCreator<
   sheetData: Object.fromEntries(
     ALL_SHEET_IDS.map((id: SheetId) => [id, null]),
   ) as Record<SheetId, SheetDataResponse | null>,
+
   isSheetFetching: Object.fromEntries(
     ALL_SHEET_IDS.map((id: SheetId) => [id, false]),
   ) as Record<SheetId, boolean>,
+
+  sheetErrors: Object.fromEntries(
+    ALL_SHEET_IDS.map((id: SheetId) => [id, null]),
+  ) as Record<SheetId, string | null>,
 
   setIsSheetFetching: (sheetId, isFetching) => {
     set((state) => {
@@ -57,18 +66,26 @@ export const createSpreadSheetSlice: StateCreator<
   updateSheetData: (sheetId, data) => {
     set((state) => {
       state.sheetData[sheetId] = data;
+      state.sheetErrors[sheetId] = null;
+    });
+  },
+
+  setSheetError: (sheetId, error) => {
+    set((state) => {
+      state.sheetErrors[sheetId] = error;
     });
   },
 
   fetchSheetData: async (sheetId, forcedToken, isRetry = false) => {
     const state = get();
-    const token = forcedToken ?? state.accessToken;
+    const rawToken = forcedToken ?? state.accessToken;
 
-    if (!token) {
+    if (!rawToken) {
       await state.logout();
       return false;
     }
 
+    const token: string = rawToken;
     state.setIsSheetFetching(sheetId, true);
 
     try {
@@ -83,8 +100,9 @@ export const createSpreadSheetSlice: StateCreator<
 
         if (await state.checkAuthStatus()) {
           const refreshedToken = get().accessToken;
-          if (refreshedToken)
-            return get().fetchSheetData(sheetId, refreshedToken, true);
+          if (refreshedToken) {
+            return await get().fetchSheetData(sheetId, refreshedToken, true);
+          }
         }
 
         toast.error("セッションの有効期限が切れました");
@@ -93,16 +111,23 @@ export const createSpreadSheetSlice: StateCreator<
       }
 
       if (!result.data) {
-        throw new Error(
-          result.errorText || `Fetch failed with status: ${result.status}`,
-        );
+        const errorMsg =
+          result.status === 503
+            ? "Googleサービスが一時的に利用できません (503)"
+            : result.errorText || `取得エラー (Status: ${result.status})`;
+        throw new Error(errorMsg);
       }
 
-      state.updateSheetData(sheetId, result.data);
+      const validData: SheetDataResponse = result.data;
+      state.updateSheetData(sheetId, validData);
       return true;
-    } catch (error) {
-      console.error(`[SpreadSheet] Failed to fetch sheet [${sheetId}]:`, error);
-      state.updateSheetData(sheetId, { sheetType: "Raw", data: [] });
+    } catch (err: unknown) {
+      console.error(`[SpreadSheet] Failed to fetch sheet [${sheetId}]:`, err);
+      const message =
+        err instanceof Error ? err.message : "データ取得に失敗しました";
+
+      state.setSheetError(sheetId, message);
+      toast.error(`[${sheetId}] ${message}`);
       return false;
     } finally {
       state.setIsSheetFetching(sheetId, false);

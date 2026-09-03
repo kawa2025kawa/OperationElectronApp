@@ -3,7 +3,7 @@
 import React, { useCallback } from "react";
 import clsx from "clsx";
 import { useAppStore } from "@renderer/store";
-import type { OperationItem } from "@shared/types/operationType";
+import type { OperationItem } from "@shared/types/operation";
 import { OperationModal } from "@renderer/features/operation/components/modal/OperationModal";
 import { useStatusSummary, type StatusSummaryProps } from "./useStatusSummary";
 import * as styles from "./statusSummary.css";

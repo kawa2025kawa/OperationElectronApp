@@ -4,7 +4,11 @@ import type {
   JobDependency,
   JobStatus,
   OperationItem,
-} from "@shared/types/operationType";
+} from "@shared/types/operation";
+
+// ============================================================================
+// Types
+// ============================================================================
 
 export interface MissingDependency {
   kanriNo: string;
@@ -27,102 +31,310 @@ export interface ValidationResult {
   message?: string;
 }
 
-const success = (): DependencyCheckResult => ({
-  ok: true,
-  missingDependencies: [],
-});
+// ============================================================================
+// Constants
+// ============================================================================
 
-const getDependsOn = (rule: string[] | JobDependency): string[] =>
-  Array.isArray(rule) ? rule.map(String) : (rule.dependsOn ?? []).map(String);
+export const DEFAULT_JOB_EXECUTION_OPTIONS: Readonly<JobExecutionOptions> = {
+  ignoreDependencies: true,
+  silent: true,
+};
+
+const DEFAULT_REQUIRED_STATUS: JobStatus = "success";
+
+// ============================================================================
+// Result Helpers
+// ============================================================================
+
+function success(): DependencyCheckResult {
+  return {
+    ok: true,
+    missingDependencies: [],
+  };
+}
+
+function failure(
+  missingDependencies: MissingDependency[] = [],
+): DependencyCheckResult {
+  return {
+    ok: false,
+    missingDependencies,
+  };
+}
+
+// ============================================================================
+// Dependency Helpers
+// ============================================================================
+
+function normalizeKanriNo(kanriNo: string | number): string {
+  return String(kanriNo).trim();
+}
+
+function getDependsOn(dependency: JobDependency): string[] {
+  return dependency.dependsOn.map(normalizeKanriNo);
+}
+
+function normalizeStatuses(statuses: JobStatus[] | undefined): string[] {
+  if (!statuses?.length) {
+    return [DEFAULT_REQUIRED_STATUS];
+  }
+
+  return statuses.map((status) => String(status).toLowerCase());
+}
+
+function getRequiredStatuses(
+  dependency: JobDependency,
+  kanriNo: string,
+): string[] {
+  const requiredStatus = dependency.requiredStatus;
+
+  if (!requiredStatus) {
+    return [DEFAULT_REQUIRED_STATUS];
+  }
+
+  if (Array.isArray(requiredStatus)) {
+    return normalizeStatuses(requiredStatus);
+  }
+
+  return normalizeStatuses(requiredStatus[kanriNo]);
+}
+
+// ============================================================================
+// Active Flag
+// ============================================================================
+
+function checkRequiredActiveFlags(
+  dependency: JobDependency,
+  activeFlags?: Record<string, boolean>,
+): DependencyCheckResult {
+  if (!dependency.requiresActive?.length) {
+    return success();
+  }
+
+  if (!activeFlags) {
+    return failure();
+  }
+
+  const isActive = dependency.requiresActive.every((flagKey) =>
+    Boolean(activeFlags[flagKey]),
+  );
+
+  return isActive ? success() : failure();
+}
+
+// ============================================================================
+// Time Condition
+// ============================================================================
+
+function checkAfterTime(
+  kanriNo: string,
+  dependency: JobDependency,
+  targetEntity: OperationItem | undefined,
+): DependencyCheckResult {
+  if (!dependency.afterTime) {
+    return success();
+  }
+
+  const match = /^(\d{1,2}):(\d{2})$/.exec(dependency.afterTime);
+
+  if (!match) {
+    return failure([
+      {
+        kanriNo,
+        status: targetEntity?.status,
+        comment: `実行可能時間の設定が不正です: ${dependency.afterTime}`,
+      },
+    ]);
+  }
+
+  const targetHour = Number(match[1]);
+  const targetMinute = Number(match[2]);
+
+  const now = new Date();
+
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const targetMinutes = targetHour * 60 + targetMinute;
+
+  if (currentMinutes >= targetMinutes) {
+    return success();
+  }
+
+  return failure([
+    {
+      kanriNo,
+      status: targetEntity?.status,
+      comment: `実行可能時間 (${dependency.afterTime}) 未到達`,
+    },
+  ]);
+}
+
+// ============================================================================
+// All Jobs Success
+// ============================================================================
+
+function checkAllJobsSuccess(
+  dependency: JobDependency,
+  entities: Record<string, OperationItem>,
+): DependencyCheckResult {
+  if (!dependency.requiresAllJobsSuccess) {
+    return success();
+  }
+
+  const missingDependencies: MissingDependency[] = [];
+
+  for (const item of Object.values(entities)) {
+    if (!hasValidJobId(item)) {
+      continue;
+    }
+
+    const status = item.status?.toLowerCase();
+
+    if (status === "success") {
+      continue;
+    }
+
+    missingDependencies.push({
+      kanriNo: String(item.kanriNo),
+      status: item.status,
+      comment: item.comment ?? `Job ID (${getJobId(item)}) 未完了`,
+    });
+  }
+
+  return missingDependencies.length === 0
+    ? success()
+    : failure(missingDependencies);
+}
+
+// ============================================================================
+// dependsOn
+// ============================================================================
+
+function hasValidJobId(item: OperationItem): boolean {
+  if (item.kind !== "operation") {
+    return false;
+  }
+  return Boolean(item.jobId && item.jobId !== "-");
+}
+
+function getJobId(item: OperationItem): string {
+  if (item.kind !== "operation") {
+    return "";
+  }
+  return item.jobId ? String(item.jobId) : "";
+}
+
+function checkDependsOn(
+  kanriNo: string,
+  dependency: JobDependency,
+  entities: Record<string, OperationItem>,
+): DependencyCheckResult {
+  const dependsOn = getDependsOn(dependency);
+
+  if (dependsOn.length === 0) {
+    return success();
+  }
+
+  const results = dependsOn.map((dependencyKanriNo) => {
+    const entity = entities[dependencyKanriNo];
+
+    const currentStatus = entity?.status?.toLowerCase() ?? "";
+
+    const requiredStatuses = getRequiredStatuses(dependency, dependencyKanriNo);
+
+    const ok = requiredStatuses.includes(currentStatus);
+
+    return {
+      ok,
+      missing: {
+        kanriNo: dependencyKanriNo,
+        status: entity?.status,
+        comment: entity?.comment ?? "",
+      },
+    };
+  });
+
+  const isSatisfied =
+    dependency.condition === "some"
+      ? results.some(({ ok }) => ok)
+      : results.every(({ ok }) => ok);
+
+  if (isSatisfied) {
+    return success();
+  }
+
+  return failure(results.filter(({ ok }) => !ok).map(({ missing }) => missing));
+}
+
+// ============================================================================
+// Public API
+// ============================================================================
 
 export function checkJobDependencies(
   kanriNo: string,
   entities: Record<string, OperationItem>,
   activeFlags?: Record<string, boolean>,
 ): DependencyCheckResult {
-  const targetKey = String(kanriNo).trim();
-  const targetEntity = entities[targetKey];
-  const rule = targetEntity?.dependency;
-  if (!rule) return success();
+  const targetKanriNo = normalizeKanriNo(kanriNo);
 
-  // 1. requiresActive 条件の評価
-  if (rule.requiresActive && rule.requiresActive.length > 0) {
-    if (!activeFlags) return { ok: false, missingDependencies: [] };
-    const activeMet = rule.requiresActive.every((flagKey) =>
-      Boolean(activeFlags[flagKey]),
-    );
-    if (!activeMet) return { ok: false, missingDependencies: [] };
+  const targetEntity = entities[targetKanriNo];
+
+  const dependency = targetEntity?.dependency;
+
+  if (!dependency) {
+    return success();
   }
 
-  // 2. requiresAllJobsSuccess 条件の評価
-  if (rule.requiresAllJobsSuccess) {
-    const uncompleted = Object.values(entities).filter((item) => {
-      const rawJobId = "jobId" in item ? item.jobId : undefined;
-      const hasJobId = Boolean(rawJobId && rawJobId !== "-");
-      return hasJobId && String(item.status).toLowerCase() !== "success";
-    });
+  const activeResult = checkRequiredActiveFlags(dependency, activeFlags);
 
-    if (uncompleted.length > 0) {
-      return {
-        ok: false,
-        missingDependencies: uncompleted.map((item) => {
-          const jobIdStr =
-            "jobId" in item && item.jobId ? String(item.jobId) : "";
-          return {
-            kanriNo: String(item.kanriNo),
-            status: item.status,
-            comment: item.comment ?? `Job ID (${jobIdStr}) 未完了`,
-          };
-        }),
-      };
-    }
+  if (!activeResult.ok) {
+    return activeResult;
   }
 
-  // 3. dependsOn 依存関係の評価
-  const dependsOn = getDependsOn(rule);
-  if (!dependsOn.length) return success();
+  const timeResult = checkAfterTime(targetKanriNo, dependency, targetEntity);
 
-  const results = dependsOn.map((depKanriNo) => {
-    const depKey = String(depKanriNo).trim();
-    const depEntity = entities[depKey];
-    const currentStatus = depEntity?.status
-      ? String(depEntity.status).toLowerCase()
-      : "";
-    const isMet = currentStatus === "success";
+  if (!timeResult.ok) {
+    return timeResult;
+  }
 
-    return {
-      ok: isMet,
-      missing: {
-        kanriNo: depKanriNo,
-        status: depEntity?.status,
-        comment: depEntity?.comment ?? "",
-      },
-    };
-  });
+  const allJobsResult = checkAllJobsSuccess(dependency, entities);
 
-  const ok =
-    rule.condition === "some"
-      ? results.some((r) => r.ok)
-      : results.every((r) => r.ok);
+  if (!allJobsResult.ok) {
+    return allJobsResult;
+  }
 
-  return ok
-    ? success()
-    : {
-        ok: false,
-        missingDependencies: results.filter((r) => !r.ok).map((r) => r.missing),
-      };
+  return checkDependsOn(targetKanriNo, dependency, entities);
 }
 
 export function validateJobDependencies(
   kanriNo: string,
   entities: Record<string, OperationItem>,
-  options: JobExecutionOptions = { ignoreDependencies: true, silent: true },
+  options: JobExecutionOptions = DEFAULT_JOB_EXECUTION_OPTIONS,
   activeFlags?: Record<string, boolean>,
 ): ValidationResult {
-  if (options.ignoreDependencies) return { ok: true };
+  if (options.ignoreDependencies) {
+    return {
+      ok: true,
+    };
+  }
 
   const result = checkJobDependencies(kanriNo, entities, activeFlags);
-  return result.ok
-    ? { ok: true }
-    : { ok: false, message: "未完了の依存ジョブがあります" };
+
+  if (result.ok) {
+    return {
+      ok: true,
+    };
+  }
+
+  return {
+    ok: false,
+    message:
+      result.missingDependencies
+        .map(({ kanriNo: dependencyKanriNo, comment }) =>
+          comment
+            ? `No.${dependencyKanriNo}: ${comment}`
+            : `No.${dependencyKanriNo}: 未完了`,
+        )
+        .join("\n") || "未完了の依存ジョブがあります",
+  };
 }

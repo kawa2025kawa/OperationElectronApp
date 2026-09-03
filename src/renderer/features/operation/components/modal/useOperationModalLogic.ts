@@ -4,7 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
-import type { ExtraModalType } from "@shared/types/uiType";
+import type { ExtraModalType } from "@shared/types/ui";
 import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/operationSelectors";
 
 // ============================================================

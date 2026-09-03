@@ -3,11 +3,9 @@
 import React, { useCallback } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import clsx from "clsx";
-
 import { useAppStore } from "@renderer/store";
-import type { JobStatus } from "@shared/types/operationType";
-import { STATUS_LABEL, STATUS_ORDER } from "@shared/types/uiType";
-
+import type { JobStatus } from "@shared/types/operation";
+import { STATUS_LABEL, STATUS_ORDER } from "@shared/types/ui";
 import * as styles from "./statusContextMenu.css";
 
 interface Props {
@@ -15,13 +13,11 @@ interface Props {
 }
 
 type StatusVariantKey = keyof typeof styles.itemVariants;
-
 const getStatusVariantKey = (status: JobStatus): StatusVariantKey =>
   status.toUpperCase() as StatusVariantKey;
 
-export const StatusContextMenu: React.FC<Props> = ({ kanriNo }) => {
+export const StatusContextMenu: React.FC<Props> = React.memo(({ kanriNo }) => {
   const updateJobStatus = useAppStore((state) => state.updateJobStatus);
-
   const handleSelectStatus = useCallback(
     (status: JobStatus) => {
       void updateJobStatus({
@@ -39,7 +35,6 @@ export const StatusContextMenu: React.FC<Props> = ({ kanriNo }) => {
         <div className={styles.header}>
           <span className={styles.headerTitle}>Status</span>
         </div>
-
         {STATUS_ORDER.map((status) => (
           <ContextMenu.Item
             key={status}
@@ -55,6 +50,6 @@ export const StatusContextMenu: React.FC<Props> = ({ kanriNo }) => {
       </ContextMenu.Content>
     </ContextMenu.Portal>
   );
-};
+});
 
-React.memo(StatusContextMenu);
+StatusContextMenu.displayName = "StatusContextMenu";

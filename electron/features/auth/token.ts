@@ -2,7 +2,7 @@
 
 import keytar from "keytar";
 
-import type { AuthSession, OAuthToken } from "@shared/types/authTypes";
+import type { AuthSession, OAuthToken } from "@shared/types/auth";
 
 // =====================================================
 // Constants

@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { useAppStore } from "@renderer/store";
-import { type SheetId, type SheetRowMap } from "@shared/types/spreadsheetTypes";
+import { type SheetId, type SheetRowMap } from "@shared/types/spreadsheet";
 
 import { SpreadSheetModal } from "./components/modal/SpreadSheetModal";
 import { SpreadSheetTable } from "./components/table/SpreadSheetTable";
@@ -19,6 +19,8 @@ export const SpreadSheetView: React.FC = React.memo(() => {
     columns,
     selectedId,
     isFetching,
+    error,
+    handleRetry,
     loadingMessage,
     config,
   } = useSpreadSheetViewLogic();
@@ -35,10 +37,8 @@ export const SpreadSheetView: React.FC = React.memo(() => {
       const modalConfig = config?.modalConfig;
       if (!modalConfig || !sheetId) return;
 
-      // 型安全に安全キャストしてタイトルを抽出
       const raw = row as unknown as Record<string, unknown>;
 
-      // フォールバック付きタイトル抽出 (氏名 -> 店舗名 -> 設定タイトル)
       const title =
         (typeof raw.name === "string" && raw.name) ||
         (typeof raw.shopName === "string" && raw.shopName) ||
@@ -61,7 +61,6 @@ export const SpreadSheetView: React.FC = React.memo(() => {
     [config, sheetId, openGlobalModal, closeGlobalModal],
   );
 
-  // 🎯 修正: 文字列の直出しから EmptyState コンポーネントへ差し替え
   if (!sheetId) {
     return (
       <div className={styles.viewContainer}>
@@ -76,15 +75,23 @@ export const SpreadSheetView: React.FC = React.memo(() => {
 
       <div className={styles.viewContainer}>
         <div className={styles.inner}>
-          <div className={styles.tableArea}>
-            <SpreadSheetTable<SheetRowMap[SheetId]>
-              rowKey="id"
-              data={data as SheetRowMap[SheetId][]}
-              columns={columns}
-              onRowClick={handleRowClick}
-              selectedId={selectedId}
+          {/* 503エラー等でデータ取得失敗時のリトライ表示 */}
+          {error && data.length === 0 && !isFetching ? (
+            <EmptyState
+              message={`データの取得に失敗しました（${error}）`}
+              onRetry={handleRetry}
             />
-          </div>
+          ) : (
+            <div className={styles.tableArea}>
+              <SpreadSheetTable<SheetRowMap[SheetId]>
+                rowKey="id"
+                data={data as SheetRowMap[SheetId][]}
+                columns={columns}
+                onRowClick={handleRowClick}
+                selectedId={selectedId}
+              />
+            </div>
+          )}
         </div>
       </div>
     </>

@@ -2,14 +2,16 @@
 
 import React, { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-
 import { commands } from "@renderer/services/commands";
 import { useAppStore } from "@renderer/store";
-import type { OperationItem } from "@shared/types/operationType";
+import type { OperationItem } from "@shared/types/operation";
 import { formatToJapaneseDateTime } from "@shared/utils/dateUtils";
-
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/operationSelectors";
+import {
+  DEFAULT_MODAL_SIZE,
+  getManualUrl,
+} from "@renderer/features/operation/helpers/operationEntities";
 import { OperationModal } from "../modal/OperationModal";
 
 export interface InfoRowData {
@@ -23,23 +25,6 @@ export interface SidePanelAction {
   isActive: (item: OperationItem) => boolean;
   execute: (item: OperationItem) => void | Promise<void>;
 }
-
-const MANUAL_ALIAS_MAP: Record<string, string> = {
-  "37": "30",
-  "45": "30",
-  "48": "30",
-  "54": "30",
-  "36": "29",
-  "44": "29",
-  "47": "29",
-  "43": "28",
-  "68": "28",
-};
-
-const DEFAULT_MODAL_SIZE = {
-  width: "min(80vw, 800px)",
-  height: "min(70vh, 550px)",
-};
 
 export const useSidePanel = () => {
   const {
@@ -82,14 +67,14 @@ export const useSidePanel = () => {
     );
   }, [openGlobalModal, closeGlobalModal]);
 
-  // アクション一覧のインスタンスを生成・保持
   const actions = useMemo<SidePanelAction[]>(
     () => [
       {
         key: "jc",
-        label: "JC",
+        label: "JC状況",
         isActive: (item) =>
-          Boolean("jobId" in item && item.jobId && item.jobId !== "-"),
+          item.kind === "operation" &&
+          Boolean(item.jobId && item.jobId !== "-"),
         execute: async (item) => {
           if (item.kanriNo) {
             await runJcJob(String(item.kanriNo));
@@ -125,10 +110,9 @@ export const useSidePanel = () => {
         label: "Manual",
         isActive: (item) => Boolean(item?.kanriNo),
         execute: async (item) => {
-          const kanriNoStr = String(item.kanriNo).trim();
-          const targetKanriNo = MANUAL_ALIAS_MAP[kanriNoStr] ?? kanriNoStr;
-          const targetUrl = `https://sites.google.com/belc.co.jp/operation-manual-${targetKanriNo}`;
-          await commands.openExternal(targetUrl);
+          if (item.kanriNo) {
+            await commands.openExternal(getManualUrl(item.kanriNo));
+          }
         },
       },
     ],
@@ -149,10 +133,9 @@ export const useSidePanel = () => {
     [actions, selectedItem],
   );
 
-  // 表示用データのメモ化を最適化
   const infoRows = useMemo<InfoRowData[]>(
     () => [
-      { label: "管理 No", value: selectedItem?.kanriNo },
+      { label: "管理No", value: selectedItem?.kanriNo },
       { label: "作業名", value: selectedItem?.workName },
       {
         label: "ステータス",
@@ -167,12 +150,12 @@ export const useSidePanel = () => {
         value: formatToJapaneseDateTime(selectedItem?.endTime),
       },
       {
-        label: "サブステータス",
+        label: "詳細状況",
         value: selectedItem?.substatus?.length
           ? selectedItem.substatus.join(", ")
           : "-",
       },
-      { label: "備考", value: selectedItem?.comment },
+      { label: "コメント", value: selectedItem?.comment },
     ],
     [selectedItem, status],
   );

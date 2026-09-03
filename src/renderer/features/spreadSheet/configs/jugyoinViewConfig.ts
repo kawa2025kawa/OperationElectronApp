@@ -1,7 +1,9 @@
-﻿import type { AppViewDefinition } from "@renderer/registry/appRegistry";
-import { SHEET_IDS, type Jugyoin } from "@shared/types/spreadsheetTypes";
-import type { Column } from "@shared/types/tableType";
-import { APP_VIEW_IDS } from "@shared/types/uiType";
+﻿//src\renderer\features\spreadSheet\configs\jugyoinViewConfig.//
+
+import type { AppViewDefinition } from "@shared/types/registry";
+import { SHEET_IDS, type Jugyoin } from "@shared/types/spreadsheet";
+import type { Column } from "@shared/types/table";
+import { APP_VIEW_IDS } from "@shared/types/ui";
 import { formatDateForHeader, getOffsetDate } from "@shared/utils/dateUtils";
 
 const DATE_LABELS = {
@@ -62,10 +64,9 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
 ] as const;
 
-export const jugyoinViewConfig: AppViewDefinition = {
+export const jugyoinViewConfig: AppViewDefinition<Jugyoin> = {
   id: APP_VIEW_IDS.JUGYOIN,
-  title: "Jugyoin",
-  component: null,
+  title: "従業員",
   isProtected: true,
   sidebarMenu: { show: true, order: 3 },
   sheetId: SHEET_IDS.JUGYOIN,
@@ -77,5 +78,5 @@ export const jugyoinViewConfig: AppViewDefinition = {
     modalType: "sheet_jugyoin",
     modalSize: { width: "90vw", height: "85vh" },
   },
-  columns: JUGYOIN_COLUMNS as readonly Column<unknown>[],
+  columns: JUGYOIN_COLUMNS,
 };

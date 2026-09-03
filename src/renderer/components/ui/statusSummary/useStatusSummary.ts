@@ -2,13 +2,13 @@
 
 import { useCallback, useMemo } from "react";
 import { useAppStore } from "@renderer/store";
-import type { OperationItem } from "@shared/types/operationType";
+import type { OperationItem } from "@shared/types/operation";
 import {
   STATUS_LABEL,
   SUMMARY_ORDER,
   type StatusSummary as FilteredSummary,
   type SummaryDisplayKey,
-} from "@shared/types/uiType";
+} from "@shared/types/ui";
 import * as styles from "./statusSummary.css";
 
 // ============================================================

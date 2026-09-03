@@ -100,3 +100,10 @@ export const button = style([
     },
   },
 ]);
+
+export const footerLeft = style({
+  display: "flex",
+  alignItems: "center",
+  gap: "2vmin",
+  marginRight: "auto", // 右側に寄っている「閉じる」ボタンと分けるために auto を指定
+});

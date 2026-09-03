@@ -1,11 +1,11 @@
 // src/renderer/features/spreadSheet/components/table/SpreadSheetTable.tsx
 
 import React, { useCallback } from "react";
-import type { Column } from "@shared/types/tableType";
+import type { Column } from "@shared/types/table";
 import type {
   SpreadSheetTableProps,
   TableRowProps,
-} from "@shared/types/spreadsheetTypes";
+} from "@shared/types/spreadsheet";
 import { getValueByPath } from "@shared/utils/getValueByPath";
 import * as styles from "./spreadSheetTable.css";
 import { areRowPropsEqual, useSpreadSheetTable } from "./useSpreadSheetTable";

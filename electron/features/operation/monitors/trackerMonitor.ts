@@ -8,15 +8,15 @@ import {
   applyTrackerItem,
   fetchTrackerByJobId,
 } from "@electron/features/operation/services/trackerServiceClient";
-import type { OperationItem } from "@shared/types/operationType";
-import { JOB_STATUS } from "@shared/types/operationType";
+import type { OperationItem } from "@shared/types/operation";
+import { JOB_STATUS } from "@shared/types/operation";
 
 /**
  * Target オブジェクトが有効な JobID を保持しているか判定
  */
 export function hasJobId(target: OperationItem): boolean {
   return (
-    "jobId" in target &&
+    target.kind === "operation" &&
     typeof target.jobId === "string" &&
     target.jobId.trim() !== "" &&
     target.jobId !== "-"
@@ -72,7 +72,7 @@ async function updateTracker(target: OperationItem): Promise<void> {
   } catch (error) {
     console.error("[TrackerMonitor] Tracker FAILED", {
       kanriNo: target.kanriNo,
-      jobId: "jobId" in target ? target.jobId : undefined,
+      jobId: target.kind === "operation" ? target.jobId : undefined,
       error,
     });
   }

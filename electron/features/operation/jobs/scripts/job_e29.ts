@@ -1,4 +1,6 @@
-﻿import { parseMeisYosan } from "./helpers/job-e29/meis-yosan";
+﻿//electron\features\operation\jobs\scripts\job_e29.ts
+
+import { parseMeisYosan } from "./helpers/job-e29/meis-yosan";
 import { parseRealYosan } from "./helpers/job-e29/real-yosan";
 import {
   buildSummaryComment,

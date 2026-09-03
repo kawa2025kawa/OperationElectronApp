@@ -3,7 +3,7 @@ import {
   JOB_STATUS,
   type JobStatus,
   type OperationItem,
-} from "@shared/types/operationType";
+} from "@shared/types/operation";
 
 export interface TrackerApiResponseItem {
   status?: string[];

@@ -1,8 +1,9 @@
-﻿// electron/services/operation/jobs/scripts/job_e5.ts
+﻿// electron/features/operation/jobs/scripts/job_e5.ts
 
 import fs from "fs-extra";
 import path from "path";
 import iconv from "iconv-lite";
+import { parseCsvLine } from "./helpers/shared/parseCsvLine";
 
 const INPUT_FILE_NAME = "TENF0140.csv";
 const OUTPUT_DIR = "\\\\C0088150\\nec\\ftp";
@@ -44,37 +45,6 @@ function normalizeCode(value: string, digits: number): string {
   if (!Number.isFinite(number)) return text;
 
   return String(number).padStart(digits, "0");
-}
-
-function parseCsvLine(line: string): string[] {
-  const columns: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let index = 0; index < line.length; index++) {
-    const char = line[index];
-
-    if (char === '"') {
-      if (inQuotes && line[index + 1] === '"') {
-        current += '"';
-        index++;
-        continue;
-      }
-      inQuotes = !inQuotes;
-      continue;
-    }
-
-    if (char === "," && !inQuotes) {
-      columns.push(current.trim());
-      current = "";
-      continue;
-    }
-
-    current += char;
-  }
-
-  columns.push(current.trim());
-  return columns;
 }
 
 function transformCsv(text: string): string[][] {

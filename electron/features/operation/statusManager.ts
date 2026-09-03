@@ -1,6 +1,6 @@
 ﻿// electron/features/operation/statusManager.ts
 
-import { broadcastStatusUpdate } from "@electron/features/operation/helpers/statusNotifier";
+import { BrowserWindow } from "electron";
 import {
   deleteStatusFile,
   loadStatusesFromFile,
@@ -16,12 +16,25 @@ import {
   type JobStatus,
   type OperationItem,
   type OperationStatusFields,
-} from "@shared/types/operationType";
+} from "@shared/types/operation";
 
 export type { PersistedStatus };
 export type StatusUpdate = Partial<OperationStatusFields> & {
   kanriNo: string | number;
 };
+
+// デバッグ対象の識別子
+const DEBUG_TARGET_KEYWORDS = [
+  "BENIF0001_外部システム向けマスタＩＦ",
+  "NMA8200",
+  "76",
+];
+
+function isDebugTarget(key: string, target?: OperationItem): boolean {
+  const jobId = target?.kind === "operation" ? String(target.jobId ?? "") : "";
+  const checkStr = `${key} ${jobId} ${target?.workName ?? ""}`;
+  return DEBUG_TARGET_KEYWORDS.some((kw) => checkStr.includes(kw));
+}
 
 // State
 const apiTargets = new Map<string, OperationItem>();
@@ -33,6 +46,19 @@ let activeFlags: Record<string, boolean> = {
   is2CActive: false,
   is3CActive: false,
 };
+
+// ============================================================
+// Broadcast Notification (旧 statusNotifier.ts から吸収)
+// ============================================================
+export function broadcastStatusUpdate(item: OperationItem): void {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    if (!win.isDestroyed()) {
+      win.webContents.send("operationStatusUpdated", {
+        status: item,
+      });
+    }
+  });
+}
 
 export function getActiveFlags(): Record<string, boolean> {
   return activeFlags;
@@ -50,6 +76,7 @@ export function setActiveFlags(flags: Record<string, boolean>): void {
 // ============================================================
 export function registerTargets(items: OperationItem[]): void {
   apiTargets.clear();
+  const validKeys = new Set<string>();
   let changed = false;
 
   for (const item of items) {
@@ -57,9 +84,18 @@ export function registerTargets(items: OperationItem[]): void {
     if (!key) continue;
 
     apiTargets.set(key, item);
+    validKeys.add(key);
 
     if (!memoryStatuses.has(key)) {
       memoryStatuses.set(key, sanitizeStatus(item));
+      changed = true;
+    }
+  }
+
+  // 存在しなくなった旧ジョブのステータス情報をメモリから削除
+  for (const key of memoryStatuses.keys()) {
+    if (!validKeys.has(key)) {
+      memoryStatuses.delete(key);
       changed = true;
     }
   }
@@ -111,18 +147,48 @@ export function updateStatus(
   const key = String(update.kanriNo);
   if (!key) return false;
 
+  const target = getTargetByKanriNo(key);
+  const debug = isDebugTarget(key, target);
+
   const previous = memoryStatuses.get(key);
   const next = sanitizeStatus({ ...previous, ...update });
-  if (JSON.stringify(previous) === JSON.stringify(next)) return false;
+
+  if (debug) {
+    console.log(
+      `\n[DEBUG-STATUS-UPDATE] kanriNo: ${key} (${target?.workName ?? "Unknown"})`,
+      {
+        prevStatus: previous?.status ?? "none",
+        nextStatus: next.status,
+        updatePayload: update,
+      },
+    );
+  }
+
+  // 変化がなければ送信を止める判定箇所
+  if (JSON.stringify(previous) === JSON.stringify(next)) {
+    if (debug) {
+      console.log(
+        `[DEBUG-STATUS-UPDATE] ❌ 変化なしのため送信キャンセル (prev === next)`,
+      );
+    }
+    return false;
+  }
 
   memoryStatuses.set(key, next);
 
-  if (!options?.isManual) {
-    const target = getTargetByKanriNo(key);
-    broadcastStatusUpdate(key, {
-      ...next,
-      ...(target?.workName ? { workName: target.workName } : {}),
-    });
+  if (target) {
+    const mergedItem = getMergedEntity(target);
+    if (debug) {
+      console.log(`[DEBUG-STATUS-UPDATE] ⭕ UIへIPC放送送信準備完了:`, {
+        kanriNo: mergedItem.kanriNo,
+        status: mergedItem.status,
+      });
+    }
+    broadcastStatusUpdate(mergedItem);
+  } else if (debug) {
+    console.log(
+      `[DEBUG-STATUS-UPDATE] ⚠️ apiTargetsにTargetが存在しないためbroadcast中止`,
+    );
   }
 
   schedulePersistStatuses(memoryStatuses);

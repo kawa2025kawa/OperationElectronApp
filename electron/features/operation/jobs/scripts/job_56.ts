@@ -13,8 +13,10 @@ const ENCODING = "Windows-31J"; // Shift_JIS(CP932/Windows-31J) 互換指定
 const MAX_BYTE_LENGTH = 256;
 const CHAR_A_BYTE = 0x41; // ASCII/SJIS における 'A'
 
-// 許可する文字パターン: 行末パディング(スペース/NBSP等)を除去後、半角 A, D, 0-9 のみ
-const VALID_CHAR_REGEX = /^[AD0-9]+$/;
+// 許可する文字パターン
+// 半角 A、D、0～9、半角スペースを許可
+// （行末のパディングスペースは事前に除去して判定）
+const VALID_CHAR_REGEX = /^[AD0-9 ]+$/;
 
 export async function runJob56(): Promise<string> {
   const now = new Date();
@@ -28,6 +30,7 @@ export async function runJob56(): Promise<string> {
 
   // 2. 対象ファイルの抽出
   const entries = await fs.readdir(TARGET_DIR, { withFileTypes: true });
+
   const targetFiles = entries.filter(
     (entry) => entry.isFile() && entry.name.startsWith(filePrefix),
   );
@@ -54,15 +57,17 @@ export async function runJob56(): Promise<string> {
       const lineNum = i + 1;
 
       // 末尾の空行はチェック対象外
-      if (i === lines.length - 1 && line.length === 0) continue;
+      if (i === lines.length - 1 && line.length === 0) {
+        continue;
+      }
 
-      // 行末のパディング（半角スペース、全角スペース、NBSP / \u00A0等）を除去
+      // 行末のパディング（半角スペース、全角スペース、NBSP等）を除去
       const trimmedLine = line.replace(/[\s\u00A0]+$/g, "");
 
-      // チェック①: 許可文字（半角 'A', 'D', '0'～'9'）以外の文字が含まれていないか
+      // チェック①: 許可文字（半角 A、D、0～9、半角スペース）以外が含まれていないか
       if (trimmedLine.length > 0 && !VALID_CHAR_REGEX.test(trimmedLine)) {
         errorMessages.push(
-          `${fileName} (${lineNum}行目): 許可されていない文字が含まれています (半角 A, D, 0-9 のみ許可)。`,
+          `${fileName} (${lineNum}行目): 許可されていない文字が含まれています (半角 A, D, 0-9, 半角スペースのみ許可)。`,
         );
       }
 
@@ -75,9 +80,10 @@ export async function runJob56(): Promise<string> {
         );
       }
 
-      // チェック③: 3バイト目以降（インデックス2以降）に "A" (0x41) が存在しないか
+      // チェック③: 3バイト目以降（インデックス2以降）に "A" が存在しないか
       if (lineBuffer.length >= 3) {
         const subBuffer = lineBuffer.subarray(2);
+
         if (subBuffer.includes(CHAR_A_BYTE)) {
           errorMessages.push(
             `${fileName} (${lineNum}行目): 3バイト目以降に "A" が存在します。`,

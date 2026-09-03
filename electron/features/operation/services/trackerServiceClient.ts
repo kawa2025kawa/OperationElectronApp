@@ -1,4 +1,6 @@
-﻿import type { OperationItem } from "@shared/types/operationType";
+﻿// electron/features/operation/services/trackerServiceClient.ts
+
+import type { OperationItem } from "@shared/types/operation";
 import {
   applyTrackerItem,
   normalizeItem,
@@ -6,7 +8,6 @@ import {
 } from "../helpers/trackerMapper";
 import {
   addKanshiTime,
-  buildFallbackTrackerUrl,
   buildTrackerUrl,
   getTargetTime,
 } from "../helpers/trackerUrlHelper";
@@ -31,9 +32,6 @@ export async function fetchTrackerByJobId(
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       const result = await requestTracker(jobId, from, to);
-      if (result.length === 0) {
-        return [];
-      }
       return result;
     } catch (error) {
       console.error(
@@ -65,6 +63,7 @@ async function requestTracker(
 ): Promise<Partial<OperationItem>[]> {
   const primaryUrl = buildTrackerUrl(jobId, from, to);
   const primaryResponse = await fetch(primaryUrl);
+
   if (!primaryResponse.ok) {
     throw new Error(`Tracker API Error ${primaryResponse.status}`);
   }
@@ -74,12 +73,6 @@ async function requestTracker(
     return primaryJson.data.map(normalizeItem);
   }
 
-  const fallbackUrl = buildFallbackTrackerUrl(jobId);
-  const fallbackResponse = await fetch(fallbackUrl);
-  if (!fallbackResponse.ok) {
-    throw new Error(`Tracker API Fallback Error ${fallbackResponse.status}`);
-  }
-
-  const fallbackJson = (await fallbackResponse.json()) as TrackerApiResponse;
-  return (fallbackJson.data ?? []).map(normalizeItem);
+  // 時間範囲外の旧データ誤取得（誤完了判定）を防ぐため fallbackUrl 呼び出しを廃止
+  return [];
 }

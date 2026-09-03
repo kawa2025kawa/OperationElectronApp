@@ -3,7 +3,7 @@
 import { useAppStore } from "@renderer/store/index";
 import { consumeSuppressedSuccessToast } from "@shared/utils/statusToastSuppression";
 import { usePollingToastStore, type ToastType } from "./pollingToastStore";
-import type { JobStatus, OperationItem } from "@shared/types/operationType";
+import type { JobStatus, OperationItem } from "@shared/types/operation";
 
 const prevStatusMap = new Map<string, JobStatus>();
 
@@ -48,7 +48,9 @@ export const handleStatusToastNotification = (
   const nameLabel =
     item?.workName ||
     update.workName ||
-    ("jobId" in update && update.jobId ? String(update.jobId) : null) ||
+    (update.kind === "operation" && update.jobId
+      ? String(update.jobId)
+      : null) ||
     `管理No.${kanriNo}`;
 
   usePollingToastStore

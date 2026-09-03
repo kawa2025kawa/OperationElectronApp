@@ -2,8 +2,9 @@
 
 import { useEffect } from "react";
 import { commands } from "@renderer/services/commands";
+import { showToast } from "@renderer/utils/toastUtils";
 
-const UPDATE_EXE_PATH =
+const DEFAULT_UPDATE_EXE_PATH =
   "\\\\S0088210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp\\OperationElectronApp-setup.exe";
 
 const CURRENT_VERSION = import.meta.env.APP_VERSION ?? "0.0.0";
@@ -54,9 +55,15 @@ export const useAutoUpdate = () => {
         return;
       }
 
-      await commands.openExternal(UPDATE_EXE_PATH);
+      // updateInfo 側にインストーラーパスがあればそれを優先（動的化）
+      const targetPath =
+        (updateInfo as { installerPath?: string }).installerPath ??
+        DEFAULT_UPDATE_EXE_PATH;
+
+      await commands.openExternal(targetPath);
     } catch (error) {
-      console.warn("[AutoUpdate] Update check skipped:", error);
+      console.error("[AutoUpdate] Update check or execution failed:", error);
+      showToast("アップデートインストーラーの起動に失敗しました", "error");
     }
   };
 

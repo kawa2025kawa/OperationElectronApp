@@ -1,7 +1,7 @@
-﻿import type { AppViewDefinition } from "@renderer/registry/appRegistry";
-import { SHEET_IDS, type Kokyuhyo } from "@shared/types/spreadsheetTypes";
-import type { Column } from "@shared/types/tableType";
-import { APP_VIEW_IDS } from "@shared/types/uiType";
+﻿import type { AppViewDefinition } from "@shared/types/registry";
+import { SHEET_IDS, type Kokyuhyo } from "@shared/types/spreadsheet";
+import type { Column } from "@shared/types/table";
+import { APP_VIEW_IDS } from "@shared/types/ui";
 import { formatDateForHeader, getOffsetDate } from "@shared/utils/dateUtils";
 
 const DATE_LABELS = {
@@ -63,7 +63,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
 
 export const kokyuhyoViewConfig: AppViewDefinition = {
   id: APP_VIEW_IDS.KOKYUHYO,
-  title: "Kokyuhyo",
+  title: "公休表",
   component: null,
   isProtected: true,
   sidebarMenu: { show: true, order: 2 },

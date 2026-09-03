@@ -7,8 +7,8 @@ import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { StatusContextMenu } from "@renderer/features/operation/components/contextMenu/StatusContextMenu";
 
 import { useAppStore } from "@renderer/store";
-import type { OperationItem } from "@shared/types/operationType";
-import type { Column } from "@shared/types/tableType";
+import type { OperationItem } from "@shared/types/operation";
+import type { Column } from "@shared/types/table";
 
 import * as styles from "./operationTable.css";
 

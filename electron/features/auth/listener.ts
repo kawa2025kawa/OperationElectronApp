@@ -1,4 +1,6 @@
-﻿import * as http from "node:http";
+﻿// electron/features/auth/listener.ts
+
+import * as http from "node:http";
 
 export interface OAuthCallback {
   code: string;
@@ -6,11 +8,19 @@ export interface OAuthCallback {
 }
 
 const HOST = "127.0.0.1";
-const DEFAULT_TIMEOUT_MS = 60000; // 1分（60秒）応答がなければタイムアウト
+const DEFAULT_TIMEOUT_MS = 60000;
+
+let activeServer: http.Server | null = null;
+
+export function stopListener(): void {
+  if (activeServer) {
+    activeServer.close();
+    activeServer = null;
+  }
+}
 
 const createHtmlPage = (title: string, message: string) =>
-  `
-<!DOCTYPE html>
+  `<!DOCTYPE html>
 <html lang="ja">
 <head><meta charset="UTF-8"><title>${title}</title></head>
 <body><h1>${title}</h1><p>${message}</p></body>
@@ -18,15 +28,15 @@ const createHtmlPage = (title: string, message: string) =>
 
 const SUCCESS_RESPONSE = createHtmlPage(
   "認証完了",
-  "このタブを閉じてアプリに戻ってください。",
+  "Google ログインが完了しました。このウィンドウを閉じてアプリに戻ってください。",
 );
 const AUTH_ERROR_RESPONSE = createHtmlPage(
-  "認証失敗",
-  "アプリに戻って再度ログインしてください。",
+  "認証エラー",
+  "Google ログインでエラーが発生しました。アプリからやり直してください。",
 );
 const INVALID_REQUEST_RESPONSE = createHtmlPage(
-  "認証エラー",
-  "アプリに戻って再度ログインしてください。",
+  "不正なリクエスト",
+  "無効なリクエストです。",
 );
 
 export function startListener(
@@ -34,6 +44,8 @@ export function startListener(
   expectedState: string,
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
 ): Promise<OAuthCallback> {
+  stopListener(); // 既存リスナーの強制クリーンアップ
+
   return new Promise((resolve, reject) => {
     let settled = false;
     let timer: NodeJS.Timeout | null = null;
@@ -41,14 +53,16 @@ export function startListener(
     const server = http.createServer((req, res) => {
       void handleRequest(req, res);
     });
+    activeServer = server;
 
     const closeAndCleanup = async () => {
       if (timer) {
         clearTimeout(timer);
         timer = null;
       }
-      if (server.listening) {
-        await new Promise<void>((r) => server.close(() => r()));
+      if (activeServer) {
+        await new Promise<void>((r) => activeServer?.close(() => r()));
+        activeServer = null;
       }
     };
 
@@ -60,30 +74,22 @@ export function startListener(
     ) => {
       if (settled) return;
       settled = true;
-
       res.writeHead(status, {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",
       });
       res.end(body);
-
       await closeAndCleanup();
       action();
     };
 
-    // 1. タイムアウト監視（ブラウザが閉じられる・放置された場合）
     timer = setTimeout(async () => {
       if (settled) return;
       settled = true;
       await closeAndCleanup();
-      reject(
-        new Error(
-          "認証がタイムアウトしました。ブラウザで再度ログインをやり直してください。",
-        ),
-      );
+      reject(new Error("Google OAuth ログインがタイムアウトしました"));
     }, timeoutMs);
 
-    // 2. リクエスト処理
     async function handleRequest(
       req: http.IncomingMessage,
       res: http.ServerResponse,
@@ -118,7 +124,6 @@ export function startListener(
       );
     }
 
-    // 3. エラーハンドリング
     server.once("error", async (err) => {
       if (settled) return;
       settled = true;

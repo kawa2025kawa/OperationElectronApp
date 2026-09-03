@@ -1,6 +1,8 @@
-﻿//electron\features\operation\jobRunner.ts
-
-import { JOB_STATUS, type OperationItem } from "@shared/types/operationType";
+import {
+  JOB_STATUS,
+  type JobResult,
+  type OperationItem,
+} from "@shared/types/operation";
 import { dispatchScript } from "@electron/features/operation/jobs/scripts";
 import { hasJobId } from "@electron/features/operation/monitors/trackerMonitor";
 import {
@@ -10,37 +12,44 @@ import {
 
 const runningJobs = new Set<string>();
 
-/**
- * IPC通信やErrorオブジェクトの冗長な接頭辞を除去
- */
 function cleanErrorMessage(error: unknown): string {
   const rawMessage = error instanceof Error ? error.message : String(error);
+
   return rawMessage
     .replace(/^Error invoking remote method '[^']+':\s*/, "")
     .replace(/^Error:\s*/, "")
     .trim();
 }
 
-/**
- * 指定管理番号のジョブを実行
- * @param rawKanriNo 管理番号
- * @param filePath 単一または複数のファイルパス
- */
+function isJobRunning(kanriNo: string): boolean {
+  return runningJobs.has(kanriNo);
+}
+
+function markJobRunning(kanriNo: string): void {
+  runningJobs.add(kanriNo);
+}
+
+function markJobFinished(kanriNo: string): void {
+  runningJobs.delete(kanriNo);
+}
+
 export async function executeJob(
   rawKanriNo: string | number,
   filePath?: string | string[],
-): Promise<string> {
+): Promise<JobResult> {
   const kanriNo = String(rawKanriNo).trim();
+
   if (!kanriNo) {
     throw new Error("kanriNo is required");
   }
 
-  if (runningJobs.has(kanriNo)) {
+  if (isJobRunning(kanriNo)) {
     console.warn(`[JobRunner] already running: ${kanriNo}`);
-    return "Already running";
+    throw new Error(`管理No.${kanriNo} は既に実行中です`);
   }
 
-  runningJobs.add(kanriNo);
+  markJobRunning(kanriNo);
+
   const startTime = new Date().toISOString();
 
   try {
@@ -51,41 +60,45 @@ export async function executeJob(
       startTime,
     });
 
-    // dispatchScript へ filePath (string | string[]) を委譲
     const result = await dispatchScript(kanriNo, filePath);
+    const endTime = new Date().toISOString();
 
     updateStatus({
       kanriNo,
       status: JOB_STATUS.SUCCESS,
-      comment: result,
+      comment: result.message,
       startTime,
-      endTime: new Date().toISOString(),
+      endTime,
     });
 
-    console.log(`[JobRunner] completed: ${kanriNo}`);
+    console.log(`[JobRunner] completed: ${kanriNo}`, {
+      message: result.message,
+      artifactCount: result.artifacts?.length ?? 0,
+    });
+
     return result;
   } catch (error) {
     const formattedError = cleanErrorMessage(error);
+    const endTime = new Date().toISOString();
 
     updateStatus({
       kanriNo,
       status: JOB_STATUS.ERROR,
       comment: formattedError,
       startTime,
-      endTime: new Date().toISOString(),
+      endTime,
     });
 
     console.error(`[JobRunner] failed: ${kanriNo}`, formattedError);
 
-    throw new Error(formattedError, { cause: error });
+    throw new Error(formattedError, {
+      cause: error,
+    });
   } finally {
-    runningJobs.delete(kanriNo);
+    markJobFinished(kanriNo);
   }
 }
 
-/**
- * 自動起動対象のジョブを一括実行
- */
 export async function triggerAutoStartJobs(
   targets: OperationItem[],
   runningCheck: () => boolean,
@@ -97,15 +110,20 @@ export async function triggerAutoStartJobs(
       getStatus(target.kanriNo)?.status === JOB_STATUS.READY,
   );
 
-  if (jobs.length === 0) return;
+  if (jobs.length === 0) {
+    return;
+  }
 
-  console.log("[JobRunner] auto-start jobs", { count: jobs.length });
+  console.log("[JobRunner] auto-start jobs", {
+    count: jobs.length,
+  });
 
   for (const job of jobs) {
-    if (!runningCheck()) return;
+    if (!runningCheck()) {
+      return;
+    }
 
-    // executeJob 側で整形済みのエラーが返るため、そのまま受ける
-    executeJob(job.kanriNo).catch((error) => {
+    void executeJob(job.kanriNo).catch((error) => {
       console.error("[JobRunner] Auto-start FAILED", {
         kanriNo: job.kanriNo,
         error: error instanceof Error ? error.message : error,

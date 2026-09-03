@@ -1,16 +1,13 @@
+// src/shared/utils/dateUtils.ts
+
 import { format, addDays } from "date-fns";
 import { ja } from "date-fns/locale";
+import type { ScheduledTime } from "@shared/types/operation";
 
-/**
- * 日付オブジェクトにオフセット日数を加算して取得
- */
 export const getOffsetDate = (offsetDays: number): Date => {
   return addDays(new Date(), offsetDays);
 };
 
-/**
- * 日本語の日時フォーマット (例: 2026年08月12日 10:08)
- */
 export const formatToJapaneseDateTime = (dateStr?: string | null): string => {
   if (!dateStr) return "-";
   const date = new Date(dateStr);
@@ -18,91 +15,76 @@ export const formatToJapaneseDateTime = (dateStr?: string | null): string => {
   return format(date, "yyyy年MM月dd日 HH:mm", { locale: ja });
 };
 
-/**
- * テーブルヘッダー用フォーマット (例: 08/12(水))
- */
 export const formatDateForHeader = (date: Date): string => {
   return format(date, "MM/dd(EEE)", { locale: ja });
 };
 
 /**
- * scheduledTime (例: "9:22" や "14:00") が現在時刻を過ぎているか判定する
- * @param scheduledTimeStr "HH:mm" 形式の文字列
- * @param now 比較対象の現在時刻（デフォルト: new Date()）
- * @returns 予定時刻を過ぎている（または時刻指定がない）場合は true、予定時刻前なら false
+ * 予定時刻 ("AM", "PM", "15:00" 等) が現在時刻を過ぎているか判定
  */
 export const isScheduledTimePassed = (
-  scheduledTimeStr?: string | null,
+  scheduledTimeStr?: ScheduledTime | string | null,
+  isPreviousDay = false,
   now = new Date(),
 ): boolean => {
-  if (!scheduledTimeStr || !scheduledTimeStr.trim()) {
-    return true; // 時刻指定がない場合は制限なし（到達済み扱い）
-  }
+  if (!scheduledTimeStr?.trim()) return true;
 
-  const parts = scheduledTimeStr.trim().split(":");
-  if (parts.length < 2) {
-    return true; // フォーマット不正の場合も通過
-  }
+  const str = scheduledTimeStr.trim();
+  let targetHour: number;
+  let targetMinute = 0;
 
-  const hours = parseInt(parts[0], 10);
-  const minutes = parseInt(parts[1], 10);
+  if (str === "AM") {
+    targetHour = 0;
+  } else if (str === "PM") {
+    targetHour = 12;
+  } else {
+    const [hourStr, minuteStr] = str.split(":");
+    targetHour = parseInt(hourStr, 10);
+    targetMinute = parseInt(minuteStr, 10);
 
-  if (isNaN(hours) || isNaN(minutes)) {
-    return true;
+    if (isNaN(targetHour) || isNaN(targetMinute)) return false;
   }
 
   const scheduledDate = new Date(now);
-  scheduledDate.setHours(hours, minutes, 0, 0);
+  scheduledDate.setHours(targetHour, targetMinute, 0, 0);
+
+  if (isPreviousDay) {
+    scheduledDate.setDate(scheduledDate.getDate() - 1);
+  }
 
   return now >= scheduledDate;
 };
 
 /**
- * 実行開始時刻(startTime)から kanshiTime (タイムアウト閾値 例: "1:00" や "60") を超過したか判定
+ * 実行開始時刻(startTime)から kanshiTime ("1:00" や "60") を超過したか判定
  */
 export const isJobTimedOut = (
   startTimeStr?: string | null,
   kanshiTimeStr?: string | null,
   now = new Date(),
 ): boolean => {
-  if (
-    !startTimeStr ||
-    !kanshiTimeStr ||
-    !startTimeStr.trim() ||
-    !kanshiTimeStr.trim()
-  ) {
+  if (!startTimeStr?.trim() || !kanshiTimeStr?.trim()) return false;
+
+  const kanshi = kanshiTimeStr.trim();
+  const timeoutMinutes = kanshi.includes(":")
+    ? (parseInt(kanshi.split(":")[0], 10) || 0) * 60 +
+      (parseInt(kanshi.split(":")[1], 10) || 0)
+    : parseInt(kanshi, 10);
+
+  if (!timeoutMinutes || isNaN(timeoutMinutes) || timeoutMinutes <= 0) {
     return false;
   }
 
-  // kanshiTime のパース ("HH:mm" 形式 または 単純な「分」指定に対応)
-  const trimmedKanshi = kanshiTimeStr.trim();
-  let timeoutMinutes: number;
-
-  if (trimmedKanshi.includes(":")) {
-    const parts = trimmedKanshi.split(":");
-    const h = parseInt(parts[0], 10) || 0;
-    const m = parseInt(parts[1], 10) || 0;
-    timeoutMinutes = h * 60 + m;
-  } else {
-    timeoutMinutes = parseInt(trimmedKanshi, 10) || 0;
-  }
-
-  if (timeoutMinutes <= 0) return false;
-
-  // startTime ("HH:mm" または "HH:mm:ss") のパース
-  const startParts = startTimeStr.trim().split(":");
-  if (startParts.length < 2) return false;
-
-  const startHours = parseInt(startParts[0], 10);
-  const startMinutes = parseInt(startParts[1], 10);
-  if (isNaN(startHours) || isNaN(startMinutes)) return false;
+  const [startH, startM] = startTimeStr.trim().split(":").map(Number);
+  if (isNaN(startH) || isNaN(startM)) return false;
 
   const startDate = new Date(now);
-  startDate.setHours(startHours, startMinutes, 0, 0);
+  startDate.setHours(startH, startM, 0, 0);
 
-  // 経過時間（ミリ秒）と タイムアウト時間（ミリ秒）の比較
-  const elapsedMs = now.getTime() - startDate.getTime();
-  const timeoutMs = timeoutMinutes * 60 * 1000;
+  // 日付またぎ判定（例: 23:50 開始で現在が翌 00:10 の場合、startDate が未来時刻になるのを防止）
+  if (startDate > now) {
+    startDate.setDate(startDate.getDate() - 1);
+  }
 
-  return elapsedMs > timeoutMs;
+  return now.getTime() - startDate.getTime() > timeoutMinutes * 60 * 1000;
 };

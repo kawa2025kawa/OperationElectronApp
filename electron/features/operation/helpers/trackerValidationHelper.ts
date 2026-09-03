@@ -1,9 +1,10 @@
 ﻿// electron/features/operation/helpers/trackerValidationHelper.ts
-import type { OperationItem } from "@shared/types/operationType";
+
+import type { OperationItem } from "@shared/types/operation";
 
 export function validateJobId(target: OperationItem): string {
   if (
-    !("jobId" in target) ||
+    target.kind !== "operation" ||
     typeof target.jobId !== "string" ||
     target.jobId.trim().length === 0 ||
     target.jobId === "-"

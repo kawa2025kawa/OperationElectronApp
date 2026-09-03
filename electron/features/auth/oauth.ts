@@ -2,7 +2,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 
-import type { OAuthToken } from "@shared/types/authTypes";
+import type { OAuthToken } from "@shared/types/auth";
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";

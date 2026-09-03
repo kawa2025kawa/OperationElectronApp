@@ -4,7 +4,7 @@ import irregularData from "@resources/json/irregularData.json";
 import operationData from "@resources/json/operationData.json";
 import { commands } from "@renderer/services/commands";
 import { useAppStore } from "@renderer/store";
-import type { OperationItem } from "@shared/types/operationType";
+import type { OperationItem } from "@shared/types/operation";
 
 const operations = operationData as OperationItem[];
 const irregulars = irregularData as OperationItem[];

@@ -1,64 +1,14 @@
-// src/renderer/features/other/components/modal/gmailModal/GmailModalContent.tsx
+﻿// src/renderer/features/other/components/modal/gmailModal/GmailModalContent.tsx
 
-import React, { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
+import React from "react";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import { AuthView } from "@renderer/features/auth/AuthView";
-import { gmailService } from "@renderer/features/other/services/gmailService";
-import { useAppStore } from "@renderer/store";
 import * as styles from "./gmailModalContent.css";
 import {
   EMAIL_TEMPLATE_OPTIONS,
-  getEmailTemplate,
-  type EmailTemplateKey,
   type EmailTemplateOption,
 } from "./gmailTemplates";
-
-interface FormValues {
-  to: string;
-  cc: string;
-  subject: string;
-  body: string;
-}
-
-function getNextTuesdayString(): string {
-  const now = new Date();
-  const daysUntilNextTuesday = (2 - now.getDay() + 7) % 7 || 7;
-  const nextTuesday = new Date(now);
-  nextTuesday.setDate(now.getDate() + daysUntilNextTuesday);
-  return `${nextTuesday.getMonth() + 1}月${nextTuesday.getDate()}日`;
-}
-
-function stripHtmlTags(html: string): string {
-  if (!html) return "";
-  const formattedHtml = html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/div>/gi, "\n")
-    .replace(/<\/p>/gi, "\n");
-  const doc = new DOMParser().parseFromString(formattedHtml, "text/html");
-  const textContent = doc.body.textContent || "";
-  return textContent
-    .split("\n")
-    .map((line) => line.trimEnd())
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-function createFormValues(
-  templateKey: EmailTemplateKey | null,
-  lastName: string,
-  nextTuesdayStr: string,
-): FormValues {
-  if (!templateKey) return { to: "", cc: "", subject: "", body: "" };
-  const template = getEmailTemplate(templateKey);
-  return {
-    to: template.to,
-    cc: template.cc ?? "",
-    subject: template.subject,
-    body: template.generateBody({ lastName, nextTuesdayStr }),
-  };
-}
+import { useGmailModalLogic } from "./useGmailModalLogic";
 
 interface GmailModalContentProps {
   onClose: () => void;
@@ -66,108 +16,18 @@ interface GmailModalContentProps {
 
 export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
   ({ onClose }) => {
-    const isAuthenticated = useAppStore((state) => state.isAuthenticated);
-    const familyName = useAppStore((state) => state.familyName);
-    const userEmail = useAppStore((state) => state.userEmail);
-    const lastName = familyName || "担当者";
-    const nextTuesdayStr = getNextTuesdayString();
+    const {
+      isAuthenticated,
+      userEmail,
+      templateKey,
+      formValues,
+      isSaving,
+      isExecuted,
+      handleInputChange,
+      handleTemplateChange,
+      handleExecute,
+    } = useGmailModalLogic();
 
-    const [templateKey, setTemplateKey] = useState<EmailTemplateKey | null>(
-      null,
-    );
-    const [formValues, setFormValues] = useState<FormValues>({
-      to: "",
-      cc: "",
-      subject: "",
-      body: "",
-    });
-    const [isSaving, setIsSaving] = useState(false);
-    const [isExecuted, setIsExecuted] = useState(false);
-
-    const handleInputChange = useCallback(
-      (field: keyof FormValues) =>
-        (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-          setFormValues((prev) => ({ ...prev, [field]: e.target.value }));
-        },
-      [],
-    );
-
-    const handleTemplateChange = useCallback(
-      (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const nextKey = (event.target.value as EmailTemplateKey) || null;
-        setTemplateKey(nextKey);
-        setFormValues(createFormValues(nextKey, lastName, nextTuesdayStr));
-      },
-      [lastName, nextTuesdayStr],
-    );
-
-    useEffect(() => {
-      if (!isAuthenticated || !templateKey) return;
-      let mounted = true;
-      void gmailService
-        .getPrimarySignature()
-        .then((signature) => {
-          const plainSignature = stripHtmlTags(signature || "");
-          if (!mounted || !plainSignature) return;
-          setFormValues((prev) => {
-            if (prev.body.includes(plainSignature)) return prev;
-            const currentBody = prev.body.trimEnd();
-            return {
-              ...prev,
-              body: `${currentBody}\n\n--\n${plainSignature}`,
-            };
-          });
-        })
-        .catch((err) => console.warn("[GmailModal] Signature error:", err));
-      return () => {
-        mounted = false;
-      };
-    }, [isAuthenticated, templateKey]);
-
-    const handleExecute = useCallback(async () => {
-      if (!templateKey) return;
-      if (!formValues.to.trim()) {
-        toast.error("宛先 (To) を入力してください。");
-        return;
-      }
-      setIsSaving(true);
-      const { setGlobalProcessing } = useAppStore.getState();
-      setGlobalProcessing({
-        message: "Gmail下書き作成中...",
-        target: formValues.subject.trim() || "無題",
-      });
-
-      // LOADING画面がユーザーに視認されるよう最小表示時間を確保
-      const startTime = Date.now();
-      try {
-        await gmailService.createDraft({
-          to: formValues.to.trim(),
-          cc: formValues.cc.trim(),
-          subject: formValues.subject.trim(),
-          body: formValues.body,
-        });
-
-        const elapsedTime = Date.now() - startTime;
-        if (elapsedTime < 500) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, 500 - elapsedTime),
-          );
-        }
-
-        setIsExecuted(true);
-        toast.success("Gmail下書きを作成しました。");
-      } catch (error) {
-        console.error("[GmailModal] Failed to create draft:", error);
-        toast.error(
-          error instanceof Error ? error.message : "下書き作成に失敗しました。",
-        );
-      } finally {
-        setIsSaving(false);
-        setGlobalProcessing(null);
-      }
-    }, [templateKey, formValues]);
-
-    // Google未認証の場合はAuthViewを表示して認証を促す
     if (!isAuthenticated) {
       return (
         <div className={styles.modalContainer}>
@@ -231,10 +91,10 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
             <label className={styles.label} htmlFor="gmail-to">
               宛先 (To)
             </label>
-            <input
+            <textarea
               id="gmail-to"
-              type="email"
-              className={styles.input}
+              className={styles.textarea}
+              rows={3}
               placeholder="example@domain.com"
               value={formValues.to}
               onChange={handleInputChange("to")}
@@ -246,10 +106,10 @@ export const GmailModalContent: React.FC<GmailModalContentProps> = React.memo(
             <label className={styles.label} htmlFor="gmail-cc">
               CC
             </label>
-            <input
+            <textarea
               id="gmail-cc"
-              type="email"
-              className={styles.input}
+              className={styles.textarea}
+              rows={2}
               placeholder="cc@domain.com (任意)"
               value={formValues.cc}
               onChange={handleInputChange("cc")}

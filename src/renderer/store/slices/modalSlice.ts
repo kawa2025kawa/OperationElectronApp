@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
-import type { GlobalModalConfig } from "@shared/types/uiType";
+import type { GlobalModalConfig } from "@shared/types/ui";
 
 export interface ModalSlice {
   modalContent: ReactNode | null;

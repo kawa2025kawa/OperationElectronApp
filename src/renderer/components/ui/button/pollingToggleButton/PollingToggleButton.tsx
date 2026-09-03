@@ -1,38 +1,29 @@
-﻿import React, { useCallback, useEffect, useState } from "react";
+﻿// src/renderer/components/PollingToggleButton.tsx
+import React, { useCallback } from "react";
 import { useAppStore } from "@renderer/store";
-import { useShallow } from "zustand/react/shallow";
 import { showToast } from "@renderer/utils/toastUtils";
+import { useShallow } from "zustand/react/shallow";
 import * as styles from "./pollingToggleButton.css";
 
 const POLLING_INTERVAL_SEC = 60;
-// 円周長: 2 * π * r (r=8) = 50.265
 const CIRCUMFERENCE = 50.265;
 
 export const PollingToggleButton: React.FC = () => {
-  const { isPolling, startPolling, stopPolling, resetAllOperationStatuses } =
-    useAppStore(
-      useShallow((state) => ({
-        isPolling: state.isPolling,
-        startPolling: state.startPolling,
-        stopPolling: state.stopPolling,
-        resetAllOperationStatuses: state.resetAllOperationStatuses,
-      })),
-    );
-
-  const [timeLeft, setTimeLeft] = useState(POLLING_INTERVAL_SEC);
-
-  useEffect(() => {
-    if (!isPolling) {
-      setTimeLeft(POLLING_INTERVAL_SEC);
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev <= 1 ? POLLING_INTERVAL_SEC : prev - 1));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isPolling]);
+  const {
+    isPolling,
+    timeLeft,
+    startPolling,
+    stopPolling,
+    resetAllOperationStatuses,
+  } = useAppStore(
+    useShallow((state) => ({
+      isPolling: state.isPolling,
+      timeLeft: state.timeLeft,
+      startPolling: state.startPolling,
+      stopPolling: state.stopPolling,
+      resetAllOperationStatuses: state.resetAllOperationStatuses,
+    })),
+  );
 
   const handleClick = useCallback(() => {
     return isPolling ? stopPolling() : startPolling();
@@ -60,10 +51,10 @@ export const PollingToggleButton: React.FC = () => {
     ? "システム稼働中（クリックで停止）"
     : "左クリック: 監視開始 / 右クリック: 全データを「予定」へリセット";
 
-  // 秒数（timeLeft）に完全連動したオフセット計算 (60秒で一回り)
   const strokeDashoffset =
     CIRCUMFERENCE -
-    (CIRCUMFERENCE * (POLLING_INTERVAL_SEC - timeLeft)) / POLLING_INTERVAL_SEC;
+    (CIRCUMFERENCE * (POLLING_INTERVAL_SEC - Math.max(0, timeLeft))) /
+      POLLING_INTERVAL_SEC;
 
   return (
     <button
@@ -76,7 +67,6 @@ export const PollingToggleButton: React.FC = () => {
       onContextMenu={handleContextMenu}
     >
       <div className={styles.content}>
-        {/* 左側：カウントダウン連動リング または オフラインドット */}
         <div className={styles.indicatorContainer}>
           {isPolling ? (
             <svg className={styles.progressRing} viewBox="0 0 20 20">
@@ -97,12 +87,10 @@ export const PollingToggleButton: React.FC = () => {
           )}
         </div>
 
-        {/* 中央：テキスト */}
         <span className={styles.label}>
           {isPolling ? "SYSTEM ONLINE" : "SYSTEM OFFLINE"}
         </span>
 
-        {/* 右側：タイマー */}
         <div className={styles.timerContainer}>
           {isPolling && <span className={styles.timerText}>{timeLeft}s</span>}
         </div>

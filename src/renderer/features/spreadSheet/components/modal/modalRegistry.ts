@@ -4,7 +4,7 @@ import {
   SHEET_IDS,
   type SheetId,
   type SheetRowMap,
-} from "@shared/types/spreadsheetTypes";
+} from "@shared/types/spreadsheet";
 import { JugyoinModalContent } from "./jugyoin/JugyoinModalContent";
 import { KokyuhyoModalContent } from "./kokyuhyo/KokyuhyoModalContent";
 import { ShopModalContent } from "./shop/ShopModalContent";

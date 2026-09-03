@@ -1,14 +1,18 @@
 ﻿// src/renderer/components/ui/fileDropZone/FileDropZone.tsx
 
 import React from "react";
-import * as styles from "./fileDropZone.css";
 
-// ★ useFileDropZone と FileDropZoneItem / FileDropZoneProps をまとめてインポート
 import {
   useFileDropZone,
   type FileDropZoneItem,
   type FileDropZoneProps,
 } from "./useFileDropZone";
+
+import * as styles from "./fileDropZone.css";
+
+// ============================================================================
+// Component
+// ============================================================================
 
 export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
   ({
@@ -35,9 +39,16 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
       disabled,
     });
 
+    const dropZoneClassName = [
+      styles.dropZone,
+      isDragOver && styles.dropZoneActive,
+      disabled && styles.dropZoneDisabled,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
     return (
       <div className={styles.container}>
-        {/* Drop Zone */}
         <div
           role="button"
           tabIndex={disabled ? -1 : 0}
@@ -47,13 +58,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
           onDrop={handleDrop}
           onClick={handleClick}
           onKeyDown={handleKeyDown}
-          className={[
-            styles.dropZone,
-            isDragOver ? styles.dropZoneActive : "",
-            disabled ? styles.dropZoneDisabled : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+          className={dropZoneClassName}
         >
           <input
             ref={inputRef}
@@ -68,7 +73,6 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
           <p className={styles.labelText}>{label}</p>
         </div>
 
-        {/* Selected Files */}
         <div className={styles.selectedFilesContainer}>
           <div className={styles.selectedFilesHeader}>
             選択ファイル ({files.length})

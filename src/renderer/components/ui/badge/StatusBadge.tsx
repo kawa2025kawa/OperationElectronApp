@@ -1,7 +1,7 @@
 // src/renderer/components/ui/badge/StatusBadge.tsx
 
-import type { JobStatus } from "@shared/types/operationType";
-import { STATUS_LABEL } from "@shared/types/uiType";
+import type { JobStatus } from "@shared/types/operation";
+import { STATUS_LABEL } from "@shared/types/ui";
 import * as styles from "./statusBadge.css";
 
 export interface StatusBadgeProps {

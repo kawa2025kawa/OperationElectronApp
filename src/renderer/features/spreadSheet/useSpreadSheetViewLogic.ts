@@ -1,11 +1,11 @@
-//src\renderer\features\spreadSheet\useSpreadSheetViewLogic.ts
+﻿// src/renderer/features/spreadSheet/useSpreadSheetViewLogic.ts
 
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { useAppStore, type AppState } from "@renderer/store";
 import { selectFilteredSheetRows } from "./store/spreadsheetSlice";
-import { type SheetId } from "@shared/types/spreadsheetTypes";
+import { type SheetId } from "@shared/types/spreadsheet";
 
 const EMPTY_ARRAY = [] as const;
 
@@ -22,12 +22,23 @@ export function useSpreadSheetViewLogic() {
   const hasData = useAppStore((s: AppState) =>
     sheetId ? Boolean(s.sheetData?.[sheetId]) : false,
   );
+  const error = useAppStore((s: AppState) =>
+    sheetId ? (s.sheetErrors?.[sheetId] ?? null) : null,
+  );
 
-  useEffect(() => {
-    if (sheetId && !hasData && !isFetching) {
-      void fetchSheetData(sheetId, "A1:ZZ10000");
+  // 再取得処理（手動クリック用）
+  const handleRetry = useCallback(() => {
+    if (sheetId) {
+      void fetchSheetData(sheetId);
     }
-  }, [sheetId, hasData, isFetching, fetchSheetData]);
+  }, [sheetId, fetchSheetData]);
+
+  // 初回データ取得（未取得かつエラーもない場合のみ自動実行）
+  useEffect(() => {
+    if (sheetId && !hasData && !isFetching && !error) {
+      void fetchSheetData(sheetId);
+    }
+  }, [sheetId, hasData, isFetching, error, fetchSheetData]);
 
   const searchKeys = config?.search?.searchKeys;
   const skipFilter = config?.search?.skipFilter;
@@ -51,6 +62,8 @@ export function useSpreadSheetViewLogic() {
     columns,
     selectedId: null,
     isFetching,
+    error,
+    handleRetry,
     loadingMessage: `${config?.title || ""} データを読み込み中...`,
     config,
   };

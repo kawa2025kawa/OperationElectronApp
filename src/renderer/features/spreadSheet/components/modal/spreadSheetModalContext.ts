@@ -1,8 +1,8 @@
-﻿// src/renderer/features/spreadSheet/components/modal/SpreadSheetModalContext.tsx
-import { createContext, useContext, type ReactNode } from "react";
+﻿import { createContext, useContext, type ReactNode } from "react";
 
 export interface SpreadSheetModalContextType {
   setHeaderRight: (node: ReactNode) => void;
+  setFooterLeft: (node: ReactNode) => void;
   onClose: () => void;
 }
 

@@ -3,7 +3,7 @@
 import { ipcMain } from "electron";
 import { exec } from "node:child_process";
 import util from "node:util";
-import type { RdpTarget } from "@shared/types/rdpTypes";
+import type { RdpTarget } from "@shared/types/rdp";
 
 const execPromise = util.promisify(exec);
 

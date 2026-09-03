@@ -3,15 +3,15 @@
 import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@renderer/store";
-import type { Column } from "@shared/types/tableType";
-import type { ViewMode } from "@shared/types/uiType";
+import type { Column } from "@shared/types/table";
+import type { ViewMode } from "@shared/types/ui";
 import {
   selectCurrentMode,
   selectFilteredIrregularIds,
   selectFilteredOperationIds,
   selectFilteredTodayIds,
 } from "@renderer/features/operation/store/operationSelectors";
-import type { OperationItem } from "@shared/types/operationType";
+import type { OperationItem } from "@shared/types/operation";
 import { useTableHotkeys } from "./useOperationTableHotkeys";
 
 const OPERATION_COLUMNS: Column<OperationItem>[] = [

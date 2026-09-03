@@ -1,7 +1,7 @@
 ﻿// electron/features/spreadsheet/googleOAuthService.ts
 
 import { shell } from "electron";
-import type { AuthSession } from "@shared/types/authTypes";
+import type { AuthSession } from "@shared/types/auth";
 import { getGoogleCredentials } from "../auth/credentials";
 import { startListener } from "../auth/listener";
 import {

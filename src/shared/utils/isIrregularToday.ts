@@ -2,7 +2,7 @@
 
 import { format, addDays } from "date-fns";
 import { ja } from "date-fns/locale";
-import type { OperationItem } from "@shared/types/operationType";
+import type { OperationItem } from "@shared/types/operation";
 
 export const isIrregularToday = (item: OperationItem): boolean => {
   if (!("cycle2" in item) || !item.cycle2) {

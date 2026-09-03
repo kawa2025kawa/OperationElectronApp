@@ -1,6 +1,6 @@
 ﻿import React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import type { ViewMode } from "@shared/types/uiType";
+import type { ViewMode } from "@shared/types/ui";
 import * as styles from "./SidePanel.css";
 import { useSidePanel, type InfoRowData } from "./useSidePanel";
 
