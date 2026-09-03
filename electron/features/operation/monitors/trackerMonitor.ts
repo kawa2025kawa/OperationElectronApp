@@ -1,9 +1,6 @@
 ﻿// electron/features/operation/monitors/trackerMonitor.ts
 
-import {
-  getStatus,
-  updateStatus,
-} from "@electron/features/operation/statusManager";
+import { updateStatus } from "@electron/features/operation/statusManager";
 import {
   applyTrackerItem,
   fetchTrackerByJobId,
@@ -12,24 +9,22 @@ import type { OperationItem } from "@shared/types/operation";
 import { JOB_STATUS } from "@shared/types/operation";
 
 /**
- * Target オブジェクトが有効な JobID を保持しているか判定
+ * ターゲットが有効な JobID を保持しているか判定
  */
 export function hasJobId(target: OperationItem): boolean {
-  return (
-    target.kind === "operation" &&
-    typeof target.jobId === "string" &&
-    target.jobId.trim() !== "" &&
-    target.jobId !== "-"
-  );
+  if (target.kind !== "operation") return false;
+  const idStr = String(target.jobId ?? "").trim();
+  return idStr !== "" && idStr !== "-";
 }
 
 /**
- * Tracker API 監視対象のターゲットか判定
+ * Tracker API 監視対象の判定
+ * 一元管理された status の値を直接判定
  */
 export function isTrackerTarget(target: OperationItem): boolean {
   if (!hasJobId(target)) return false;
 
-  const currentStatus = getStatus(target.kanriNo)?.status;
+  const currentStatus = target.status;
   return (
     currentStatus === JOB_STATUS.READY ||
     currentStatus === JOB_STATUS.RUNNING ||
@@ -37,9 +32,6 @@ export function isTrackerTarget(target: OperationItem): boolean {
   );
 }
 
-/**
- * 外部（Polling等）向け：監視対象となるターゲットのデバッグ情報を抽出
- */
 export function getActiveTrackerTargets(targets: OperationItem[]): Array<{
   kanriNo: string | number;
   workName?: string;
@@ -49,15 +41,22 @@ export function getActiveTrackerTargets(targets: OperationItem[]): Array<{
     .map((t) => ({ kanriNo: t.kanriNo, workName: t.workName }));
 }
 
-/**
- * 単一ターゲットの Tracker API 状態を取得して同期更新
- */
 async function updateTracker(target: OperationItem): Promise<void> {
   try {
     const [tracker] = await fetchTrackerByJobId(target);
     if (!tracker) return;
 
     const item = applyTrackerItem(tracker, target);
+    const targetJobId = target.kind === "operation" ? target.jobId : undefined;
+
+    console.log(
+      `[TrackerMonitor] Updating Status for No.${target.kanriNo} (${targetJobId ?? "N/A"}):`,
+      {
+        fromStatus: target.status,
+        toStatus: item.status,
+      },
+    );
+
     updateStatus({
       kanriNo: target.kanriNo,
       status: item.status,
@@ -79,14 +78,16 @@ async function updateTracker(target: OperationItem): Promise<void> {
 }
 
 /**
- * 監視対象となる全ターゲットの Tracker API ステータスを並列同期
+ * 一元管理データ（targets）を受け取り、監視対象のみを並列同期
  */
 export async function syncTrackerStatuses(
   targets: OperationItem[],
 ): Promise<void> {
   const trackerTargets = targets.filter(isTrackerTarget);
+
   console.log("[TrackerMonitor] tracker targets", {
     count: trackerTargets.length,
   });
+
   await Promise.all(trackerTargets.map(updateTracker));
 }

@@ -1,4 +1,4 @@
-﻿// electron/features/operation/evaluators/pollingStatusEvaluator.ts
+// electron/features/operation/evaluators/pollingStatusEvaluator.ts
 
 import {
   JOB_STATUS,
@@ -14,9 +14,7 @@ import {
 } from "@electron/features/operation/statusManager";
 import { isPreviousDayJob } from "@electron/features/operation/helpers/trackerUrlHelper";
 
-const IGNORED_STATUSES = new Set<string>([
-  JOB_STATUS.RUNNING,
-  JOB_STATUS.SCRIPT_RUNNING,
+const TERMINATED_STATUSES = new Set<string>([
   JOB_STATUS.SUCCESS,
   JOB_STATUS.ERROR,
 ]);
@@ -51,7 +49,15 @@ export function evaluateAllTargetStatuses(
     if (!runningCheck()) return;
 
     const currentStatus = getStatus(target.kanriNo)?.status;
-    if (currentStatus && IGNORED_STATUSES.has(currentStatus)) continue;
+
+    if (currentStatus && TERMINATED_STATUSES.has(currentStatus)) continue;
+
+    if (
+      currentStatus === JOB_STATUS.RUNNING ||
+      currentStatus === JOB_STATUS.SCRIPT_RUNNING
+    ) {
+      continue;
+    }
 
     const jobId =
       target.kind === "operation" && typeof target.jobId === "string"

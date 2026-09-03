@@ -1,4 +1,4 @@
-﻿import type { AppViewDefinition } from "@renderer/registry/appRegistry";
+﻿import type { AppViewDefinition } from "@shared/types/registry";
 import { SHEET_IDS, type Tantou } from "@shared/types/spreadsheet";
 import type { Column } from "@shared/types/table";
 import { APP_VIEW_IDS } from "@shared/types/ui";

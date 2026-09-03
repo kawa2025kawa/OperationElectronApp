@@ -1,4 +1,4 @@
-﻿import type { AppViewDefinition } from "@renderer/registry/appRegistry";
+﻿import type { AppViewDefinition } from "@shared/types/registry";
 import { APP_VIEW_IDS } from "@shared/types/ui";
 
 export const operationViewConfig: AppViewDefinition = {

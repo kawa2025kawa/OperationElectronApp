@@ -1,44 +1,37 @@
 // src/renderer/components/ui/toast/pollingToastStore.ts
 
 import { create } from "zustand";
+import type { JobStatus } from "@shared/types/operation";
 
-export type ToastType = "success" | "error" | "info" | "warning";
+export type ToastType = "info" | "success" | "error" | "warning";
 
-interface ToastData {
+export interface ToastMessage {
   id: string;
   message: string;
   type: ToastType;
+  createdAt: number;
 }
 
-interface PollingToastStore {
-  toasts: ToastData[];
-  addToast: (message: string, type?: ToastType) => void;
+interface PollingToastState {
+  toasts: ToastMessage[];
+  prevStatusMap: Map<string, JobStatus>;
+  addToast: (message: string, type: ToastType) => void;
   removeToast: (id: string) => void;
   clearAllToasts: () => void;
+  getPrevStatus: (kanriNo: string) => JobStatus | undefined;
+  setPrevStatus: (kanriNo: string, status: JobStatus) => void;
+  resetToastState: () => void;
 }
 
-const TOAST_DURATION = 10_000;
-
-const createToastId = (): string =>
-  `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-export const usePollingToastStore = create<PollingToastStore>((set) => ({
+export const usePollingToastStore = create<PollingToastState>()((set, get) => ({
   toasts: [],
+  prevStatusMap: new Map<string, JobStatus>(),
 
-  addToast: (message, type = "success") => {
-    const id = createToastId();
-
+  addToast: (message, type) => {
+    const id = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     set((state) => ({
-      toasts: [{ id, message, type }, ...state.toasts],
+      toasts: [...state.toasts, { id, message, type, createdAt: Date.now() }],
     }));
-
-    if (type === "error") return;
-
-    window.setTimeout(() => {
-      set((state) => ({
-        toasts: state.toasts.filter((t) => t.id !== id),
-      }));
-    }, TOAST_DURATION);
   },
 
   removeToast: (id) => {
@@ -47,5 +40,23 @@ export const usePollingToastStore = create<PollingToastStore>((set) => ({
     }));
   },
 
-  clearAllToasts: () => set({ toasts: [] }),
+  clearAllToasts: () => {
+    set({ toasts: [] });
+  },
+
+  getPrevStatus: (kanriNo) => {
+    return get().prevStatusMap.get(kanriNo);
+  },
+
+  setPrevStatus: (kanriNo, status) => {
+    set((state) => {
+      const nextMap = new Map(state.prevStatusMap);
+      nextMap.set(kanriNo, status);
+      return { prevStatusMap: nextMap };
+    });
+  },
+
+  resetToastState: () => {
+    set({ toasts: [], prevStatusMap: new Map() });
+  },
 }));

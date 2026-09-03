@@ -25,12 +25,8 @@ export const SpreadSheetView: React.FC = React.memo(() => {
     config,
   } = useSpreadSheetViewLogic();
 
-  const { openGlobalModal, closeGlobalModal } = useAppStore(
-    useShallow((state) => ({
-      openGlobalModal: state.openGlobalModal,
-      closeGlobalModal: state.closeGlobalModal,
-    })),
-  );
+  const openGlobalModal = useAppStore((state) => state.openGlobalModal);
+  const closeGlobalModal = useAppStore((state) => state.closeGlobalModal);
 
   const handleRowClick = useCallback(
     (row: SheetRowMap[SheetId]) => {
@@ -75,7 +71,6 @@ export const SpreadSheetView: React.FC = React.memo(() => {
 
       <div className={styles.viewContainer}>
         <div className={styles.inner}>
-          {/* 503エラー等でデータ取得失敗時のリトライ表示 */}
           {error && data.length === 0 && !isFetching ? (
             <EmptyState
               message={`データの取得に失敗しました（${error}）`}

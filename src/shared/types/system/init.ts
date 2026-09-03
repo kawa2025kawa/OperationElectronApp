@@ -9,6 +9,7 @@ type InitStatusValue =
   | string;
 
 export interface InitStatus {
+  update?: InitStatusValue;
   operation: InitStatusValue;
   irregular: InitStatusValue;
   auth: InitStatusValue;

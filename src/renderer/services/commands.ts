@@ -128,7 +128,7 @@ export const commands = {
    * 単一Jobの最新Statusを取得する。
    */
   fetchSingleJobStatus: (kanriNo: string): Promise<OperationItem> =>
-    window.electronAPI.invoke<OperationItem>("fetchSingleJobStatus", {
+    window.electronAPI.invoke("fetchSingleJobStatus", {
       kanriNo,
     }),
 
@@ -142,9 +142,7 @@ export const commands = {
    * 初期Statusを取得する。
    */
   initializeStatus: (): Promise<Record<string, OperationItem>> =>
-    window.electronAPI.invoke<Record<string, OperationItem>>(
-      "initializeStatus",
-    ),
+    window.electronAPI.invoke("initializeStatus"),
 
   // ========================================================================
   // Jobs / Scripts
@@ -161,7 +159,7 @@ export const commands = {
     scriptId: string,
     filePath?: ScriptFilePath,
   ): Promise<JobResult> =>
-    window.electronAPI.invoke<JobResult>("executeScript", {
+    window.electronAPI.invoke("executeScript", {
       scriptId,
       filePath,
     }),
@@ -174,7 +172,7 @@ export const commands = {
    * RDP対象一覧を取得する。
    */
   getRdpTargets: (): Promise<RdpTarget[]> =>
-    window.electronAPI.invoke<RdpTarget[]>("getRdpTargets"),
+    window.electronAPI.invoke("getRdpTargets"),
 
   /**
    * RDPセッションを開始する。
@@ -192,13 +190,13 @@ export const commands = {
    * 保存済みGoogle OAuth Sessionを取得する。
    */
   loadAuthSession: (): Promise<AuthSession | null> =>
-    window.electronAPI.invoke<AuthSession | null>("googleAuth:loadSession"),
+    window.electronAPI.invoke("googleAuth:loadSession"),
 
   /**
    * Google OAuth Loginを実行する。
    */
   login: (): Promise<AuthSession> =>
-    window.electronAPI.invoke<AuthSession>("googleAuth:login"),
+    window.electronAPI.invoke("googleAuth:login"),
 
   /**
    * Google OAuth Logoutを実行する。
@@ -216,7 +214,7 @@ export const commands = {
     filePaths: string[],
     expireDate: string,
   ): Promise<boolean> =>
-    window.electronAPI.invoke<boolean>("tempomatic:uploadDocument", {
+    window.electronAPI.invoke("tempomatic:uploadDocument", {
       filePaths,
       expireDate,
     }),
@@ -236,7 +234,7 @@ export const commands = {
    * Update情報を取得する。
    */
   readUpdateInfo: (): Promise<UpdateInfo | null> =>
-    window.electronAPI.invoke<UpdateInfo | null>("readUpdateInfo"),
+    window.electronAPI.invoke("readUpdateInfo"),
 
   /**
    * Main Windowを表示する。
@@ -260,7 +258,7 @@ export const commands = {
    * Gmail署名を取得する。
    */
   getGmailSignature: (accessToken?: string): Promise<string> =>
-    window.electronAPI.invoke<string>("gmail:getSignature", accessToken),
+    window.electronAPI.invoke("gmail:getSignature", accessToken),
 
   /**
    * Gmail下書きを作成する。

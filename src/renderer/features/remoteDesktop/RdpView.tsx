@@ -2,14 +2,14 @@
 
 import React, { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { useAppStore, type AppState } from "@renderer/store";
+import { useAppStore } from "@renderer/store";
 import { UnknownView } from "@renderer/layout/UnknownView";
 
 import * as styles from "./rdpView.css";
 
 export const RdpView: React.FC = () => {
   const { rdpTargets, fetchRdpTargets, isRdpLoading, runRdp } = useAppStore(
-    useShallow((state: AppState) => ({
+    useShallow((state) => ({
       rdpTargets: state.rdpTargets,
       fetchRdpTargets: state.fetchRdpTargets,
       isRdpLoading: state.isRdpLoading,
@@ -47,5 +47,3 @@ export const RdpView: React.FC = () => {
     </div>
   );
 };
-
-RdpView;

@@ -1,5 +1,7 @@
-﻿//src\renderer\components\ui\toast\PollingToast.tsx
+﻿// src/renderer/components/ui/toast/PollingToast.tsx
 
+import React from "react";
+import { useShallow } from "zustand/react/shallow";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import { usePollingToastStore, type ToastType } from "./pollingToastStore";
 import * as styles from "./pollingToast.css";
@@ -11,10 +13,14 @@ const ICONS: Record<ToastType, string> = {
   info: "i",
 };
 
-export const PollingToast = () => {
-  const toasts = usePollingToastStore((state) => state.toasts);
-  const removeToast = usePollingToastStore((state) => state.removeToast);
-  const clearAllToasts = usePollingToastStore((state) => state.clearAllToasts);
+export const PollingToast: React.FC = React.memo(() => {
+  const { toasts, removeToast, clearAllToasts } = usePollingToastStore(
+    useShallow((state) => ({
+      toasts: state.toasts,
+      removeToast: state.removeToast,
+      clearAllToasts: state.clearAllToasts,
+    })),
+  );
 
   if (toasts.length === 0) {
     return null;
@@ -54,4 +60,6 @@ export const PollingToast = () => {
       </div>
     </section>
   );
-};
+});
+
+PollingToast.displayName = "PollingToast";

@@ -43,10 +43,7 @@ const TANTOU_MODAL_GROUPS: readonly TabGroupConfig[] = [
 export const TantouModalContent: React.FC<SpreadSheetModalProps<Tantou>> =
   React.memo(({ data }) => {
     const { selectedIndex, setSelectedIndex, displayItems } =
-      useSpreadSheetTabData(
-        data as unknown as Record<string, unknown>,
-        TANTOU_MODAL_GROUPS,
-      );
+      useSpreadSheetTabData(data, TANTOU_MODAL_GROUPS);
 
     const { todayLabel, tomorrowLabel } = useMemo(() => {
       const now = new Date();

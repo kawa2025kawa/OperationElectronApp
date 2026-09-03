@@ -1,30 +1,15 @@
-﻿// src\renderer\services\appService.ts
+﻿// src/renderer/services/appService.ts
 
 import irregularData from "@resources/json/irregularData.json";
 import operationData from "@resources/json/operationData.json";
 import { commands } from "@renderer/services/commands";
+import { checkAndApplyUpdate } from "@renderer/services/updateService";
+import { DATA_LOADING_STATUS } from "@renderer/store/slices/initSlice";
 import { useAppStore } from "@renderer/store";
 import type { OperationItem } from "@shared/types/operation";
 
 const operations = operationData as OperationItem[];
 const irregulars = irregularData as OperationItem[];
-
-/** ローダー表示維持時間 (ms) */
-const APP_LOADER_DELAY_MS = 2000;
-
-const INITIAL_LOADING_STATUS = {
-  operation: "LOADING",
-  irregular: "LOADING",
-  auth: "LOADING",
-  store: "LOADING",
-  jugyoin: "LOADING",
-  kokyuhyo: "LOADING",
-  tantou: "LOADING",
-} as const;
-
-// ----------------------------------------------------------------------------
-// Helpers
-// ----------------------------------------------------------------------------
 
 async function showMainWindow(): Promise<void> {
   try {
@@ -35,13 +20,23 @@ async function showMainWindow(): Promise<void> {
 }
 
 async function registerOperationTargets(): Promise<void> {
-  const targets = [...operations, ...irregulars].filter(({ kanriNo }) =>
-    Boolean(kanriNo),
-  );
+  const allItems = [...operations, ...irregulars];
+  const targets = allItems.filter(({ kanriNo }) => Boolean(kanriNo));
 
-  if (targets.length > 0) {
-    await commands.registerTargets(targets);
-  }
+  if (targets.length === 0) return;
+
+  // 1. ターゲットリストの登録 (バックエンドの statusManager/apiTargets へ登録)
+  await commands.registerTargets(targets);
+
+  // 2. バックエンドの評価ロジック(pollingStatusEvaluator)が求める ActiveFlags の同期
+  // ※ 個別の kanriNo ではなく、バックエンド仕様のグループキー構造で渡す
+  const defaultActiveFlags = {
+    is1CActive: true,
+    is2CActive: true,
+    is3CActive: true,
+  };
+
+  await commands.setActiveFlags(defaultActiveFlags);
 }
 
 async function initializeSheets(isAuthenticated: boolean): Promise<void> {
@@ -59,8 +54,6 @@ async function initializeSheets(isAuthenticated: boolean): Promise<void> {
   }
 
   store.setInitStatus({ auth: "OK" });
-
-  // 各スプレッドシートの取得完了（全ステータス評価完了）まで待機
   await store.prefetchSheets(store.accessToken || undefined);
 }
 
@@ -80,44 +73,6 @@ async function loadInitialData(): Promise<void> {
   store.setInitialRawData(operations, irregulars, savedStatuses);
 }
 
-function handleInitializationError(error: unknown): void {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error("[appService] Failed to initialize app:", message);
-
-  const store = useAppStore.getState();
-  store.setIsAuthenticated(false);
-  store.setAccessToken(null);
-
-  // 失敗時に OK / CONNECTED 以外のステータスを一括で NG に更新
-  const updatedStatus = Object.fromEntries(
-    Object.entries(store.initStatus).map(([key, val]) => [
-      key,
-      val === "OK" || val === "CONNECTED" ? val : "NG",
-    ]),
-  );
-
-  store.setInitStatus(updatedStatus);
-}
-
-function markInitializationCompleted(): void {
-  const store = useAppStore.getState();
-  store.setInitStatus({
-    operation: "OK",
-    irregular: "OK",
-  });
-  store.recalculateSummary();
-  store.setIsInitialLoaded(true);
-
-  // 全ステータス評価完了後、2秒間待ってからローダーを退場させる
-  window.setTimeout(() => {
-    store.setShowAppLoader(false);
-  }, APP_LOADER_DELAY_MS);
-}
-
-// ----------------------------------------------------------------------------
-// Service
-// ----------------------------------------------------------------------------
-
 export const appService = {
   async initializeApp(): Promise<void> {
     const store = useAppStore.getState();
@@ -125,12 +80,24 @@ export const appService = {
 
     try {
       await showMainWindow();
-      store.setInitStatus(INITIAL_LOADING_STATUS);
+
+      // 1. 初期ステータス（update含む）の画面セット
+      store.setInitStatus(DATA_LOADING_STATUS);
+
+      // 2. アップデートチェック
+      const hasUpdateApplied = await checkAndApplyUpdate();
+      if (hasUpdateApplied) {
+        return;
+      }
+
+      // 3. アップデートチェック完了
+      store.setInitStatus({ update: "OK" });
+
+      // 4. 重い初期ロードを実行 (ターゲット登録 & ActiveFlags 同期)
       await loadInitialData();
-      markInitializationCompleted();
-    } catch (error) {
-      handleInitializationError(error);
-      throw error;
+
+      // 6. 完成処理を initSlice へ委譲
+      store.markInitializationCompleted();
     } finally {
       store.setIsLoading(false);
     }

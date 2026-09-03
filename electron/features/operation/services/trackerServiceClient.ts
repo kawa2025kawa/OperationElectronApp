@@ -8,6 +8,7 @@ import {
 } from "../helpers/trackerMapper";
 import {
   addKanshiTime,
+  buildFallbackTrackerUrl,
   buildTrackerUrl,
   getTargetTime,
 } from "../helpers/trackerUrlHelper";
@@ -62,17 +63,56 @@ async function requestTracker(
   to: string,
 ): Promise<Partial<OperationItem>[]> {
   const primaryUrl = buildTrackerUrl(jobId, from, to);
+
+  if (jobId === "NMA8000") {
+    console.log("[TrackerDebug] NMA8000 Primary Request URL:", primaryUrl);
+  }
+
   const primaryResponse = await fetch(primaryUrl);
 
   if (!primaryResponse.ok) {
-    throw new Error(`Tracker API Error ${primaryResponse.status}`);
+    throw new Error(`Tracker API Primary Error ${primaryResponse.status}`);
   }
 
   const primaryJson = (await primaryResponse.json()) as TrackerApiResponse;
+
+  if (jobId === "NMA8000") {
+    console.log(
+      "[TrackerDebug] NMA8000 Primary Response:",
+      JSON.stringify(primaryJson, null, 2),
+    );
+  }
+
+  // 1. 一次検索（時間指定）で取得できた場合はそのまま返却
   if (primaryJson.count > 0 && primaryJson.data.length > 0) {
     return primaryJson.data.map(normalizeItem);
   }
 
-  // 時間範囲外の旧データ誤取得（誤完了判定）を防ぐため fallbackUrl 呼び出しを廃止
+  // 2. 一次検索でデータが空だった場合、from/to無しのフォールバックURLで再問い合わせ
+  const fallbackUrl = buildFallbackTrackerUrl(jobId);
+
+  if (jobId === "NMA8000") {
+    console.log("[TrackerDebug] NMA8000 Fallback Request URL:", fallbackUrl);
+  }
+
+  const fallbackResponse = await fetch(fallbackUrl);
+
+  if (!fallbackResponse.ok) {
+    throw new Error(`Tracker API Fallback Error ${fallbackResponse.status}`);
+  }
+
+  const fallbackJson = (await fallbackResponse.json()) as TrackerApiResponse;
+
+  if (jobId === "NMA8000") {
+    console.log(
+      "[TrackerDebug] NMA8000 Fallback Response:",
+      JSON.stringify(fallbackJson, null, 2),
+    );
+  }
+
+  if (fallbackJson.count > 0 && fallbackJson.data.length > 0) {
+    return fallbackJson.data.map(normalizeItem);
+  }
+
   return [];
 }

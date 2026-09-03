@@ -1,12 +1,29 @@
-﻿// src/renderer/store/slices/initSlice.ts
+// src/renderer/store/slices/initSlice.ts
 
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
 import { INITIAL_INIT_STATUS, type InitStatus } from "@shared/types/system";
 import { appService } from "@renderer/services/appService";
 import { commands } from "@renderer/services/commands";
-import { updateEntityInState } from "@renderer/features/operation/helpers/operationEntities";
+import {
+  evaluateDependenciesCascade,
+  updateEntityInState,
+} from "@renderer/features/operation/helpers/operationEntities";
+import { refreshSummary } from "@renderer/features/operation/services/operationServices";
 import { handleStatusToastNotification } from "@renderer/components/ui/toast/statusToastHandler";
+
+const APP_LOADER_DELAY_MS = 2000;
+
+export const DATA_LOADING_STATUS: InitStatus = {
+  update: "LOADING",
+  operation: "LOADING",
+  irregular: "LOADING",
+  auth: "LOADING",
+  store: "LOADING",
+  jugyoin: "LOADING",
+  kokyuhyo: "LOADING",
+  tantou: "LOADING",
+};
 
 export interface InitSlice {
   isInitialLoaded: boolean;
@@ -21,11 +38,12 @@ export interface InitSlice {
       | Partial<InitStatus>
       | ((prev: InitStatus) => Partial<InitStatus> | void),
   ) => void;
+  markInitializationCompleted: () => void;
+  markInitializationFailed: (error: unknown) => void;
   setupIpcListeners: () => void;
   initializeApp: () => Promise<void>;
 }
 
-// HMR/再読み込み時に重複登録を防ぐためのモジュールスコープ・クリーンアップ保持
 let cleanupIpcListeners: (() => void) | null = null;
 
 export const createInitSlice: StateCreator<
@@ -59,13 +77,45 @@ export const createInitSlice: StateCreator<
       }
     }),
 
-  /**
-   * Mainプロセスからの IPC イベントを一括購読（Store主導で1度だけ実行）
-   */
+  /** 初期化成功時の完了処理（タイマー含む） */
+  markInitializationCompleted: () => {
+    set((state) => {
+      state.initStatus.operation = "OK";
+      state.initStatus.irregular = "OK";
+      state.isInitialLoaded = true;
+    });
+
+    get().recalculateSummary?.();
+
+    window.setTimeout(() => {
+      set((state) => {
+        state.showAppLoader = false;
+      });
+    }, APP_LOADER_DELAY_MS);
+  },
+
+  /** 初期化失敗時の状態リカバリー */
+  markInitializationFailed: (error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[InitSlice] Failed to initialize app:", message);
+
+    set((state) => {
+      state.isAuthenticated = false;
+      state.accessToken = null;
+
+      Object.keys(state.initStatus).forEach((key) => {
+        const k = key as keyof InitStatus;
+        const val = state.initStatus[k];
+        if (val !== "OK" && val !== "CONNECTED") {
+          state.initStatus[k] = "NG";
+        }
+      });
+    });
+  },
+
   setupIpcListeners: () => {
     if (get().isIpcListenersSetup) return;
 
-    // 既存のリスナーが存在する場合はクリーンアップを実行
     if (cleanupIpcListeners) {
       cleanupIpcListeners();
       cleanupIpcListeners = null;
@@ -75,26 +125,23 @@ export const createInitSlice: StateCreator<
       state.isIpcListenersSetup = true;
     });
 
-    // 1. テーマ変更検知
     const unbindTheme = commands.onThemeChanged((theme) => {
       get().setTheme?.(theme);
     });
 
-    // 2. ステータス更新検知 (State更新 & トースト通知)
     const unbindStatus = commands.onOperationStatusUpdated((update) => {
       set((state) => {
         updateEntityInState(state, update);
+        evaluateDependenciesCascade(state);
+        refreshSummary(state);
       });
-
       handleStatusToastNotification(update);
     });
 
-    // 3. ポーリング1サイクル完了検知
     const unbindPolling = commands.onPollingCycleComplete(() => {
       get().updateLastPollTime?.();
     });
 
-    // アンサブスクライブ関数をまとめて保持 (返り値がある場合に対応)
     cleanupIpcListeners = () => {
       if (typeof unbindTheme === "function") unbindTheme();
       if (typeof unbindStatus === "function") unbindStatus();
@@ -112,12 +159,8 @@ export const createInitSlice: StateCreator<
     try {
       get().setupIpcListeners();
       await appService.initializeApp();
-
-      set((state) => {
-        state.isInitialLoaded = true;
-      });
     } catch (error) {
-      console.error("[InitSlice] Failed to initialize app:", error);
+      get().markInitializationFailed(error);
     } finally {
       set((state) => {
         state.isInitializing = false;

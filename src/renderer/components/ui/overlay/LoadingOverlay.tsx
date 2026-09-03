@@ -13,7 +13,8 @@ export interface LoadingOverlayProps {
   processingTarget?: string | null;
 }
 
-const PANEL_LABELS: Record<keyof InitStatus, string> = {
+const PANEL_LABELS: Record<keyof Required<InitStatus>, string> = {
+  update: "App Update Check",
   operation: "Operation Data",
   irregular: "Irregular Data",
   auth: "Google Auth",
@@ -63,7 +64,11 @@ const LoadingOverlayComponent: React.FC<LoadingOverlayProps> = ({
           {(Object.entries(dataStatus) as [keyof InitStatus, string][]).map(
             ([key, value]) => (
               <div className={styles.statusRow} key={String(key)}>
-                <span>{PANEL_LABELS[key]}:</span>
+                <span>
+                  {PANEL_LABELS[key as keyof Required<InitStatus>] ??
+                    String(key)}
+                  :
+                </span>
 
                 <span className={getStatusTone(value)}>{value}</span>
               </div>
@@ -76,5 +81,4 @@ const LoadingOverlayComponent: React.FC<LoadingOverlayProps> = ({
 };
 
 export const LoadingOverlay = React.memo(LoadingOverlayComponent);
-
-LoadingOverlay;
+LoadingOverlay.displayName = "LoadingOverlay";

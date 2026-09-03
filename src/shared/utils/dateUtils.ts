@@ -20,7 +20,7 @@ export const formatDateForHeader = (date: Date): string => {
 };
 
 /**
- * 予定時刻 ("AM", "PM", "15:00" 等) が現在時刻を過ぎているか判定
+ * 予定時刻 ("AM", "PM", "15:00", "09:00:00" 等) が現在時刻を過ぎているか判定
  */
 export const isScheduledTimePassed = (
   scheduledTimeStr?: ScheduledTime | string | null,
@@ -29,7 +29,7 @@ export const isScheduledTimePassed = (
 ): boolean => {
   if (!scheduledTimeStr?.trim()) return true;
 
-  const str = scheduledTimeStr.trim();
+  const str = scheduledTimeStr.trim().toUpperCase();
   let targetHour: number;
   let targetMinute = 0;
 
@@ -38,9 +38,10 @@ export const isScheduledTimePassed = (
   } else if (str === "PM") {
     targetHour = 12;
   } else {
-    const [hourStr, minuteStr] = str.split(":");
-    targetHour = parseInt(hourStr, 10);
-    targetMinute = parseInt(minuteStr, 10);
+    // 秒数が含まれている場合や空白を正規化
+    const parts = str.split(":").map((p) => parseInt(p.trim(), 10));
+    targetHour = parts[0] ?? NaN;
+    targetMinute = parts[1] ?? 0;
 
     if (isNaN(targetHour) || isNaN(targetMinute)) return false;
   }
@@ -81,7 +82,6 @@ export const isJobTimedOut = (
   const startDate = new Date(now);
   startDate.setHours(startH, startM, 0, 0);
 
-  // 日付またぎ判定（例: 23:50 開始で現在が翌 00:10 の場合、startDate が未来時刻になるのを防止）
   if (startDate > now) {
     startDate.setDate(startDate.getDate() - 1);
   }

@@ -16,24 +16,23 @@ export function useSpreadSheetViewLogic() {
   const config = getAppViewConfig(currentView);
   const sheetId = (config?.sheetId as SheetId) ?? null;
 
-  const isFetching = useAppStore((s: AppState) =>
-    sheetId ? Boolean(s.isSheetFetching?.[sheetId]) : false,
-  );
-  const hasData = useAppStore((s: AppState) =>
-    sheetId ? Boolean(s.sheetData?.[sheetId]) : false,
-  );
-  const error = useAppStore((s: AppState) =>
-    sheetId ? (s.sheetErrors?.[sheetId] ?? null) : null,
+  // シート関連の状態（isFetching, hasData, error）を useShallow で一括取得し、レンダリングサイクルを最適化
+  const { isFetching, hasData, error } = useAppStore(
+    useShallow((state: AppState) => ({
+      isFetching: sheetId ? Boolean(state.isSheetFetching?.[sheetId]) : false,
+      hasData: sheetId ? Boolean(state.sheetData?.[sheetId]) : false,
+      error: sheetId ? (state.sheetErrors?.[sheetId] ?? null) : null,
+    })),
   );
 
-  // 再取得処理（手動クリック用）
+  // 手動リトライ処理
   const handleRetry = useCallback(() => {
     if (sheetId) {
       void fetchSheetData(sheetId);
     }
   }, [sheetId, fetchSheetData]);
 
-  // 初回データ取得（未取得かつエラーもない場合のみ自動実行）
+  // 初回データ自動取得（未取得かつエラーなし・未取得中時）
   useEffect(() => {
     if (sheetId && !hasData && !isFetching && !error) {
       void fetchSheetData(sheetId);
@@ -43,6 +42,7 @@ export function useSpreadSheetViewLogic() {
   const searchKeys = config?.search?.searchKeys;
   const skipFilter = config?.search?.skipFilter;
 
+  // フィルタリング後のデータ取得
   const data = useAppStore(
     useShallow((state: AppState) =>
       selectFilteredSheetRows(sheetId, searchKeys, skipFilter)(state),

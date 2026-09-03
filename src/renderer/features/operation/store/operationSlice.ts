@@ -45,6 +45,12 @@ export interface OperationSlice {
   summary: StatusSummary;
 
   // --------------------------------------------------------------------------
+  // Selectors
+  // --------------------------------------------------------------------------
+
+  getEntityByKanriNo: (kanriNo: string | number) => OperationItem | undefined;
+
+  // --------------------------------------------------------------------------
   // Initialization
   // --------------------------------------------------------------------------
 
@@ -105,7 +111,9 @@ export const createOperationSlice: StateCreator<
   /**
    * Storeから指定管理No.に対応するOperationItemを取得する。
    */
-  const getOperationItem = (kanriNo: string): OperationItem | undefined => {
+  const getOperationItem = (
+    kanriNo: string | number,
+  ): OperationItem | undefined => {
     return findEntityByKanriNo(get(), kanriNo);
   };
 
@@ -175,6 +183,12 @@ export const createOperationSlice: StateCreator<
     todayIds: [],
 
     summary: INITIAL_SUMMARY,
+
+    // ------------------------------------------------------------------------
+    // Selectors
+    // ------------------------------------------------------------------------
+
+    getEntityByKanriNo: (kanriNo) => getOperationItem(kanriNo),
 
     // ------------------------------------------------------------------------
     // Initialization

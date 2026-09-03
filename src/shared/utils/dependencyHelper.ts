@@ -174,6 +174,7 @@ function checkAfterTime(
 // ============================================================================
 
 function checkAllJobsSuccess(
+  targetKanriNo: string, // ➔ 引数に対象の kanriNo を追加
   dependency: JobDependency,
   entities: Record<string, OperationItem>,
 ): DependencyCheckResult {
@@ -184,6 +185,11 @@ function checkAllJobsSuccess(
   const missingDependencies: MissingDependency[] = [];
 
   for (const item of Object.values(entities)) {
+    // 自身は除外
+    if (normalizeKanriNo(item.kanriNo) === targetKanriNo) {
+      continue;
+    }
+
     if (!hasValidJobId(item)) {
       continue;
     }
@@ -276,9 +282,7 @@ export function checkJobDependencies(
   activeFlags?: Record<string, boolean>,
 ): DependencyCheckResult {
   const targetKanriNo = normalizeKanriNo(kanriNo);
-
   const targetEntity = entities[targetKanriNo];
-
   const dependency = targetEntity?.dependency;
 
   if (!dependency) {
@@ -286,26 +290,21 @@ export function checkJobDependencies(
   }
 
   const activeResult = checkRequiredActiveFlags(dependency, activeFlags);
-
-  if (!activeResult.ok) {
-    return activeResult;
-  }
+  if (!activeResult.ok) return activeResult;
 
   const timeResult = checkAfterTime(targetKanriNo, dependency, targetEntity);
+  if (!timeResult.ok) return timeResult;
 
-  if (!timeResult.ok) {
-    return timeResult;
-  }
-
-  const allJobsResult = checkAllJobsSuccess(dependency, entities);
-
-  if (!allJobsResult.ok) {
-    return allJobsResult;
-  }
+  // ➔ targetKanriNo を渡す
+  const allJobsResult = checkAllJobsSuccess(
+    targetKanriNo,
+    dependency,
+    entities,
+  );
+  if (!allJobsResult.ok) return allJobsResult;
 
   return checkDependsOn(targetKanriNo, dependency, entities);
 }
-
 export function validateJobDependencies(
   kanriNo: string,
   entities: Record<string, OperationItem>,

@@ -86,7 +86,7 @@ export async function runCycle(): Promise<void> {
   console.log("[Polling] runCycle START", { count: targets.length });
 
   try {
-    // 1. 依存関係および予定時刻に基づくステータス評価
+    // 1. 依存関係および予定時刻に基づくステータス評価（ここで READY へ昇格）
     evaluateAllTargetStatuses(targets, () => running, getActiveFlags());
     if (!running) return;
 
@@ -107,19 +107,24 @@ export async function runCycle(): Promise<void> {
 async function pollingLoop(): Promise<void> {
   while (running) {
     const startedAt = Date.now();
-    const targets = getAllTargets();
-    const trackerTargets = getActiveTrackerTargets(targets);
 
     console.log(
       `\n=================== [Polling Loop START: ${formatTime(startedAt)}] ===================`,
     );
-    console.log("[Polling Debug] (START):", {
-      count: trackerTargets.length,
-      targets: trackerTargets,
-    });
 
     try {
+      // 1. まず評価サイクルを動かしてステータスを更新する
       await runCycle();
+
+      // 2. 評価完了後の正しいアクティブターゲットを取得してログに出力
+      const targets = getAllTargets();
+      const trackerTargets = getActiveTrackerTargets(targets);
+
+      console.log("[Polling Debug] (EVALUATED):", {
+        count: trackerTargets.length,
+        targets: trackerTargets,
+      });
+
       // 1サイクル完了を Renderer へ通知して UI のカウントダウンを 60 秒へ即時リセット
       notifyPollingCycleComplete();
     } catch (error) {
@@ -127,9 +132,11 @@ async function pollingLoop(): Promise<void> {
     }
 
     const endedAt = Date.now();
+    const currentTrackerTargets = getActiveTrackerTargets(getAllTargets());
+
     console.log("[Polling Debug] (END):", {
-      count: trackerTargets.length,
-      targets: trackerTargets,
+      count: currentTrackerTargets.length,
+      targets: currentTrackerTargets,
     });
     console.log(
       `=================== [Polling Loop END: ${formatTime(endedAt)} (Elapsed: ${endedAt - startedAt}ms)] ===================\n`,

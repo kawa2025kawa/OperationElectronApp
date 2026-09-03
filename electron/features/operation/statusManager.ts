@@ -1,4 +1,4 @@
-﻿// electron/features/operation/statusManager.ts
+// electron/features/operation/statusManager.ts
 
 import { BrowserWindow } from "electron";
 import {
@@ -17,30 +17,20 @@ import {
   type OperationItem,
   type OperationStatusFields,
 } from "@shared/types/operation";
+import type { StatusSummary } from "@shared/types/ui";
 
 export type { PersistedStatus };
 export type StatusUpdate = Partial<OperationStatusFields> & {
   kanriNo: string | number;
 };
 
-// デバッグ対象の識別子
-const DEBUG_TARGET_KEYWORDS = [
-  "BENIF0001_外部システム向けマスタＩＦ",
-  "NMA8200",
-  "76",
-];
-
-function isDebugTarget(key: string, target?: OperationItem): boolean {
-  const jobId = target?.kind === "operation" ? String(target.jobId ?? "") : "";
-  const checkStr = `${key} ${jobId} ${target?.workName ?? ""}`;
-  return DEBUG_TARGET_KEYWORDS.some((kw) => checkStr.includes(kw));
-}
-
 // State
 const apiTargets = new Map<string, OperationItem>();
 const memoryStatuses = new Map<string, PersistedStatus>();
 
-// センターアクティブフラグの保持
+// Store から同期された一元管理サマリー
+let latestStoreSummary: StatusSummary | null = null;
+
 let activeFlags: Record<string, boolean> = {
   is1CActive: false,
   is2CActive: false,
@@ -48,16 +38,25 @@ let activeFlags: Record<string, boolean> = {
 };
 
 // ============================================================
-// Broadcast Notification (旧 statusNotifier.ts から吸収)
+// Broadcast & Store Sync Notification
 // ============================================================
 export function broadcastStatusUpdate(item: OperationItem): void {
-  BrowserWindow.getAllWindows().forEach((win) => {
+  for (const win of BrowserWindow.getAllWindows()) {
     if (!win.isDestroyed()) {
-      win.webContents.send("operationStatusUpdated", {
-        status: item,
-      });
+      win.webContents.send("operationStatusUpdated", { status: item });
     }
-  });
+  }
+}
+
+/**
+ * UI (Zustand Store) 側で計算・管理されている StatusSummary を同期受領する
+ */
+export function syncSummaryFromStore(summary: StatusSummary): void {
+  latestStoreSummary = summary;
+  console.log(
+    "[StatusManager] Synchronized with Store StatusSummary:",
+    latestStoreSummary,
+  );
 }
 
 export function getActiveFlags(): Record<string, boolean> {
@@ -66,9 +65,7 @@ export function getActiveFlags(): Record<string, boolean> {
 
 export function setActiveFlags(flags: Record<string, boolean>): void {
   activeFlags = { ...flags };
-  if (isPollingRunning()) {
-    void runCycle();
-  }
+  if (isPollingRunning()) void runCycle();
 }
 
 // ============================================================
@@ -79,9 +76,13 @@ export function registerTargets(items: OperationItem[]): void {
   const validKeys = new Set<string>();
   let changed = false;
 
-  for (const item of items) {
-    const key = String(item.kanriNo);
+  for (const rawItem of items) {
+    const key = String(rawItem?.kanriNo ?? "").trim();
     if (!key) continue;
+
+    const kind =
+      rawItem.kind ?? ((rawItem as any).jobId ? "operation" : "irregular");
+    const item: OperationItem = { ...rawItem, kind } as OperationItem;
 
     apiTargets.set(key, item);
     validKeys.add(key);
@@ -92,7 +93,6 @@ export function registerTargets(items: OperationItem[]): void {
     }
   }
 
-  // 存在しなくなった旧ジョブのステータス情報をメモリから削除
   for (const key of memoryStatuses.keys()) {
     if (!validKeys.has(key)) {
       memoryStatuses.delete(key);
@@ -101,17 +101,24 @@ export function registerTargets(items: OperationItem[]): void {
   }
 
   if (changed) schedulePersistStatuses(memoryStatuses);
-  console.log("[StatusManager] Targets registered:", {
-    count: apiTargets.size,
-  });
 }
 
-export function getTargetByKanriNo(kanriNo: string): OperationItem | undefined {
-  return apiTargets.get(String(kanriNo));
+export function getTargetByKanriNo(
+  kanriNo: string | number,
+): OperationItem | undefined {
+  return apiTargets.get(String(kanriNo).trim());
 }
 
+/** 常に最新のステータス統合データを取得 */
 export function getAllTargets(): OperationItem[] {
-  return [...apiTargets.values()];
+  const targets = Array.from(apiTargets.values(), getMergedEntity);
+
+  // Store から同期された一元サマリーログを出力
+  if (latestStoreSummary) {
+    console.log("[StatusManager] Store Summary Status:", latestStoreSummary);
+  }
+
+  return targets;
 }
 
 // ============================================================
@@ -120,76 +127,56 @@ export function getAllTargets(): OperationItem[] {
 export function getStatus(
   kanriNo: string | number,
 ): PersistedStatus | undefined {
-  return memoryStatuses.get(String(kanriNo));
+  return memoryStatuses.get(String(kanriNo).trim());
 }
 
 export function getMergedEntity(target: OperationItem): OperationItem {
-  const key = String(target.kanriNo);
-  const persisted = memoryStatuses.get(key);
+  const key = String(target.kanriNo).trim();
+  const p = memoryStatuses.get(key);
   return {
     ...target,
     kanriNo: key,
-    status: persisted?.status ?? target.status ?? JOB_STATUS.SCHEDULED,
-    comment: persisted?.comment ?? target.comment ?? "",
-    startTime: persisted?.startTime ?? null,
-    endTime: persisted?.endTime ?? null,
-    expectedStartTime: persisted?.expectedStartTime ?? null,
-    expectedEndTime: persisted?.expectedEndTime ?? null,
-    substatus: persisted?.substatus ?? null,
-    info: persisted?.info ?? null,
+    status: p?.status ?? target.status ?? JOB_STATUS.SCHEDULED,
+    comment: p?.comment ?? target.comment ?? "",
+    startTime: p?.startTime ?? null,
+    endTime: p?.endTime ?? null,
+    expectedStartTime: p?.expectedStartTime ?? null,
+    expectedEndTime: p?.expectedEndTime ?? null,
+    substatus: p?.substatus ?? null,
+    info: p?.info ?? null,
   };
+}
+
+function isStatusEqual(a: PersistedStatus, b: PersistedStatus): boolean {
+  return (
+    a.status === b.status &&
+    a.comment === b.comment &&
+    a.startTime === b.startTime &&
+    a.endTime === b.endTime &&
+    a.expectedStartTime === b.expectedStartTime &&
+    a.expectedEndTime === b.expectedEndTime &&
+    a.info === b.info &&
+    (a.substatus === b.substatus ||
+      JSON.stringify(a.substatus) === JSON.stringify(b.substatus))
+  );
 }
 
 export function updateStatus(
   update: StatusUpdate,
-  options?: { isManual?: boolean },
+  _options?: { isManual?: boolean },
 ): boolean {
-  const key = String(update.kanriNo);
+  const key = String(update.kanriNo).trim();
   if (!key) return false;
-
-  const target = getTargetByKanriNo(key);
-  const debug = isDebugTarget(key, target);
 
   const previous = memoryStatuses.get(key);
   const next = sanitizeStatus({ ...previous, ...update });
 
-  if (debug) {
-    console.log(
-      `\n[DEBUG-STATUS-UPDATE] kanriNo: ${key} (${target?.workName ?? "Unknown"})`,
-      {
-        prevStatus: previous?.status ?? "none",
-        nextStatus: next.status,
-        updatePayload: update,
-      },
-    );
-  }
-
-  // 変化がなければ送信を止める判定箇所
-  if (JSON.stringify(previous) === JSON.stringify(next)) {
-    if (debug) {
-      console.log(
-        `[DEBUG-STATUS-UPDATE] ❌ 変化なしのため送信キャンセル (prev === next)`,
-      );
-    }
-    return false;
-  }
+  if (previous && isStatusEqual(previous, next)) return false;
 
   memoryStatuses.set(key, next);
 
-  if (target) {
-    const mergedItem = getMergedEntity(target);
-    if (debug) {
-      console.log(`[DEBUG-STATUS-UPDATE] ⭕ UIへIPC放送送信準備完了:`, {
-        kanriNo: mergedItem.kanriNo,
-        status: mergedItem.status,
-      });
-    }
-    broadcastStatusUpdate(mergedItem);
-  } else if (debug) {
-    console.log(
-      `[DEBUG-STATUS-UPDATE] ⚠️ apiTargetsにTargetが存在しないためbroadcast中止`,
-    );
-  }
+  const target = getTargetByKanriNo(key);
+  if (target) broadcastStatusUpdate(getMergedEntity(target));
 
   schedulePersistStatuses(memoryStatuses);
   return true;
@@ -201,18 +188,10 @@ export function updateManualStatus(
   comment: string,
 ): void {
   updateStatus(
-    {
-      kanriNo,
-      status,
-      comment,
-      endTime: new Date().toISOString(),
-    },
+    { kanriNo, status, comment, endTime: new Date().toISOString() },
     { isManual: true },
   );
-
-  if (isPollingRunning()) {
-    void runCycle();
-  }
+  if (isPollingRunning()) void runCycle();
 }
 
 export async function deleteAllStatuses(): Promise<void> {
@@ -225,8 +204,19 @@ export async function initializeStatuses(): Promise<
 > {
   memoryStatuses.clear();
   const data = await loadStatusesFromFile();
-  for (const [kanriNo, status] of Object.entries(data)) {
-    memoryStatuses.set(String(kanriNo), sanitizeStatus(status));
+  for (const [key, status] of Object.entries(data)) {
+    const sanitized = sanitizeStatus(status);
+
+    // アプリ再起動時、実行中ステータスは実プロセスが存在しないため ready へリセット
+    if (
+      sanitized.status === JOB_STATUS.RUNNING ||
+      sanitized.status === JOB_STATUS.SCRIPT_RUNNING
+    ) {
+      sanitized.status = JOB_STATUS.READY;
+      sanitized.comment = "アプリ再起動により再評価待ち";
+    }
+
+    memoryStatuses.set(String(key).trim(), sanitized);
   }
   return Object.fromEntries(memoryStatuses);
 }

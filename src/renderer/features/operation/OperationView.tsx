@@ -21,5 +21,3 @@ export const OperationView: React.FC = React.memo(() => {
 });
 
 OperationView.displayName = "OperationView";
-
-OperationView;
