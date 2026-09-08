@@ -275,6 +275,21 @@ export async function executeScriptJob(
   filePath?: ScriptFilePath,
   options?: JobExecutionOptions,
 ): Promise<JobResult> {
+  // E5_CHECK 等の照会・確認専用アクションは Entity 存在チェックや依存評価をスキップして直接実行
+  const isReadOnlyCheck = kanriNo.toUpperCase().endsWith("_CHECK");
+  if (isReadOnlyCheck) {
+    try {
+      return await commands.executeScript(kanriNo, filePath);
+    } catch (error) {
+      const message = getErrorMessage(error);
+      const resolvedOptions = resolveJobExecutionOptions(options);
+      if (!resolvedOptions.silent) {
+        toast.error(`スクリプト実行時エラー: ${message}`);
+      }
+      throw error;
+    }
+  }
+
   const resolvedOptions = resolveJobExecutionOptions(options);
 
   let item: OperationItem;

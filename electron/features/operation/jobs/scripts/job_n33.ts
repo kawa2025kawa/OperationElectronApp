@@ -7,7 +7,6 @@ import readline from "readline";
 // ============================================================
 // Constants & Types
 // ============================================================
-
 const FTP_CONFIG = {
   host: "172.31.1.4",
   port: 21,
@@ -16,7 +15,6 @@ const FTP_CONFIG = {
 } as const;
 
 const FTP_DIR = "/fep/chkcount";
-
 const TARGET_VALUES = new Set([
   "24",
   "43",
@@ -31,8 +29,8 @@ const TARGET_VALUES = new Set([
 ]);
 
 interface UnassignedDetail {
-  code: string; // C列の値 (正規化後)
-  detail: string; // D列の値
+  code: string;
+  detail: string;
 }
 
 interface FileCheckResult {
@@ -44,7 +42,6 @@ interface FileCheckResult {
 // ============================================================
 // Helper Functions
 // ============================================================
-
 async function processCsvStream(
   inputStream: Readable,
   codeName: string,
@@ -60,14 +57,13 @@ async function processCsvStream(
 
   for await (const line of rl) {
     rowIndex++;
-    if (rowIndex === 1) continue; // ヘッダースキップ
+    if (rowIndex === 1) continue;
 
     const trimmedLine = line.trim();
     if (!trimmedLine) continue;
 
     processedRows++;
 
-    // A列: スキップ, B列: status, C列: rawCode, D列: rawDetail
     const [, status = "", rawCode = "", rawDetail = ""] = trimmedLine
       .split(",")
       .map((c) => c.trim());
@@ -75,12 +71,8 @@ async function processCsvStream(
     const normalizedCode = rawCode.replace(/^0+/, "");
 
     if (status === "未格納") {
-      unassignedItems.push({
-        code: normalizedCode,
-        detail: rawDetail,
-      });
+      unassignedItems.push({ code: normalizedCode, detail: rawDetail });
 
-      // NG判定チェック
       if (!TARGET_VALUES.has(normalizedCode)) {
         console.error(
           `[JobN33][${codeName}] ❌ NG検出 | 行: ${rowIndex} | Code: ${rawCode} (${normalizedCode}) | Detail: ${rawDetail}`,
@@ -92,17 +84,12 @@ async function processCsvStream(
     }
   }
 
-  return {
-    codeName,
-    processedRows,
-    unassignedItems,
-  };
+  return { codeName, processedRows, unassignedItems };
 }
 
 // ============================================================
 // Main Job Function
 // ============================================================
-
 export async function runJobN33(): Promise<string> {
   const client = new Client();
   const today = format(new Date(), "yyyyMMdd");
@@ -127,9 +114,8 @@ export async function runJobN33(): Promise<string> {
         .sort((a, b) => b.name.localeCompare(a.name));
 
       const file = matchedFiles[0];
-      if (!file) {
+      if (!file)
         throw new Error(`[${codeName}] 当日CSV (${today}) が見つかりません`);
-      }
 
       console.log(`▶ [${codeName}] 対象: ${file.name}`);
 
@@ -138,7 +124,6 @@ export async function runJobN33(): Promise<string> {
       const parsePromise = processCsvStream(passThroughStream, codeName);
 
       const [, result] = await Promise.all([downloadPromise, parsePromise]);
-
       results.push(result);
 
       console.log(
@@ -149,27 +134,19 @@ export async function runJobN33(): Promise<string> {
     await checkFile("S330");
     await checkFile("S332");
 
-    // 🎯 コメント表示用フォーマットの構築
-    const commentBlocks: string[] = [];
-
-    for (const res of results) {
-      // "S330" -> "330" の表示用変換
-      const displayCode = res.codeName.replace(/^S/, "");
-      const count = res.unassignedItems.length;
-
-      let block = `【${displayCode}】未格納、${count}件`;
-
-      if (count > 0) {
-        const itemLines = res.unassignedItems
+    // map を使って出力テキストブロックを簡潔に生成
+    const finalComment = results
+      .map((res) => {
+        const displayCode = res.codeName.replace(/^S/, "");
+        const count = res.unassignedItems.length;
+        const header = `【${displayCode}】未格納、${count}件`;
+        if (count === 0) return header;
+        const details = res.unassignedItems
           .map((item) => `${item.code}:${item.detail}`)
           .join("\n");
-        block += `\n${itemLines}`;
-      }
-
-      commentBlocks.push(block);
-    }
-
-    const finalComment = commentBlocks.join("\n\n");
+        return `${header}\n${details}`;
+      })
+      .join("\n\n");
 
     console.log(`--------------------------------------------------`);
     console.log(` [JobN33] 完了`);

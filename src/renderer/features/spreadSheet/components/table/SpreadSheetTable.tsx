@@ -125,7 +125,7 @@ const SpreadSheetTableComponent = <T extends object>({
           ) : (
             virtualItems.map((virtualRow) => {
               const item = data[virtualRow.index];
-              const id = String(item[rowKey] ?? "");
+              const id = String((item as { id?: string | number }).id ?? "");
               const isSelected =
                 selectedId != null && String(selectedId) === id;
 

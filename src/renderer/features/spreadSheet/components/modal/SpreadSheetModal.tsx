@@ -1,17 +1,17 @@
-﻿import React, {
+﻿// src/renderer/features/spreadSheet/components/modal/SpreadSheetModal.tsx
+
+import React, {
   useMemo,
   useState,
   type PropsWithChildren,
   type ReactNode,
 } from "react";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-import {
-  SHEET_IDS,
-  type SheetId,
-  type SheetRowMap,
-  type Shop,
-} from "@shared/types/spreadsheet";
-import { SPREADSHEET_MODAL_MAP } from "./modalRegistry";
+import type { SheetRowMap, Shop } from "@shared/types/spreadsheet";
+import { JugyoinModalContent } from "./jugyoin/JugyoinModalContent";
+import { KokyuhyoModalContent } from "./kokyuhyo/KokyuhyoModalContent";
+import { ShopModalContent } from "./shop/ShopModalContent";
+import { TantouModalContent } from "./tantou/TantouModalContent";
 import {
   SpreadSheetModalContext,
   type SpreadSheetModalContextType,
@@ -19,9 +19,31 @@ import {
 import { useShopModalFooter } from "./hooks/useShopModalFooter";
 import * as styles from "./spreadSheetModal.css";
 
-/* ============================================================================
- * Provider (UI Scaffolding)
- * ============================================================================ */
+// ----------------------------------------------------
+// 型定義 & コンポーネントマップ（旧 modalRegistry.ts を吸収）
+// ----------------------------------------------------
+
+type ModalSheetKey = keyof SheetRowMap;
+
+export interface ModalContentProps<T = unknown> {
+  data: T;
+}
+
+export type ModalComponentMap = {
+  [K in ModalSheetKey]: React.ComponentType<ModalContentProps<SheetRowMap[K]>>;
+};
+
+export const SPREADSHEET_MODAL_MAP: ModalComponentMap = {
+  JugyoinMasterData: JugyoinModalContent,
+  KokyuhyoMasterData: KokyuhyoModalContent,
+  StoreMasterData: ShopModalContent,
+  KokyuhyoTantouMasterData: TantouModalContent,
+};
+
+// ----------------------------------------------------
+// コンポーネント実装
+// ----------------------------------------------------
+
 export const SpreadSheetModalProvider: React.FC<
   PropsWithChildren<{ value: SpreadSheetModalContextType }>
 > = ({ value, children }) => {
@@ -32,14 +54,13 @@ export const SpreadSheetModalProvider: React.FC<
   );
 };
 
-/* ============================================================================
- * Sub Component: ShopModalFooter (UI)
- * ============================================================================ */
 export const ShopModalFooter: React.FC<{ data: Shop }> = React.memo(
   ({ data }) => {
     const { excelPath, pdfPath, handleOpen } = useShopModalFooter(data);
 
-    if (!excelPath && !pdfPath) return null;
+    if (!excelPath && !pdfPath) {
+      return null;
+    }
 
     return (
       <>
@@ -49,7 +70,7 @@ export const ShopModalFooter: React.FC<{ data: Shop }> = React.memo(
             className={styles.button}
             onClick={() => void handleOpen(excelPath)}
           >
-            Excel
+            完成図書Excel
           </button>
         )}
         {pdfPath && (
@@ -58,7 +79,7 @@ export const ShopModalFooter: React.FC<{ data: Shop }> = React.memo(
             className={styles.button}
             onClick={() => void handleOpen(pdfPath)}
           >
-            PDF
+            完成図書PDF
           </button>
         )}
       </>
@@ -68,10 +89,9 @@ export const ShopModalFooter: React.FC<{ data: Shop }> = React.memo(
 
 ShopModalFooter.displayName = "ShopModalFooter";
 
-/* ============================================================================
- * Main Component: SpreadSheetModal (UI)
- * ============================================================================ */
-export interface SpreadSheetModalProps<K extends SheetId = SheetId> {
+export interface SpreadSheetModalProps<
+  K extends ModalSheetKey = ModalSheetKey,
+> {
   sheetId: K;
   data: SheetRowMap[K];
   title: string;
@@ -79,7 +99,7 @@ export interface SpreadSheetModalProps<K extends SheetId = SheetId> {
 }
 
 export const SpreadSheetModal = React.memo(
-  <K extends SheetId>({
+  <K extends ModalSheetKey>({
     sheetId,
     data,
     title,
@@ -97,44 +117,39 @@ export const SpreadSheetModal = React.memo(
       [onClose],
     );
 
-    const ContentComponent = SPREADSHEET_MODAL_MAP[sheetId] as
-      | React.ComponentType<{
-          data: SheetRowMap[K];
-          title: string;
-          onClose: () => void;
-        }>
-      | undefined;
+    const ContentComponent = SPREADSHEET_MODAL_MAP[
+      sheetId
+    ] as React.ComponentType<{
+      data: SheetRowMap[K];
+    }>;
 
     return (
       <SpreadSheetModalProvider value={contextValue}>
         <div className={styles.container}>
-          {/* Header */}
           <header className={styles.header}>
             <div className={styles.headerLeft}>
               <h2 className={styles.modalTitle}>{title}</h2>
             </div>
+
             <div className={styles.headerRightContainer}>
               {headerRight}
               <CloseButton onClick={onClose} />
             </div>
           </header>
 
-          {/* Center Content */}
           <main className={styles.centerContent}>
-            {ContentComponent ? (
-              <ContentComponent data={data} title={title} onClose={onClose} />
-            ) : null}
+            {ContentComponent ? <ContentComponent data={data} /> : null}
           </main>
 
-          {/* Footer */}
           <footer className={styles.actionContainer}>
             <div className={styles.footerLeft}>
-              {sheetId === SHEET_IDS.SHOP ? (
+              {sheetId === "StoreMasterData" ? (
                 <ShopModalFooter data={data as Shop} />
               ) : (
                 footerLeft
               )}
             </div>
+
             <button type="button" className={styles.button} onClick={onClose}>
               閉じる
             </button>

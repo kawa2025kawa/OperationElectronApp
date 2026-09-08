@@ -1,25 +1,19 @@
-﻿// src/renderer/features/spreadSheet/store/spreadsheetSlice.ts
-
-import { toast } from "sonner";
+﻿import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-import { getValueByPath } from "@shared/utils/getValueByPath";
 import type { AppState } from "@renderer/store";
+import type { SheetDataResponse } from "@shared/types/spreadsheet";
 import {
-  SHEET_IDS,
-  type SheetDataResponse,
+  ALL_SHEET_IDS,
   type SheetId,
-} from "@shared/types/spreadsheet";
-import { fetchSheetValues } from "../helpers/spreadsheetMapper";
-import { ALL_SHEET_IDS } from "../services/spreadsheetConfig";
-
-const EMPTY_ROWS: readonly unknown[] = [];
+} from "@renderer/features/spreadSheet/services/spreadsheetConfig";
+import { fetchSheetValues } from "../services/mappers";
 
 const PROGRESS_MAPPING: Partial<Record<SheetId, keyof AppState["initStatus"]>> =
   {
-    [SHEET_IDS.SHOP]: "store",
-    [SHEET_IDS.JUGYOIN]: "jugyoin",
-    [SHEET_IDS.KOKYUHYO]: "kokyuhyo",
-    [SHEET_IDS.TANTOU]: "tantou",
+    StoreMasterData: "store",
+    JugyoinList: "jugyoin",
+    KokyuhyoMasterData: "kokyuhyo",
+    KokyuhyoTantouMasterData: "tantou",
   };
 
 export interface SpreadSheetSlice {
@@ -35,8 +29,10 @@ export interface SpreadSheetSlice {
     sheetId: SheetId,
     forcedToken?: string | null,
     isRetry?: boolean,
+    forceFetch?: boolean,
   ): Promise<boolean>;
-  prefetchSheets(latestToken?: string): Promise<void>;
+
+  prefetchSheets(latestToken?: string, concurrency?: number): Promise<void>;
 }
 
 export const createSpreadSheetSlice: StateCreator<
@@ -46,15 +42,15 @@ export const createSpreadSheetSlice: StateCreator<
   SpreadSheetSlice
 > = (set, get) => ({
   sheetData: Object.fromEntries(
-    ALL_SHEET_IDS.map((id: SheetId) => [id, null]),
+    ALL_SHEET_IDS.map((id) => [id, null]),
   ) as Record<SheetId, SheetDataResponse | null>,
 
   isSheetFetching: Object.fromEntries(
-    ALL_SHEET_IDS.map((id: SheetId) => [id, false]),
+    ALL_SHEET_IDS.map((id) => [id, false]),
   ) as Record<SheetId, boolean>,
 
   sheetErrors: Object.fromEntries(
-    ALL_SHEET_IDS.map((id: SheetId) => [id, null]),
+    ALL_SHEET_IDS.map((id) => [id, null]),
   ) as Record<SheetId, string | null>,
 
   setIsSheetFetching: (sheetId, isFetching) => {
@@ -76,37 +72,56 @@ export const createSpreadSheetSlice: StateCreator<
     });
   },
 
-  fetchSheetData: async (sheetId, forcedToken, isRetry = false) => {
-    const state = get();
-    const rawToken = forcedToken ?? state.accessToken;
+  fetchSheetData: async (
+    sheetId,
+    forcedToken,
+    isRetry = false,
+    forceFetch = false,
+  ) => {
+    const currentState = get();
 
-    if (!rawToken) {
-      await state.logout();
+    if (currentState.isSheetFetching[sheetId]) {
       return false;
     }
 
-    const token: string = rawToken;
-    state.setIsSheetFetching(sheetId, true);
+    if (!forceFetch && currentState.sheetData[sheetId] !== null) {
+      return true;
+    }
+
+    const rawToken = forcedToken ?? currentState.accessToken;
+
+    if (!rawToken) {
+      await currentState.logout();
+      return false;
+    }
+
+    currentState.setIsSheetFetching(sheetId, true);
 
     try {
-      const result = await fetchSheetValues(sheetId, token);
+      const result = await fetchSheetValues(sheetId, rawToken);
 
       if (result.status === 401) {
         if (isRetry) {
           toast.error("認証エラーが発生しました");
-          await state.logout();
+          await currentState.logout();
           return false;
         }
 
-        if (await state.checkAuthStatus()) {
+        if (await currentState.checkAuthStatus()) {
           const refreshedToken = get().accessToken;
+
           if (refreshedToken) {
-            return await get().fetchSheetData(sheetId, refreshedToken, true);
+            return await get().fetchSheetData(
+              sheetId,
+              refreshedToken,
+              true,
+              forceFetch,
+            );
           }
         }
 
         toast.error("セッションの有効期限が切れました");
-        await state.logout();
+        await currentState.logout();
         return false;
       }
 
@@ -115,83 +130,53 @@ export const createSpreadSheetSlice: StateCreator<
           result.status === 503
             ? "Googleサービスが一時的に利用できません (503)"
             : result.errorText || `取得エラー (Status: ${result.status})`;
+
         throw new Error(errorMsg);
       }
 
-      const validData: SheetDataResponse = result.data;
-      state.updateSheetData(sheetId, validData);
+      get().updateSheetData(sheetId, result.data);
       return true;
     } catch (err: unknown) {
       console.error(`[SpreadSheet] Failed to fetch sheet [${sheetId}]:`, err);
+
       const message =
         err instanceof Error ? err.message : "データ取得に失敗しました";
 
-      state.setSheetError(sheetId, message);
+      get().setSheetError(sheetId, message);
       toast.error(`[${sheetId}] ${message}`);
+
       return false;
     } finally {
-      state.setIsSheetFetching(sheetId, false);
+      get().setIsSheetFetching(sheetId, false);
     }
   },
 
-  prefetchSheets: async (latestToken) => {
-    const [first, ...rest] = ALL_SHEET_IDS;
-    const safeFetch = async (id: SheetId) => {
-      const ok = await get().fetchSheetData(id, latestToken);
-      const key = PROGRESS_MAPPING[id];
-      if (key) get().setInitStatus({ [key]: ok ? "OK" : "NG" });
-    };
+  prefetchSheets: async (latestToken, concurrency = 2) => {
+    const ids = [...ALL_SHEET_IDS];
+    const executing = new Set<Promise<void>>();
 
-    if (first) await safeFetch(first);
-    await Promise.all(rest.map(safeFetch));
+    for (const id of ids) {
+      const task = (async () => {
+        const ok = await get().fetchSheetData(id, latestToken);
+        const key = PROGRESS_MAPPING[id];
+
+        if (key) {
+          get().setInitStatus({
+            [key]: ok ? "OK" : "NG",
+          });
+        }
+      })();
+
+      executing.add(task);
+
+      const clean = () => executing.delete(task);
+      task.then(clean, clean);
+
+      if (executing.size >= concurrency) {
+        await Promise.race(executing);
+      }
+    }
+
+    await Promise.all(executing);
   },
 });
-
-const isObject = (val: unknown): val is Record<string, unknown> =>
-  typeof val === "object" && val !== null;
-
-const containsTerm = (obj: unknown, term: string): boolean => {
-  if (obj == null) return false;
-  if (
-    typeof obj === "string" ||
-    typeof obj === "number" ||
-    typeof obj === "boolean"
-  ) {
-    return String(obj).toLowerCase().includes(term);
-  }
-  if (Array.isArray(obj)) {
-    return obj.some((item) => containsTerm(item, term));
-  }
-  if (isObject(obj)) {
-    return Object.values(obj).some((val) => containsTerm(val, term));
-  }
-  return false;
-};
-
-export const selectFilteredSheetRows =
-  <T>(
-    sheetId: SheetId | null,
-    searchKeys: readonly string[] = [],
-    skipFilter = false,
-  ) =>
-  (state: AppState): T[] => {
-    if (!sheetId || !state.sheetData[sheetId]) return EMPTY_ROWS as T[];
-
-    const rows = state.sheetData[sheetId]?.data as T[];
-    if (!rows || rows.length === 0 || skipFilter)
-      return rows ?? (EMPTY_ROWS as T[]);
-
-    const term = state.searchTerm.trim().toLowerCase();
-    if (!term) return rows;
-
-    return rows.filter((row) => {
-      if (searchKeys.length > 0) {
-        const keyMatch = searchKeys.some((key) => {
-          const val = getValueByPath(row as Record<string, unknown>, key);
-          return val != null && String(val).toLowerCase().includes(term);
-        });
-        if (keyMatch) return true;
-      }
-      return containsTerm(row, term);
-    });
-  };

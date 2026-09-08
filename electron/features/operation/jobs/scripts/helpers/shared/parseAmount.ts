@@ -1,87 +1,29 @@
-﻿//electron\features\operation\jobs\scripts\helpers\shared\parseAmount.ts
-
+﻿// electron/features/operation/jobs/scripts/helpers/shared/parseAmount.ts
 export function parseAmount(value: unknown): number | null {
-  if (value == null) {
-    return null;
-  }
+  if (value == null) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
 
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null;
-  }
-
-  if (typeof value === "string") {
-    return normalizeAmount(value);
-  }
-
-  if (typeof value === "boolean") {
-    return normalizeAmount(String(value));
-  }
-
-  if (value instanceof Date) {
-    return normalizeAmount(value.toString());
-  }
-
+  let str = "";
   if (typeof value === "object") {
-    const objectValue = value as Record<string, unknown>;
-
-    if ("result" in objectValue && objectValue.result != null) {
-      return parseAmount(objectValue.result);
+    const obj = value as Record<string, unknown>;
+    if (obj.result != null) return parseAmount(obj.result);
+    if (Array.isArray(obj.richText)) {
+      str = obj.richText.map((item: any) => item?.text ?? "").join("");
+    } else {
+      str = String(value);
     }
-
-    if ("richText" in objectValue && Array.isArray(objectValue.richText)) {
-      const text = objectValue.richText
-        .map((item) => {
-          if (item && typeof item === "object" && "text" in item) {
-            return String((item as { text?: unknown }).text ?? "");
-          }
-
-          return "";
-        })
-        .join("");
-
-      return normalizeAmount(text);
-    }
-
-    return normalizeAmount(String(value));
+  } else {
+    str = String(value);
   }
 
-  return normalizeAmount(String(value));
-}
+  const normalized = str.replace(/[\s,]/g, "").trim();
+  if (!normalized || !/^-?\d+(?:\.\d+)?$/.test(normalized)) return null;
 
-function normalizeAmount(text: string): number | null {
-  const normalized = text
-    .replace(/,/g, "")
-    .replace(/円/g, "")
-    .replace(/\s/g, "")
-    .trim();
-
-  if (!normalized) {
-    return null;
-  }
-
-  if (!/^-?\d+(?:\.\d+)?$/.test(normalized)) {
-    return null;
-  }
-
-  const amount = Number(normalized);
-
-  if (!Number.isFinite(amount)) {
-    return null;
-  }
-
-  return amount;
+  const num = Number(normalized);
+  return Number.isFinite(num) ? num : null;
 }
 
 export function parseRealYosanAmount(value: unknown): number | null {
-  const amountInThousands = parseAmount(value);
-
-  if (amountInThousands === null) {
-    return null;
-  }
-
-  return amountInThousands * 1000;
-}
-
-function formatYen(amount: number): string {
-  return `${amount.toLocaleString("ja-JP")}円`;
+  const amount = parseAmount(value);
+  return amount !== null ? amount * 1000 : null;
 }

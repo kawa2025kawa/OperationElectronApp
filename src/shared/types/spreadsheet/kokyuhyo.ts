@@ -1,9 +1,10 @@
-﻿import type { ContactInfo, DailySchedule } from "./common";
+﻿//src\shared\types\spreadsheet\kokyuhyo.ts
+
+import type { ContactInfo, DailySchedule } from "./common";
 
 export interface Kokyuhyo {
   id: string;
   name: string;
-  baseDetail: string;
   contact: ContactInfo;
   scheduleLink: string;
   today: DailySchedule;

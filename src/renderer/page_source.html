@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>cloudstep アドレス帳</title>
+<link rel="stylesheet" type="text/css" href="/css/v2/common.css">
+<link rel="stylesheet" type="text/css" href="/css/v2/detail.css">
+<link rel="stylesheet" type="text/css" href="/css/v2/jquery.handsontable.full.css">
+<link rel="stylesheet" type="text/css" href="/css/v2/ui.dynatree.css">
+<link rel="stylesheet" type="text/css" href="/css/v2/bootstrap.css">
+
+<!-- from CloudstepAddressBook.html -->
+<script src="/js/v2/consolelog.js"></script>
+<script src="/js/prototype/prototype_1_6_1.js"></script>
+<script src="/js/compress/uneval.js"></script>
+<script src="/js/compress/base64.js"></script>
+<script src="/js/compress/rawinflate.js"></script>
+<script src="/js/compress/rawdeflate.js"></script>
+<script src="/ls/littlesoft.js?load=treeview&_hash=679765fe"></script>
+<script>
+function get_url_vars()
+{
+  var vars = new Object, params;
+  var temp_params = window.location.search.substring(1).split('&');
+  for(var i = 0; i <temp_params.length; i++) {
+    params = temp_params[i].split('=');
+    vars[params[0]] = params[1];
+  }
+  return vars;
+}
+ var params = get_url_vars();
+ var keyId = 'YRf7uX0IUmDnBeAPZWJ_mQ.node017888346172891788835565997';
+ var lastUpdated = '2026/09/07 19:14:14.663';
+ var primaryDomain = 'belc.co.jp';
+ var subDomain = '${subDomain}';
+ var maxAddreesSelectionSize = 500;
+ var windowWidth = '${windowWidth}';
+ var windowHeight = '${windowHeight}';
+// var pViewType = '${pViewType}';
+ var pViewType = 'group';
+ var nextUrl = 'https://cloudstep-ab.appspot.com/a/belc.co.jp/v2/view' + 
+   (params["screen"] ? "?screen=" + params["screen"] : "");
+ var nextSpUrl = 'https://cloudstep-ab.appspot.com/a/belc.co.jp/v2/sp/group_organ.html';
+
+ var refreshTermNumber = '';
+ var refreshTermSetting = '';
+ var forceRefreshTimestamp = '2020/06/19 19:14:04.637';
+
+</script> 
+<script src="/js/v2/dateformat.js"></script>
+<script src="/js/v2/NewCloudStepAddressBook.js?_hash=679765fe"></script>
+<script src="/js/v2/checkCacheRefresh.js?_hash=679765fe"></script>
+<style>
+#showSearchResultBox {float:left;width:290px;height:32px;padding:0 3px 0 5px;}
+#showSearchResultBox a.OnOff{float:right }
+#showSearchResultBox > input[type="text"] { margin-top:3px; width:180px; height:15px }
+
+#info {
+position:absolute;
+top:30%;
+width:35%;
+left:33%;
+padding:20px;
+background-color:white;
+color:black;
+text-align:center;
+opacity: 0.75;
+border:solid 1px #999999;
+border-radius:4px;
+}
+
+#isVisibleTypeBox{ float:left;padding:5px 0 0 10px; }
+#searchTotal{ text-align:right; font-size:7pt; color:lightslategray; padding-right:5px;}
+
+</style>
+
+</head>
+<body>
+
+<div id="info" style="display: none;">確認中</div>
+<form id="form1" name="form1" method="post" action="/a/belc.co.jp">
+<div id="lsjcontrol" style="display: none;">
+	<input type="hidden" name="_sbsid" value="1a0ec4bf16d" />
+	<input type="hidden" name="_seq" value="1a086d68016" />
+	<input type="hidden" name="_method" value="doDefault" />
+	<input type="hidden" name="_args" value="" />
+	<input type="hidden" name="_apid" value="1a086d67ff6" />
+	<input type="hidden" name="_papid" value="1a086d67ff6" />
+</div>
+
+<input type="text" name="__dummy" style="display:none;" value="" />
+
+<div id="ls_nowLoading_box" style="display:none;"></div>
+<div id="ls_nowLoading_image" style="display:none;"></div>
+
+<script type="text/javascript">
+<!--
+	if (!(ls)) var ls = {};
+	ls.formTarget = '';
+	ls.defaultFormName   = 'form1';
+	ls.defaultFormAction = '/a';
+	ls.useLoadingImage = true;
+	ls.isNewWindowExec = false;
+	ls._isExecutingExec = false;
+	ls._isExecutingAjax = false;
+	ls.exec = function() {
+		if (ls._isExecutingExec || ls._isExecutingAjax) {
+			ls.isNewWindowAction = false;
+			return false;
+		}
+		if (document[ls.defaultFormName].target == '' || document[ls.defaultFormName].target == '_self') {
+			ls._isExecutingExec = true;
+			ls.setVisibleLoading(true);
+			ls.formTarget = '';
+		}
+		else {
+			ls.formTarget = document[ls.defaultFormName].target;
+		}
+		var _a = arguments;
+		ls._exec.apply(this, _a);
+	}
+
+	ls._exec = function() {
+		document[ls.defaultFormName]._method.value = arguments[0];
+		var args = ''; 
+		for (i = 1; i < arguments.length; i++) { 
+			if (args != '') args += '$$\_%_$$';
+			if (!Object.isString(arguments[i]) && !Object.isNumber(arguments[i]) ) {
+				var obj = { 'class' : 'java.util.HashMap', values : arguments[i] };
+				if (Object.isArray(arguments[i])) {
+					obj['class'] = 'java.util.ArrayList';
+				}
+				args += Object.toJSON(obj);
+			}
+			else if (arguments[i]=='') {
+				args += 'ls_ajax_arguments_is_NULLSTRING';
+			}
+			else {
+				args += arguments[i];
+			}
+		}
+		document[ls.defaultFormName]._args.value = args;
+		try {
+			document[ls.defaultFormName].submit();
+		}
+		catch (e) {
+			ls.onSubmitException(e);
+		}
+		try {
+			if (ls.isNewWindowExec) {
+				var _f = function(){ls.setVisibleLoading(false);};
+				setTimeout(_f, 1000);
+			}
+			ls.isNewWindowExec = false;
+		}
+		catch (e) {}
+	}
+
+	var exec = ls.exec; //for lower compatible.
+
+	ls.open = function() {
+		this.exec('forward', arguments[0]);
+	}
+
+
+	ls.ajax = function() {
+		ls.isNewWindowExec = false;
+		if (ls._isExecutingExec || ls._isExecutingAjax) {
+			return false;
+		}
+		ls._isExecutingAjax = true;
+		ls.setVisibleLoading(true);
+		var _a = arguments;
+		var _f = function(){ls._ajax.apply(this, _a);};
+		setTimeout(_f, 10);
+	}
+
+	ls._ajax = function() {
+		ls.setVisibleLoading(true);
+		document[ls.defaultFormName]._method.value = arguments[0];
+		var _ax = arguments;
+		var args = ''; 
+		for (i = 2; i < arguments.length; i++) { 
+			if (args != '') args += '$$\_%_$$'; 
+			if (!Object.isString(arguments[i]) && !Object.isNumber(arguments[i])) {
+				var obj = { 'class' : 'java.util.HashMap', values : arguments[i] };
+				if (Object.isArray(arguments[i])) {
+					obj['class'] = 'java.util.ArrayList';
+				}
+				args += Object.toJSON(obj);
+			}
+			else if (arguments[i]=='') {
+				args += 'ls_ajax_arguments_is_NULLSTRING';
+			}
+			else {
+				args += arguments[i];
+			}
+		}
+		document[ls.defaultFormName]._args.value = args;
+		var ajaxRequest;
+		if (arguments.length>1) {
+			ajaxRequest = arguments[1];
+		}
+		else {
+			ajaxRequest = new Object();
+		}
+		if (!ajaxRequest.parameters || ajaxRequest.parameters==null) {
+			ajaxRequest.parameters = Form.serialize($(document.form1));
+		}
+		else {
+			ajaxRequest.parameters = ls.serialize($$('#lsjcontrol'), ajaxRequest.parameters);
+		}
+		if (!ajaxRequest.__onComplete && ajaxRequest.onComplete) {
+			ajaxRequest.__onComplete = ajaxRequest.onComplete;
+			ajaxRequest.onComplete = function(data) {
+				try {
+					var res = eval('(' + data.responseText + ')');
+				}
+				catch (e) {
+					ls._isExecutingAjax = false;
+					ls.exec('');
+					return;
+				}
+				document[ls.defaultFormName]._seq.value = res.newSequence;
+				ls._isExecutingAjax = false;
+				try {
+					if (res.__exception) {
+						ls.onException(res);
+					}
+					else if (res.__sequenceerror) {
+						ls.onSequenceError(res);
+					}
+					else {
+						ajaxRequest.__onComplete(res);
+					}
+					ajaxRequest.parameters = null;
+				}
+				finally {
+					try {
+						ls.setVisibleLoading(false);
+					}
+					catch (e) {
+					}
+				}
+				ajaxRequest.parameters = null;
+			}
+		}
+		if (!ajaxRequest.onFailure) {
+			ajaxRequest.onFailure = function(data) {
+				alert('ただ今のリクエストを処理することが出来ませんでした。\nブラウザを終了させ、しばらくたってからもう一度操作してください。\n\nThe request could not be processed.\nPlease try it again after restarting the web browser.');
+				try {
+					ls._isExecutingAjax = false;
+					ls.setVisibleLoading(false);
+				}
+				catch (e) {
+				}
+			}
+    	}
+		new Ajax.Request(ls.defaultFormAction, ajaxRequest);
+	}
+
+	ls.onException = function(response) {
+		alert(response.__exception);
+	}
+
+	ls.onSubmitException = function(e) {
+		alert(e);
+	}
+
+	ls.onSequenceError = function(response) {
+		alert(response.__sequenceerror);
+	}
+
+
+	ls.args = {};
+	var isStatus = false;
+	ls.loadScript = function() {
+		try {
+			if(!isStatus) {
+				;
+				isStatus = true;
+			}
+		}
+		catch (e) {
+			alert('ls.loadScript error:' + e);
+		}
+	}
+
+	ls.stringToCookies = function(str) {
+		var result = new Object();
+		var c = str.split(";");
+		for (var i=0; i<c.length; i++) {
+			var temp = c[i].toString().split("=");
+			result[temp[0].strip()] = temp[1].strip();
+		}
+		return result;
+	}
+
+	ls.cookiesToStirng = function(cookies) {
+		var str = '';
+		for (var n in cookies) { 
+			str += ( str=='' ? '' : '; '); 
+			str += ( n + '=' + cookies[n] );
+		}
+		return str;
+	}
+
+	Event.observe(document, 'dom:loaded', function() {
+		ls.loadScript();
+	});
+
+	Event.observe(window, 'dom:loaded', function(){
+				if (Prototype.Browser.WebKit) {
+			var _elms = Element.getElementsBySelector(document.form1, 'input[type="text"]');
+			for (var i = 0; i < _elms.length; i++) {
+				_elms[i].onkeypress = function keyEvent(e) { if (event.keyCode == 13) return false; };
+			}
+		}
+	});
+
+	ls.setVisibleLoading = function(visible) {
+		var box = $('ls_nowLoading_box');
+		var img = $('ls_nowLoading_image');
+		if (visible) {
+			if (ls.useLoadingImage) {
+				var viewOffset = document.viewport.getScrollOffsets();
+				var bx = viewOffset.left + (document.viewport.getWidth()  - box.getWidth())  / 2;
+				var by = viewOffset.top  + (document.viewport.getHeight() - box.getHeight()) / 2;
+				var ix = viewOffset.left + (document.viewport.getWidth()  - img.getWidth())  / 2;
+				var iy = viewOffset.top  + (document.viewport.getHeight() - img.getHeight()) / 2;
+				box.setStyle({'top':(by +'px'), 'left':(bx +'px')});
+				img.setStyle({'top':(iy +'px'), 'left':(ix +'px')});
+				box.show();
+				img.show();
+			}
+		}
+		else {
+			var checkTarget = document.readyState;
+			if (window.name.indexOf('_Frame',0) >= 0) {
+				checkTarget = parent.document.getElementById(window.name).readyState;
+			}
+			if (checkTarget == 'complete' || checkTarget == 'interactive' || checkTarget == undefined) {
+				ls._isExecutingExec = false;
+				if (ls.useLoadingImage) {
+					box.hide();
+					img.hide();
+				}
+			}
+			else {
+				var _f = function(){ls.setVisibleLoading(false);};
+				setTimeout(_f, 1000);
+			}
+		}
+	}
+
+//-->
+</script>
+<script type="text/javascript">
+<!--
+	ls.serialize = function() {
+		var q = (arguments[1]) ? arguments[1] : '';
+		var objects = arguments[0];
+		objects.each(function(obj) {
+			var tmp = Form.serialize(obj);
+			if (q != '') tmp = '&' + tmp;
+			q = q + tmp;
+		}.bind(this));
+		return q;
+	}
+//-->
+</script>
+</form>
+
+</body>
+</html>

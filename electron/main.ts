@@ -17,35 +17,12 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 800,
-
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
     },
-  });
-
-  mainWindow.webContents.on(
-    "did-fail-load",
-    (_event, errorCode, errorDescription, validatedURL) => {
-      console.error("[Electron] did-fail-load", {
-        errorCode,
-        errorDescription,
-        validatedURL,
-      });
-    },
-  );
-
-  mainWindow.webContents.on("did-finish-load", () => {
-    console.log("[Electron] did-finish-load");
-  });
-
-  mainWindow.webContents.on("preload-error", (_event, preloadPath, error) => {
-    console.error("[Electron] preload-error", {
-      preloadPath,
-      error,
-    });
   });
 
   void loadRenderer().catch((error) => {
@@ -74,18 +51,10 @@ async function loadRenderer(): Promise<void> {
 
   if (devUrl) {
     await mainWindow.loadURL(devUrl);
-
-    mainWindow.webContents.openDevTools({
-      mode: "detach",
-    });
-
     return;
   }
 
   const rendererPath = path.join(__dirname, "../dist/index.html");
-
-  console.log("[Electron] renderer:", rendererPath);
-  console.log("[Electron] preload:", path.join(__dirname, "preload.cjs"));
 
   await mainWindow.loadFile(rendererPath);
 }
@@ -108,7 +77,6 @@ app
     app.quit();
   });
 
-// アプリ終了時にポーリングループとタイマーを確実に破棄
 app.on("before-quit", () => {
   stopPolling();
 });

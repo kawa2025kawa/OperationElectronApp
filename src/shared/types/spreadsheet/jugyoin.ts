@@ -1,10 +1,11 @@
-﻿import type { ContactInfo, DailySchedule } from "./common";
+﻿// src/shared/types/spreadsheet/jugyoin.ts
+
+import type { ContactInfo, DailySchedule } from "./common";
 
 export interface Jugyoin {
   id: string;
-  department: string; // 従業員シート特有のフィールド
+  bumon: string;
   name: string;
-  baseDetail: string;
   contact: ContactInfo;
   scheduleLink: string;
   today: DailySchedule;

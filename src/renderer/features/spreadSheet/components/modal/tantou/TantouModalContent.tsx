@@ -8,7 +8,7 @@ import {
   type TabGroupConfig,
   useSpreadSheetTabData,
 } from "../hooks/useSpreadSheetTabData";
-import type { SpreadSheetModalProps } from "../modalRegistry";
+import type { ModalContentProps } from "../SpreadSheetModal";
 import * as styles from "./TantouModalContent.css";
 
 const TANTOU_FIELDS = [
@@ -40,7 +40,7 @@ const TANTOU_MODAL_GROUPS: readonly TabGroupConfig[] = [
   createTantouGroup("tomorrow", "明日"),
 ] as const;
 
-export const TantouModalContent: React.FC<SpreadSheetModalProps<Tantou>> =
+export const TantouModalContent: React.FC<ModalContentProps<Tantou>> =
   React.memo(({ data }) => {
     const { selectedIndex, setSelectedIndex, displayItems } =
       useSpreadSheetTabData(data, TANTOU_MODAL_GROUPS);

@@ -1,12 +1,12 @@
-// src/renderer/components/layout/navbar/components/tantouButton/TantouButton.tsx
-
 import React, { useCallback } from "react";
 import { useAppStore } from "@renderer/store";
-import { SHEET_IDS, type Tantou } from "@shared/types/spreadsheet";
+import type { Tantou } from "@shared/types/spreadsheet";
 import { APP_REGISTRY, getAppViewConfig } from "@renderer/registry/appRegistry";
 import { APP_VIEW_IDS } from "@shared/types/ui";
 import { SpreadSheetModal } from "@renderer/features/spreadSheet/components/modal/SpreadSheetModal";
 import * as styles from "./tantouButton.css";
+
+const TANTOU_SHEET_ID = "KokyuhyoTantouMasterData" as const;
 
 export const TantouButton: React.FC = () => {
   const fetchSheetData = useAppStore((s) => s.fetchSheetData);
@@ -16,36 +16,35 @@ export const TantouButton: React.FC = () => {
   const handleClick = useCallback(async () => {
     const tantouConfig = APP_REGISTRY[APP_VIEW_IDS.TANTOU]?.modalConfig;
 
-    // 1. ストア（Zustand）からキャッシュデータを即座に取得
-    let rawData = useAppStore.getState().sheetData[SHEET_IDS.TANTOU]?.data;
+    let rawData = useAppStore.getState().sheetData[TANTOU_SHEET_ID]?.data;
 
-    // 2. キャッシュが存在しない場合（未ログイン起動時等）のみ API 完了を待つ
     if (!rawData) {
-      await fetchSheetData(SHEET_IDS.TANTOU);
-      rawData = useAppStore.getState().sheetData[SHEET_IDS.TANTOU]?.data;
+      await fetchSheetData(TANTOU_SHEET_ID);
+      rawData = useAppStore.getState().sheetData[TANTOU_SHEET_ID]?.data;
     } else {
-      // キャッシュで即モーダルを開きつつ、バックグラウンドで最新化したい場合は非同期で投げる
-      void fetchSheetData(SHEET_IDS.TANTOU);
+      void fetchSheetData(TANTOU_SHEET_ID);
     }
 
     const tantouData = (
       Array.isArray(rawData) ? rawData[0] : rawData
     ) as Tantou | null;
 
-    if (tantouData) {
-      openGlobalModal(
-        <SpreadSheetModal
-          sheetId={SHEET_IDS.TANTOU}
-          data={tantouData}
-          title={getAppViewConfig(APP_VIEW_IDS.TANTOU).title}
-          onClose={closeGlobalModal}
-        />,
-        {
-          width: tantouConfig?.modalSize?.width ?? "1000px",
-          height: tantouConfig?.modalSize?.height ?? "600px",
-        },
-      );
+    if (!tantouData) {
+      return;
     }
+
+    openGlobalModal(
+      <SpreadSheetModal
+        sheetId={TANTOU_SHEET_ID}
+        data={tantouData}
+        title={getAppViewConfig(APP_VIEW_IDS.TANTOU).title}
+        onClose={closeGlobalModal}
+      />,
+      {
+        width: tantouConfig?.modalSize?.width ?? "1000px",
+        height: tantouConfig?.modalSize?.height ?? "600px",
+      },
+    );
   }, [fetchSheetData, openGlobalModal, closeGlobalModal]);
 
   return (

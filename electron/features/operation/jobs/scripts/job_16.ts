@@ -1,4 +1,5 @@
-﻿// electron/services/operation/jobs/scripts/job_16.ts
+﻿// electron/features/operation/jobs/scripts/job_16.ts
+import path from "node:path";
 import fs from "fs-extra";
 import { format } from "date-fns";
 
@@ -23,10 +24,16 @@ export async function runJob16(): Promise<string> {
     throw new Error(`ディレクトリが存在しません: ${dir}`);
 
   const files = await fs.readdir(dir);
-  const found = files.some(
+
+  // 対象の ERROR ファイルが存在するか検索
+  const targetFile = files.find(
     (file) => file.startsWith(targetPrefix) && file.endsWith(".txt"),
   );
 
-  if (found) throw new Error("SANSAN_ERRORファイルが存在します");
+  if (targetFile) {
+    const fullPath = path.join(dir, targetFile);
+    throw new Error(`SANSAN_ERRORファイルが存在します: ${fullPath}`);
+  }
+
   return "正常終了";
 }

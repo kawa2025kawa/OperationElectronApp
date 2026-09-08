@@ -26,24 +26,36 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
       title,
       kanriNo,
       isPrimaryDisabled,
+      secondaryLabel,
+      isSecondaryDisabled,
+      hasSecondaryAction,
       setTitle,
       registerPrimaryAction,
+      registerSecondaryAction,
       handlePrimaryClick,
+      handleSecondaryClick,
       handleClose,
     } = useOperationModalLogic({
       type,
       onClose,
     });
 
-    // 子コンポーネントへ提供する Context 値（バケツリレーを防止）
+    // 子コンポーネントへ提供する Context 値（セカンダリアクションを追加）
     const contextValue = useMemo(
       () => ({
         kanriNo,
         setTitle,
         registerPrimaryAction,
+        registerSecondaryAction,
         onClose: handleClose,
       }),
-      [kanriNo, setTitle, registerPrimaryAction, handleClose],
+      [
+        kanriNo,
+        setTitle,
+        registerPrimaryAction,
+        registerSecondaryAction,
+        handleClose,
+      ],
     );
 
     const content = useMemo(() => {
@@ -77,6 +89,16 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
           <footer className={styles.actionContainer}>
             <Button onClick={handleClose}>閉じる</Button>
 
+            {/* サブアクション（E5の「送信済みデータの確認」など）が登録されている場合のみ表示 */}
+            {hasSecondaryAction && (
+              <Button
+                onClick={handleSecondaryClick}
+                disabled={isSecondaryDisabled}
+              >
+                {secondaryLabel}
+              </Button>
+            )}
+
             {shouldShowPrimaryButton && (
               <Button onClick={handlePrimaryClick} disabled={isPrimaryDisabled}>
                 実行
@@ -90,5 +112,3 @@ export const OperationModal: React.FC<OperationModalProps> = React.memo(
 );
 
 OperationModal.displayName = "OperationModal";
-
-OperationModal;

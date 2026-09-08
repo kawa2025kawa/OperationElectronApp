@@ -1,4 +1,6 @@
-﻿export interface TantouDailyDetails {
+﻿// src/shared/types/spreadsheet/tantou.ts
+
+export interface TantouDailyDetails {
   hayaban: string;
   shikai: string;
   uketsuke: string;

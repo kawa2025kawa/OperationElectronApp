@@ -1,4 +1,5 @@
 ﻿// src/shared/types/spreadsheet/ui.ts
+
 import type React from "react";
 import type { Column } from "@shared/types/table";
 import type { Jugyoin } from "./jugyoin";
@@ -11,7 +12,7 @@ type SpreadSheetEntity = Shop | Kokyuhyo | Jugyoin | Tantou;
 export interface SpreadSheetTableProps<T extends object = SpreadSheetEntity> {
   data: T[];
   columns: readonly Column<T>[];
-  rowKey: keyof T;
+  rowKey: "id";
   onRowClick?: (item: T) => void;
   selectedId?: string | number | null;
 }

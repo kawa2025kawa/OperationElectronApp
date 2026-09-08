@@ -1,5 +1,7 @@
-﻿import type { AppViewDefinition } from "@shared/types/registry";
-import { SHEET_IDS, type Tantou } from "@shared/types/spreadsheet";
+﻿// src/renderer/features/spreadSheet/configs/tantouViewConfig.ts
+
+import type { AppViewDefinition } from "@shared/types/registry";
+import type { Tantou } from "@shared/types/spreadsheet";
 import type { Column } from "@shared/types/table";
 import { APP_VIEW_IDS } from "@shared/types/ui";
 
@@ -9,11 +11,11 @@ export const TANTOU_COLUMNS: readonly Column<Tantou>[] = [
   { key: "today.uketsuke", label: "受付", width: "10.5%" },
   { key: "today.denwa", label: "電話", width: "10.5%" },
   { key: "today.nimotsu", label: "荷物", width: "10.5%" },
-  { key: "today.floor2f", label: "2F", width: "8.5%" },
-  { key: "today.floor3f", label: "3F", width: "8.5%" },
+  { key: 'today."2F"', label: "2F", width: "8.5%" },
+  { key: 'today."3F"', label: "3F", width: "8.5%" },
   { key: "today.tensou", label: "転送", width: "10.5%" },
-  { key: "today.amAttendance", label: "AM出勤率", width: "10%" },
-  { key: "today.pmAttendance", label: "PM出勤率", width: "10%" },
+  { key: "today.amAttendanceRate", label: "AM出勤率", width: "10%" },
+  { key: "today.pmAttendanceRate", label: "PM出勤率", width: "10%" },
 ] as const;
 
 export const tantouViewConfig: AppViewDefinition = {
@@ -22,7 +24,7 @@ export const tantouViewConfig: AppViewDefinition = {
   component: null,
   isProtected: true,
   sidebarMenu: { show: false, order: 99 },
-  sheetId: SHEET_IDS.TANTOU,
+  sheetId: "KokyuhyoTantouMasterData",
   search: {
     placeholder: "検索...",
     searchKeys: [
@@ -31,8 +33,8 @@ export const tantouViewConfig: AppViewDefinition = {
       "today.uketsuke",
       "today.denwa",
       "today.nimotsu",
-      "today.floor2f",
-      "today.floor3f",
+      'today."2F"',
+      'today."3F"',
       "today.tensou",
     ],
   },

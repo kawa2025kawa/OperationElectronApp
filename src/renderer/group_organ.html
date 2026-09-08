@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>グループ一覧</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.99999997, maximum-scale=1.0, user-scalable=no">
+
+<link rel="stylesheet" type="text/css" href="/css/v2/sp/common.css">
+<link rel="stylesheet" type="text/css" href="/css/v2/sp/jquery.mobile-1.3.2.css">
+<link rel="stylesheet" type="text/css" href="/css/v2/sp/ui.dynatree_custom.css">
+<link rel="stylesheet" type="text/css" href="/css/v2/sp/detail.css">
+
+<script src="/js/compress/uneval.js"></script>
+<script src="/js/compress/base64.js"></script>
+<script src="/js/compress/rawinflate.js"></script>
+<script src="/js/compress/rawdeflate.js"></script>
+
+<!-- common -->
+<script type="text/javascript" src="/js/v2/jquery-1.10.2.min.js"></script>
+<script type="text/javascript" src="/js/v2/jquery-ui.custom.js"></script>
+<script type="text/javascript" src="/js/v2/jquery.cookie.js"></script>
+<script type="text/javascript" src="/js/v2/jquery.dynatree-1.2.4.js"></script>
+<script type="text/javascript" src="/js/v2/handlebars.js"></script>
+
+<script type="text/javascript" src="/js/v2/sp/i18nVoid.js"></script>
+<script type="text/javascript" src="/js/v2/sp/jquery.mobile-1.3.2.js"></script>
+<script type="text/javascript" src="/js/v2/sp/displayControl.js"></script>
+<script type="text/javascript" src="/js/v2/sp/data.js"></script>
+<script type="text/javascript" src="/js/v2/sp/common.js"></script>
+<script type="text/javascript" src="/js/v2/sp/group.js"></script>
+<script type="text/javascript" src="/js/v2/sp/mailerSelect.js"></script>
+
+<script>
+ var keyId = 'YRf7uX0IUmDnBeAPZWJ_mQ.node017888346172891788835815232';
+ var lastUpdated = '2026/09/07 19:14:14.663';
+ var primaryDomain = 'belc.co.jp';
+ var subDomain = '${subDomain}';
+ var maxAddreesSelectionSize = 500;
+ var windowWidth = '${windowWidth}';
+ var windowHeight = '${windowHeight}';
+ var pViewType = 'group';
+ var contextUrl = 'https://cloudstep-ab.appspot.com/a/belc.co.jp/v2/sp/';
+ var displayItemSetting = '{&quot;email_itemname&quot;:&quot;メールアドレス&quot;, &quot;company_itemname&quot;:&quot;会社名&quot;, &quot;ext1_useflag&quot;:false, &quot;phone_itemname&quot;:&quot;電話番号&quot;, &quot;department_itemname&quot;:&quot;部署&quot;, &quot;office_useflag&quot;:true, &quot;position_useflag&quot;:true, &quot;office_itemname&quot;:&quot;事務所&quot;, &quot;kana_itemname&quot;:&quot;フリガナ&quot;, &quot;company_useflag&quot;:true, &quot;name_useflag&quot;:true, &quot;department_useflag&quot;:true, &quot;position_itemname&quot;:&quot;役職&quot;, &quot;email_useflag&quot;:true, &quot;name_itemname&quot;:&quot;名前&quot;, &quot;phone_useflag&quot;:true, &quot;kana_useflag&quot;:true, &quot;ext1_itemname&quot;:&quot;&quot;}';
+ displayItemSetting = JSON.parse(displayItemSetting.replace(/&quot;/g,"\""));
+
+ var refreshTermNumber = '';
+ var refreshTermSetting = '';
+ var forceRefreshTimestamp = '2020/06/19 19:14:04.637';
+
+</script>
+<script type="text/javascript" src="/js/v2/dateformat.js"></script>
+<script type="text/javascript" src="/js/v2/checkCacheRefresh.js"></script>
+<script type="text/javascript" src="/js/v2/setupaddress.js"></script>
+<script type="text/javascript" src="/js/v2/myContacts.js"></script>
+
+</head>
+<body>
+    <article data-role="page" data-tap-toggle="false" id="groupOrganPage">
+        <header>
+            <div data-role="header" data-position="fixed">
+                <h1 id="logo"><img src="/i/v2/sp/header_logo_bg.png" title="LOGO" alt="LOGO" width="84">アドレス帳</h1>
+                <p id="searchBox">
+                    <form><input type="search" name="search" id="search" value="" placeholder="検索" data-theme="d"></form>
+                </p>
+            </div>
+        </header>
+        <section id="groupList">
+            <div data-role="navbar">
+                <ul id="groupTab">
+                    <li id="mycontacts"><a href="group.html" data-ajax="false">個人</a></li>
+                    <li id="sharecontacts" class="this"><a href="#" class="ui-btn-active">組織</a></li>
+                </ul>
+            </div>
+            <div>
+			    <h4><span></span><span>組織</span></h4>
+			    <nav class="organization" id="org-org">
+                </nav>
+
+			    <h4><span></span><span>グループ</span></h4>
+			    <nav class="group" id="org-group">
+                </nav>
+            </div>
+        </section>
+        <footer>
+            <div data-role="footer" data-position="fixed">
+                <a href="#syncStatusMsg" id="syncStatusButton" data-icon="" data-rel="popup" data-role="button" data-inline="true" data-transition="slideup" data-overlay-theme="a" class="iconOnly"><img src="/i/v2/sp/loading.png" class="rotation"/></a>
+                <div data-role="popup" id="syncStatusMsg" data-theme="a">
+                    <p><img src="/i/v2/sp/loading.png" />同期中</p>
+                </div>
+                <a href="#" data-inline="true" class="btnExpandAll">全て開く</a>
+                <a href="#" data-inline="true" class="btnCollapseAll">全て閉じる</a>
+            </div>
+        </footer>
+        <div style="display:none;">
+            <a href="#" data-role="button" id="syncEnded">同期完了</a>
+        </div>
+    </article>
+
+</body>
+</html>

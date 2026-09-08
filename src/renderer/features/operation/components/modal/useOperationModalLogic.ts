@@ -11,21 +11,28 @@ import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/
 // Types
 // ============================================================
 
-type PrimaryAction = () => void | string | Promise<void | string>;
+type ActionHandler = () => void | string | Promise<void | string>;
 
-interface PrimaryActionOptions {
+interface ActionOptions {
   disabled?: boolean;
+  label?: string;
 }
 
 export type RegisterPrimaryAction = (
-  action?: PrimaryAction,
-  options?: PrimaryActionOptions,
+  action?: ActionHandler,
+  options?: ActionOptions,
+) => void;
+
+export type RegisterSecondaryAction = (
+  action?: ActionHandler,
+  options?: ActionOptions,
 ) => void;
 
 export interface ModalContentProps {
   onClose: () => void;
   setTitle: (title: string) => void;
   registerPrimaryAction: RegisterPrimaryAction;
+  registerSecondaryAction?: RegisterSecondaryAction;
   kanriNo?: string;
 }
 
@@ -40,10 +47,15 @@ interface OperationModalLogic {
   kanriNo?: string;
   isExecuted: boolean;
   isPrimaryDisabled: boolean;
+  secondaryLabel: string;
+  isSecondaryDisabled: boolean;
+  hasSecondaryAction: boolean;
   executionResult: string | null;
   setTitle: (title: string) => void;
   registerPrimaryAction: RegisterPrimaryAction;
+  registerSecondaryAction: RegisterSecondaryAction;
   handlePrimaryClick: () => Promise<void>;
+  handleSecondaryClick: () => Promise<void>;
   handleClose: () => void;
 }
 
@@ -60,9 +72,12 @@ export const useOperationModalLogic = ({
   const [customTitle, setCustomTitle] = useState("");
   const [isExecuted, setIsExecuted] = useState(false);
   const [isPrimaryDisabled, setIsPrimaryDisabled] = useState(false);
+  const [secondaryLabel, setSecondaryLabel] = useState("送信済みデータの確認");
+  const [isSecondaryDisabled, setIsSecondaryDisabled] = useState(false);
   const [executionResult, setExecutionResult] = useState<string | null>(null);
 
-  const primaryActionRef = useRef<PrimaryAction | undefined>(undefined);
+  const primaryActionRef = useRef<ActionHandler | undefined>(undefined);
+  const secondaryActionRef = useRef<ActionHandler | undefined>(undefined);
 
   // ★ modalConfig.title からストア内のタイトル（"実施可", "完了" 等）を安全に取得
   const storeModalTitle = useAppStore(
@@ -79,6 +94,7 @@ export const useOperationModalLogic = ({
     }),
   );
 
+  // プライマリアクション（「実行」ボタン）の登録
   const registerPrimaryAction = useCallback<RegisterPrimaryAction>(
     (action, options) => {
       primaryActionRef.current = action;
@@ -87,6 +103,19 @@ export const useOperationModalLogic = ({
     [],
   );
 
+  // セカンダリアクション（「送信済みデータの確認」ボタン等）の登録
+  const registerSecondaryAction = useCallback<RegisterSecondaryAction>(
+    (action, options) => {
+      secondaryActionRef.current = action;
+      if (options?.label) {
+        setSecondaryLabel(options.label);
+      }
+      setIsSecondaryDisabled(options?.disabled ?? !action);
+    },
+    [],
+  );
+
+  // プライマリアクション実行
   const handlePrimaryClick = useCallback(async (): Promise<void> => {
     const action = primaryActionRef.current;
 
@@ -103,6 +132,29 @@ export const useOperationModalLogic = ({
       setIsExecuted(true);
     } catch (error) {
       console.error("[OperationModal] Primary action failed.", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      setExecutionResult(errorMsg);
+      setIsExecuted(true);
+    }
+  }, []);
+
+  // セカンダリアクション実行
+  const handleSecondaryClick = useCallback(async (): Promise<void> => {
+    const action = secondaryActionRef.current;
+
+    if (!action) {
+      console.warn("[OperationModal] Secondary action is not registered.");
+      return;
+    }
+
+    try {
+      const result = await action();
+      if (typeof result === "string") {
+        setExecutionResult(result);
+      }
+      setIsExecuted(true);
+    } catch (error) {
+      console.error("[OperationModal] Secondary action failed.", error);
       const errorMsg = error instanceof Error ? error.message : String(error);
       setExecutionResult(errorMsg);
       setIsExecuted(true);
@@ -135,8 +187,10 @@ export const useOperationModalLogic = ({
 
   const handleClose = useCallback(() => {
     primaryActionRef.current = undefined;
+    secondaryActionRef.current = undefined;
     setIsExecuted(false);
     setIsPrimaryDisabled(false);
+    setIsSecondaryDisabled(false);
     setExecutionResult(null);
 
     if (type === "pdfUpload") {
@@ -151,12 +205,15 @@ export const useOperationModalLogic = ({
     kanriNo: selectedItem?.kanriNo ? String(selectedItem.kanriNo) : undefined,
     isExecuted,
     isPrimaryDisabled,
+    secondaryLabel,
+    isSecondaryDisabled,
+    hasSecondaryAction: Boolean(secondaryActionRef.current),
     executionResult,
     setTitle,
     registerPrimaryAction,
+    registerSecondaryAction,
     handlePrimaryClick,
+    handleSecondaryClick,
     handleClose,
   };
 };
-
-useOperationModalLogic;

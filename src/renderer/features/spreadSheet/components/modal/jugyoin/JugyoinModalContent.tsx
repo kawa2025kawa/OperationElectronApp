@@ -5,11 +5,11 @@ import { addDays } from "date-fns";
 import { commands } from "@renderer/services/commands";
 import { type Jugyoin } from "@shared/types/spreadsheet";
 import { formatDateWithDay } from "@renderer/features/spreadSheet/utils/scheduleUtils";
-import type { SpreadSheetModalProps } from "../modalRegistry";
+import type { ModalContentProps } from "../SpreadSheetModal";
 import { useSpreadSheetModalContext } from "../spreadSheetModalContext";
 import * as styles from "./JugyoinModalContent.css";
 
-export const JugyoinModalContent: React.FC<SpreadSheetModalProps<Jugyoin>> =
+export const JugyoinModalContent: React.FC<ModalContentProps<Jugyoin>> =
   React.memo(({ data }) => {
     const { setHeaderRight } = useSpreadSheetModalContext();
 

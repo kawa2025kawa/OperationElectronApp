@@ -2,6 +2,7 @@
 import react from "@vitejs/plugin-react";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import electron from "vite-plugin-electron/simple";
+import { visualizer } from "rollup-plugin-visualizer";
 
 import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
@@ -12,12 +13,6 @@ const rootDir = fileURLToPath(new URL(".", import.meta.url));
 const resolvePath = (...paths: string[]): string =>
   path.resolve(rootDir, ...paths);
 
-/**
- * Electron main process runtime dependencies.
- *
- * These modules must remain external because they are loaded
- * by Node/Electron at runtime.
- */
 const electronRuntimeModules = [
   "axios",
   "express",
@@ -35,12 +30,7 @@ const isElectronExternal = (id: string): boolean =>
   );
 
 export default defineConfig({
-  /**
-   * Renderer assets must use relative paths because
-   * production is loaded through file://.
-   */
   base: "./",
-
   clearScreen: false,
 
   define: {
@@ -49,30 +39,18 @@ export default defineConfig({
 
   plugins: [
     react(),
-
     vanillaExtractPlugin(),
 
     electron({
-      /**
-       * Electron Main Process
-       *
-       * electron/main.ts
-       *        ↓
-       * dist-electron/main.js
-       */
       main: {
         entry: resolvePath("electron/main.ts"),
-
         vite: {
           build: {
             outDir: resolvePath("dist-electron"),
-
             target: "node22",
-
             rolldownOptions: {
               external: isElectronExternal,
             },
-
             rollupOptions: {
               output: {
                 format: "es",
@@ -82,24 +60,12 @@ export default defineConfig({
           },
         },
       },
-
-      /**
-       * Electron Preload
-       *
-       * electron/preload.ts
-       *        ↓
-       * dist-electron/preload.js
-       *
-       * Preload is intentionally built as CommonJS.
-       */
       preload: {
         input: resolvePath("electron/preload.ts"),
-
         vite: {
           build: {
             outDir: resolvePath("dist-electron"),
             target: "node22",
-
             rollupOptions: {
               output: {
                 format: "cjs",
@@ -109,6 +75,12 @@ export default defineConfig({
           },
         },
       },
+    }),
+
+    // 🎯 ビルド時にどのライブラリが大きいかをグラフ可視化するプラグイン
+    visualizer({
+      open: true, // ビルド完了後に自動的にブラウザで分析画面を開く
+      filename: "stats.html",
     }),
   ],
 
@@ -132,5 +104,7 @@ export default defineConfig({
     target: "esnext",
     outDir: resolvePath("dist"),
     emptyOutDir: true,
+    // 🎯 デスクトップアプリ用にしきい値を 1000 kB (1MB) に引き上げて不要な警告を抑制
+    chunkSizeWarningLimit: 1000,
   },
 });

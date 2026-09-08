@@ -1,4 +1,6 @@
-﻿import { MASTER_SPREADSHEET_ID } from "@shared/types/spreadsheet";
+﻿// src/renderer/features/spreadSheet/services/spreadsheetApi.ts
+
+const MASTER_SPREADSHEET_ID = "1hTWA_tm_l3UmWM1lomiBkhfEQoyKbpofnPJA6DNclsw";
 
 export interface FetchRawSheetResult {
   status: number;
@@ -11,6 +13,7 @@ export async function fetchRawSheetValues(
   accessToken: string,
 ): Promise<FetchRawSheetResult> {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${MASTER_SPREADSHEET_ID}/values/${encodeURIComponent(dynamicRange)}`;
+
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -18,9 +21,21 @@ export async function fetchRawSheetValues(
     },
   });
 
-  if (res.status === 401) return { status: 401 };
-  if (!res.ok) return { status: res.status, errorText: await res.text() };
+  if (res.status === 401) {
+    return { status: 401 };
+  }
+
+  if (!res.ok) {
+    return {
+      status: res.status,
+      errorText: await res.text(),
+    };
+  }
 
   const json = await res.json();
-  return { status: 200, values: json.values ?? [] };
+
+  return {
+    status: 200,
+    values: json.values ?? [],
+  };
 }

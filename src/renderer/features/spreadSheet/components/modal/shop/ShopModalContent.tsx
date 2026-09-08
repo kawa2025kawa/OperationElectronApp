@@ -1,68 +1,32 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/shop/ShopModalContent.tsx
+
 import React from "react";
 import type { Shop } from "@shared/types/spreadsheet";
+import type { ModalContentProps } from "@renderer/features/spreadSheet/components/modal/SpreadSheetModal";
+import { useShopModalContent } from "./useShopModalContent";
 import {
-  type TabGroupConfig,
-  useSpreadSheetTabData,
-} from "@renderer/features/spreadSheet/components/modal/hooks/useSpreadSheetTabData";
-import type { SpreadSheetModalProps } from "@renderer/features/spreadSheet/components/modal/modalRegistry";
+  TERMINAL_TYPES,
+  TERMINAL_FIELDS,
+  TIME_RECORDER_IMAGE_ITEMS,
+} from "./constants";
 import * as styles from "./shopModalContent.css";
 
-// ----------------------------------------------------------------------------
-// Constants & Configs
-// ----------------------------------------------------------------------------
-const PRINTER_FIELDS = [
-  { subKey: "model", label: "型番" },
-  { subKey: "serial", label: "シリアル" },
-  { subKey: "callTarget", label: "連絡先" },
-  { subKey: "weekendSupport", label: "休保" },
-  { subKey: "contractId", label: "契約ID" },
-] as const;
-
-const createPrinterGroup = (type: "K" | "B" | "O"): TabGroupConfig => ({
-  title: `プリンタ (${type})`,
-  items: PRINTER_FIELDS.map(({ subKey, label }) => ({
-    key: `printers.${type}.${subKey}`,
-    label: `${type} ${label}`,
-  })),
-});
-
-const SHOP_MODAL_GROUPS: readonly TabGroupConfig[] = [
-  {
-    title: "基本情報",
-    items: [
-      { key: "businessHours.display", label: "営業時間" },
-      { key: "contact.phoneNumber", label: "電話番号" },
-      { key: "mobileSales", label: "移動販売" },
-      { key: "location.address", label: "住所" },
-    ],
-  },
-  {
-    title: "担当者",
-    items: [
-      { key: "managers.manager", label: "店長" },
-      { key: "managers.subManager1", label: "副店長1" },
-      { key: "location.area", label: "エリア" },
-      { key: "managers.areaManager", label: "エリアMGR" },
-      { key: "location.centerName", label: "センター" },
-    ],
-  },
-  createPrinterGroup("K"),
-  createPrinterGroup("B"),
-  createPrinterGroup("O"),
-] as const;
-
-// ----------------------------------------------------------------------------
-// Component
-// ----------------------------------------------------------------------------
-export const ShopModalContent: React.FC<SpreadSheetModalProps<Shop>> =
-  React.memo(({ data }) => {
-    const { selectedIndex, setSelectedIndex, groups, displayItems } =
-      useSpreadSheetTabData(data, SHOP_MODAL_GROUPS);
+export const ShopModalContent: React.FC<ModalContentProps<Shop>> = React.memo(
+  ({ data }) => {
+    const {
+      selectedIndex,
+      setSelectedIndex,
+      groups,
+      displayItems,
+      isTimeRecorderTab,
+      commentValue,
+      handleOpenImage,
+      getImageLinkUrl,
+    } = useShopModalContent(data);
 
     return (
       <div className={styles.mainContainer}>
-        {/* Tab List */}
+        {/* タブヘッダー */}
         <div className={styles.tabContainer}>
           {groups.map((group, idx) => (
             <button
@@ -78,23 +42,108 @@ export const ShopModalContent: React.FC<SpreadSheetModalProps<Shop>> =
           ))}
         </div>
 
-        {/* Card Grid Content */}
+        {/* メインコンテンツエリア */}
         <div className={styles.contentContainer}>
-          <div className={styles.gridContainer}>
-            {displayItems.map((item) => (
-              <div
-                key={item.label}
-                className={styles.card}
-                data-full-width={item.label === "住所"}
-              >
-                <div className={styles.label}>{item.label}</div>
-                <div className={styles.value}>{item.value}</div>
+          {isTimeRecorderTab ? (
+            /* タイムレコーダタブ */
+            <div className={styles.trTabWrapper}>
+              <div className={styles.trSummaryRow}>
+                <div className={styles.summaryBadge}>
+                  <span className={styles.summaryLabel}>端末台数:</span>
+                  <span className={styles.summaryValue}>
+                    {data.deviceCount || "-"}
+                  </span>
+                </div>
+
+                {commentValue && commentValue !== "-" && (
+                  <div className={styles.summaryComment}>
+                    <span className={styles.summaryLabel}>コメント:</span>
+                    <span className={styles.summaryCommentText}>
+                      {commentValue}
+                    </span>
+                  </div>
+                )}
+
+                <div className={styles.imageButtonList}>
+                  {TIME_RECORDER_IMAGE_ITEMS.map(({ key, label }) => {
+                    const rawValue = data[key];
+                    const imageUrl = getImageLinkUrl(rawValue);
+
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        className={styles.imageLinkButton}
+                        onClick={() => handleOpenImage(rawValue)}
+                        disabled={!imageUrl}
+                      >
+                        📷 {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            ))}
-          </div>
+
+              {/* タイムレコーダー一覧（ヘッダー付きテーブルグリッド） */}
+              <div className={styles.terminalSection}>
+                {/* ヘッダー行 */}
+                <div className={styles.terminalHeaderRow}>
+                  <div className={styles.terminalHeaderBadge}>端末番号</div>
+                  <div className={styles.terminalHeaderGrid}>
+                    {TERMINAL_FIELDS.map(({ label }) => (
+                      <div key={label} className={styles.terminalHeaderCell}>
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* データ行 (TR1 ~ TR4) */}
+                {TERMINAL_TYPES.map((type) => {
+                  const upperType = type.toUpperCase();
+                  return (
+                    <div key={type} className={styles.terminalRow}>
+                      <div className={styles.terminalBadge}>{upperType}</div>
+                      <div className={styles.terminalGrid}>
+                        {TERMINAL_FIELDS.map(({ suffix }) => {
+                          // data オブジェクトから動的にキーを取得 (tr1, tr1Ip, tr1Model, tr1Ronri, tr1Butsuri など)
+                          const fieldKey = `${type}${suffix}` as keyof Shop;
+                          const val = data[fieldKey] || "-";
+
+                          return (
+                            <div key={suffix} className={styles.terminalCell}>
+                              <div className={styles.cellValue}>{val}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* タイムレコーダ以外のタブ */
+            <div className={styles.terminalSection}>
+              {displayItems.map((item) => (
+                <div key={item.label} className={styles.terminalRow}>
+                  <div
+                    className={styles.terminalBadge}
+                    style={{ width: "110px", fontSize: "12px" }}
+                  >
+                    {item.label}
+                  </div>
+                  <div className={styles.terminalCell} style={{ flex: 1 }}>
+                    <div className={styles.cellValue}>{item.value || "-"}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
-  });
+  },
+);
 
 ShopModalContent.displayName = "ShopModalContent";

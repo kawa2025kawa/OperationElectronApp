@@ -7,7 +7,6 @@ export interface ContactInfo {
 }
 
 export interface DailySchedule {
-  date: string;
   amStatus: string;
   amDetail: string;
   pmStatus: string;

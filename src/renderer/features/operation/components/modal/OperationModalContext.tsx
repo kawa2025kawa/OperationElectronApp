@@ -2,7 +2,10 @@
 
 import { createContext, useContext } from "react";
 
-import type { RegisterPrimaryAction } from "./useOperationModalLogic";
+import type {
+  RegisterPrimaryAction,
+  RegisterSecondaryAction,
+} from "./useOperationModalLogic";
 
 // ============================================================================
 // Types
@@ -12,6 +15,7 @@ export interface OperationModalContextType {
   kanriNo?: string;
   setTitle: (title: string) => void;
   registerPrimaryAction: RegisterPrimaryAction;
+  registerSecondaryAction?: RegisterSecondaryAction;
   onClose: () => void;
 }
 

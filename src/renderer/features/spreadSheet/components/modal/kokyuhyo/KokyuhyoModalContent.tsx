@@ -5,11 +5,11 @@ import { addDays } from "date-fns";
 import { commands } from "@renderer/services/commands";
 import { type Kokyuhyo } from "@shared/types/spreadsheet";
 import { formatDateWithDay } from "@renderer/features/spreadSheet/utils/scheduleUtils";
-import type { SpreadSheetModalProps } from "../modalRegistry";
+import type { ModalContentProps } from "../SpreadSheetModal";
 import { useSpreadSheetModalContext } from "../spreadSheetModalContext";
 import * as styles from "./KokyuhyoModalContent.css";
 
-export const KokyuhyoModalContent: React.FC<SpreadSheetModalProps<Kokyuhyo>> =
+export const KokyuhyoModalContent: React.FC<ModalContentProps<Kokyuhyo>> =
   React.memo(({ data }) => {
     const { setHeaderRight } = useSpreadSheetModalContext();
 

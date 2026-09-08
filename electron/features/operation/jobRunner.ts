@@ -1,10 +1,13 @@
+﻿// electron/features/operation/jobRunner.ts
+
 import {
   JOB_STATUS,
   type JobResult,
   type OperationItem,
 } from "@shared/types/operation";
 import { dispatchScript } from "@electron/features/operation/jobs/scripts";
-import { hasJobId } from "@electron/features/operation/monitors/trackerMonitor";
+import { hasJobId } from "@electron/features/operation/polling";
+
 import {
   getStatus,
   updateStatus,
@@ -12,26 +15,11 @@ import {
 
 const runningJobs = new Set<string>();
 
-function cleanErrorMessage(error: unknown): string {
-  const rawMessage = error instanceof Error ? error.message : String(error);
-
-  return rawMessage
+const cleanErrorMessage = (error: unknown): string =>
+  (error instanceof Error ? error.message : String(error))
     .replace(/^Error invoking remote method '[^']+':\s*/, "")
     .replace(/^Error:\s*/, "")
     .trim();
-}
-
-function isJobRunning(kanriNo: string): boolean {
-  return runningJobs.has(kanriNo);
-}
-
-function markJobRunning(kanriNo: string): void {
-  runningJobs.add(kanriNo);
-}
-
-function markJobFinished(kanriNo: string): void {
-  runningJobs.delete(kanriNo);
-}
 
 export async function executeJob(
   rawKanriNo: string | number,
@@ -39,63 +27,67 @@ export async function executeJob(
 ): Promise<JobResult> {
   const kanriNo = String(rawKanriNo).trim();
 
-  if (!kanriNo) {
-    throw new Error("kanriNo is required");
-  }
+  // DEBUG: executeJob の呼び出しパラメータを出力
+  console.log("[executeJob DEBUG]", {
+    rawKanriNo,
+    kanriNo,
+    filePath,
+  });
 
-  if (isJobRunning(kanriNo)) {
-    console.warn(`[JobRunner] already running: ${kanriNo}`);
-    throw new Error(`管理No.${kanriNo} は既に実行中です`);
-  }
+  if (!kanriNo) throw new Error("kanriNo is required");
+  if (runningJobs.has(kanriNo)) throw new Error(`実行中: No.${kanriNo}`);
 
-  markJobRunning(kanriNo);
+  runningJobs.add(kanriNo);
 
+  const isReadOnlyCheckJob = kanriNo.toUpperCase().endsWith("_CHECK");
   const startTime = new Date().toISOString();
 
   try {
-    updateStatus({
-      kanriNo,
-      status: JOB_STATUS.SCRIPT_RUNNING,
-      comment: "実行中...",
-      startTime,
-    });
+    if (!isReadOnlyCheckJob) {
+      updateStatus({
+        kanriNo,
+        status: JOB_STATUS.SCRIPT_RUNNING,
+        comment: "実行中...",
+        startTime,
+      });
+    }
 
     const result = await dispatchScript(kanriNo, filePath);
     const endTime = new Date().toISOString();
 
-    updateStatus({
-      kanriNo,
-      status: JOB_STATUS.SUCCESS,
-      comment: result.message,
-      startTime,
-      endTime,
-    });
-
-    console.log(`[JobRunner] completed: ${kanriNo}`, {
-      message: result.message,
-      artifactCount: result.artifacts?.length ?? 0,
-    });
+    if (!isReadOnlyCheckJob) {
+      updateStatus({
+        kanriNo,
+        status: JOB_STATUS.SUCCESS,
+        comment: result.message,
+        startTime,
+        endTime,
+      });
+    }
 
     return result;
   } catch (error) {
+    console.error("[executeJob ERROR]", {
+      kanriNo,
+      error,
+    });
+
     const formattedError = cleanErrorMessage(error);
     const endTime = new Date().toISOString();
 
-    updateStatus({
-      kanriNo,
-      status: JOB_STATUS.ERROR,
-      comment: formattedError,
-      startTime,
-      endTime,
-    });
+    if (!isReadOnlyCheckJob) {
+      updateStatus({
+        kanriNo,
+        status: JOB_STATUS.ERROR,
+        comment: formattedError,
+        startTime,
+        endTime,
+      });
+    }
 
-    console.error(`[JobRunner] failed: ${kanriNo}`, formattedError);
-
-    throw new Error(formattedError, {
-      cause: error,
-    });
+    throw new Error(formattedError, { cause: error });
   } finally {
-    markJobFinished(kanriNo);
+    runningJobs.delete(kanriNo);
   }
 }
 
@@ -104,29 +96,18 @@ export async function triggerAutoStartJobs(
   runningCheck: () => boolean,
 ): Promise<void> {
   const jobs = targets.filter(
-    (target) =>
-      target.autoStart === true &&
-      !hasJobId(target) &&
-      getStatus(target.kanriNo)?.status === JOB_STATUS.READY,
+    (t) =>
+      t.autoStart === true &&
+      !hasJobId(t) &&
+      getStatus(t.kanriNo)?.status === JOB_STATUS.READY,
   );
 
-  if (jobs.length === 0) {
-    return;
-  }
-
-  console.log("[JobRunner] auto-start jobs", {
-    count: jobs.length,
-  });
-
   for (const job of jobs) {
-    if (!runningCheck()) {
-      return;
-    }
-
+    if (!runningCheck()) return;
     void executeJob(job.kanriNo).catch((error) => {
       console.error("[JobRunner] Auto-start FAILED", {
         kanriNo: job.kanriNo,
-        error: error instanceof Error ? error.message : error,
+        error: cleanErrorMessage(error),
       });
     });
   }

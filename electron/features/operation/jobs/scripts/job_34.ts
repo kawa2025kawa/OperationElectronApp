@@ -5,9 +5,9 @@ import iconv from "iconv-lite";
 import { format } from "date-fns";
 
 const LOG_PATH = "\\\\192.88.1.220\\log\\SANSAN_TXT_LOAD.log";
-//const LOG_PATH = "C:\\Users\\C3088091\\Desktop\\test\\SANSAN_TXT_LOAD.log";
 
-const COMPLETE_MESSAGE = "さんさん畑　売上取り込み処理を終了しました。";
+// 「さんさん畑」直後のスペース表記揺れを回避するため後方キーワードで判定
+const COMPLETE_MESSAGE = "売上取り込み処理を終了しました";
 
 export async function runJob34(): Promise<string> {
   if (!(await fs.pathExists(LOG_PATH))) {
@@ -25,7 +25,7 @@ export async function runJob34(): Promise<string> {
     .find((line) => line.includes(today) && line.includes(COMPLETE_MESSAGE));
 
   if (found) {
-    return "正常終了";
+    return found.trim();
   }
 
   throw new Error("本日の売上取り込み終了ログが見つかりません");

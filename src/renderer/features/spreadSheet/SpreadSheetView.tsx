@@ -1,16 +1,22 @@
 // src/renderer/features/spreadSheet/SpreadSheetView.tsx
 
 import React, { useCallback } from "react";
-import { useShallow } from "zustand/react/shallow";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { useAppStore } from "@renderer/store";
-import { type SheetId, type SheetRowMap } from "@shared/types/spreadsheet";
-
+import type {
+  Jugyoin,
+  Kokyuhyo,
+  Shop,
+  Tantou,
+} from "@shared/types/spreadsheet";
+import type { SheetId } from "@renderer/features/spreadSheet/services/spreadsheetConfig";
 import { SpreadSheetModal } from "./components/modal/SpreadSheetModal";
 import { SpreadSheetTable } from "./components/table/SpreadSheetTable";
 import { useSpreadSheetViewLogic } from "./useSpreadSheetViewLogic";
 import * as styles from "./spreadSheetView.css";
+
+type SpreadSheetEntity = Shop | Kokyuhyo | Jugyoin | Tantou;
 
 export const SpreadSheetView: React.FC = React.memo(() => {
   const {
@@ -29,8 +35,9 @@ export const SpreadSheetView: React.FC = React.memo(() => {
   const closeGlobalModal = useAppStore((state) => state.closeGlobalModal);
 
   const handleRowClick = useCallback(
-    (row: SheetRowMap[SheetId]) => {
+    (row: SpreadSheetEntity) => {
       const modalConfig = config?.modalConfig;
+
       if (!modalConfig || !sheetId) return;
 
       const raw = row as unknown as Record<string, unknown>;
@@ -78,10 +85,10 @@ export const SpreadSheetView: React.FC = React.memo(() => {
             />
           ) : (
             <div className={styles.tableArea}>
-              <SpreadSheetTable<SheetRowMap[SheetId]>
+              <SpreadSheetTable<SpreadSheetEntity>
                 rowKey="id"
-                data={data as SheetRowMap[SheetId][]}
-                columns={columns}
+                data={data as SpreadSheetEntity[]}
+                columns={columns as never}
                 onRowClick={handleRowClick}
                 selectedId={selectedId}
               />

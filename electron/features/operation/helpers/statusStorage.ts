@@ -1,5 +1,4 @@
-﻿// electron/features/operation/helpers/statusStorage.ts
-import path from "node:path";
+﻿import path from "node:path";
 import { app } from "electron";
 import { format } from "date-fns";
 import fs from "fs-extra";
@@ -46,7 +45,6 @@ async function persistStatuses(
     await fs.writeJson(filePath, Object.fromEntries(memoryStatuses), {
       spaces: 2,
     });
-    console.log(`[StatusStorage] saved (${memoryStatuses.size})`);
   } catch (error) {
     console.error("[StatusStorage] save failed:", error);
     savePending = true;
@@ -56,16 +54,6 @@ async function persistStatuses(
       schedulePersistStatuses(memoryStatuses);
     }
   }
-}
-
-async function flushStatusPersistence(
-  memoryStatuses: Map<string, PersistedStatus>,
-): Promise<void> {
-  if (saveTimer) {
-    clearTimeout(saveTimer);
-    saveTimer = null;
-  }
-  await persistStatuses(memoryStatuses);
 }
 
 async function cleanupOldStatusFiles(): Promise<void> {
@@ -81,11 +69,6 @@ async function cleanupOldStatusFiles(): Promise<void> {
         !f.includes(todaySuffix),
     );
     await Promise.all(oldFiles.map((f) => fs.remove(path.join(dir, f))));
-    if (oldFiles.length > 0) {
-      console.log(
-        `[StatusStorage] cleanup old files count: ${oldFiles.length}`,
-      );
-    }
   } catch (error) {
     console.error("[StatusStorage] cleanup failed:", error);
   }

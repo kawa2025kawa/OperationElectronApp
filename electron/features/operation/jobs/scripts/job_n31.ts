@@ -1,13 +1,24 @@
-﻿// electron/services/operation/jobs/scripts/job_n31.ts
-import type { Browser, Frame, Page } from "playwright";
+﻿// electron/features/operation/jobs/scripts/job_n31.ts
+import type { Page } from "playwright";
 
 const TOP_URL = "https://www2.belc.co.jp:8002/webedi/belcwebedi.html";
 const USER_ID = "09803";
 const PASSWORD = "09803";
 
+const getToday = () =>
+  new Intl.DateTimeFormat("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(new Date())
+    .replaceAll("-", "/");
+
 export async function runJobN31(kanriNo: string): Promise<string> {
   console.log(`[JOB_N31] start ${kanriNo}`);
-  const browser = await launchBrowser();
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch({ headless: false, channel: "chrome" });
+
   try {
     const page = await browser.newPage();
     await executeN31(page);
@@ -21,70 +32,39 @@ export async function runJobN31(kanriNo: string): Promise<string> {
   }
 }
 
-async function launchBrowser(): Promise<Browser> {
-  const { chromium } = await import("playwright");
-  return chromium.launch({ headless: false, channel: "chrome" });
-}
-
 async function executeN31(page: Page): Promise<void> {
   await page.goto(TOP_URL);
   console.log("[JOB_N31] login page loaded");
 
-  await click(page, "img[name='botan_img1_01']");
-  await fill(page, "#TANTCD", USER_ID);
-  await fill(page, "#PASSWORD", PASSWORD);
-
-  await click(page, "#submit_btn");
+  await page.locator("img[name='botan_img1_01']").click();
+  await page.locator("#TANTCD").fill(USER_ID);
+  await page.locator("#PASSWORD").fill(PASSWORD);
+  await page.locator("#submit_btn").click();
   await page.waitForLoadState("networkidle");
 
-  const frame = await getContentFrame(page);
+  const frame = page.frames().find((f) => f.name() === "contentFrame");
+  if (!frame) throw new Error("contentFrame not found");
   console.log("[JOB_N31] contentFrame found");
 
-  await click(frame, "#menu_btn1");
-  await wait(2000);
-  await click(frame, "#menu_btn9");
-  await wait(3000);
+  await frame.locator("#menu_btn1").click();
+  await page.waitForTimeout(2000);
+  await frame.locator("#menu_btn9").click();
+  await page.waitForTimeout(3000);
 
-  await fill(frame, "#HAT_DATE", getToday());
-  await fill(frame, "#BMN_CD_0", "3");
+  await frame.locator("#HAT_DATE").fill(getToday());
+  await frame.locator("#BMN_CD_0").fill("3");
 
-  await setSupplierCode(frame);
-  await wait(1000);
-
-  await click(frame, "#fkey_12");
-  await wait(5000);
-  console.log("[JOB_N31] completed");
-}
-
-async function click(target: Page | Frame, selector: string): Promise<void> {
-  await target.locator(selector).click();
-}
-
-async function fill(target: Page | Frame, selector: string, value: string): Promise<void> {
-  await target.locator(selector).fill(value);
-}
-
-async function getContentFrame(page: Page): Promise<Frame> {
-  const frame = page.frames().find((frame) => frame.name() === "contentFrame");
-  if (!frame) throw new Error("contentFrame not found");
-  return frame;
-}
-
-async function setSupplierCode(frame: Frame): Promise<void> {
   await frame.evaluate(() => {
-    const element = document.querySelector("#SIR_CD_0") as HTMLInputElement | null;
+    const element = document.querySelector(
+      "#SIR_CD_0",
+    ) as HTMLInputElement | null;
     if (!element) throw new Error("SIR_CD_0 not found");
     element.value = "029560:";
     element.dispatchEvent(new Event("change", { bubbles: true }));
   });
-}
+  await page.waitForTimeout(1000);
 
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function getToday(): string {
-  return new Intl.DateTimeFormat("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" })
-    .format(new Date())
-    .replaceAll("-", "/");
+  await frame.locator("#fkey_12").click();
+  await page.waitForTimeout(5000);
+  console.log("[JOB_N31] completed");
 }

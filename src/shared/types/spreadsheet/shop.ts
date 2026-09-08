@@ -1,89 +1,93 @@
-﻿export interface PrinterInfo {
-  model?: string;
-  serial?: string;
-  callTarget?: string;
-  weekendSupport?: string;
-  contractId?: string;
-}
+﻿// src/shared/types/spreadsheet/shop.ts
 
-export interface TimeRecorder {
-  name?: string;
-  ip?: string;
-  model?: string;
-  logicalPort?: string;
-  physicalPort?: string;
-}
+/**
+ * 1. 各フィールドの「キー」と「日本語ラベル」を一元管理するオブジェクト
+ */
+export const SHOP_FIELD_LABELS = {
+  id: "ID",
+  shopCode: "店舗コード",
+  shopName: "店舗名",
+  shopKana: "店舗カナ",
+  openTime: "開店時間",
+  closeTime: "閉店時間",
+  centerName: "センター名",
+  areaName: "エリア名",
+  phoneNumber: "電話番号",
+  postalCode: "郵便番号",
+  address: "住所",
+  mobileSales: "移動販売",
 
-export interface ShopContact {
-  phoneNumber?: string;
-  postalCode?: string;
-}
+  // プリンター (B)
+  printerModelB: "B 型番",
+  printerSerialB: "B シリアル",
+  printerCallB: "B 連絡先",
+  printerHolidayB: "B 休保",
+  printerContractIdB: "B 契約ID",
 
-export interface ShopBusinessHours {
-  start?: string;
-  end?: string;
-  display?: string;
-}
+  // プリンター (K)
+  printerModelK: "K 型番",
+  printerSerialK: "K シリアル",
+  printerCallK: "K 連絡先",
+  printerHolidayK: "K 休保",
+  printerContractIdK: "K 契約ID",
 
-export interface ShopLocation {
-  address?: string;
-  area?: string;
-  centerName?: string;
-}
+  // プリンター (O)
+  printerModelO: "O 型番",
+  printerSerialO: "O シリアル",
+  printerCallO: "O 連絡先",
+  printerHolidayO: "O 休保",
+  printerContractIdO: "O 契約ID",
 
-export interface ShopManagers {
-  manager?: string;
-  subManager1?: string;
-  subManager2?: string;
-  areaManager?: string;
-}
+  // 担当者・役職
+  tencyoName: "店長",
+  hukuTencyoName1: "副店長1",
+  hukuTencyoName2: "副店長2",
+  managerName: "エリアMGR",
 
-export interface ShopEquipment {
-  hub?: string;
-  powerOutlet?: string;
-  deviceCount?: string;
-}
+  // ファイルパス
+  excelFilePath: "Excelパス",
+  pdfFilePath: "PDFパス",
 
-export interface ShopDocuments {
-  excelFilePath?: string;
-  pdfFilePath?: string;
-}
+  // タイムレコーダー・端末情報
+  deviceCount: "端末台数",
+  tr1: "TR1 端末名",
+  tr1Ip: "TR1 IP",
+  tr1Model: "TR1 型番",
+  tr1Ronri: "TR1 論理",
+  tr1Butsuri: "TR1 物理",
 
-export interface Shop {
-  id: string;
-  code: string;
-  name: string;
-  nameKana?: string;
+  tr2: "TR2 端末名",
+  tr2Ip: "TR2 IP",
+  tr2Model: "TR2 型番",
+  tr2Ronri: "TR2 論理",
+  tr2Butsuri: "TR2 物理",
 
-  contact: ShopContact;
-  businessHours: ShopBusinessHours;
-  location: ShopLocation;
-  managers: ShopManagers;
+  tr3: "TR3 端末名",
+  tr3Ip: "TR3 IP",
+  tr3Model: "TR3 型番",
+  tr3Ronri: "TR3 論理",
+  tr3Butsuri: "TR3 物理",
 
-  mobileSales?: string;
+  tr4: "TR4 端末名",
+  tr4Ip: "TR4 IP",
+  tr4Model: "TR4 型番",
+  tr4Ronri: "TR4 論理",
+  tr4Butsuri: "TR4 物理",
 
-  printers: {
-    B?: PrinterInfo;
-    K?: PrinterInfo;
-    O?: PrinterInfo;
-  };
+  comment: "コメント",
 
-  timeRecorders: {
-    1?: TimeRecorder;
-    2?: TimeRecorder;
-    3?: TimeRecorder;
-    4?: TimeRecorder;
-  };
+  // 画像・メディア参照
+  timeRecorder1: "TR1 画像",
+  timeRecorder2: "TR2 画像",
+  timeRecorder3: "TR3 画像",
+  timeRecorder4: "TR4 画像",
+  hub: "HUB 画像",
+  outlet: "コンセント 画像",
+} as const;
 
-  remarks?: string;
-
-  additionalTimeRecorderInfo: {
-    1?: string;
-    2?: string;
-    3?: string;
-    4?: string;
-  };
-
-  equipment: ShopEquipment;
-  documents: ShopDocuments;
-}
+/**
+ * 2. オブジェクトのキーから Shop 型を自動生成
+ * （型定義を別で手書きする必要がなくなります）
+ */
+export type ShopKey = keyof typeof SHOP_FIELD_LABELS;
+export type Shop = Record<ShopKey, string>;

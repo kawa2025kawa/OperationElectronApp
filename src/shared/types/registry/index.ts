@@ -1,5 +1,6 @@
+// src/shared/types/registry/index.ts
+
 import type { ComponentType, ReactNode } from "react";
-import type { SheetId } from "@shared/types/spreadsheet";
 import type { Column } from "@shared/types/table";
 import type { AppViewId, GlobalModalConfig } from "@shared/types/ui";
 
@@ -32,7 +33,7 @@ export interface AppViewDefinition<TItem = unknown> {
     show: boolean;
     order: number;
   };
-  sheetId?: SheetId;
+  sheetId?: string;
   search?: {
     placeholder: string;
     searchKeys: readonly string[];
