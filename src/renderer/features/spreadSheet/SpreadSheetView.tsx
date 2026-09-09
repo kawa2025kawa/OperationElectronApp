@@ -10,7 +10,6 @@ import type {
   Shop,
   Tantou,
 } from "@shared/types/spreadsheet";
-import type { SheetId } from "@renderer/features/spreadSheet/services/spreadsheetConfig";
 import { SpreadSheetModal } from "./components/modal/SpreadSheetModal";
 import { SpreadSheetTable } from "./components/table/SpreadSheetTable";
 import { useSpreadSheetViewLogic } from "./useSpreadSheetViewLogic";
@@ -50,7 +49,7 @@ export const SpreadSheetView: React.FC = React.memo(() => {
 
       openGlobalModal(
         <SpreadSheetModal
-          sheetId={sheetId}
+          sheetId={sheetId as never}
           data={row as never}
           title={title}
           onClose={closeGlobalModal}

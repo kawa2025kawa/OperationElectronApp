@@ -1,6 +1,8 @@
-﻿import { getValueByPath } from "@shared/utils/getValueByPath";
+﻿// src/renderer/features/spreadSheet/store/spreadsheetSelectors.ts
+
+import { getValueByPath } from "@shared/utils/getValueByPath";
 import type { AppState } from "@renderer/store";
-import type { SheetId } from "../services/spreadsheetConfig";
+import type { SheetId } from "@shared/types/spreadsheet";
 
 const EMPTY_ROWS: readonly unknown[] = [];
 

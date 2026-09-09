@@ -1,5 +1,4 @@
-﻿// electron/features/operation/jobs/scripts/job_28.ts
-import fs from "fs-extra";
+﻿import fs from "fs-extra";
 import iconv from "iconv-lite";
 import path from "path";
 import { format } from "date-fns";
@@ -28,11 +27,12 @@ const DEPARTMENT_NAMES: Record<string, string> = {
 };
 
 type CsvRow = { columns: string[]; line: string };
+type ParsedCsv = { header: string; rows: CsvRow[] };
 
-function getTargetCsvFiles(dir: string): string[] {
-  if (!fs.existsSync(dir)) return [];
-  return fs
-    .readdirSync(dir, { withFileTypes: true })
+async function getTargetCsvFiles(dir: string): Promise<string[]> {
+  if (!(await fs.pathExists(dir))) return [];
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  return entries
     .filter(
       (e) =>
         e.isFile() &&
@@ -42,7 +42,7 @@ function getTargetCsvFiles(dir: string): string[] {
     .map((e) => path.join(dir, e.name));
 }
 
-function readCsv(filePath: string): { header: string; rows: CsvRow[] } {
+function readCsv(filePath: string): ParsedCsv {
   const content = iconv.decode(fs.readFileSync(filePath), "Shift_JIS");
   const lines = content.split(/\r?\n/);
   return {
@@ -59,43 +59,49 @@ const isProblemRow = (row: CsvRow, today: string) =>
 
 async function createRequestCsvs(
   filePath: string,
+  parsedCsv: ParsedCsv,
   today: string,
   requestDir: string,
-): Promise<void> {
-  const { header, rows } = readCsv(filePath);
-  const problemRows = rows.filter((r) => isProblemRow(r, today));
-  console.debug("[Job28] problem rows", {
-    file: path.basename(filePath),
-    count: problemRows.length,
-  });
+): Promise<{ createdFiles: string[]; hasUnknown: boolean }> {
+  const problemRows = parsedCsv.rows.filter((r) => isProblemRow(r, today));
+  if (problemRows.length === 0) return { createdFiles: [], hasUnknown: false };
 
-  if (problemRows.length === 0) return;
+  let hasUnknown = false;
 
-  // 部門ごとにグループ化 (reduce を活用)
   const departmentRows = problemRows.reduce<Record<string, CsvRow[]>>(
     (acc, row) => {
-      const deptName = DEPARTMENT_NAMES[row.columns[1]?.trim()];
-      if (deptName) (acc[deptName] ??= []).push(row);
+      const rawDeptCode = row.columns[1]?.trim() ?? "";
+
+      const normalizedDeptCode = isNaN(Number(rawDeptCode))
+        ? rawDeptCode
+        : String(Number(rawDeptCode));
+
+      let deptName = DEPARTMENT_NAMES[normalizedDeptCode];
+
+      if (!deptName) {
+        deptName = "不明";
+        hasUnknown = true;
+      }
+
+      (acc[deptName] ??= []).push(row);
       return acc;
     },
     {},
   );
 
-  if (Object.keys(departmentRows).length === 0) return;
-
   await fs.ensureDir(requestDir);
   const originalFileName = path.basename(filePath);
+  const createdFiles: string[] = [];
 
   for (const [deptName, deptRows] of Object.entries(departmentRows)) {
-    const outputPath = path.join(requestDir, `${deptName}_${originalFileName}`);
-    const outputContent = `${[header, ...deptRows.map((r) => r.line)].join("\r\n")}\r\n`;
+    const fileName = `${deptName}_${originalFileName}`;
+    const outputPath = path.join(requestDir, fileName);
+    const outputContent = `${[parsedCsv.header, ...deptRows.map((r) => r.line)].join("\r\n")}\r\n`;
     await fs.writeFile(outputPath, iconv.encode(outputContent, "Shift_JIS"));
-    console.debug("[Job28] request CSV created", {
-      departmentName: deptName,
-      file: path.basename(outputPath),
-      rowCount: deptRows.length,
-    });
+    createdFiles.push(fileName);
   }
+
+  return { createdFiles, hasUnknown };
 }
 
 async function moveFile(filePath: string, targetDir: string): Promise<void> {
@@ -103,57 +109,87 @@ async function moveFile(filePath: string, targetDir: string): Promise<void> {
   await fs.move(filePath, path.join(targetDir, path.basename(filePath)), {
     overwrite: true,
   });
-  console.debug("[Job28] file moved", {
-    file: path.basename(filePath),
-    targetDir,
-  });
 }
 
 export async function runJob28(): Promise<string> {
   const today = format(new Date(), "yyyyMMdd");
   const todayDir = path.join(BASE_DIR, today);
-  console.debug("[Job28] START", { today, todayDir });
 
-  if (!(await fs.pathExists(todayDir))) return "正常終了";
+  if (!(await fs.pathExists(todayDir))) return "";
 
-  const csvFiles = [
-    ...getTargetCsvFiles(todayDir),
-    ...getTargetCsvFiles(path.join(todayDir, NEED_ACTION_DIR)),
-  ];
+  const rootFiles = await getTargetCsvFiles(todayDir);
+  const needActionFiles = await getTargetCsvFiles(
+    path.join(todayDir, NEED_ACTION_DIR),
+  );
 
-  console.debug("[Job28] CSV files", { total: csvFiles.length });
-  if (csvFiles.length === 0) return "正常終了";
+  const rootFileNames = new Set(rootFiles.map((f) => path.basename(f)));
+  const uniqueNeedActionFiles = needActionFiles.filter(
+    (f) => !rootFileNames.has(path.basename(f)),
+  );
+
+  const csvFiles = [...rootFiles, ...uniqueNeedActionFiles];
+  if (csvFiles.length === 0) return "";
 
   const requestDir = path.join(todayDir, REQUEST_DIR);
   const ignoreDir = path.join(todayDir, IGNORE_DIR);
   const completedDir = path.join(todayDir, COMPLETED_DIR);
 
-  let problemCount = 0;
+  const allCreatedRequestFiles: string[] = [];
+  let unknownCount = 0;
 
   for (const filePath of csvFiles) {
-    const fileName = path.basename(filePath);
-    console.debug("[Job28] checking CSV", { file: fileName });
-
-    const { rows } = readCsv(filePath);
-    const hasProblem = rows.some((row) => isProblemRow(row, today));
-    console.debug("[Job28] CSV result", {
-      file: fileName,
-      rowCount: rows.length,
-      hasProblem,
-    });
+    const parsedCsv = readCsv(filePath);
+    const hasProblem = parsedCsv.rows.some((row) => isProblemRow(row, today));
 
     if (!hasProblem) {
       await moveFile(filePath, ignoreDir);
       continue;
     }
 
-    await createRequestCsvs(filePath, today, requestDir);
+    const { createdFiles, hasUnknown } = await createRequestCsvs(
+      filePath,
+      parsedCsv,
+      today,
+      requestDir,
+    );
+
+    allCreatedRequestFiles.push(...createdFiles);
+    if (hasUnknown) {
+      unknownCount++;
+    }
+
     await moveFile(filePath, completedDir);
-    problemCount++;
   }
 
-  console.debug("[Job28] FINAL", { problemCount });
+  // 残っている「要対応」フォルダ内のファイル名を取得
+  const remainingNeedActionFiles = await getTargetCsvFiles(
+    path.join(todayDir, NEED_ACTION_DIR),
+  );
 
-  if (problemCount > 0) throw new Error(`要対応CSVあり: ${problemCount}件`);
-  return "正常終了";
+  // モーダル表示用のコメント構築
+  const comments: string[] = [];
+
+  if (allCreatedRequestFiles.length > 0) {
+    comments.push(
+      `【対応依頼ファイル作成】\n` +
+        allCreatedRequestFiles.map((f) => `・${f}`).join("\n"),
+    );
+  }
+
+  if (remainingNeedActionFiles.length > 0) {
+    comments.push(
+      `【要対応フォルダ内ファイル】\n` +
+        remainingNeedActionFiles.map((f) => `・${path.basename(f)}`).join("\n"),
+    );
+  }
+
+  if (unknownCount > 0) {
+    comments.push(
+      `⚠️ 未定義の部門コードが含まれるファイルが ${unknownCount} 件あります。`,
+    );
+  }
+
+  const finalComment = comments.join("\n\n");
+
+  return finalComment;
 }

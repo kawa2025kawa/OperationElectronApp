@@ -3,7 +3,7 @@
 import irregularData from "@resources/json/irregularData.json";
 import operationData from "@resources/json/operationData.json";
 import { commands } from "@renderer/services/commands";
-import { checkAndApplyUpdate } from "@renderer/services/updateService";
+import { checkAndApplyUpdate } from "@renderer/hooks/useMainViewLogic";
 import { DATA_LOADING_STATUS } from "@renderer/store/slices/initSlice";
 import { useAppStore } from "@renderer/store";
 import type { OperationItem } from "@shared/types/operation";

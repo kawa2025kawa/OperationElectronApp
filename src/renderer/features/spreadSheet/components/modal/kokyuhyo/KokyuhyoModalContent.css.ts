@@ -14,6 +14,57 @@ export const contentContainer = style({
   boxSizing: "border-box",
 });
 
+/**
+ * 1段目: 凸型コンテナ
+ */
+export const profileCard = style([
+  themeTransition,
+  {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: tokens.space.md,
+    padding: tokens.space.md,
+    backgroundColor: tokens.color.bg.base,
+    borderRadius: tokens.radius.lg,
+    boxShadow: tokens.shadow.raised.md,
+    boxSizing: "border-box",
+  },
+]);
+
+export const profileGrid = style({
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: tokens.space.sm,
+  flex: 1,
+});
+
+/**
+ * 各項目をそれぞれ「凸型」にしたバッジスタイル
+ */
+export const profileItem = style([
+  themeTransition,
+  {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: `${tokens.space.xs} ${tokens.space.md}`,
+    backgroundColor: tokens.color.bg.base,
+    borderRadius: tokens.radius.md,
+    boxShadow: tokens.shadow.raised.low, // 凸型影
+    fontSize: tokens.font.size.sm,
+    fontWeight: tokens.font.weight.bold,
+    color: tokens.color.text.base,
+    whiteSpace: "nowrap",
+    selectors: {
+      "&:hover": {
+        color: tokens.color.text.hover,
+        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      },
+    },
+  },
+]);
+
 export const button = style([
   themeTransition,
   {
@@ -39,18 +90,11 @@ export const button = style([
         color: tokens.color.accent.base,
         fontSize: tokens.font.size.sm,
         boxShadow: tokens.shadow.raised.md,
+        whiteSpace: "nowrap",
       },
     },
   },
 ]);
-
-export const textGroup = style({
-  display: "flex",
-  gap: tokens.space.md,
-  fontSize: tokens.font.size.sm,
-  fontWeight: tokens.font.weight.bold,
-  color: tokens.color.text.base,
-});
 
 export const tableGrid = style([
   themeTransition,

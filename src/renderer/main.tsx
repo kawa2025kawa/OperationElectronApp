@@ -1,11 +1,13 @@
 // src/renderer/main.tsx
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { App } from "./App"; // 同階層なので ./ を使用
-import "@styles/global"; // 異階層のためエイリアスを使用
-import { setupAppRegistry } from "@renderer/registry/appRegistry";
 
-setupAppRegistry();
+// ローカルフォントの読み込み (起動時のチラつき防止)
+import "@fontsource/noto-sans-jp/400.css";
+import "@fontsource/noto-sans-jp/800.css";
+
+import "@styles/global";
+import { App } from "./App";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {

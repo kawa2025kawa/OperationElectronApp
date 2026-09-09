@@ -12,16 +12,16 @@ import type { ModalContentProps } from "../SpreadSheetModal";
 import * as styles from "./TantouModalContent.css";
 
 const TANTOU_FIELDS = [
-  { key: "hayaban", label: "早番" },
-  { key: "shikai", label: "司会" },
-  { key: "uketsuke", label: "受付" },
-  { key: "denwa", label: "電話" },
-  { key: "nimotsu", label: "荷物" },
+  { key: "Hayaban", label: "早番" },
+  { key: "Shikai", label: "司会" },
+  { key: "Uketsuke", label: "受付" },
+  { key: "Denwa", label: "電話" },
+  { key: "Nimotsu", label: "荷物" },
   { key: "2F", label: "2F" },
   { key: "3F", label: "3F" },
-  { key: "tensou", label: "転送" },
-  { key: "amAttendanceRate", label: "AM出勤率" },
-  { key: "pmAttendanceRate", label: "PM出勤率" },
+  { key: "Tensou", label: "転送" },
+  { key: "AmAttendanceRate", label: "AM出勤率" },
+  { key: "PmAttendanceRate", label: "PM出勤率" },
 ] as const;
 
 const createTantouGroup = (
@@ -30,7 +30,7 @@ const createTantouGroup = (
 ): TabGroupConfig => ({
   title,
   items: TANTOU_FIELDS.map(({ key, label }) => ({
-    key: `${prefix}.${key}`,
+    key: `${prefix}${key}`,
     label,
   })),
 });
@@ -56,7 +56,7 @@ export const TantouModalContent: React.FC<ModalContentProps<Tantou>> =
 
     return (
       <div className={styles.mainContainer}>
-        {/* Tab List */}
+        {/* タブヘッダー */}
         <div className={styles.tabContainer}>
           <button
             type="button"
@@ -78,13 +78,15 @@ export const TantouModalContent: React.FC<ModalContentProps<Tantou>> =
           </button>
         </div>
 
-        {/* Card Grid Content */}
+        {/* リスト表示エリア (ShopModalContentと同構造) */}
         <div className={styles.contentContainer}>
-          <div className={styles.gridContainer}>
+          <div className={styles.terminalSection}>
             {displayItems.map((item) => (
-              <div key={item.label} className={styles.card}>
-                <div className={styles.label}>{item.label}</div>
-                <div className={styles.value}>{item.value}</div>
+              <div key={item.label} className={styles.terminalRow}>
+                <div className={styles.nonTrBadge}>{item.label}</div>
+                <div className={styles.flexCell}>
+                  <div className={styles.cellValue}>{item.value || "-"}</div>
+                </div>
               </div>
             ))}
           </div>

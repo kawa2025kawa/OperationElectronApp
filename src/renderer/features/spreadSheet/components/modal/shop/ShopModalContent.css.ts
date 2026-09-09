@@ -83,7 +83,11 @@ export const button = style([
         flex: 1,
         padding: "8px 12px",
         borderRadius: tokens.radius.sm,
-        fontSize: "clamp(12px, 1.6vmin, 14px)",
+        // ★ここで文字サイズを指定します
+        // 固定サイズにする場合:
+        fontSize: "15px",
+        // もし大きさをレスポンシブにしたい場合:
+        // fontSize: "clamp(16px, 2vmin, 20px)",
         whiteSpace: "nowrap",
       },
       '&[data-variant="tab"][data-active="true"]': {
@@ -237,6 +241,7 @@ export const terminalHeaderCell = style({
 });
 
 /* --- データ行 --- */
+/* --- データ行 --- */
 export const terminalRow = style([
   themeTransition,
   rowBaseStyle,
@@ -265,8 +270,28 @@ export const terminalBadge = style({
   boxShadow: tokens.shadow.pressed.md,
   color: tokens.color.accent.base,
   fontWeight: tokens.font.weight.bold,
-  fontSize: "13px",
+  fontSize: tokens.font.fluid.md,
   letterSpacing: "0.5px",
+});
+
+/** タイムレコーダ以外のタブ用の大きなバッジスタイル（インライン代替） */
+export const nonTrBadge = style([
+  terminalBadge,
+  {
+    width: "120px",
+    fontSize: "15px",
+    justifyContent: "flex-start", // ★ 中央寄せから左揃えに変更
+    paddingLeft: "16px", // ★ 内側の左余白を設定して位置を固定
+    boxSizing: "border-box",
+  },
+]);
+
+export const flexCell = style({
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  minWidth: 0,
+  flex: 1,
 });
 
 export const terminalGrid = style(gridBaseStyle);
@@ -279,14 +304,14 @@ export const terminalCell = style({
 });
 
 export const cellLabel = style({
-  fontSize: "11px",
+  fontSize: tokens.font.fluid.lg,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.accent.base,
   marginBottom: "4px",
 });
 
 export const cellValue = style({
-  fontSize: "14px",
+  fontSize: tokens.font.fluid.md,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.base,
   whiteSpace: "nowrap",

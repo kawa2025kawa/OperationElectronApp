@@ -1,6 +1,15 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/tantou/TantouModalContent.css.ts
+
 import { style } from "@vanilla-extract/css";
 import { themeTransition, tokens } from "@renderer/styles/tokens";
+
+const rowBaseStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  padding: "12px 16px",
+  boxSizing: "border-box" as const,
+};
 
 export const mainContainer = style({
   display: "flex",
@@ -28,7 +37,7 @@ export const tabContainer = style({
   backgroundColor: tokens.color.bg.base,
   borderRadius: tokens.radius.lg,
   boxShadow: tokens.shadow.pressed.md,
-  padding: "8px",
+  padding: "6px",
   flexShrink: 0,
   boxSizing: "border-box",
   gap: "4px",
@@ -39,29 +48,22 @@ export const button = style([
   {
     border: "none",
     cursor: "pointer",
-    backgroundColor: tokens.color.bg.base,
+    backgroundColor: "transparent",
     color: tokens.color.text.base,
     fontWeight: tokens.font.weight.bold,
     outline: "none",
-    boxShadow: tokens.shadow.raised.low,
     borderRadius: tokens.radius.md,
     padding: "8px 16px",
     selectors: {
       "&:hover": {
         color: tokens.color.text.hover,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-      },
-      "&:active": {
-        boxShadow: tokens.shadow.pressed.low,
       },
       '&[data-variant="tab"]': {
         flex: 1,
-        padding: "10px 16px",
+        padding: "8px 12px",
         borderRadius: tokens.radius.sm,
-        backgroundColor: "transparent",
-        fontSize: "clamp(12px, 1.8vmin, 15px)",
+        fontSize: "15px",
         whiteSpace: "nowrap",
-        boxShadow: "none",
       },
       '&[data-variant="tab"][data-active="true"]': {
         backgroundColor: tokens.color.bg.base,
@@ -72,63 +74,64 @@ export const button = style([
   },
 ]);
 
-export const gridContainer = style({
-  display: "grid",
-  gridTemplateColumns: "repeat(3, 1fr)",
-  gridAutoRows: "1fr",
-  gap: "16px",
+export const terminalSection = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "6px",
   width: "100%",
-  height: "100%",
-  minHeight: 0,
-  boxSizing: "border-box",
 });
 
-export const card = style([
+export const terminalRow = style([
   themeTransition,
+  rowBaseStyle,
   {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: "16px 20px",
     backgroundColor: tokens.color.bg.base,
     borderRadius: tokens.radius.md,
-    boxShadow: tokens.shadow.raised.md,
-    boxSizing: "border-box",
-    height: "100%",
-    minHeight: 0,
+    boxShadow: tokens.shadow.raised.low,
     selectors: {
       "&:hover": {
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
+        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+        color: tokens.color.text.hover,
       },
     },
   },
 ]);
 
-export const label = style({
-  fontSize: "clamp(12px, 1.8vmin, 15px)",
-  fontWeight: tokens.font.weight.medium,
-  color: tokens.color.text.base,
-  opacity: 0.7,
-  marginBottom: "8px",
-  transition: `color ${tokens.transition.ease}, opacity ${tokens.transition.ease}`,
-  selectors: {
-    [`${card}:hover &`]: {
-      color: tokens.color.text.hover,
-      opacity: 1,
-    },
-  },
+export const nonTrBadge = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-start",
+  width: "120px",
+  height: "36px",
+  paddingLeft: "16px",
+  flexShrink: 0,
+  backgroundColor: tokens.color.bg.base,
+  borderRadius: tokens.radius.sm,
+  boxShadow: tokens.shadow.pressed.md,
+  color: tokens.color.accent.base,
+  fontWeight: tokens.font.weight.bold,
+  fontSize: "15px",
+  boxSizing: "border-box",
 });
 
-export const value = style({
-  fontSize: "clamp(14px, 2.2vmin, 20px)",
+export const flexCell = style({
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  minWidth: 0,
+  flex: 1,
+});
+
+export const cellValue = style({
+  fontSize: tokens.font.fluid.md,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.base,
-  wordBreak: "break-all",
-  textAlign: "center",
-  transition: `color ${tokens.transition.ease}`,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  transition: tokens.transition.fast,
   selectors: {
-    [`${card}:hover &`]: {
+    [`${terminalRow}:hover &`]: {
       color: tokens.color.text.hover,
     },
   },

@@ -1,9 +1,11 @@
-﻿import { useCallback, useEffect, useMemo } from "react";
+﻿// src/renderer/features/spreadSheet/useSpreadSheetViewLogic.ts
+
+import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { useAppStore, type AppState } from "@renderer/store";
+import type { SheetId } from "@shared/types/spreadsheet";
 import { selectFilteredSheetRows } from "./store/spreadsheetSelectors";
-import type { SheetId } from "@renderer/features/spreadSheet/services/spreadsheetConfig";
 
 const EMPTY_ARRAY = [] as const;
 
@@ -12,7 +14,8 @@ export function useSpreadSheetViewLogic() {
   const fetchSheetData = useAppStore((state: AppState) => state.fetchSheetData);
 
   const config = getAppViewConfig(currentView);
-  const sheetId = (config?.sheetId as SheetId) ?? null;
+  // config.sheetId (string) を SheetId 型へキャスト
+  const sheetId = (config?.sheetId as SheetId | undefined) ?? null;
 
   const { isFetching, hasData, error } = useAppStore(
     useShallow((state: AppState) => ({

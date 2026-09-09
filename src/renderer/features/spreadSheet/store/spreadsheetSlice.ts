@@ -1,17 +1,16 @@
-﻿import { toast } from "sonner";
+﻿//src\renderer\features\spreadSheet\store\spreadsheetSlice.ts
+
+import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
-import type { SheetDataResponse } from "@shared/types/spreadsheet";
-import {
-  ALL_SHEET_IDS,
-  type SheetId,
-} from "@renderer/features/spreadSheet/services/spreadsheetConfig";
-import { fetchSheetValues } from "../services/mappers";
+import type { SheetDataResponse, SheetId } from "@shared/types/spreadsheet";
+import { ALL_SHEET_IDS } from "@renderer/features/spreadSheet/services/spreadsheetApi";
+import { fetchSheetValues } from "@renderer/features/spreadSheet/services/mappers/spreadsheetMapper";
 
 const PROGRESS_MAPPING: Partial<Record<SheetId, keyof AppState["initStatus"]>> =
   {
     StoreMasterData: "store",
-    JugyoinList: "jugyoin",
+    JugyoinMasterData: "jugyoin",
     KokyuhyoMasterData: "kokyuhyo",
     KokyuhyoTantouMasterData: "tantou",
   };

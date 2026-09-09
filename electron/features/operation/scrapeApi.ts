@@ -1,4 +1,7 @@
-﻿import fs from "node:fs";
+﻿//　実行command
+//　npx tsx electron/features/operation/scrapeApi.ts
+
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import puppeteer, { Page, Dialog } from "puppeteer";
@@ -13,7 +16,7 @@ const __dirname = path.dirname(__filename);
 // ==========================================
 interface AppConfig {
   addressBookUrl: string;
-  spreadsheetId: string;
+  spreadsheetIds: string[]; // 複数スプレッドシートに対応
   targetSheetName: string;
   credentialsPath: string;
   tokenPath: string;
@@ -28,6 +31,7 @@ interface AddressItem {
   nameKana2?: string;
   department?: string;
   position?: string;
+  roleId?: string;
   roleName?: string;
   email?: string;
   phone?: string;
@@ -40,6 +44,7 @@ interface ExtractedPerson {
   name1: string;
   name2: string;
   department: string;
+  position: string;
   email: string;
   phone: string;
 }
@@ -49,16 +54,19 @@ interface ExtractedPerson {
 // ==========================================
 const CONFIG: AppConfig = {
   addressBookUrl: "https://cloudstep-ab.appspot.com/a/belc.co.jp/v2/ab",
-  spreadsheetId: "YOUR_SPREADSHEET_ID_HERE", // ※ご自身のスプレッドシートIDをセットしてください
-  targetSheetName: "テスト",
+  spreadsheetIds: [
+    "19CYXIor7Zz3i0KfNY1t5gDKWRU62o2Sq1Tp5iBgaocc",
+    "1DdhzdvH-Z33sK6Zfk8_ZHBqVBmB0MxD9su0NVbge8gI",
+  ],
+  targetSheetName: "CloudStep",
 
   credentialsPath: path.join(
     __dirname,
-    "../../resources/google-oauth-credentials.json",
+    "../../../resources/google-oauth-credentials.json",
   ),
-  tokenPath: path.join(__dirname, "../../resources/token.json"),
+  tokenPath: path.join(__dirname, "../../../resources/token.json"),
 
-  chromeUserDataDir: path.join(__dirname, "../../.chrome-profile"),
+  chromeUserDataDir: path.join(__dirname, "../../../.chrome-profile"),
 };
 
 async function getOAuth2Client(): Promise<OAuth2Client> {
@@ -146,10 +154,22 @@ async function getOAuth2Client(): Promise<OAuth2Client> {
     await page.goto(CONFIG.addressBookUrl, { waitUntil: "networkidle2" });
 
     console.log(
-      "📦 [2/3] localStorage からデータ抽出および 部署メールアドレスの逆引きマッピング中...",
+      "📦 [2/3] localStorage からデータ抽出（部署の逆引き＆役職IDマッピング処理）中...",
     );
 
     const extractedData = await page.evaluate((): ExtractedPerson[] => {
+      // 1. roleMap (役職マスタ) の取得と読み込み
+      const rawRoleMap = localStorage.getItem(
+        "belc.co.jp/AddressList-1.00/roleMap",
+      );
+      let roleMapObj: Record<string, any> = {};
+      if (rawRoleMap) {
+        try {
+          roleMapObj = JSON.parse(rawRoleMap);
+        } catch (e) {}
+      }
+
+      // 2. アドレス帳データの取得と解凍
       const key = "belc.co.jp/AddressList-1.00/data";
       const rawStr = localStorage.getItem(key);
       if (!rawStr) return [];
@@ -174,7 +194,7 @@ async function getOAuth2Client(): Promise<OAuth2Client> {
 
       if (!Array.isArray(list)) return [];
 
-      // 1. メールアドレス -> 部署名 の逆引きマップを作成
+      // 3. メールアドレス -> 部署名 の逆引きマップを作成
       const emailToDeptMap = new Map<string, string>();
 
       list.forEach((item: AddressItem) => {
@@ -199,16 +219,43 @@ async function getOAuth2Client(): Promise<OAuth2Client> {
         }
       });
 
-      // 2. 個人データの抽出と整形（No. / position を除外した 7 項目）
+      // 4. 個人データの抽出と整形（部署名・役職名の自動補完）
       return list
         .map((item: AddressItem): ExtractedPerson => {
           const k1 = (item.nameKana1 || "").trim();
           const k2 = (item.nameKana2 || "").trim();
           const mail = (item.email || "").trim().toLowerCase();
 
+          // 部署名の取得（直接保持が無ければ逆引き）
           let dept = item.department ? item.department.trim() : "";
           if (!dept && mail && emailToDeptMap.has(mail)) {
             dept = emailToDeptMap.get(mail) || "";
+          }
+
+          // 役職名の取得（roleId 解析 -> roleMap 参照）
+          let pos = item.position ? item.position.trim() : "";
+          if (!pos && item.roleId && roleMapObj) {
+            const roleNames: string[] = [];
+            // カンマ区切り（複数役職）に対応
+            const roleIdEntries = item.roleId.split(",");
+
+            roleIdEntries.forEach((entry) => {
+              const parts = entry.trim().split("_");
+              const singleRoleId = parts[parts.length - 1]; // 末尾の役職IDを取得
+
+              if (singleRoleId && roleMapObj[singleRoleId]) {
+                const rObj = roleMapObj[singleRoleId];
+                const rName =
+                  typeof rObj === "string"
+                    ? rObj
+                    : rObj.name || rObj.roleName || "";
+                if (rName && !roleNames.includes(rName)) {
+                  roleNames.push(rName);
+                }
+              }
+            });
+
+            pos = roleNames.join(" / ");
           }
 
           return {
@@ -217,14 +264,17 @@ async function getOAuth2Client(): Promise<OAuth2Client> {
             name1: (item.name1 || "").trim(),
             name2: (item.name2 || "").trim(),
             department: dept,
+            position: pos,
             email: item.email || "",
             phone: item.phone || "",
           };
         })
         .filter((item: ExtractedPerson) => {
-          // 条件: nameKana1 と nameKana2 の両方が空のデータを除外
           const hasKana = item.nameKana1 !== "" || item.nameKana2 !== "";
-          return hasKana && (item.name1 !== "" || item.email !== "");
+          const hasPosition = item.position !== ""; // 役職が空でない判定を追加
+          return (
+            hasKana && hasPosition && (item.name1 !== "" || item.email !== "")
+          );
         });
     });
 
@@ -236,13 +286,14 @@ async function getOAuth2Client(): Promise<OAuth2Client> {
 
     console.log(`🎉 抽出成功: 個人対象データ ${extractedData.length} 件`);
 
-    // ヘッダー（7列）
+    // ヘッダー（8列: 指定順に変更）
     const headers = [
-      "nameKana1",
-      "nameKana2",
       "name1",
       "name2",
+      "nameKana1",
+      "nameKana2",
       "department",
+      "position",
       "email",
       "phone",
     ];
@@ -251,39 +302,45 @@ async function getOAuth2Client(): Promise<OAuth2Client> {
 
     extractedData.forEach((item: ExtractedPerson) => {
       rows.push([
-        item.nameKana1,
-        item.nameKana2,
         item.name1,
         item.name2,
+        item.nameKana1,
+        item.nameKana2,
         item.department,
+        item.position,
         item.email,
         item.phone,
       ]);
     });
 
     console.log(
-      `📊 [3/3] Google スプレッドシート（${CONFIG.targetSheetName}シート）へ一括更新中...`,
+      `📊 [3/3] Google スプレッドシート（計 ${CONFIG.spreadsheetIds.length} 個の「${CONFIG.targetSheetName}」シート）へ一括更新中...`,
     );
 
     const auth = await getOAuth2Client();
     const sheets: sheets_v4.Sheets = google.sheets({ version: "v4", auth });
 
-    // A〜G列を対象にクリア＆書き込み
-    await sheets.spreadsheets.values.clear({
-      spreadsheetId: CONFIG.spreadsheetId,
-      range: `${CONFIG.targetSheetName}!A:G`,
-    });
+    // 設定された全スプレッドシートIDへ繰り返し出力
+    for (const spreadsheetId of CONFIG.spreadsheetIds) {
+      console.log(`  └ 更新中 (ID: ${spreadsheetId})...`);
 
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: CONFIG.spreadsheetId,
-      range: `${CONFIG.targetSheetName}!A1`,
-      valueInputOption: "USER_ENTERED",
-      requestBody: { values: rows },
-    });
+      // A〜H列を対象にクリア＆書き込み
+      await sheets.spreadsheets.values.clear({
+        spreadsheetId,
+        range: `${CONFIG.targetSheetName}!A:H`,
+      });
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${CONFIG.targetSheetName}!A1`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: rows },
+      });
+    }
 
     console.log("==========================================");
     console.log(
-      `🎉 完全自動同期完了: 「${CONFIG.targetSheetName}」シートへ ${extractedData.length} 件（7列構成）を出力しました！`,
+      `🎉 完全自動同期完了: ${CONFIG.spreadsheetIds.length} 個のスプレッドシート「${CONFIG.targetSheetName}」へ ${extractedData.length} 件を出力しました！`,
     );
     console.log("==========================================");
   } catch (error: any) {

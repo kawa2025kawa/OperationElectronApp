@@ -124,16 +124,12 @@ export const ShopModalContent: React.FC<ModalContentProps<Shop>> = React.memo(
             </div>
           ) : (
             /* タイムレコーダ以外のタブ */
+            /* タイムレコーダ以外のタブ */
             <div className={styles.terminalSection}>
               {displayItems.map((item) => (
                 <div key={item.label} className={styles.terminalRow}>
-                  <div
-                    className={styles.terminalBadge}
-                    style={{ width: "110px", fontSize: "12px" }}
-                  >
-                    {item.label}
-                  </div>
-                  <div className={styles.terminalCell} style={{ flex: 1 }}>
+                  <div className={styles.nonTrBadge}>{item.label}</div>
+                  <div className={styles.flexCell}>
                     <div className={styles.cellValue}>{item.value || "-"}</div>
                   </div>
                 </div>

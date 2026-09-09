@@ -16,7 +16,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
     width: "20%",
   },
   {
-    key: "today.amStatus",
+    key: "todayAmStatus",
     label: "AM1",
     width: "8%",
     headerGroup: {
@@ -25,7 +25,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
     },
   },
   {
-    key: "today.amDetail",
+    key: "todayAmDetail",
     label: "AM1詳細",
     width: "12%",
     headerGroup: {
@@ -34,7 +34,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
     },
   },
   {
-    key: "today.pmStatus",
+    key: "todayPmStatus",
     label: "PM1",
     width: "8%",
     headerGroup: {
@@ -43,7 +43,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
     },
   },
   {
-    key: "today.pmDetail",
+    key: "todayPmDetail",
     label: "PM1詳細",
     width: "12%",
     headerGroup: {
@@ -52,7 +52,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
     },
   },
   {
-    key: "tomorrow.amStatus",
+    key: "tomorrowAmStatus",
     label: "AM2",
     width: "8%",
     headerGroup: {
@@ -61,7 +61,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
     },
   },
   {
-    key: "tomorrow.amDetail",
+    key: "tomorrowAmDetail",
     label: "AM2詳細",
     width: "12%",
     headerGroup: {
@@ -70,7 +70,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
     },
   },
   {
-    key: "tomorrow.pmStatus",
+    key: "tomorrowPmStatus",
     label: "PM2",
     width: "8%",
     headerGroup: {
@@ -79,7 +79,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
     },
   },
   {
-    key: "tomorrow.pmDetail",
+    key: "tomorrowPmDetail",
     label: "PM2詳細",
     width: "12%",
     headerGroup: {
@@ -100,8 +100,8 @@ export const kokyuhyoViewConfig: AppViewDefinition<Kokyuhyo> = {
   },
   sheetId: "KokyuhyoMasterData",
   search: {
-    placeholder: "検索...",
-    searchKeys: ["name", "naisen", "contactMobile"],
+    placeholder: "名前、名前カナで検索...",
+    searchKeys: ["name", "nameKana"],
   },
   modalConfig: {
     modalType: "sheet_kokyuhyo",
