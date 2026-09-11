@@ -1,39 +1,34 @@
 // src/renderer/components/ui/statusSummary/StatusSummary.tsx
 
 import React, { useCallback } from "react";
-import clsx from "clsx";
 import { useAppStore } from "@renderer/store";
+import { SummaryModalContent } from "@renderer/features/operation/components/modal/summaryModal/SummaryModalContent";
+import { DEFAULT_MODAL_SIZE } from "@renderer/features/operation/helpers/operationEntities";
 import type { OperationItem } from "@shared/types/operation";
-import { OperationModal } from "@renderer/features/operation/components/modal/OperationModal";
-import { useStatusSummary, type StatusSummaryProps } from "./useStatusSummary";
+import type { StatusSummary as FilteredSummary } from "@shared/types/ui";
+import { useStatusSummary } from "./useStatusSummary";
 import * as styles from "./statusSummary.css";
 
-const SUMMARY_MODAL_SIZE = {
-  width: 800,
-  height: 600,
-} as const;
+export interface StatusSummaryProps {
+  data: FilteredSummary;
+}
 
 export const StatusSummary: React.FC<StatusSummaryProps> = React.memo(
   ({ data }) => {
     const openGlobalModal = useAppStore((state) => state.openGlobalModal);
-    const closeGlobalModal = useAppStore((state) => state.closeGlobalModal);
 
     const handleOpenModal = useCallback(
-      (items: OperationItem[], title: string) => {
-        openGlobalModal(
-          <OperationModal
-            type="summary"
-            items={items}
-            onClose={closeGlobalModal}
-          />,
-          {
-            title,
-            width: String(SUMMARY_MODAL_SIZE.width),
-            height: String(SUMMARY_MODAL_SIZE.height),
-          },
-        );
+      (summaryItems: OperationItem[], titleLabel: string) => {
+        // 🎯【修正】コンポーネントを生成する無名関数（または React.createElement）を渡す
+        const Content = () => <SummaryModalContent items={summaryItems} />;
+        Object.assign(Content, SummaryModalContent);
+
+        openGlobalModal(Content, {
+          title: titleLabel,
+          ...DEFAULT_MODAL_SIZE,
+        });
       },
-      [closeGlobalModal, openGlobalModal],
+      [openGlobalModal],
     );
 
     const { items, handleClick } = useStatusSummary({
@@ -42,25 +37,23 @@ export const StatusSummary: React.FC<StatusSummaryProps> = React.memo(
     });
 
     return (
-      <nav className={styles.container}>
-        {items.map(({ key, label, displayValue, badgeClass }) => (
+      <div className={styles.container}>
+        {items.map((item) => (
           <button
-            key={key}
+            key={item.key}
             type="button"
             className={styles.statusItem}
-            onClick={() => handleClick(key, label)}
+            onClick={() => handleClick(item.key, item.label)}
           >
-            <span className={clsx(styles.valueBadge, badgeClass)}>
-              {displayValue}
+            <span className={`${styles.valueBadge} ${item.badgeClass}`}>
+              {item.displayValue}
             </span>
-            <span className={styles.label}>{label}</span>
+            <span className={styles.label}>{item.label}</span>
           </button>
         ))}
-      </nav>
+      </div>
     );
   },
 );
 
 StatusSummary.displayName = "StatusSummary";
-
-StatusSummary;

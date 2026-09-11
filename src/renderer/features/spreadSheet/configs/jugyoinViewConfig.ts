@@ -2,21 +2,23 @@
 
 import type { AppViewDefinition } from "@shared/types/registry";
 import type { Jugyoin } from "@shared/types/spreadsheet";
-import type { Column } from "@shared/types/table";
+import type { Column } from "@shared/types/table/tableType";
 import { APP_VIEW_IDS } from "@shared/types/ui";
 import { formatDateForHeader, getOffsetDate } from "@shared/utils/dateUtils";
 
 const DATE_LABELS = {
-  today: formatDateForHeader(new Date()),
-  tomorrow: formatDateForHeader(getOffsetDate(1)),
+  today: `本日 (${formatDateForHeader(new Date())})`,
+  tomorrow: `明日 (${formatDateForHeader(getOffsetDate(1))})`,
 } as const;
 
 export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
-  { key: "bumon", label: "部署", width: "15%" },
+  { key: "bumon", label: "部門", width: "15%" },
   { key: "name", label: "氏名", width: "15%" },
+
+  // 本日グループ
   {
     key: "todayAmStatus",
-    label: "AM1",
+    label: "AM",
     width: "7%",
     headerGroup: {
       groupKey: "today",
@@ -25,7 +27,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
   {
     key: "todayAmDetail",
-    label: "AM1詳細",
+    label: "AM詳細",
     width: "10.5%",
     headerGroup: {
       groupKey: "today",
@@ -34,7 +36,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
   {
     key: "todayPmStatus",
-    label: "PM1",
+    label: "PM",
     width: "7%",
     headerGroup: {
       groupKey: "today",
@@ -43,16 +45,18 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
   {
     key: "todayPmDetail",
-    label: "PM1詳細",
+    label: "PM詳細",
     width: "10.5%",
     headerGroup: {
       groupKey: "today",
       label: DATE_LABELS.today,
     },
   },
+
+  // 明日グループ
   {
     key: "tomorrowAmStatus",
-    label: "AM2",
+    label: "AM",
     width: "7%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -61,7 +65,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
   {
     key: "tomorrowAmDetail",
-    label: "AM2詳細",
+    label: "AM詳細",
     width: "10.5%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -70,7 +74,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
   {
     key: "tomorrowPmStatus",
-    label: "PM2",
+    label: "PM",
     width: "7%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -79,7 +83,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
   {
     key: "tomorrowPmDetail",
-    label: "PM2詳細",
+    label: "PM詳細",
     width: "10.5%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -90,7 +94,8 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
 
 export const jugyoinViewConfig: AppViewDefinition<Jugyoin> = {
   id: APP_VIEW_IDS.JUGYOIN,
-  title: "従業員情報",
+  title: "従業員表",
+  component: null,
   isProtected: true,
   sidebarMenu: {
     show: true,
@@ -98,7 +103,7 @@ export const jugyoinViewConfig: AppViewDefinition<Jugyoin> = {
   },
   sheetId: "JugyoinMasterData",
   search: {
-    placeholder: "部門、部門かな、名前、名前カナで検索...",
+    placeholder: "部門、名前で検索...",
     searchKeys: ["bumon", "bumonKana", "name", "nameKana"],
   },
   modalConfig: {

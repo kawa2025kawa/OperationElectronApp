@@ -8,7 +8,7 @@ import { StatusContextMenu } from "@renderer/features/operation/components/conte
 
 import { useAppStore } from "@renderer/store";
 import type { OperationItem } from "@shared/types/operation";
-import type { Column } from "@shared/types/table";
+import type { Column } from "@shared/types/table/tableType";
 
 import * as styles from "./operationTable.css";
 

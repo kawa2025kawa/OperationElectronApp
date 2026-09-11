@@ -25,17 +25,17 @@ const scrollable = style({
   overflowY: "auto",
   overflowX: "hidden",
   scrollbarWidth: "thin",
-  scrollbarColor: `${tokens.color.accent.base} ${tokens.color.bg.inset}`,
+  scrollbarColor: `${tokens.color.accent.base} ${tokens.color.bg.base}`,
   selectors: {
     "&::-webkit-scrollbar": { width: "8px" },
     "&::-webkit-scrollbar-track": {
-      background: tokens.color.bg.inset,
+      background: tokens.color.bg.base,
       borderRadius: tokens.radius.md,
     },
     "&::-webkit-scrollbar-thumb": {
       background: tokens.color.accent.base,
       borderRadius: tokens.radius.md,
-      border: `2px solid ${tokens.color.bg.inset}`,
+      border: `2px solid ${tokens.color.bg.base}`,
     },
     "&::-webkit-scrollbar-thumb:hover": {
       background: tokens.color.accent.neonCyan,
@@ -146,7 +146,6 @@ export const linkCardButton = style([
       "&:hover, &:focus-visible": {
         borderColor: tokens.color.accent.neonCyan,
         boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-        transform: "translateY(-1px)",
       },
       "&:active": {
         boxShadow: tokens.shadow.pressed.low,
@@ -157,7 +156,7 @@ export const linkCardButton = style([
 ]);
 
 export const linkLabel = style({
-  fontSize: "clamp(16px, 2vmin, 20px)",
+  fontSize: tokens.font.fluid.md,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.accent.neonCyan,
   whiteSpace: "nowrap",
@@ -165,7 +164,7 @@ export const linkLabel = style({
 });
 
 export const linkValue = style({
-  fontSize: "clamp(13px, 1.5vmin, 16px)",
+  fontSize: tokens.font.fluid.md,
   color: tokens.color.text.base,
   opacity: 0.8,
   overflow: "hidden",
@@ -173,4 +172,14 @@ export const linkValue = style({
   whiteSpace: "nowrap",
   width: "100%",
   minWidth: 0,
+});
+
+// 🎯 新規追加: フッターボタンコンテナ
+export const footerActionRow = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: tokens.space.sm,
+  paddingTop: tokens.space.sm,
+  borderTop: `1px solid ${tokens.color.border.default}`,
 });

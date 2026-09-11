@@ -1,31 +1,18 @@
 ﻿// src/renderer/features/auth/store/authSlice.ts
+
 import type { StateCreator } from "zustand";
 import { commands } from "@renderer/services/commands";
-
 import type { AppState } from "@renderer/store";
-
-// ============================================================
-// Types
-// ============================================================
-
-interface GoogleUserInfo {
-  email?: string;
-  family_name?: string;
-}
-
-interface AuthProfile {
-  email: string | null;
-  familyName: string | null;
-}
-
-// ============================================================
-// Constants
-// ============================================================
+import type {
+  AuthProfile,
+  AuthSlice,
+  GoogleUserInfo,
+} from "@shared/types/auth/authTypes";
 
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 
 // ============================================================
-// Google UserInfo
+// Google UserInfo API
 // ============================================================
 
 async function fetchUserInfo(
@@ -52,7 +39,7 @@ async function fetchUserInfo(
 }
 
 // ============================================================
-// Profile
+// Profile Processing
 // ============================================================
 
 function normalize(value?: string | null): string | null {
@@ -84,7 +71,7 @@ async function resolveAuthProfile(
 }
 
 // ============================================================
-// State
+// State Mutators
 // ============================================================
 
 function clearAuthState(state: AppState): void {
@@ -93,7 +80,6 @@ function clearAuthState(state: AppState): void {
   state.accessToken = null;
   state.userEmail = null;
   state.familyName = null;
-  state.pendingView = null;
 }
 
 function applyAuthenticatedState(
@@ -108,33 +94,10 @@ function applyAuthenticatedState(
 }
 
 // ============================================================
-// Slice
+// Slice Implementation
 // ============================================================
 
-export interface AuthSlice {
-  isAuthenticated: boolean;
-  isChecking: boolean;
-
-  accessToken: string | null;
-  userEmail: string | null;
-  familyName: string | null;
-
-  setIsAuthenticated: (auth: boolean) => void;
-  setIsChecking: (check: boolean) => void;
-  setAccessToken: (token: string | null) => void;
-  setUserEmail: (email: string | null) => void;
-  setFamilyName: (familyName: string | null) => void;
-
-  checkAuthStatus: () => Promise<boolean>;
-
-  handleLoginSuccess: (
-    token: string,
-    email?: string | null,
-    familyName?: string | null,
-  ) => Promise<void>;
-
-  logout: () => Promise<void>;
-}
+export type { AuthSlice } from "@shared/types/auth/authTypes";
 
 export const createAuthSlice: StateCreator<
   AppState,
@@ -148,10 +111,6 @@ export const createAuthSlice: StateCreator<
   accessToken: null,
   userEmail: null,
   familyName: null,
-
-  // ----------------------------------------------------------
-  // Setters
-  // ----------------------------------------------------------
 
   setIsAuthenticated: (auth) =>
     set((state) => {
@@ -178,10 +137,6 @@ export const createAuthSlice: StateCreator<
       state.familyName = familyName;
     }),
 
-  // ----------------------------------------------------------
-  // Auth Check
-  // ----------------------------------------------------------
-
   checkAuthStatus: async (): Promise<boolean> => {
     set((state) => {
       state.isChecking = true;
@@ -194,7 +149,6 @@ export const createAuthSlice: StateCreator<
         set((state) => {
           clearAuthState(state);
         });
-
         return false;
       }
 
@@ -211,11 +165,9 @@ export const createAuthSlice: StateCreator<
       return true;
     } catch (error) {
       console.error("[Auth] Session check failed:", error);
-
       set((state) => {
         clearAuthState(state);
       });
-
       return false;
     } finally {
       set((state) => {
@@ -224,33 +176,19 @@ export const createAuthSlice: StateCreator<
     }
   },
 
-  // ----------------------------------------------------------
-  // Login
-  // ----------------------------------------------------------
-
   handleLoginSuccess: async (accessToken, email, familyName): Promise<void> => {
     const profile = await resolveAuthProfile(accessToken, email, familyName);
 
     set((state) => {
       applyAuthenticatedState(state, accessToken, profile);
-
-      if (state.pendingView) {
-        state.currentView = state.pendingView;
-        state.pendingView = null;
-      }
     });
 
     void get().prefetchSheets(accessToken);
   },
 
-  // ----------------------------------------------------------
-  // Logout
-  // ----------------------------------------------------------
-
   logout: async (): Promise<void> => {
     try {
       await commands.logout();
-
       set((state) => {
         clearAuthState(state);
       });
@@ -259,5 +197,3 @@ export const createAuthSlice: StateCreator<
     }
   },
 });
-
-createAuthSlice;

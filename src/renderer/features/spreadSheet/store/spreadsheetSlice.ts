@@ -1,6 +1,4 @@
-﻿//src\renderer\features\spreadSheet\store\spreadsheetSlice.ts
-
-import { toast } from "sonner";
+﻿import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
 import type { SheetDataResponse, SheetId } from "@shared/types/spreadsheet";
@@ -94,7 +92,10 @@ export const createSpreadSheetSlice: StateCreator<
       return false;
     }
 
-    currentState.setIsSheetFetching(sheetId, true);
+    // フェッチ開始フラグ更新
+    set((state) => {
+      state.isSheetFetching[sheetId] = true;
+    });
 
     try {
       const result = await fetchSheetValues(sheetId, rawToken);
@@ -133,7 +134,12 @@ export const createSpreadSheetSlice: StateCreator<
         throw new Error(errorMsg);
       }
 
-      get().updateSheetData(sheetId, result.data);
+      // 🎯 result.data ?? null で undefined を排除して型適合させる
+      set((state) => {
+        state.sheetData[sheetId] = result.data ?? null;
+        state.sheetErrors[sheetId] = null;
+      });
+
       return true;
     } catch (err: unknown) {
       console.error(`[SpreadSheet] Failed to fetch sheet [${sheetId}]:`, err);
@@ -141,12 +147,16 @@ export const createSpreadSheetSlice: StateCreator<
       const message =
         err instanceof Error ? err.message : "データ取得に失敗しました";
 
-      get().setSheetError(sheetId, message);
-      toast.error(`[${sheetId}] ${message}`);
+      set((state) => {
+        state.sheetErrors[sheetId] = message;
+      });
 
+      toast.error(`[${sheetId}] ${message}`);
       return false;
     } finally {
-      get().setIsSheetFetching(sheetId, false);
+      set((state) => {
+        state.isSheetFetching[sheetId] = false;
+      });
     }
   },
 

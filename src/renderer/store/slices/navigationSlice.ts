@@ -1,6 +1,4 @@
-﻿// src/renderer/store/slices/navigationSlice.ts
-
-import type { StateCreator } from "zustand";
+﻿import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
 import type { AppViewId, ViewMode } from "@shared/types/ui";
 
@@ -8,14 +6,12 @@ type SelectedIds = Record<ViewMode, string | null>;
 
 export interface NavigationSlice {
   currentView: AppViewId;
-  pendingView: AppViewId | null;
   currentMode: ViewMode;
-  searchTerms: Record<string, string>; // VIEWごとの検索文字列一覧
-  searchTerm: string; // 現在アクティブなVIEWの検索文字列
+  searchTerms: Record<string, string>;
+  searchTerm: string;
   isSidebarOpen: boolean;
   selectedIds: SelectedIds;
   setCurrentView: (view: AppViewId) => void;
-  setPendingView: (view: AppViewId | null) => void;
   setMode: (mode: ViewMode) => void;
   setSearchTerm: (term: string) => void;
   toggleSidebar: () => void;
@@ -30,7 +26,6 @@ export const createNavigationSlice: StateCreator<
   NavigationSlice
 > = (set) => ({
   currentView: "operation",
-  pendingView: null,
   currentMode: "operation",
   searchTerms: {},
   searchTerm: "",
@@ -43,12 +38,7 @@ export const createNavigationSlice: StateCreator<
   setCurrentView: (view) =>
     set((state: AppState) => {
       state.currentView = view;
-      // 切り替え先VIEWの検索文字列を復元（存在しなければ空文字）
       state.searchTerm = state.searchTerms[view] ?? "";
-    }),
-  setPendingView: (view) =>
-    set((state: AppState) => {
-      state.pendingView = view;
     }),
   setMode: (mode) =>
     set((state: AppState) => {
@@ -56,7 +46,6 @@ export const createNavigationSlice: StateCreator<
     }),
   setSearchTerm: (term) =>
     set((state: AppState) => {
-      // VIEW用マップと現在の検索文字列の両方を同期更新
       state.searchTerms[state.currentView] = term;
       state.searchTerm = term;
     }),

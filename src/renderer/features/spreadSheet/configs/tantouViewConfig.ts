@@ -2,7 +2,7 @@
 
 import type { AppViewDefinition } from "@shared/types/registry";
 import type { Tantou } from "@shared/types/spreadsheet";
-import type { Column } from "@shared/types/table";
+import type { Column } from "@shared/types/table/tableType";
 import { APP_VIEW_IDS } from "@shared/types/ui";
 
 export const TANTOU_COLUMNS: readonly Column<Tantou>[] = [

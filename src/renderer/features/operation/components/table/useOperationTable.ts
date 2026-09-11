@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@renderer/store";
-import type { Column } from "@shared/types/table";
+import type { Column } from "@shared/types/table/tableType";
 import type { ViewMode } from "@shared/types/ui";
 import {
   selectCurrentMode,

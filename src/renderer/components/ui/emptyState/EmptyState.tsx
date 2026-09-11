@@ -1,3 +1,5 @@
+//src\renderer\components\ui\emptyState\EmptyState.tsx
+
 import React from "react";
 import { clsx } from "clsx";
 import { animateFadeIn } from "@renderer/styles/tokens";

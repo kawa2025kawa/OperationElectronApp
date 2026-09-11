@@ -93,8 +93,13 @@
     "scheduledTime": "08:30",
     "workName": "自動発注6時00分件数確認",
     "manual": true,
-    "script": true,
-    "autoStart": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": true
+      }
+    ],
     "link": {
       "ログファイル": "//192.88.100.1/diskD/execute/log"
     },
@@ -116,8 +121,13 @@
     "scheduledTime": "06:30",
     "workName": "ファーマーズステーションエラー有無チェック",
     "manual": true,
-    "script": true,
-    "autoStart": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": true
+      }
+    ],
     "link": {
       "8:30以前": "//192.88.1.3/syn_tran",
       "8:30以降": "//192.88.1.3/syn_tran/ファーマーズエラー",
@@ -149,8 +159,13 @@
     "kanriNo": "20",
     "workName": "ZHA8110受信ファイルのサイズ確認",
     "manual": true,
-    "script": true,
-    "autoStart": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": true
+      }
+    ],
     "link": {
       "保存フォルダ": "//172.25.101.51/if/AUTOORD/RCV/SV"
     },
@@ -192,8 +207,13 @@
     "kanriNo": "25",
     "workName": "ZHA8101受信ファイル存在確認",
     "scheduledTime": "9:00",
-    "script": true,
-    "autoStart": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": true
+      }
+    ],
     "link": {
       "保存フォルダ": "//172.25.101.51/if/MASTER/RCV/SV"
     },
@@ -216,8 +236,13 @@
     "kanshiTime": "1:00",
     "workName": "EOBサーバーの発注エラーチェック1",
     "manual": true,
-    "script": true,
-    "autoStart": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": true
+      }
+    ],
     "link": {
       "保存フォルダ": "//172.25.101.51/if/LOG/DCMEOB1"
     }
@@ -236,8 +261,13 @@
     "kanshiTime": "1:00",
     "workName": "【No.1発注】店舗PC受信データ振分",
     "manual": true,
-    "script": true,
-    "autoStart": false,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": false
+      }
+    ],
     "dependency": {
       "dependsOn": ["29"],
       "requiredStatus": ["success"],
@@ -256,8 +286,13 @@
     "scheduledTime": "10:33",
     "workName": "ファーマーズステーション売上取り込み LOG確認",
     "manual": true,
-    "script": true,
-    "autoStart": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": true
+      }
+    ],
     "link": {
       "ログファイル": "//192.88.1.220/log/SANSAN_TXT_LOAD.log"
     }
@@ -295,8 +330,13 @@
     "kanshiTime": "1:00",
     "workName": "【No.2発注】店舗PC受信データ振分",
     "manual": true,
-    "script": true,
-    "autoStart": false,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": false
+      }
+    ],
     "dependency": {
       "dependsOn": ["36"],
       "requiredStatus": ["success"],
@@ -314,8 +354,13 @@
     "kanriNo": "39",
     "workName": "BENIF2100送り込み抽出ファイル存在確認",
     "manual": true,
-    "script": true,
-    "autoStart": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": true
+      }
+    ],
     "link": {
       "保存フォルダ": "//172.25.101.51/if/MASTER/RCV"
     },
@@ -344,8 +389,13 @@
     "kanshiTime": "1:00",
     "workName": "EOBサーバの発注エラーチェック2",
     "manual": true,
-    "script": true,
-    "autoStart": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": true
+      }
+    ],
     "link": {
       "保存フォルダ": "//172.25.101.51/if/LOG/DCMEOB1"
     }
@@ -364,8 +414,13 @@
     "kanshiTime": "1:00",
     "workName": "【No.3発注】店舗PC受信データ振分",
     "manual": true,
-    "script": true,
-    "autoStart": false,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": false
+      }
+    ],
     "dependency": {
       "dependsOn": ["44"],
       "requiredStatus": ["success"],
@@ -416,8 +471,13 @@
     "kanshiTime": "1:00",
     "workName": "【No.4発注】店舗PC受信データ振分",
     "manual": true,
-    "script": true,
-    "autoStart": false,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": false
+      }
+    ],
     "dependency": {
       "dependsOn": ["47"],
       "requiredStatus": ["success"],
@@ -434,8 +494,13 @@
     "kanriNo": "N12",
     "workName": "FTRファイル存在確認",
     "manual": true,
-    "script": true,
-    "autoStart": false,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": false
+      }
+    ],
     "link": {
       "保存フォルダ": "//172.25.101.51/if/WMSSLIP/RCV"
     },
@@ -492,8 +557,13 @@
     "kanshiTime": "1:00",
     "workName": "【No.5発注】店舗PC受信データ振分",
     "manual": true,
-    "script": true,
-    "autoStart": false,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": false
+      }
+    ],
     "dependency": {
       "dependsOn": ["52"],
       "requiredStatus": ["success"],
@@ -541,8 +611,13 @@
     "kanriNo": "62",
     "workName": "抽出ファイル存在確認",
     "manual": true,
-    "script": true,
-    "autoStart": false,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": false
+      }
+    ],
     "link": {
       "保存フォルダ": "//172.25.101.51/if/MASTER/RCV"
     },
@@ -567,8 +642,13 @@
     "kanriNo": "64",
     "workName": "NMA8000エラーログ確認",
     "manual": true,
-    "script": true,
-    "autoStart": false,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": false
+      }
+    ],
     "link": {
       "エラー保存フォルダ": "//172.25.101.51/if/LOG/DCMMD",
       "修正ファイル保存フォルダ": "//172.25.101.51/if/MASTER/RCV"
@@ -593,9 +673,14 @@
   {
     "kanriNo": "66",
     "workName": "マスタメンテシステム LOCK解除",
-    "script": true,
-    "autoStart": false,
     "manual": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": false
+      }
+    ],
     "dependency": {
       "dependsOn": ["65"],
       "requiredStatus": ["success"],
@@ -631,9 +716,14 @@
     "kanriNo": "56",
     "scheduledTime": "16:40",
     "workName": "請求データファイル確認",
-    "script": true,
-    "autoStart": true,
     "manual": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": true
+      }
+    ],
     "link": {
       "保存フォルダ": "//172.25.101.51/if/WEB-SV/RCV/SV"
     }
@@ -761,8 +851,13 @@
     "kanriNo": "68",
     "workName": "EOBサーバの発注エラーチェック3",
     "manual": true,
-    "script": true,
-    "autoStart": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": true
+      }
+    ],
     "link": {
       "保存フォルダ": "//172.25.101.51/if/LOG/DCMEOB1"
     },
@@ -777,8 +872,13 @@
     "scheduledTime": "17:30",
     "workName": "VINX向けPOS配信データ 格納済み確認",
     "manual": true,
-    "script": true,
-    "autoStart": false,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": false
+      }
+    ],
     "link": {
       "url": "http://172.31.1.4:28080/mc/login"
     },
@@ -806,7 +906,13 @@
     "kanriNo": "N31",
     "workName": "WEB-EDI動作確認",
     "manual": true,
-    "script": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": false
+      }
+    ],
     "link": {
       "url": "https://www2.belc.co.jp:8002/webedi/belcwebedi.html"
     },
@@ -827,8 +933,13 @@
     "kanriNo": "80",
     "workName": "BENIF2200抽出ファイル存在確認",
     "manual": true,
-    "script": true,
-    "autoStart": true,
+    "scripts": [
+      {
+        "key": "main",
+        "label": "Script",
+        "autoStart": true
+      }
+    ],
     "link": {
       "保存フォルダ": "//172.25.101.51/if/MASTER/RCV/SV"
     },

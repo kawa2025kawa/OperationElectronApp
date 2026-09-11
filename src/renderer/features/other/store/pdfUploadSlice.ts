@@ -1,18 +1,15 @@
 ﻿import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-
 import { commands } from "@renderer/services/commands";
 import type { AppState } from "@renderer/store";
-
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/operationEntities";
-
 import {
   calculateExpireDate,
   createInitialPdfUploadState,
   createUniquePaths,
   logUploadOrder,
   validateAndFormatPdfs,
-} from "@renderer/features/other/store/utils/pdfUploadUtils";
+} from "./utils/pdfUploadUtils";
 
 // ============================================================
 // Types
@@ -39,6 +36,7 @@ export interface PdfUploadSlice {
   updatePdfUpload(update: Partial<PdfUploadState>): void;
   resetPdfUpload(): void;
   mergePdfFiles(incomingPaths: string[]): void;
+  addPdfFiles(rawFiles: File[]): void;
   reorderPdfFiles(fromIndex: number, toIndex: number): void;
   uploadPdfFiles(): Promise<void>;
 }
@@ -74,7 +72,7 @@ export const createPdfUploadSlice: StateCreator<
     }),
 
   // ==========================================================
-  // Merge Files
+  // Merge Files (パス文字列配列から追加)
   // ==========================================================
 
   mergePdfFiles: (incomingPaths) => {
@@ -95,6 +93,28 @@ export const createPdfUploadSlice: StateCreator<
         expireDate: calculateExpireDate(),
       });
     });
+  },
+
+  // ==========================================================
+  // Add Raw Files (File[] オブジェクトから追加・フィルタリング)
+  // ==========================================================
+
+  addPdfFiles: (rawFiles) => {
+    const incomingPaths = rawFiles
+      .filter(
+        (f) =>
+          f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"),
+      )
+      .map(
+        (f) =>
+          commands.getFilePath(f) ||
+          ("path" in f && typeof f.path === "string" ? f.path : f.name),
+      )
+      .filter(Boolean);
+
+    if (incomingPaths.length === 0) return;
+
+    get().mergePdfFiles(incomingPaths);
   },
 
   // ==========================================================

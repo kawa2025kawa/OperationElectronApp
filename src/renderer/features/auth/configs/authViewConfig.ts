@@ -1,4 +1,6 @@
-﻿import type { AppViewDefinition } from "@shared/types/registry";
+﻿//src\renderer\features\auth\configs\authViewConfig.//
+
+import type { AppViewDefinition } from "@shared/types/registry";
 import { APP_VIEW_IDS } from "@shared/types/ui";
 
 export const authViewConfig: AppViewDefinition = {

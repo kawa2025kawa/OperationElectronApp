@@ -1,74 +1,101 @@
 // src/renderer/components/ui/modal/GlobalModalManager.tsx
 
 import React from "react";
-import { createPortal } from "react-dom";
-import { AnimatePresence, motion, type Variants } from "framer-motion";
-import { useShallow } from "zustand/react/shallow";
-import { useAppStore } from "@renderer/store";
+import ReactDOM from "react-dom";
+import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
+import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
+import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
+import { useGlobalModalManager } from "./useGlobalModalManager";
 import * as styles from "./globalModalManager.css";
 
-const overlayVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-};
-
-const contentVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.95, y: 10 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { type: "spring", damping: 25, stiffness: 300 },
-  },
-  exit: { opacity: 0, scale: 0.95, y: -10, transition: { duration: 0.15 } },
-};
-
 export const GlobalModalManager: React.FC = () => {
-  const modalRoot =
-    typeof window !== "undefined"
-      ? document.getElementById("modal-root")
-      : null;
+  const { state, actions } = useGlobalModalManager();
 
-  const { modalContent, modalConfig, closeModal } = useAppStore(
-    useShallow((s) => ({
-      modalContent: s.modalContent,
-      modalConfig: s.modalConfig,
-      closeModal: s.closeGlobalModal,
-    })),
-  );
+  if (!state.isOpen || !state.content || !state.modalRoot) return null;
 
-  if (!modalRoot || !modalContent) return null;
+  const isComponent =
+    typeof state.content === "function" ||
+    (typeof state.content === "object" &&
+      state.content !== null &&
+      "type" in state.content);
 
-  return createPortal(
-    <AnimatePresence>
-      <motion.div
-        key="global-modal-overlay"
-        className={styles.overlay}
-        variants={overlayVariants}
-        initial="hidden"
-        animate="visible"
-        exit="hidden"
-        onClick={closeModal}
+  const ModalComponent = isComponent
+    ? (state.content as React.ComponentType)
+    : null;
+
+  const messageType = (state.message?.type ??
+    "info") as keyof typeof styles.messageTypes;
+  const messageClass =
+    styles.messageTypes[messageType] ?? styles.messageTypes.info;
+
+  return ReactDOM.createPortal(
+    <div className={styles.overlay} onClick={actions.handleCancel}>
+      <div
+        className={styles.modalWindow}
+        style={{
+          width: state.dimensions.width,
+          height: state.dimensions.height,
+        }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <motion.div
-          className={styles.contentWrapper}
-          variants={contentVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          onClick={(e) => e.stopPropagation()}
-          // ★ modalConfigに指定がない場合は undefined を渡してCSSの85vw/85vhを優先させる
-          style={{
-            width: modalConfig?.width ?? undefined,
-            height: modalConfig?.height ?? undefined,
-          }}
-        >
-          {modalContent}
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>,
-    modalRoot,
+        <LoadingOverlay
+          isOpen={state.isProcessing}
+          message="PROCESSING"
+          statusMessage="処理を実行中..."
+        />
+
+        {/* ヘッダー */}
+        <header className={styles.header}>
+          <h2 className={styles.title}>{state.title}</h2>
+          <CloseButton
+            onClick={actions.handleCancel}
+            disabled={state.isProcessing}
+          />
+        </header>
+
+        {/* メッセージ領域 */}
+        {state.message && (
+          <div className={`${styles.messageBanner} ${messageClass}`}>
+            {state.message.text}
+          </div>
+        )}
+
+        {/* 本文エリア */}
+        <main className={styles.body}>
+          {ModalComponent ? (
+            <ModalComponent />
+          ) : (
+            (state.content as React.ReactNode)
+          )}
+        </main>
+
+        {/* フッター */}
+        {!state.hideFooter && (
+          <footer className={styles.footer}>
+            {state.footerContent ?? (
+              <>
+                <ActionButton
+                  variant="default"
+                  onClick={actions.handleCancel}
+                  disabled={state.isProcessing}
+                >
+                  {state.cancelText}
+                </ActionButton>
+                <ActionButton
+                  variant="default"
+                  onClick={actions.handleConfirm}
+                  disabled={state.isConfirmDisabled || state.isProcessing}
+                >
+                  {state.isProcessing ? "処理中..." : state.confirmText}
+                </ActionButton>
+              </>
+            )}
+          </footer>
+        )}
+      </div>
+    </div>,
+    state.modalRoot,
   );
 };
 
-GlobalModalManager;
+GlobalModalManager.displayName = "GlobalModalManager";

@@ -4,17 +4,24 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { useAppStore, type AppState } from "@renderer/store";
+import type { Column } from "@shared/types";
 import type { SheetId } from "@shared/types/spreadsheet";
 import { selectFilteredSheetRows } from "./store/spreadsheetSelectors";
 
 const EMPTY_ARRAY = [] as const;
 
 export function useSpreadSheetViewLogic() {
-  const currentView = useAppStore((state: AppState) => state.currentView);
-  const fetchSheetData = useAppStore((state: AppState) => state.fetchSheetData);
+  const { currentView, fetchSheetData, openGlobalModal, isAuthenticated } =
+    useAppStore(
+      useShallow((state: AppState) => ({
+        currentView: state.currentView,
+        fetchSheetData: state.fetchSheetData,
+        openGlobalModal: state.openGlobalModal,
+        isAuthenticated: state.isAuthenticated,
+      })),
+    );
 
   const config = getAppViewConfig(currentView);
-  // config.sheetId (string) を SheetId 型へキャスト
   const sheetId = (config?.sheetId as SheetId | undefined) ?? null;
 
   const { isFetching, hasData, error } = useAppStore(
@@ -26,16 +33,16 @@ export function useSpreadSheetViewLogic() {
   );
 
   const handleRetry = useCallback(() => {
-    if (sheetId) {
+    if (sheetId && isAuthenticated) {
       void fetchSheetData(sheetId);
     }
-  }, [sheetId, fetchSheetData]);
+  }, [sheetId, fetchSheetData, isAuthenticated]);
 
   useEffect(() => {
-    if (sheetId && !hasData && !isFetching && !error) {
+    if (isAuthenticated && sheetId && !hasData && !isFetching && !error) {
       void fetchSheetData(sheetId);
     }
-  }, [sheetId, hasData, isFetching, error, fetchSheetData]);
+  }, [isAuthenticated, sheetId, hasData, isFetching, error, fetchSheetData]);
 
   const searchKeys = config?.search?.searchKeys;
   const skipFilter = config?.search?.skipFilter;
@@ -48,12 +55,17 @@ export function useSpreadSheetViewLogic() {
 
   const columns = useMemo(
     () =>
-      config?.columns?.filter((col: { hidden?: boolean }) => !col.hidden) ??
-      EMPTY_ARRAY,
+      (config?.columns as readonly Column<object>[])?.filter(
+        (col) => !col.hidden,
+      ) ?? EMPTY_ARRAY,
     [config?.columns],
   );
 
+  const loadingTitle = config?.title ? `${config.title} ` : "";
+  const loadingMessage = `${loadingTitle}データを取得中...`;
+
   return {
+    isAuthenticated,
     sheetId,
     data,
     columns,
@@ -61,7 +73,7 @@ export function useSpreadSheetViewLogic() {
     isFetching,
     error,
     handleRetry,
-    loadingMessage: `${config?.title || ""} データを読み込み中...`,
-    config,
+    loadingMessage,
+    openGlobalModal,
   };
 }

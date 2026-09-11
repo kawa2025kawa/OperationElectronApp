@@ -1,12 +1,15 @@
-﻿import type { AppViewDefinition } from "@shared/types/registry";
+﻿// src/renderer/features/spreadSheet/configs/kokyuhyoViewConfig.ts
+
+import type { AppViewDefinition } from "@shared/types/registry";
 import type { Kokyuhyo } from "@shared/types/spreadsheet";
-import type { Column } from "@shared/types/table";
+import type { Column } from "@shared/types/table/tableType";
 import { APP_VIEW_IDS } from "@shared/types/ui";
 import { formatDateForHeader, getOffsetDate } from "@shared/utils/dateUtils";
 
+// 1段目に表示するグループラベル（「本日 (09/09水)」「明日 (09/10木)」）
 const DATE_LABELS = {
-  today: formatDateForHeader(new Date()),
-  tomorrow: formatDateForHeader(getOffsetDate(1)),
+  today: `本日 (${formatDateForHeader(new Date())})`,
+  tomorrow: `明日 (${formatDateForHeader(getOffsetDate(1))})`,
 } as const;
 
 export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
@@ -15,9 +18,12 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
     label: "氏名",
     width: "20%",
   },
+  // --------------------------------------------------------------------------
+  // 本日グループ
+  // --------------------------------------------------------------------------
   {
     key: "todayAmStatus",
-    label: "AM1",
+    label: "AM",
     width: "8%",
     headerGroup: {
       groupKey: "today",
@@ -26,7 +32,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   },
   {
     key: "todayAmDetail",
-    label: "AM1詳細",
+    label: "AM詳細",
     width: "12%",
     headerGroup: {
       groupKey: "today",
@@ -35,7 +41,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   },
   {
     key: "todayPmStatus",
-    label: "PM1",
+    label: "PM",
     width: "8%",
     headerGroup: {
       groupKey: "today",
@@ -44,16 +50,19 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   },
   {
     key: "todayPmDetail",
-    label: "PM1詳細",
+    label: "PM詳細",
     width: "12%",
     headerGroup: {
       groupKey: "today",
       label: DATE_LABELS.today,
     },
   },
+  // --------------------------------------------------------------------------
+  // 明日グループ
+  // --------------------------------------------------------------------------
   {
     key: "tomorrowAmStatus",
-    label: "AM2",
+    label: "AM",
     width: "8%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -62,7 +71,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   },
   {
     key: "tomorrowAmDetail",
-    label: "AM2詳細",
+    label: "AM詳細",
     width: "12%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -71,7 +80,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   },
   {
     key: "tomorrowPmStatus",
-    label: "PM2",
+    label: "PM",
     width: "8%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -80,7 +89,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   },
   {
     key: "tomorrowPmDetail",
-    label: "PM2詳細",
+    label: "PM詳細",
     width: "12%",
     headerGroup: {
       groupKey: "tomorrow",

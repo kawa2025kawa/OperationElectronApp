@@ -126,10 +126,20 @@ export function updateStatus(update: StatusUpdate): boolean {
   if (previous && JSON.stringify(previous) === JSON.stringify(next))
     return false;
 
+  // 🎯 ステータス値が変更されたかチェック
+  const statusChanged = previous?.status !== next.status;
+
   memoryStatuses.set(key, next);
   const target = apiTargets.get(key);
   if (target) broadcastStatusUpdate(getMergedEntity(target));
   schedulePersistStatuses(memoryStatuses);
+
+  // 🎯 ステータスが変わった場合、ポーリング実行中であれば即座にサイクルを呼び出す
+  // (これによって依存関係再評価、API同期、自動起動チェックが即時実行されます)
+  if (statusChanged && isPollingRunning()) {
+    void runCycle();
+  }
+
   return true;
 }
 
@@ -139,7 +149,7 @@ export function updateManualStatus(
   comment: string,
 ): void {
   updateStatus({ kanriNo, status, comment, endTime: new Date().toISOString() });
-  if (isPollingRunning()) void runCycle();
+  // updateStatus 内で runCycle が呼ばれるため、ここでの個別呼び出しは無くても機能します
 }
 
 export const getTargetByKanriNo = (kanriNo: string | number) =>

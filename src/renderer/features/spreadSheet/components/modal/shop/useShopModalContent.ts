@@ -1,6 +1,4 @@
-﻿// src/renderer/features/spreadSheet/components/modal/shop/useShopModalContent.ts
-
-import { useMemo, useState, useCallback } from "react";
+﻿import { useMemo, useState, useCallback } from "react";
 import type { Shop, ShopKey } from "@shared/types/spreadsheet/shop";
 import { commands } from "@renderer/services/commands";
 import { SHOP_MODAL_GROUPS } from "./constants";
@@ -21,16 +19,6 @@ export const useShopModalContent = (data: Shop) => {
       };
     });
   }, [selectedIndex, data]);
-
-  // タイムレコーダ等で利用する「キー -> 値」の参照マップ
-  const itemMap = useMemo(() => {
-    const map = new Map<string, string>();
-    (Object.keys(data) as ShopKey[]).forEach((key) => {
-      const val = data[key];
-      map.set(key, val && val !== "" ? val : "-");
-    });
-    return map;
-  }, [data]);
 
   const currentTabTitle = SHOP_MODAL_GROUPS[selectedIndex]?.title ?? "";
   const isTimeRecorderTab = currentTabTitle === "タイムレコーダ";
@@ -58,7 +46,6 @@ export const useShopModalContent = (data: Shop) => {
     groups: SHOP_MODAL_GROUPS,
     displayItems,
     isTimeRecorderTab,
-    itemMap,
     commentValue: data.comment || "-",
     handleOpenImage,
     getImageLinkUrl,

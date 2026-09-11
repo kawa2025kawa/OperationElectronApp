@@ -267,6 +267,16 @@ export const commands = {
     window.electronAPI.invoke("gmail:createDraft", params),
 
   // ========================================================================
+  // Gift MD
+  // ========================================================================
+
+  /**
+   * 🎯 ギフトデータMD転送処理を実行する。
+   */
+  processGiftMd: (filePath?: ScriptFilePath): Promise<string> =>
+    window.electronAPI.invoke("gift-md:process", filePath),
+
+  // ========================================================================
   // Events
   // ========================================================================
 

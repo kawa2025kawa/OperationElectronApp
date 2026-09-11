@@ -10,6 +10,14 @@ export interface GmailTemplate {
   body?: string;
 }
 
+// 🎯 スクリプトごとの設定（自動起動フラグや専用管理Noに対応）
+export interface ScriptConfig {
+  key: string; // アクション識別キー (例: "main", "check")
+  label: string; // UIボタン表示名 (例: "Script", "照会")
+  scriptKanriNo?: string; // 実行対象の管理No (未指定時は親の kanriNo を参照)
+  autoStart?: boolean; // スクリプト単位の自動実行フラグ
+}
+
 export interface OperationJobItem extends OperationStatusFields {
   kind: "operation"; // タグを追加
   kanriNo: string;
@@ -18,8 +26,14 @@ export interface OperationJobItem extends OperationStatusFields {
   scheduledTime?: ScheduledTime | null;
   kanshiTime?: string | null;
   manual?: boolean | null;
+
+  // 🎯 複数スクリプト設定に対応
+  scripts?: ScriptConfig[] | null;
+
+  // 互換性維持のための任意フィールド（移行完了後削除可）
   script?: boolean | null;
   autoStart?: boolean | null;
+
   link?: Record<string, string> | null;
   dependency?: JobDependency | null;
 }
@@ -33,8 +47,14 @@ export interface IrregularJobItem extends OperationStatusFields {
   scheduledTime?: ScheduledTime | null;
   kanshiTime?: string | null;
   manual?: boolean | null;
+
+  // 🎯 複数スクリプト設定に対応
+  scripts?: ScriptConfig[] | null;
+
+  // 互換性維持のための任意フィールド（移行完了後削除可）
   script?: boolean | null;
   autoStart?: boolean | null;
+
   gmail?: boolean;
   gmailTemplate?: GmailTemplate;
   link?: Record<string, string> | null;

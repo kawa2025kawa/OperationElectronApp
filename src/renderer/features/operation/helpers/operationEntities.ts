@@ -1,4 +1,4 @@
-﻿// src/renderer/features/operation/helpers/operationEntities.ts
+﻿//src\renderer\features\operation\helpers\operationEntities.ts
 
 import type { AppState } from "@renderer/store";
 import {
@@ -31,7 +31,7 @@ export interface UpdateEntityResult {
 }
 
 // ============================================================================
-// Constants (ローカル定義)
+// Constants
 // ============================================================================
 
 export const INITIAL_SUMMARY: StatusSummary = {
@@ -96,8 +96,6 @@ export function getAllEntitiesMap(
     ...state.irregularEntities,
   };
 }
-
-export const getAllEntities = getAllEntitiesMap;
 
 export function getAllEntitiesArray(
   state: OperationEntityState & Pick<AppState, "todayIds">,
@@ -242,7 +240,6 @@ export function mergeStatus(
   }
 
   entity.startTime = mergeStringValue(update.startTime, entity.startTime);
-
   entity.endTime = mergeStringValue(update.endTime, entity.endTime);
 
   entity.expectedStartTime = mergeStringValue(

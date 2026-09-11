@@ -1,4 +1,4 @@
-﻿// src/renderer/components/ui/statusSummary/useStatusSummary.ts
+﻿//src\renderer\components\ui\statusSummary\useStatusSummary.ts
 
 import { useCallback, useMemo } from "react";
 import { useAppStore } from "@renderer/store";
@@ -14,10 +14,6 @@ import * as styles from "./statusSummary.css";
 // ============================================================
 // Types
 // ============================================================
-
-export interface StatusSummaryProps {
-  data: FilteredSummary;
-}
 
 export interface StatusItemData {
   key: SummaryDisplayKey;
@@ -39,7 +35,6 @@ export const useStatusSummary = ({
   data,
   openModal,
 }: UseStatusSummaryParams) => {
-  // ★ 正しいストアメソッド名 (getFilteredSummaryItems) に修正
   const getFilteredSummaryItems = useAppStore(
     (state) => state.getFilteredSummaryItems,
   );
@@ -70,7 +65,6 @@ export const useStatusSummary = ({
         return;
       }
 
-      // ★ getFilteredSummaryItems を呼び出してアイテムを取得
       const filteredItems = getFilteredSummaryItems(key);
       openModal(filteredItems, label);
     },
@@ -82,5 +76,3 @@ export const useStatusSummary = ({
     handleClick,
   };
 };
-
-useStatusSummary;

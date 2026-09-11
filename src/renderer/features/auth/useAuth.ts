@@ -1,11 +1,12 @@
-﻿import { useState } from "react";
-import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
-import { useShallow } from "zustand/react/shallow";
+﻿// src/renderer/features/auth/useAuth.ts
 
+import { useCallback, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
+import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { commands } from "@renderer/services/commands";
 import { useAppStore } from "@renderer/store";
+import type { AuthState } from "@shared/types/auth/authTypes";
 
-// タイムアウト時間（例: 3分）
 const AUTH_TIMEOUT_MS = 180000;
 
 export const useAuth = () => {
@@ -21,7 +22,7 @@ export const useAuth = () => {
       })),
     );
 
-  const handleLogin = async (): Promise<void> => {
+  const handleLogin = useCallback(async (): Promise<void> => {
     if (isLoginProcessing) {
       console.warn("[Auth] Login is already in progress.");
       return;
@@ -34,9 +35,6 @@ export const useAuth = () => {
     });
 
     try {
-      console.log("[Auth] Starting Google login...");
-
-      // ブラウザを閉じたまま放置された場合のフロント側タイムアウト保護
       const loginPromise = commands.login();
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(
@@ -57,8 +55,6 @@ export const useAuth = () => {
         session.email,
         session.familyName,
       );
-
-      console.log("[Auth] Google login completed.");
     } catch (error) {
       console.error("[Auth] Login failed:", error);
 
@@ -69,30 +65,26 @@ export const useAuth = () => {
           "error",
         );
     } finally {
-      // 成功・失敗・タイムアウトのいずれでも必ずローディングを解除する
       setIsLoginProcessing(false);
       setGlobalProcessing(null);
     }
-  };
+  }, [isLoginProcessing, handleLoginSuccess, setGlobalProcessing]);
 
-  const handleLogout = async (): Promise<void> => {
+  const handleLogout = useCallback(async (): Promise<void> => {
     await logout();
-  };
+  }, [logout]);
 
-  const handleAuthToggle = (): void => {
-    if (isLoginProcessing) {
-      return;
-    }
+  const handleAuthToggle = useCallback((): void => {
+    if (isLoginProcessing) return;
 
     if (isAuthenticated) {
       void handleLogout();
-      return;
+    } else {
+      void handleLogin();
     }
+  }, [isLoginProcessing, isAuthenticated, handleLogout, handleLogin]);
 
-    void handleLogin();
-  };
-
-  const authState = isLoginProcessing
+  const authState: AuthState = isLoginProcessing
     ? "loading"
     : isAuthenticated
       ? "loggedIn"

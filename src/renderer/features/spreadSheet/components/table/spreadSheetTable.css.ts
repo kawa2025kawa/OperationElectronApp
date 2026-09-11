@@ -1,3 +1,5 @@
+// src/renderer/features/spreadSheet/components/table/spreadSheetTable.css.ts
+
 import { createVar, style, styleVariants } from "@vanilla-extract/css";
 import { themeTransition, tokens } from "@renderer/styles/tokens";
 
@@ -42,7 +44,7 @@ export const headerRow = style([
     display: "flex",
     alignItems: "center",
     width: "100%",
-    height: cardHeight,
+    minHeight: cardHeight,
     boxSizing: "border-box",
   },
 ]);
@@ -65,6 +67,11 @@ export const virtualBody = style({
   width: "100%",
 });
 
+export const virtualBodyContent = style({
+  position: "relative",
+  width: "100%",
+});
+
 export const tableRowSlot = style({
   position: "relative",
   width: "100%",
@@ -77,7 +84,6 @@ export const tableRowSlot = style({
 /* Cells Common Base & Align Variants                                         */
 /* -------------------------------------------------------------------------- */
 
-/** 🎯 Header / Body セル共通のベーススタイル */
 const cellBase = style({
   display: "flex",
   alignItems: "center",
@@ -90,24 +96,14 @@ const cellBase = style({
   flexShrink: 0,
 });
 
-/** 🎯 Header / Body 共用の配置バリエーション */
 const alignVariants = styleVariants({
   left: { justifyContent: "flex-start", textAlign: "left" },
   center: { justifyContent: "center", textAlign: "center" },
   right: { justifyContent: "flex-end", textAlign: "right" },
 });
 
-export const thAlignVariants = styleVariants({
-  left: { justifyContent: "flex-start", textAlign: "left" },
-  center: { justifyContent: "center", textAlign: "center" },
-  right: { justifyContent: "flex-end", textAlign: "right" },
-});
-
-export const tdAlignVariants = styleVariants({
-  left: { justifyContent: "flex-start", textAlign: "left" },
-  center: { justifyContent: "center", textAlign: "center" },
-  right: { justifyContent: "flex-end", textAlign: "right" },
-});
+export const thAlignVariants = alignVariants;
+export const tdAlignVariants = alignVariants;
 
 export const thBase = style([
   themeTransition,
@@ -201,7 +197,7 @@ export const tableRowStates = styleVariants({
 });
 
 /* -------------------------------------------------------------------------- */
-/* Content & Empty State                                                      */
+/* Content & Styles                                                           */
 /* -------------------------------------------------------------------------- */
 
 export const cellText = style({
@@ -223,6 +219,11 @@ export const cellText = style({
   },
 });
 
+export const cellTextHoliday = style({
+  color: tokens.color.accent.neonPink ?? "#ff4d4f",
+  fontWeight: "bold",
+});
+
 export const emptyText = style({
   display: "flex",
   alignItems: "center",
@@ -232,3 +233,20 @@ export const emptyText = style({
   color: tokens.color.text.base,
   textAlign: "center",
 });
+
+export const headerGroupCell = style([
+  themeTransition,
+  {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: tokens.color.bg.base,
+    borderRadius: tokens.radius.md,
+    boxShadow: tokens.shadow.raised.low,
+    fontWeight: tokens.font.weight.bold,
+    fontSize: tokens.font.size.sm,
+    color: tokens.color.text.base,
+    boxSizing: "border-box",
+    marginInline: "2px",
+  },
+]);

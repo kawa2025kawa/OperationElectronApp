@@ -1,8 +1,9 @@
-﻿import { useEffect } from "react";
+﻿// src/renderer/features/operation/components/table/useOperationTableHotkeys.ts
+
+import { useEffect } from "react";
 import { useAppStore } from "@renderer/store";
 import type { ViewMode } from "@shared/types/ui";
-import { completeSelectedOperation } from "@renderer/features/operation/actions/operationActions";
-// 🎯 修正: 候補に出ていた正しい関数名 suppressNextSuccessToast をインポート
+// 🎯 削除した operationActions の import を除去し、suppressNextSuccessToast のみ残す
 import { suppressNextSuccessToast } from "@shared/utils/statusToastSuppression";
 
 export const useTableHotkeys = (
@@ -38,9 +39,9 @@ export const useTableHotkeys = (
         e.preventDefault();
         if (!selectedId) return;
 
-        // 🎯 修正: 正しい関数名で呼び出し
         suppressNextSuccessToast(selectedId);
-        void completeSelectedOperation();
+        // 🎯 Slice 側の統合アクションを呼び出す
+        void useAppStore.getState().completeSelectedOperation();
       }
     };
 

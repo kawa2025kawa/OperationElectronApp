@@ -4,28 +4,30 @@ import { style } from "@vanilla-extract/css";
 import { themeTransition, tokens } from "@renderer/styles/tokens";
 
 // ----------------------------------------------------
-// 定数（ヘッダーとデータ行で幅・余白を完全同期するための共通定義）
+// 定数・共通スタイル (Mixin / Base Styles)
 // ----------------------------------------------------
 
-/** 端末番号バッジの固定幅 */
 const BADGE_WIDTH = "60px";
 
-/** 行全体の左右パディング・ギャップ共通スタイル */
-const rowBaseStyle = {
+const rowBase = style({
   display: "flex",
   alignItems: "center",
-  gap: "12px",
+  gap: tokens.space.md,
   padding: "12px 16px",
-  boxSizing: "border-box" as const,
-};
+});
 
-/** 5列均等グリッドの共通スタイル */
-const gridBaseStyle = {
+const gridBase = style({
   display: "grid",
   gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
   flex: 1,
-  gap: "12px",
+  gap: tokens.space.md,
   alignItems: "center",
+});
+
+const ellipsisStyle = {
+  whiteSpace: "nowrap" as const,
+  overflow: "hidden" as const,
+  textOverflow: "ellipsis" as const,
 };
 
 // ----------------------------------------------------
@@ -35,7 +37,6 @@ const gridBaseStyle = {
 export const mainContainer = style({
   display: "flex",
   flexDirection: "column",
-  width: "100%",
   height: "100%",
   minHeight: 0,
   gap: tokens.space.md,
@@ -49,18 +50,14 @@ export const contentContainer = style({
   overflowY: "auto",
   gap: tokens.space.md,
   padding: "4px",
-  boxSizing: "border-box",
 });
 
 export const tabContainer = style({
   display: "flex",
-  width: "100%",
   backgroundColor: tokens.color.bg.base,
   borderRadius: tokens.radius.lg,
   boxShadow: tokens.shadow.pressed.md,
   padding: "6px",
-  flexShrink: 0,
-  boxSizing: "border-box",
   gap: "4px",
 });
 
@@ -71,23 +68,17 @@ export const button = style([
     cursor: "pointer",
     backgroundColor: "transparent",
     color: tokens.color.text.base,
+    fontSize: tokens.font.fluid.md,
     fontWeight: tokens.font.weight.bold,
     outline: "none",
     borderRadius: tokens.radius.md,
     padding: "8px 16px",
     selectors: {
-      "&:hover": {
-        color: tokens.color.text.hover,
-      },
+      "&:hover": { color: tokens.color.text.hover },
       '&[data-variant="tab"]': {
         flex: 1,
         padding: "8px 12px",
         borderRadius: tokens.radius.sm,
-        // ★ここで文字サイズを指定します
-        // 固定サイズにする場合:
-        fontSize: "15px",
-        // もし大きさをレスポンシブにしたい場合:
-        // fontSize: "clamp(16px, 2vmin, 20px)",
         whiteSpace: "nowrap",
       },
       '&[data-variant="tab"][data-active="true"]': {
@@ -100,43 +91,31 @@ export const button = style([
 ]);
 
 // ----------------------------------------------------
-// タイムレコーダ上部サマリーバー
+// タイムレコーダ サマリーバー
 // ----------------------------------------------------
 
 export const trTabWrapper = style({
   display: "flex",
   flexDirection: "column",
-  gap: "12px",
-  width: "100%",
+  gap: tokens.space.md,
 });
 
 export const trSummaryRow = style({
   display: "flex",
   alignItems: "center",
-  gap: "16px",
+  gap: tokens.space.md,
   padding: "8px 14px",
   backgroundColor: tokens.color.bg.base,
   borderRadius: tokens.radius.md,
   boxShadow: tokens.shadow.pressed.low,
-  boxSizing: "border-box",
+  fontSize: tokens.font.fluid.md,
 });
 
 export const summaryBadge = style({
   display: "flex",
   alignItems: "center",
-  gap: "8px",
+  gap: tokens.space.xs,
   whiteSpace: "nowrap",
-});
-
-export const summaryLabel = style({
-  fontSize: "12px",
-  fontWeight: tokens.font.weight.medium,
-  color: tokens.color.text.base,
-  opacity: 0.6,
-});
-
-export const summaryValue = style({
-  fontSize: "15px",
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.accent.base,
 });
@@ -147,15 +126,8 @@ export const summaryComment = style({
   gap: "6px",
   flex: 1,
   minWidth: 0,
-  overflow: "hidden",
-});
-
-export const summaryCommentText = style({
-  fontSize: "12px",
   color: tokens.color.text.base,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
+  ...ellipsisStyle,
 });
 
 export const imageButtonList = style({
@@ -163,7 +135,6 @@ export const imageButtonList = style({
   alignItems: "center",
   gap: "6px",
   marginLeft: "auto",
-  flexShrink: 0,
 });
 
 export const imageLinkButton = style([
@@ -173,7 +144,6 @@ export const imageLinkButton = style([
     cursor: "pointer",
     backgroundColor: tokens.color.bg.base,
     color: tokens.color.text.base,
-    fontSize: "11px",
     fontWeight: tokens.font.weight.medium,
     borderRadius: tokens.radius.sm,
     padding: "5px 10px",
@@ -198,57 +168,51 @@ export const imageLinkButton = style([
 ]);
 
 // ----------------------------------------------------
-// タイムレコーダー テーブルリスト（完全同期レイアウト）
+// テーブルリスト（ヘッダー & データ行）
 // ----------------------------------------------------
 
 export const terminalSection = style({
   display: "flex",
   flexDirection: "column",
   gap: "6px",
-  width: "100%",
 });
 
 /* --- ヘッダー行 --- */
 export const terminalHeaderRow = style([
-  rowBaseStyle,
+  rowBase,
   {
     paddingTop: "6px",
     paddingBottom: "6px",
     borderBottom: `1px solid ${tokens.color.border.default}`,
     marginBottom: "2px",
+    fontSize: tokens.font.fluid.md,
+    fontWeight: tokens.font.weight.bold,
+    color: tokens.color.text.hover,
   },
 ]);
 
 export const terminalHeaderBadge = style({
   width: BADGE_WIDTH,
   flexShrink: 0,
-  fontSize: tokens.font.fluid.sm,
-  fontWeight: tokens.font.weight.bold,
-  color: tokens.color.text.hover,
   textAlign: "center",
 });
 
-export const terminalHeaderGrid = style(gridBaseStyle);
+export const terminalHeaderGrid = style([
+  gridBase,
+  {
+    ...ellipsisStyle,
+  },
+]);
 
-export const terminalHeaderCell = style({
-  fontSize: tokens.font.fluid.sm,
-  fontWeight: tokens.font.weight.bold,
-  color: tokens.color.text.hover,
-  textAlign: "left",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-});
-
-/* --- データ行 --- */
 /* --- データ行 --- */
 export const terminalRow = style([
   themeTransition,
-  rowBaseStyle,
+  rowBase,
   {
     backgroundColor: tokens.color.bg.base,
     borderRadius: tokens.radius.md,
     boxShadow: tokens.shadow.raised.low,
+    fontSize: tokens.font.fluid.md,
     selectors: {
       "&:hover": {
         boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
@@ -270,19 +234,16 @@ export const terminalBadge = style({
   boxShadow: tokens.shadow.pressed.md,
   color: tokens.color.accent.base,
   fontWeight: tokens.font.weight.bold,
-  fontSize: tokens.font.fluid.md,
   letterSpacing: "0.5px",
 });
 
-/** タイムレコーダ以外のタブ用の大きなバッジスタイル（インライン代替） */
+// 🎯【修正箇所】配列の中にクラス名と上書きオブジェクトを並べる
 export const nonTrBadge = style([
   terminalBadge,
   {
     width: "120px",
-    fontSize: "15px",
-    justifyContent: "flex-start", // ★ 中央寄せから左揃えに変更
-    paddingLeft: "16px", // ★ 内側の左余白を設定して位置を固定
-    boxSizing: "border-box",
+    justifyContent: "flex-start",
+    paddingLeft: "16px",
   },
 ]);
 
@@ -294,34 +255,31 @@ export const flexCell = style({
   flex: 1,
 });
 
-export const terminalGrid = style(gridBaseStyle);
-
-export const terminalCell = style({
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  minWidth: 0,
-});
-
-export const cellLabel = style({
-  fontSize: tokens.font.fluid.lg,
-  fontWeight: tokens.font.weight.bold,
-  color: tokens.color.accent.base,
-  marginBottom: "4px",
-});
+// 🎯【修正箇所】文字列クラスを直渡しせず配列形式にする
+export const terminalGrid = style([gridBase]);
 
 export const cellValue = style({
-  fontSize: tokens.font.fluid.md,
+  ...ellipsisStyle,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.base,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  transition: tokens.transition.fast, // ホバー時のカラー遷移を滑らかにするため追記
+  transition: tokens.transition.fast,
   selectors: {
-    // 親の terminalRow がホバーされた時に自身の文字色を変更
     [`${terminalRow}:hover &`]: {
       color: tokens.color.text.hover,
     },
   },
+});
+
+// ----------------------------------------------------
+// Action Row (フッター)
+// ----------------------------------------------------
+
+export const actionRow = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: tokens.space.sm,
+  marginTop: "auto",
+  paddingTop: tokens.space.sm,
+  borderTop: `1px solid ${tokens.color.border.subtle}`,
 });

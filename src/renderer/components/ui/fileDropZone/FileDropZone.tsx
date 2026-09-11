@@ -1,23 +1,12 @@
-﻿// src/renderer/components/ui/fileDropZone/FileDropZone.tsx
-
-import React from "react";
-
-import {
-  useFileDropZone,
-  type FileDropZoneItem,
-  type FileDropZoneProps,
-} from "./useFileDropZone";
-
+﻿import React from "react";
+import { useFileDropZone, type FileDropZoneProps } from "./useFileDropZone";
 import * as styles from "./fileDropZone.css";
-
-// ============================================================================
-// Component
-// ============================================================================
 
 export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
   ({
     files = [],
     onFileSelect,
+    onReorderFile,
     onRemoveFile,
     accept,
     label = "ファイルをドラッグ＆ドロップ または クリックして選択",
@@ -32,23 +21,25 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
       handleClick,
       handleKeyDown,
       handleInputChange,
+      handleMoveUp,
+      handleMoveDown,
       handleRemoveFile,
     } = useFileDropZone({
+      files,
       onFileSelect,
+      onReorderFile,
       onRemoveFile,
       disabled,
     });
 
-    const dropZoneClassName = [
-      styles.dropZone,
-      isDragOver && styles.dropZoneActive,
-      disabled && styles.dropZoneDisabled,
-    ]
-      .filter(Boolean)
-      .join(" ");
+    const stopAnd = (fn: () => void) => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      fn();
+    };
 
     return (
       <div className={styles.container}>
+        {/* ドロップエリア */}
         <div
           role="button"
           tabIndex={disabled ? -1 : 0}
@@ -57,8 +48,9 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={handleClick}
+          aria-label="クリックでファイル選択"
           onKeyDown={handleKeyDown}
-          className={dropZoneClassName}
+          className={`${styles.dropZone} ${isDragOver ? styles.dropZoneActive : ""} ${disabled ? styles.dropZoneDisabled : ""}`}
         >
           <input
             ref={inputRef}
@@ -69,10 +61,10 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
             onChange={handleInputChange}
             className={styles.hiddenInput}
           />
-
           <p className={styles.labelText}>{label}</p>
         </div>
 
+        {/* 選択中ファイル一覧 */}
         <div className={styles.selectedFilesContainer}>
           <div className={styles.selectedFilesHeader}>
             選択ファイル ({files.length})
@@ -84,7 +76,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
             </div>
           ) : (
             <div className={styles.selectedFilesList}>
-              {files.map((file: FileDropZoneItem, index: number) => (
+              {files.map((file, index) => (
                 <div
                   key={`${file.path}-${index}`}
                   className={styles.selectedFileRow}
@@ -94,33 +86,56 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
                       <span className={styles.selectedFileIndex}>
                         {index + 1}.
                       </span>
-
                       <span
                         className={styles.selectedFileName}
                         title={file.name}
                       >
                         {file.name}
                       </span>
+                    </div>
+                    <span className={styles.selectedFilePath} title={file.path}>
+                      {file.path}
+                    </span>
+                  </div>
 
-                      {!disabled && onRemoveFile && (
+                  {/* 操作ボタン群 */}
+                  {!disabled && (
+                    <div className={styles.actionButtonsRow}>
+                      {onReorderFile && (
+                        <>
+                          <button
+                            type="button"
+                            className={styles.iconButton}
+                            disabled={index === 0}
+                            onClick={stopAnd(() => handleMoveUp(index))}
+                            title="上に移動"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.iconButton}
+                            disabled={index === files.length - 1}
+                            onClick={stopAnd(() => handleMoveDown(index))}
+                            title="下に移動"
+                          >
+                            ▼
+                          </button>
+                        </>
+                      )}
+                      {onRemoveFile && (
                         <button
                           type="button"
-                          className={styles.removeFileButton}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleRemoveFile(index);
-                          }}
+                          className={`${styles.iconButton} ${styles.removeFileButton}`}
+                          onClick={stopAnd(() => handleRemoveFile(index))}
                           aria-label={`${file.name}を取り消す`}
+                          title="削除"
                         >
                           ×
                         </button>
                       )}
                     </div>
-
-                    <span className={styles.selectedFilePath} title={file.path}>
-                      {file.path}
-                    </span>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -1,7 +1,8 @@
-﻿import fs from "fs-extra";
-import iconv from "iconv-lite";
-import path from "path";
+﻿// electron/features/operation/jobs/scripts/job_28.ts
+import path from "node:path";
 import { format } from "date-fns";
+import fs from "fs-extra";
+import iconv from "iconv-lite";
 
 const BASE_DIR = "\\\\172.25.101.51\\if\\LOG\\DCMEOB1";
 const TARGET_PREFIX = "ＥＯＢ特売送込エラー-";
@@ -112,10 +113,27 @@ async function moveFile(filePath: string, targetDir: string): Promise<void> {
 }
 
 export async function runJob28(): Promise<string> {
-  const today = format(new Date(), "yyyyMMdd");
+  const now = new Date();
+  const today = format(now, "yyyyMMdd");
   const todayDir = path.join(BASE_DIR, today);
+  const outputLines: string[] = [];
 
-  if (!(await fs.pathExists(todayDir))) return "";
+  const addLine = (message: string = "") => {
+    outputLines.push(message);
+  };
+
+  addLine(`==================================================`);
+  addLine(` [Job28] EOB特売送込エラー分割処理 (日付: ${today})`);
+  addLine(`==================================================`);
+  addLine(`▶ 対象フォルダ: ${todayDir}`);
+
+  if (!(await fs.pathExists(todayDir))) {
+    addLine(`⚠️ 当日フォルダが存在しません (${today})`);
+    addLine(`--------------------------------------------------`);
+    addLine(` [Job28] 処理対象なしで終了`);
+    addLine(`==================================================`);
+    return outputLines.join("\n");
+  }
 
   const rootFiles = await getTargetCsvFiles(todayDir);
   const needActionFiles = await getTargetCsvFiles(
@@ -128,7 +146,23 @@ export async function runJob28(): Promise<string> {
   );
 
   const csvFiles = [...rootFiles, ...uniqueNeedActionFiles];
-  if (csvFiles.length === 0) return "";
+
+  if (csvFiles.length === 0) {
+    addLine(`▶ 検出対象の CSV ファイルはありませんでした。`);
+    addLine(`--------------------------------------------------`);
+    addLine(` [Job28] 完了 (処理件数: 0)`);
+    addLine(`==================================================`);
+    return outputLines.join("\n");
+  }
+
+  addLine(`▶ 対象ファイル検出: 計 ${csvFiles.length} 件`);
+  for (const f of csvFiles) {
+    const stat = await fs.stat(f);
+    const formattedDate = format(stat.mtime, "yyyy/MM/dd HH:mm:ss");
+    addLine(`   ├ ${path.basename(f)}`);
+    addLine(`   └ 更新日時: ${formattedDate}`);
+  }
+  addLine();
 
   const requestDir = path.join(todayDir, REQUEST_DIR);
   const ignoreDir = path.join(todayDir, IGNORE_DIR);
@@ -136,6 +170,8 @@ export async function runJob28(): Promise<string> {
 
   const allCreatedRequestFiles: string[] = [];
   let unknownCount = 0;
+  let ignoredCount = 0;
+  let processedCount = 0;
 
   for (const filePath of csvFiles) {
     const parsedCsv = readCsv(filePath);
@@ -143,6 +179,7 @@ export async function runJob28(): Promise<string> {
 
     if (!hasProblem) {
       await moveFile(filePath, ignoreDir);
+      ignoredCount++;
       continue;
     }
 
@@ -159,6 +196,27 @@ export async function runJob28(): Promise<string> {
     }
 
     await moveFile(filePath, completedDir);
+    processedCount++;
+  }
+
+  // 振り分け・処理結果サマリーを出力
+  addLine(`--------------------------------------------------`);
+  addLine(` 📊 処理サマリー`);
+  addLine(`   ├ 対応不要（振り分け移動）: ${ignoredCount} 件`);
+  addLine(`   └ 対応要（分割処理・完了）: ${processedCount} 件`);
+  addLine();
+
+  if (allCreatedRequestFiles.length > 0) {
+    addLine(`【作成された対応依頼ファイル】`);
+    allCreatedRequestFiles.forEach((f) => addLine(` ・${f}`));
+    addLine();
+  }
+
+  if (unknownCount > 0) {
+    addLine(
+      `⚠️ 未定義の部門コードが含まれるファイルが ${unknownCount} 件ありました。`,
+    );
+    addLine();
   }
 
   // 残っている「要対応」フォルダ内のファイル名を取得
@@ -166,30 +224,20 @@ export async function runJob28(): Promise<string> {
     path.join(todayDir, NEED_ACTION_DIR),
   );
 
-  // モーダル表示用のコメント構築
-  const comments: string[] = [];
-
-  if (allCreatedRequestFiles.length > 0) {
-    comments.push(
-      `【対応依頼ファイル作成】\n` +
-        allCreatedRequestFiles.map((f) => `・${f}`).join("\n"),
-    );
-  }
-
   if (remainingNeedActionFiles.length > 0) {
-    comments.push(
-      `【要対応フォルダ内ファイル】\n` +
-        remainingNeedActionFiles.map((f) => `・${path.basename(f)}`).join("\n"),
-    );
+    addLine(`【要対応フォルダ内残存ファイル】`);
+    for (const f of remainingNeedActionFiles) {
+      const stat = await fs.stat(f);
+      addLine(
+        ` ・${path.basename(f)} (${format(stat.mtime, "yyyy/MM/dd HH:mm:ss")})`,
+      );
+    }
+    addLine();
   }
 
-  if (unknownCount > 0) {
-    comments.push(
-      `⚠️ 未定義の部門コードが含まれるファイルが ${unknownCount} 件あります。`,
-    );
-  }
+  addLine(`--------------------------------------------------`);
+  addLine(` [Job28] 正常終了`);
+  addLine(`==================================================`);
 
-  const finalComment = comments.join("\n\n");
-
-  return finalComment;
+  return outputLines.join("\n");
 }

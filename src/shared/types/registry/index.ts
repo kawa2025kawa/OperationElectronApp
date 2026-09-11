@@ -1,16 +1,9 @@
-// src/shared/types/registry/index.ts
-
 import type { ComponentType, ReactNode } from "react";
-import type { Column } from "@shared/types/table";
-import type { AppViewId, GlobalModalConfig } from "@shared/types/ui";
-
-export type ModalSize = {
-  width: string;
-  height: string;
-};
+import type { Column } from "@shared/types/table/tableType";
+import type { AppViewId, ModalConfig, ModalSize } from "@shared/types/ui";
 
 export interface ActionStoreContext {
-  openGlobalModal: (content: ReactNode, config?: GlobalModalConfig) => void;
+  openGlobalModal: (content: ReactNode, config?: ModalConfig) => void;
   closeGlobalModal: () => void;
 }
 

@@ -1,149 +1,188 @@
 ﻿import { style } from "@vanilla-extract/css";
+import { themeTransition, tokens } from "@renderer/styles/tokens";
 
 // ============================================================
-// Container
+// Shared Base Styles
 // ============================================================
 
-export const container = style({
-  display: "flex",
-  flexDirection: "column",
-  width: "100%",
-  gap: "1vmin",
-  boxSizing: "border-box",
+const textEllipsis = style({
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
-// ============================================================
-// Drop Zone
-// ============================================================
-
-export const dropZone = style({
-  border: "2px dashed #ccc",
-  borderRadius: "8px",
-  padding: "24px",
-  textAlign: "center",
-  cursor: "pointer",
-  backgroundColor: "transparent",
-  transition: "all 0.2s ease",
-  boxSizing: "border-box",
-
-  ":hover": {
-    borderColor: "#007acc",
-    backgroundColor: "rgba(0, 122, 204, 0.05)",
-  },
-
-  ":focus-visible": {
-    outline: "none",
-    borderColor: "#007acc",
-    backgroundColor: "rgba(0, 122, 204, 0.05)",
-  },
+const userSelectNone = style({
+  userSelect: "none",
 });
+
+// カード形状の共通スタイル（リスト枠・Empty枠用）
+const cardBaseStyle = style([
+  themeTransition,
+  {
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.color.bg.base,
+    border: `1px solid ${tokens.color.border.subtle}`,
+    boxShadow: tokens.shadow.pressed.md,
+  },
+]);
+
+// ============================================================
+// Container & Drop Zone
+// ============================================================
+
+export const container = style([
+  {
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
+    // 👇 親コンテナの高さを指定（例: vhや100%など。呼び出し側に合わせる）
+    height: "100%", // または "50vh", "clamp(300px, 50vh, 800px)" など
+    gap: "1vmin",
+  },
+]);
+
+export const dropZone = style([
+  themeTransition,
+  {
+    // 👇 高さを比率で管理するため flex を追加
+    flex: 4,
+    minHeight: 0, // Flex子要素が溢れるのを防ぐCSSの決まり文句
+
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: `2px dashed ${tokens.color.border.subtle}`,
+    borderRadius: tokens.radius.lg,
+    padding: tokens.space.md,
+    textAlign: "center",
+    cursor: "pointer",
+    backgroundColor: "transparent",
+
+    selectors: {
+      "&:hover:not([aria-disabled='true'])": {
+        borderColor: tokens.color.accent.neonCyan,
+        backgroundColor: "rgba(0, 122, 204, 0.05)",
+        boxShadow: tokens.shadow.glow.cyan,
+      },
+      "&:focus-visible": {
+        outline: "none",
+        borderColor: tokens.color.accent.neonCyan,
+        backgroundColor: "rgba(0, 122, 204, 0.05)",
+      },
+    },
+  },
+]);
 
 export const dropZoneActive = style({
-  borderColor: "#007acc",
+  borderColor: tokens.color.accent.neonCyan,
   backgroundColor: "rgba(0, 122, 204, 0.05)",
+  boxShadow: tokens.shadow.glow.cyan,
 });
 
 export const dropZoneDisabled = style({
   cursor: "not-allowed",
   opacity: 0.5,
   pointerEvents: "none",
+});
 
-  ":hover": {
-    borderColor: "#ccc",
-    backgroundColor: "transparent",
+export const hiddenInput = style({ display: "none" });
+
+export const labelText = style([
+  userSelectNone,
+  {
+    margin: 0,
+    fontSize: tokens.font.size.sm,
+    color: tokens.color.text.base,
   },
-});
+]);
 
 // ============================================================
-// Input
+// Selected Files List & Empty State
 // ============================================================
 
-export const hiddenInput = style({
-  display: "none",
-});
+export const selectedFilesContainer = style([
+  {
+    // 👇 高さを比率で管理するため flex を追加
+    flex: 6,
+    minHeight: 0, // 内部のスクロールを正しく機能させるために必須
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    gap: tokens.space.xs,
+  },
+]);
+
+export const selectedFilesHeader = style([
+  userSelectNone,
+  {
+    fontSize: tokens.font.size.sm,
+    fontWeight: tokens.font.weight.bold,
+    color: tokens.color.text.hover,
+  },
+]);
+
+export const selectedFilesList = style([
+  cardBaseStyle,
+  {
+    width: "100%",
+    maxHeight: "200px",
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: tokens.space.xs,
+    padding: tokens.space.xs,
+  },
+]);
+
+export const emptyFileContainer = style([
+  cardBaseStyle,
+  {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "70px",
+    padding: tokens.space.sm,
+  },
+]);
+
+export const emptyFileText = style([
+  userSelectNone,
+  {
+    fontSize: tokens.font.size.xs,
+    fontWeight: tokens.font.weight.bold,
+    letterSpacing: "0.08em",
+    color: tokens.color.text.base,
+    opacity: 0.25,
+  },
+]);
 
 // ============================================================
-// Drop Zone Label
+// Selected File Row & Content
 // ============================================================
 
-export const labelText = style({
-  margin: 0,
-  fontSize: "14px",
-  color: "var(--text-secondary)",
-  userSelect: "none",
-});
+export const selectedFileRow = style([
+  themeTransition,
+  {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    padding: `${tokens.space.xs} ${tokens.space.sm}`,
+    gap: tokens.space.sm,
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.color.bg.base,
+    border: `1px solid ${tokens.color.border.subtle}`,
+    boxShadow: tokens.shadow.raised.low,
 
-// ============================================================
-// Selected Files
-// ============================================================
-
-export const selectedFilesContainer = style({
-  width: "100%",
-  display: "flex",
-  flexDirection: "column",
-  gap: "8px",
-  boxSizing: "border-box",
-});
-
-export const selectedFilesHeader = style({
-  fontSize: "13px",
-  fontWeight: 600,
-  color: "var(--text-primary)",
-  userSelect: "none",
-});
-
-export const selectedFilesList = style({
-  width: "100%",
-  maxHeight: "180px",
-  overflowY: "auto",
-  display: "flex",
-  flexDirection: "column",
-  gap: "8px",
-  padding: "8px",
-  boxSizing: "border-box",
-  borderRadius: "8px",
-  backgroundColor: "var(--background-secondary)",
-  border: "1px solid var(--border-color)",
-});
-
-// ============================================================
-// Empty
-// ============================================================
-
-export const emptyFileContainer = style({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minHeight: "70px",
-  padding: "12px",
-  boxSizing: "border-box",
-  borderRadius: "8px",
-  backgroundColor: "var(--background-secondary)",
-  border: "1px solid var(--border-color)",
-});
-
-export const emptyFileText = style({
-  fontSize: "12px",
-  fontWeight: 600,
-  letterSpacing: "0.08em",
-  color: "var(--text-secondary)",
-  userSelect: "none",
-});
-
-// ============================================================
-// Selected File Row
-// ============================================================
-
-export const selectedFileRow = style({
-  display: "flex",
-  alignItems: "center",
-  width: "100%",
-  padding: "8px 10px",
-  boxSizing: "border-box",
-  borderRadius: "6px",
-  backgroundColor: "var(--background-primary)",
-  border: "1px solid var(--border-color)",
-});
+    selectors: {
+      "&:hover": {
+        borderColor: tokens.color.accent.neonCyan,
+        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      },
+    },
+  },
+]);
 
 export const selectedFileContent = style({
   display: "flex",
@@ -158,75 +197,97 @@ export const selectedFileNameRow = style({
   alignItems: "center",
   width: "100%",
   minWidth: 0,
-  gap: "8px",
+  gap: tokens.space.xs,
 });
 
-export const selectedFileIndex = style({
+export const selectedFileIndex = style([
+  userSelectNone,
+  {
+    flexShrink: 0,
+    fontSize: tokens.font.size.xs,
+    fontWeight: tokens.font.weight.bold,
+    color: tokens.color.text.base,
+  },
+]);
+
+export const selectedFileName = style([
+  textEllipsis,
+  {
+    flex: 1,
+    fontSize: tokens.font.size.sm,
+    fontWeight: tokens.font.weight.bold,
+    color: tokens.color.text.base,
+    selectors: {
+      [`${selectedFileRow}:hover &`]: { color: tokens.color.text.hover },
+    },
+  },
+]);
+
+export const selectedFilePath = style([
+  textEllipsis,
+  {
+    display: "block",
+    width: "100%",
+    fontSize: tokens.font.size.xs,
+    color: tokens.color.text.base,
+    opacity: 0.7,
+    fontFamily: "monospace",
+    selectors: {
+      [`${selectedFileRow}:hover &`]: { color: tokens.color.text.hover },
+    },
+  },
+]);
+
+// ============================================================
+// Action Buttons
+// ============================================================
+
+export const actionButtonsRow = style({
+  display: "flex",
+  alignItems: "center",
+  gap: tokens.space.xs,
   flexShrink: 0,
-  fontSize: "12px",
-  fontWeight: 600,
-  color: "#007acc",
-  userSelect: "none",
 });
 
-export const selectedFileName = style({
-  flex: 1,
-  minWidth: 0,
-  fontSize: "13px",
-  fontWeight: 500,
-  color: "var(--text-primary)",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
+export const iconButton = style([
+  themeTransition,
+  {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "26px",
+    height: "26px",
+    padding: 0,
+    borderRadius: tokens.radius.sm,
+    border: `1px solid ${tokens.color.border.subtle}`,
+    backgroundColor: tokens.color.bg.base,
+    color: tokens.color.text.base,
+    fontSize: "11px",
+    cursor: "pointer",
 
-export const selectedFilePath = style({
-  display: "block",
-  width: "100%",
-  minWidth: 0,
-  fontSize: "11px",
-  color: "var(--text-secondary)",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontFamily: "monospace",
-});
-
-// ============================================================
-// Remove Button
-// ============================================================
+    selectors: {
+      "&:hover:not(:disabled)": {
+        borderColor: tokens.color.accent.neonCyan,
+        color: tokens.color.text.hover,
+        boxShadow: tokens.shadow.glow.cyan,
+      },
+      "&:disabled": {
+        opacity: 0.25,
+        cursor: "not-allowed",
+      },
+      "&:active:not(:disabled)": {
+        transform: "scale(0.95)",
+      },
+    },
+  },
+]);
 
 export const removeFileButton = style({
-  flexShrink: 0,
-  width: "28px",
-  height: "28px",
-  marginLeft: "auto",
-  padding: 0,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  border: "none",
-  borderRadius: "4px",
-  backgroundColor: "transparent",
-  color: "var(--text-primary)",
-  fontSize: "20px",
-  fontWeight: 700,
-  lineHeight: 1,
-  cursor: "pointer",
-  boxSizing: "border-box",
-
-  ":hover": {
-    color: "#007acc",
-    backgroundColor: "var(--background-secondary)",
-  },
-
-  ":active": {
-    transform: "scale(0.95)",
-  },
-
-  ":focus-visible": {
-    outline: "none",
-    color: "#007acc",
-    backgroundColor: "var(--background-secondary)",
+  selectors: {
+    "&:hover:not(:disabled)": {
+      borderColor: "#ff4d4f",
+      color: "#ff4d4f",
+      boxShadow: "0 0 8px rgba(255, 77, 79, 0.4)",
+    },
   },
 });

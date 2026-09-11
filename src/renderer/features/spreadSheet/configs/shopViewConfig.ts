@@ -1,6 +1,6 @@
 ﻿import type { AppViewDefinition } from "@shared/types/registry";
 import type { Shop } from "@shared/types/spreadsheet";
-import type { Column } from "@shared/types/table";
+import type { Column } from "@shared/types/table/tableType";
 import { APP_VIEW_IDS } from "@shared/types/ui";
 
 export const SHOP_COLUMNS: readonly Column<Shop>[] = [

@@ -1,8 +1,11 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/shop/ShopModalContent.tsx
 
-import React from "react";
+import React, { useEffect } from "react";
+import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
+import { useAppStore } from "@renderer/store";
+import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Shop } from "@shared/types/spreadsheet";
-import type { ModalContentProps } from "@renderer/features/spreadSheet/components/modal/SpreadSheetModal";
+import { useShopModalFooter } from "../hooks/useShopModalFooter";
 import { useShopModalContent } from "./useShopModalContent";
 import {
   TERMINAL_TYPES,
@@ -11,8 +14,12 @@ import {
 } from "./constants";
 import * as styles from "./shopModalContent.css";
 
-export const ShopModalContent: React.FC<ModalContentProps<Shop>> = React.memo(
-  ({ data }) => {
+export interface ShopModalContentProps {
+  data: Shop;
+}
+
+export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
+  React.memo(({ data }) => {
     const {
       selectedIndex,
       setSelectedIndex,
@@ -24,9 +31,59 @@ export const ShopModalContent: React.FC<ModalContentProps<Shop>> = React.memo(
       getImageLinkUrl,
     } = useShopModalContent(data);
 
+    const { excelPath, pdfPath, handleOpen } = useShopModalFooter(data);
+    const updateModalConfig = useAppStore((s) => s.updateModalConfig);
+    const closeModal = useAppStore((s) => s.closeGlobalModal);
+
+    // 🎯 子側から親 (GlobalModalManager) のフッター領域へボタン要素を注入する
+    useEffect(() => {
+      updateModalConfig({
+        footerContent: (
+          <div
+            style={{
+              display: "flex",
+              width: "100%",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            {/* 左側: Excel / PDF アクションボタン */}
+            <div
+              className={styles.actionRow}
+              style={{ border: "none", padding: 0 }}
+            >
+              {excelPath && (
+                <button
+                  type="button"
+                  className={styles.button}
+                  onClick={() => void handleOpen(excelPath)}
+                >
+                  Excel
+                </button>
+              )}
+              {pdfPath && (
+                <button
+                  type="button"
+                  className={styles.button}
+                  onClick={() => void handleOpen(pdfPath)}
+                >
+                  PDF
+                </button>
+              )}
+            </div>
+
+            {/* 右側: 閉じるボタン */}
+            <ActionButton variant="default" onClick={closeModal}>
+              閉じる
+            </ActionButton>
+          </div>
+        ),
+      });
+    }, [excelPath, pdfPath, handleOpen, updateModalConfig, closeModal]);
+
     return (
       <div className={styles.mainContainer}>
-        {/* タブヘッダー */}
+        {/* タブグループ */}
         <div className={styles.tabContainer}>
           {groups.map((group, idx) => (
             <button
@@ -42,33 +99,25 @@ export const ShopModalContent: React.FC<ModalContentProps<Shop>> = React.memo(
           ))}
         </div>
 
-        {/* メインコンテンツエリア */}
+        {/* タブコンテンツ */}
         <div className={styles.contentContainer}>
           {isTimeRecorderTab ? (
-            /* タイムレコーダタブ */
             <div className={styles.trTabWrapper}>
               <div className={styles.trSummaryRow}>
                 <div className={styles.summaryBadge}>
-                  <span className={styles.summaryLabel}>端末台数:</span>
-                  <span className={styles.summaryValue}>
-                    {data.deviceCount || "-"}
-                  </span>
+                  <span>設置台数 :</span>
+                  <span>{data.deviceCount || "-"}</span>
                 </div>
-
                 {commentValue && commentValue !== "-" && (
                   <div className={styles.summaryComment}>
-                    <span className={styles.summaryLabel}>コメント:</span>
-                    <span className={styles.summaryCommentText}>
-                      {commentValue}
-                    </span>
+                    <span>備考 :</span>
+                    <span>{commentValue}</span>
                   </div>
                 )}
-
                 <div className={styles.imageButtonList}>
                   {TIME_RECORDER_IMAGE_ITEMS.map(({ key, label }) => {
                     const rawValue = data[key];
                     const imageUrl = getImageLinkUrl(rawValue);
-
                     return (
                       <button
                         key={key}
@@ -77,28 +126,23 @@ export const ShopModalContent: React.FC<ModalContentProps<Shop>> = React.memo(
                         onClick={() => handleOpenImage(rawValue)}
                         disabled={!imageUrl}
                       >
-                        📷 {label}
+                        {label}
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* タイムレコーダー一覧（ヘッダー付きテーブルグリッド） */}
               <div className={styles.terminalSection}>
-                {/* ヘッダー行 */}
                 <div className={styles.terminalHeaderRow}>
-                  <div className={styles.terminalHeaderBadge}>端末番号</div>
+                  <div className={styles.terminalHeaderBadge}>端末</div>
                   <div className={styles.terminalHeaderGrid}>
                     {TERMINAL_FIELDS.map(({ label }) => (
-                      <div key={label} className={styles.terminalHeaderCell}>
-                        {label}
-                      </div>
+                      <div key={label}>{label}</div>
                     ))}
                   </div>
                 </div>
 
-                {/* データ行 (TR1 ~ TR4) */}
                 {TERMINAL_TYPES.map((type) => {
                   const upperType = type.toUpperCase();
                   return (
@@ -106,13 +150,11 @@ export const ShopModalContent: React.FC<ModalContentProps<Shop>> = React.memo(
                       <div className={styles.terminalBadge}>{upperType}</div>
                       <div className={styles.terminalGrid}>
                         {TERMINAL_FIELDS.map(({ suffix }) => {
-                          // data オブジェクトから動的にキーを取得 (tr1, tr1Ip, tr1Model, tr1Ronri, tr1Butsuri など)
                           const fieldKey = `${type}${suffix}` as keyof Shop;
                           const val = data[fieldKey] || "-";
-
                           return (
-                            <div key={suffix} className={styles.terminalCell}>
-                              <div className={styles.cellValue}>{val}</div>
+                            <div key={suffix} className={styles.cellValue}>
+                              {val}
                             </div>
                           );
                         })}
@@ -123,8 +165,6 @@ export const ShopModalContent: React.FC<ModalContentProps<Shop>> = React.memo(
               </div>
             </div>
           ) : (
-            /* タイムレコーダ以外のタブ */
-            /* タイムレコーダ以外のタブ */
             <div className={styles.terminalSection}>
               {displayItems.map((item) => (
                 <div key={item.label} className={styles.terminalRow}>
@@ -139,7 +179,12 @@ export const ShopModalContent: React.FC<ModalContentProps<Shop>> = React.memo(
         </div>
       </div>
     );
-  },
-);
+  });
+
+// モーダルサイズ設定
+ShopModalContent.modalSize = {
+  width: "min(90vw, 950px)",
+  height: "min(80vh, 700px)",
+};
 
 ShopModalContent.displayName = "ShopModalContent";

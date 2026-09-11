@@ -1,74 +1,64 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/jugyoin/JugyoinModalContent.tsx
 
-import React, { useCallback } from "react";
-import { addDays } from "date-fns";
-import { commands } from "@renderer/services/commands";
-import { type Jugyoin } from "@shared/types/spreadsheet";
-import { formatDateWithDay } from "@renderer/features/spreadSheet/utils/scheduleUtils";
-import type { ModalContentProps } from "../SpreadSheetModal";
+import React, { useEffect } from "react";
+import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
+import { useAppStore } from "@renderer/store";
+import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import type { Jugyoin } from "@shared/types/spreadsheet";
+import { useJugyoinModalContent } from "./useJugyoinModalContent";
 import * as styles from "./JugyoinModalContent.css";
 
-export const JugyoinModalContent: React.FC<ModalContentProps<Jugyoin>> =
+export interface JugyoinModalContentProps {
+  data: Jugyoin;
+}
+
+export const JugyoinModalContent: GlobalModalComponent<JugyoinModalContentProps> =
   React.memo(({ data }) => {
-    const scheduleLink =
-      data?.scheduleLink && data.scheduleLink !== "-"
-        ? data.scheduleLink
-        : undefined;
+    const { state, actions } = useJugyoinModalContent(data);
+    const updateModalConfig = useAppStore((s) => s.updateModalConfig);
+    const closeModal = useAppStore((s) => s.closeGlobalModal);
 
-    const handleOpenSchedule = useCallback(() => {
-      if (scheduleLink) void commands.openExternal(scheduleLink);
-    }, [scheduleLink]);
-
-    const extension = data?.naisen || "-";
-    const mobileShort = data?.tanshuku || "-";
-    const mobile = data?.contactMobile || "-";
-    const position = data?.position || "-";
-    const email = data?.email || "-";
-
-    const schedules = [
-      {
-        label: "本日",
-        date: formatDateWithDay(new Date()),
-        amStatus: data?.todayAmStatus || "-",
-        amDetail: data?.todayAmDetail || "-",
-        pmStatus: data?.todayPmStatus || "-",
-        pmDetail: data?.todayPmDetail || "-",
-      },
-      {
-        label: "明日",
-        date: formatDateWithDay(addDays(new Date(), 1)),
-        amStatus: data?.tomorrowAmStatus || "-",
-        amDetail: data?.tomorrowAmDetail || "-",
-        pmStatus: data?.tomorrowPmStatus || "-",
-        pmDetail: data?.tomorrowPmDetail || "-",
-      },
-    ];
+    // 🎯 子側から親 (GlobalModalManager) のフッター領域へ「閉じる」ボタン単体を注入
+    useEffect(() => {
+      updateModalConfig({
+        footerContent: (
+          <ActionButton variant="default" onClick={closeModal}>
+            閉じる
+          </ActionButton>
+        ),
+      });
+    }, [updateModalConfig, closeModal]);
 
     return (
       <div className={styles.contentContainer}>
-        {/* 1段目: 凸型要素で並べたプロフィール領域 */}
+        {/* プロフィール領域 */}
         <div className={styles.profileCard}>
           <div className={styles.profileGrid}>
-            <div className={styles.profileItem}>役職 : {position}</div>
-            <div className={styles.profileItem}>Email : {email}</div>
-            <div className={styles.profileItem}>内線 : {extension}</div>
-            <div className={styles.profileItem}>PHS : {mobileShort}</div>
-            <div className={styles.profileItem}>携帯 : {mobile}</div>
+            <div className={styles.profileItem}>
+              役職 : {state.profile.position}
+            </div>
+            <div className={styles.profileItem}>
+              Email : {state.profile.email}
+            </div>
+            <div className={styles.profileItem}>
+              内線 : {state.profile.extension}
+            </div>
+            <div className={styles.profileItem}>
+              PHS : {state.profile.mobileShort}
+            </div>
+            <div className={styles.profileItem}>
+              携帯 : {state.profile.mobile}
+            </div>
           </div>
-          {scheduleLink && (
-            <button
-              type="button"
-              className={styles.button}
-              data-variant="pill"
-              onClick={handleOpenSchedule}
-            >
-              スケジュール
-            </button>
+          {state.hasScheduleLink && (
+            <ActionButton onClick={actions.handleOpenSchedule}>
+              Schedulelink
+            </ActionButton>
           )}
         </div>
 
-        {/* 2段目・3段目: 本日/明日のスケジュール */}
-        {schedules.map((item) => (
+        {/* スケジュール領域 */}
+        {state.schedules.map((item) => (
           <div key={item.label} className={styles.tableGrid}>
             <div className={styles.cell.date}>
               <div className={styles.value}>{item.label}</div>
@@ -77,9 +67,9 @@ export const JugyoinModalContent: React.FC<ModalContentProps<Jugyoin>> =
                 <span style={item.date.dayStyle}>{item.date.dayText}</span>
               </div>
             </div>
-            <div className={styles.cell.header}>区分</div>
-            <div className={styles.cell.header}>状況</div>
+            <div className={styles.cell.header}>状態</div>
             <div className={styles.cell.header}>詳細</div>
+            <div className={styles.cell.header}>備考</div>
             <div className={styles.cell.section}>AM</div>
             <div className={styles.cell.data}>{item.amStatus}</div>
             <div className={styles.cell.data}>{item.amDetail}</div>
@@ -91,5 +81,10 @@ export const JugyoinModalContent: React.FC<ModalContentProps<Jugyoin>> =
       </div>
     );
   });
+
+JugyoinModalContent.modalSize = {
+  width: "min(95vw, calc(75vh * (21 / 9)))",
+  height: "min(75vh, calc(95vw * (9 / 21)))",
+};
 
 JugyoinModalContent.displayName = "JugyoinModalContent";

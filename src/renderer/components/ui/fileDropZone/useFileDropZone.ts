@@ -1,16 +1,14 @@
-﻿// src/renderer/components/ui/fileDropZone/useFileDropZone.ts
-
-import { useRef, useState } from "react";
+﻿import { useRef, useState, useCallback } from "react";
 
 export interface FileDropZoneItem {
   name: string;
   path: string;
 }
 
-// ★ export を追加
 export interface FileDropZoneProps {
   files?: FileDropZoneItem[];
   onFileSelect: (files: File[]) => void;
+  onReorderFile?: (fromIndex: number, toIndex: number) => void;
   onRemoveFile?: (index: number) => void;
   accept?: string;
   label?: string;
@@ -18,60 +16,96 @@ export interface FileDropZoneProps {
 }
 
 export const useFileDropZone = ({
+  files = [],
   onFileSelect,
+  onReorderFile,
   onRemoveFile,
   disabled = false,
-}: Pick<FileDropZoneProps, "onFileSelect" | "onRemoveFile" | "disabled">) => {
+}: Pick<
+  FileDropZoneProps,
+  "files" | "onFileSelect" | "onReorderFile" | "onRemoveFile" | "disabled"
+>) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    if (disabled) return;
-    setIsDragOver(true);
-  };
+  const handleDragOver = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      if (disabled) return;
+      setIsDragOver(true);
+    },
+    [disabled],
+  );
 
-  const handleDragLeave = () => {
+  const handleDragLeave = useCallback(() => {
     setIsDragOver(false);
-  };
+  }, []);
 
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setIsDragOver(false);
-    if (disabled) return;
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      setIsDragOver(false);
+      if (disabled) return;
 
-    const droppedFiles = event.dataTransfer.files;
-    if (!droppedFiles || droppedFiles.length === 0) return;
+      const droppedFiles = event.dataTransfer.files;
+      if (!droppedFiles || droppedFiles.length === 0) return;
 
-    onFileSelect(Array.from(droppedFiles));
-  };
+      onFileSelect(Array.from(droppedFiles));
+    },
+    [disabled, onFileSelect],
+  );
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     if (disabled) return;
     inputRef.current?.click();
-  };
+  }, [disabled]);
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (disabled) return;
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      handleClick();
-    }
-  };
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (disabled) return;
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleClick();
+      }
+    },
+    [disabled, handleClick],
+  );
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (disabled) return;
-    const selectedFiles = event.target.files;
-    if (!selectedFiles || selectedFiles.length === 0) return;
+  const handleInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (disabled) return;
+      const selectedFiles = event.target.files;
+      if (!selectedFiles || selectedFiles.length === 0) return;
 
-    onFileSelect(Array.from(selectedFiles));
-    event.target.value = "";
-  };
+      onFileSelect(Array.from(selectedFiles));
+      event.target.value = "";
+    },
+    [disabled, onFileSelect],
+  );
 
-  const handleRemoveFile = (index: number) => {
-    if (disabled || !onRemoveFile) return;
-    onRemoveFile(index);
-  };
+  const handleMoveUp = useCallback(
+    (index: number) => {
+      if (disabled || !onReorderFile || index <= 0) return;
+      onReorderFile(index, index - 1);
+    },
+    [disabled, onReorderFile],
+  );
+
+  const handleMoveDown = useCallback(
+    (index: number) => {
+      if (disabled || !onReorderFile || index >= files.length - 1) return;
+      onReorderFile(index, index + 1);
+    },
+    [disabled, files.length, onReorderFile],
+  );
+
+  const handleRemoveFile = useCallback(
+    (index: number) => {
+      if (disabled || !onRemoveFile) return;
+      onRemoveFile(index);
+    },
+    [disabled, onRemoveFile],
+  );
 
   return {
     isDragOver,
@@ -82,6 +116,8 @@ export const useFileDropZone = ({
     handleClick,
     handleKeyDown,
     handleInputChange,
+    handleMoveUp,
+    handleMoveDown,
     handleRemoveFile,
   };
 };

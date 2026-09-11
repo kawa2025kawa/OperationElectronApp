@@ -1,59 +1,64 @@
 // src/renderer/features/operation/components/modal/linkModal/LinkModalContent.tsx
 
-import React, { useCallback, useEffect } from "react";
-import { toast } from "sonner";
+import React, { useEffect } from "react";
+import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
-import { selectActiveSelectedItem } from "@renderer/features/operation/store/operationSelectors";
-import { commands } from "@renderer/services/commands";
 import { useAppStore } from "@renderer/store";
-import * as styles from "../operationModal.css";
-import { useOperationModalContext } from "../OperationModalContext";
+import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import { useLinkModalContent } from "./useLinkModalContent";
+import * as styles from "./linkModalContent.css";
 
-export const LinkModalContent: React.FC = React.memo(() => {
-  const { registerPrimaryAction } = useOperationModalContext();
-  const selectedItem = useAppStore(selectActiveSelectedItem);
+interface LinkModalContentProps {
+  link?: Record<string, string> | null;
+}
 
-  const links = selectedItem?.link ?? {};
-  const linkEntries = Object.entries(links);
+export const LinkModalContent: GlobalModalComponent<LinkModalContentProps> =
+  React.memo(({ link }) => {
+    const { state, actions } = useLinkModalContent(link);
+    const updateModalConfig = useAppStore((s) => s.updateModalConfig);
+    const closeModal = useAppStore((s) => s.closeGlobalModal);
 
-  const handleOpenUrl = useCallback(async (rawUrl: string) => {
-    try {
-      await commands.openExternal(rawUrl.trim());
-    } catch (error) {
-      console.error("[LinkModalContent.handleOpenUrl] Failed:", error);
-      toast.error("指定のパスが開けませんでした。");
-    }
-  }, []);
+    // 🎯 フッター領域へ「閉じる」ボタン単体を注入
+    useEffect(() => {
+      updateModalConfig({
+        footerContent: (
+          <ActionButton variant="default" onClick={closeModal}>
+            閉じる
+          </ActionButton>
+        ),
+      });
+    }, [updateModalConfig, closeModal]);
 
-  useEffect(() => {
-    registerPrimaryAction(undefined);
-    return () => {
-      registerPrimaryAction(undefined);
-    };
-  }, [registerPrimaryAction]);
-
-  return (
-    <div className={styles.contentFlexContainer}>
-      <div className={styles.sectionTitle}>関連リンク一覧:</div>
-      <div className={styles.commentBox}>
-        {linkEntries.length === 0 ? (
-          <EmptyState />
-        ) : (
-          linkEntries.map(([label, url]) => (
-            <button
-              key={label}
-              type="button"
-              className={styles.linkCardButton}
-              onClick={() => void handleOpenUrl(String(url))}
-            >
-              <span className={styles.linkLabel}>{label}:</span>
-              <span className={styles.linkValue}>{String(url)}</span>
-            </button>
-          ))
-        )}
+    return (
+      <div className={styles.contentContainer}>
+        <div className={styles.sectionTitle}>関連リンク一覧</div>
+        <div className={styles.terminalSection}>
+          {state.isEmpty ? (
+            <EmptyState message="関連リンクが存在しません" />
+          ) : (
+            state.linkEntries.map(([label, url]) => (
+              <button
+                key={label}
+                type="button"
+                className={styles.terminalRow}
+                onClick={() => void actions.handleOpenUrl(String(url))}
+              >
+                <div className={styles.nonTrBadge}>{label}</div>
+                <div className={styles.flexCell}>
+                  <div className={styles.cellValue}>{String(url)}</div>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  });
+
+// 🎯 コンポーネント自体にサイズ情報を定義
+LinkModalContent.modalSize = {
+  width: "min(85vw, 800px)",
+  height: "min(80vh, 700px)",
+};
 
 LinkModalContent.displayName = "LinkModalContent";

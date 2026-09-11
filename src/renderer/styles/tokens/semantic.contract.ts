@@ -34,12 +34,6 @@ export const tokens = createGlobalThemeContract(
         /** アプリ全体のベース背景 */
         base: null,
 
-        /** 通常の surface */
-        surface: null,
-
-        /** 凹み・inset surface */
-        inset: null,
-
         /** Header / navigation 系 */
         header: null,
 

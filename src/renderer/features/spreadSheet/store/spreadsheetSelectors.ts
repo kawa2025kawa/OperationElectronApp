@@ -1,22 +1,18 @@
-﻿// src/renderer/features/spreadSheet/store/spreadsheetSelectors.ts
-
-import { getValueByPath } from "@shared/utils/getValueByPath";
+﻿import { getValueByPath } from "@shared/utils/getValueByPath";
 import type { AppState } from "@renderer/store";
 import type { SheetId } from "@shared/types/spreadsheet";
 
 const EMPTY_ROWS: readonly unknown[] = [];
 
-const isObject = (val: unknown): val is Record<string, unknown> =>
-  typeof val === "object" && val !== null;
-
+/**
+ * 🎯 オブジェクト内の全フィールドを再帰的に検索するフォールバック処理
+ */
 const containsTerm = (obj: unknown, term: string): boolean => {
   if (obj == null) return false;
 
-  if (
-    typeof obj === "string" ||
-    typeof obj === "number" ||
-    typeof obj === "boolean"
-  ) {
+  const type = typeof obj;
+
+  if (type === "string" || type === "number" || type === "boolean") {
     return String(obj).toLowerCase().includes(term);
   }
 
@@ -24,13 +20,18 @@ const containsTerm = (obj: unknown, term: string): boolean => {
     return obj.some((item) => containsTerm(item, term));
   }
 
-  if (isObject(obj)) {
-    return Object.values(obj).some((val) => containsTerm(val, term));
+  if (type === "object") {
+    return Object.values(obj as Record<string, unknown>).some((val) =>
+      containsTerm(val, term),
+    );
   }
 
   return false;
 };
 
+/**
+ * 🎯 表示中のシートデータを `searchTerm` に基づいて高速にフィルタリングするセレクター
+ */
 export const selectFilteredSheetRows =
   <T>(
     sheetId: SheetId | null,
@@ -42,10 +43,10 @@ export const selectFilteredSheetRows =
       return EMPTY_ROWS as T[];
     }
 
-    const rows = state.sheetData[sheetId]?.data as T[];
+    const rows = (state.sheetData[sheetId]?.data ?? []) as T[];
 
-    if (!rows || rows.length === 0 || skipFilter) {
-      return rows ?? (EMPTY_ROWS as T[]);
+    if (rows.length === 0 || skipFilter) {
+      return rows;
     }
 
     const term = state.searchTerm.trim().toLowerCase();
@@ -55,6 +56,7 @@ export const selectFilteredSheetRows =
     }
 
     return rows.filter((row) => {
+      // 1. searchKeys が指定されている場合は優先的に該当プロパティのみ高速判定
       if (searchKeys.length > 0) {
         const keyMatch = searchKeys.some((key) => {
           const val = getValueByPath(row as Record<string, unknown>, key);
@@ -66,6 +68,7 @@ export const selectFilteredSheetRows =
         }
       }
 
+      // 2. 指定キーでヒットしない場合はオブジェクト全体を走査
       return containsTerm(row, term);
     });
   };

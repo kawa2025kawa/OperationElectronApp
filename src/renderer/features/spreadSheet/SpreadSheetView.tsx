@@ -1,24 +1,30 @@
 // src/renderer/features/spreadSheet/SpreadSheetView.tsx
 
 import React, { useCallback } from "react";
+import { AuthView } from "@renderer/features/auth/AuthView";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
-import { useAppStore } from "@renderer/store";
 import type {
+  SpreadSheetEntity,
+  Shop,
   Jugyoin,
   Kokyuhyo,
-  Shop,
   Tantou,
 } from "@shared/types/spreadsheet";
-import { SpreadSheetModal } from "./components/modal/SpreadSheetModal";
+
+// Modal Content Components
+import { ShopModalContent } from "./components/modal/shop/ShopModalContent";
+import { JugyoinModalContent } from "./components/modal/jugyoin/JugyoinModalContent";
+import { KokyuhyoModalContent } from "./components/modal/kokyuhyo/KokyuhyoModalContent";
+import { TantouModalContent } from "./components/modal/tantou/TantouModalContent";
+
 import { SpreadSheetTable } from "./components/table/SpreadSheetTable";
 import { useSpreadSheetViewLogic } from "./useSpreadSheetViewLogic";
 import * as styles from "./spreadSheetView.css";
 
-type SpreadSheetEntity = Shop | Kokyuhyo | Jugyoin | Tantou;
-
 export const SpreadSheetView: React.FC = React.memo(() => {
   const {
+    isAuthenticated,
     sheetId,
     data,
     columns,
@@ -27,41 +33,56 @@ export const SpreadSheetView: React.FC = React.memo(() => {
     error,
     handleRetry,
     loadingMessage,
-    config,
+    openGlobalModal,
   } = useSpreadSheetViewLogic();
-
-  const openGlobalModal = useAppStore((state) => state.openGlobalModal);
-  const closeGlobalModal = useAppStore((state) => state.closeGlobalModal);
 
   const handleRowClick = useCallback(
     (row: SpreadSheetEntity) => {
-      const modalConfig = config?.modalConfig;
-
-      if (!modalConfig || !sheetId) return;
-
-      const raw = row as unknown as Record<string, unknown>;
+      if (!sheetId) return;
 
       const title =
-        (typeof raw.name === "string" && raw.name) ||
-        (typeof raw.shopName === "string" && raw.shopName) ||
-        config.title ||
+        ("name" in row && typeof row.name === "string" && row.name) ||
+        ("shopName" in row &&
+          typeof row.shopName === "string" &&
+          row.shopName) ||
         "詳細情報";
 
-      openGlobalModal(
-        <SpreadSheetModal
-          sheetId={sheetId as never}
-          data={row as never}
-          title={title}
-          onClose={closeGlobalModal}
-        />,
-        {
-          width: modalConfig.modalSize.width,
-          height: modalConfig.modalSize.height,
-        },
-      );
+      switch (sheetId) {
+        case "StoreMasterData": {
+          const Content = () => <ShopModalContent data={row as Shop} />;
+          Object.assign(Content, ShopModalContent);
+          openGlobalModal(Content, { title });
+          break;
+        }
+        case "JugyoinMasterData": {
+          const Content = () => <JugyoinModalContent data={row as Jugyoin} />;
+          Object.assign(Content, JugyoinModalContent);
+          openGlobalModal(Content, { title });
+          break;
+        }
+        case "KokyuhyoMasterData": {
+          const Content = () => <KokyuhyoModalContent data={row as Kokyuhyo} />;
+          Object.assign(Content, KokyuhyoModalContent);
+          openGlobalModal(Content, { title });
+          break;
+        }
+        case "KokyuhyoTantouMasterData": {
+          const Content = () => <TantouModalContent data={row as Tantou} />;
+          Object.assign(Content, TantouModalContent);
+          openGlobalModal(Content, { title });
+          break;
+        }
+        default:
+          break;
+      }
     },
-    [config, sheetId, openGlobalModal, closeGlobalModal],
+    [sheetId, openGlobalModal],
   );
+
+  // 🎯 未ログイン時は AuthView を最優先で表示
+  if (!isAuthenticated) {
+    return <AuthView />;
+  }
 
   if (!sheetId) {
     return (
@@ -74,20 +95,17 @@ export const SpreadSheetView: React.FC = React.memo(() => {
   return (
     <>
       <LoadingOverlay isOpen={isFetching} message={loadingMessage} />
-
       <div className={styles.viewContainer}>
         <div className={styles.inner}>
           {error && data.length === 0 && !isFetching ? (
-            <EmptyState
-              message={`データの取得に失敗しました（${error}）`}
-              onRetry={handleRetry}
-            />
+            <EmptyState message={`${error}`} onRetry={handleRetry} />
           ) : (
             <div className={styles.tableArea}>
-              <SpreadSheetTable<SpreadSheetEntity>
+              <SpreadSheetTable
+                sheetId={sheetId}
                 rowKey="id"
                 data={data as SpreadSheetEntity[]}
-                columns={columns as never}
+                columns={columns}
                 onRowClick={handleRowClick}
                 selectedId={selectedId}
               />

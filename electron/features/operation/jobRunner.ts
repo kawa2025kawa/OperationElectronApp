@@ -52,7 +52,13 @@ export async function executeJob(
       });
     }
 
-    const result = await dispatchScript(kanriNo, filePath);
+    // DSI8020 のステータスを取得し、スクリプトへの引数オプションとして渡す
+    const dsi8020Item = getStatus("DSI8020");
+    const scriptOptions = {
+      dsi8020Status: dsi8020Item?.status ?? undefined,
+    };
+
+    const result = await dispatchScript(kanriNo, filePath, scriptOptions);
     const endTime = new Date().toISOString();
 
     if (!isReadOnlyCheckJob) {
@@ -95,9 +101,11 @@ export async function triggerAutoStartJobs(
   targets: OperationItem[],
   runningCheck: () => boolean,
 ): Promise<void> {
+  // 🎯 変更前: t.autoStart === true
+  // 🎯 変更後: scripts 配列内のいずれかの要素が autoStart === true かどうか判定
   const jobs = targets.filter(
     (t) =>
-      t.autoStart === true &&
+      t.scripts?.some((s) => s.autoStart === true) &&
       !hasJobId(t) &&
       getStatus(t.kanriNo)?.status === JOB_STATUS.READY,
   );

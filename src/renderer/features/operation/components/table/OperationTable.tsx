@@ -3,7 +3,7 @@
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { OperationItem } from "@shared/types/operation";
-import type { Column } from "@shared/types/table";
+import type { Column } from "@shared/types/table/tableType";
 import { UnifiedTableRow } from "./UnifiedTableRow";
 import { useOperationTable } from "./useOperationTable";
 import * as styles from "./operationTable.css";

@@ -74,9 +74,6 @@ async function processCsvStream(
       unassignedItems.push({ code: normalizedCode, detail: rawDetail });
 
       if (!TARGET_VALUES.has(normalizedCode)) {
-        console.error(
-          `[JobN33][${codeName}] ❌ NG検出 | 行: ${rowIndex} | Code: ${rawCode} (${normalizedCode}) | Detail: ${rawDetail}`,
-        );
         throw new Error(
           `[${codeName}] 行${rowIndex} で不可値 '${rawCode}' を検出しました`,
         );
@@ -93,12 +90,15 @@ async function processCsvStream(
 export async function runJobN33(): Promise<string> {
   const client = new Client();
   const today = format(new Date(), "yyyyMMdd");
+  const outputLines: string[] = [];
 
-  console.log(`\n==================================================`);
-  console.log(` [JobN33] FTP CSVチェック開始 (日付: ${today})`);
-  console.log(`==================================================`);
+  const addLine = (message: string = "") => {
+    outputLines.push(message);
+  };
 
-  const results: FileCheckResult[] = [];
+  addLine(`==================================================`);
+  addLine(` [JobN33] FTP CSVチェック開始 (日付: ${today})`);
+  addLine(`==================================================`);
 
   try {
     await client.access(FTP_CONFIG);
@@ -117,45 +117,35 @@ export async function runJobN33(): Promise<string> {
       if (!file)
         throw new Error(`[${codeName}] 当日CSV (${today}) が見つかりません`);
 
-      console.log(`▶ [${codeName}] 対象: ${file.name}`);
+      addLine(`▶ [${codeName}] 対象: ${file.name}`);
 
       const passThroughStream = new PassThrough();
       const downloadPromise = client.downloadTo(passThroughStream, file.name);
       const parsePromise = processCsvStream(passThroughStream, codeName);
 
       const [, result] = await Promise.all([downloadPromise, parsePromise]);
-      results.push(result);
 
-      console.log(
+      addLine(
         `  └ 完了: 処理 ${result.processedRows} 行 | 未格納: ${result.unassignedItems.length} 件`,
       );
+
+      if (result.unassignedItems.length > 0) {
+        addLine();
+        result.unassignedItems.forEach((item) => {
+          addLine(`${item.code}:${item.detail}`);
+        });
+      }
+      addLine();
     };
 
     await checkFile("S330");
     await checkFile("S332");
 
-    // map を使って出力テキストブロックを簡潔に生成
-    const finalComment = results
-      .map((res) => {
-        const displayCode = res.codeName.replace(/^S/, "");
-        const count = res.unassignedItems.length;
-        const header = `【${displayCode}】未格納、${count}件`;
-        if (count === 0) return header;
-        const details = res.unassignedItems
-          .map((item) => `${item.code}:${item.detail}`)
-          .join("\n");
-        return `${header}\n${details}`;
-      })
-      .join("\n\n");
+    addLine(`--------------------------------------------------`);
+    addLine(` [JobN33] 完了`);
+    addLine(`==================================================`);
 
-    console.log(`--------------------------------------------------`);
-    console.log(` [JobN33] 完了`);
-    console.log(`==================================================\n`);
-
-    return finalComment;
-  } catch (error) {
-    console.error(`\n[JobN33] ❌ 処理中断:`, error);
-    throw error;
+    return outputLines.join("\n");
   } finally {
     client.close();
   }

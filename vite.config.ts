@@ -1,11 +1,11 @@
-﻿import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
-import electron from "vite-plugin-electron/simple";
-import { visualizer } from "rollup-plugin-visualizer";
-
-import path from "node:path";
+﻿import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
+import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
+import react from "@vitejs/plugin-react";
+import { visualizer } from "rollup-plugin-visualizer";
+import { defineConfig } from "vite";
+import electron from "vite-plugin-electron/simple";
+
 import packageJson from "./package.json" with { type: "json" };
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
@@ -48,6 +48,10 @@ export default defineConfig({
           build: {
             outDir: resolvePath("dist-electron"),
             target: "node22",
+            watch: {
+              // 🎯 renderer / shared の変更で Main プロセスが再起動するのを防ぐ
+              exclude: ["src/renderer/**", "src/shared/**"],
+            },
             rolldownOptions: {
               external: isElectronExternal,
             },
@@ -66,6 +70,10 @@ export default defineConfig({
           build: {
             outDir: resolvePath("dist-electron"),
             target: "node22",
+            watch: {
+              // 🎯 renderer 側の変更を除外
+              exclude: ["src/renderer/**"],
+            },
             rollupOptions: {
               output: {
                 format: "cjs",

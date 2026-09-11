@@ -6,6 +6,7 @@ import { registerOperationIpc } from "@electron/features/operation/operationIpc"
 import { registerRdpIpc } from "@electron/features/rdp/rdpIpc";
 import { registerSystemIpc } from "@electron/features/system/systemIpc";
 import { registerTempomaticIpc } from "@electron/features/tempomatic/tempomaticIpc";
+import { registerGiftMdIpc } from "@electron/features/other/ipc/giftMdIpc"; // 🎯 追加
 
 type IpcHandlerSetup = () => void;
 
@@ -16,6 +17,7 @@ const IPC_HANDLERS: readonly IpcHandlerSetup[] = [
   registerRdpIpc,
   registerSystemIpc,
   registerTempomaticIpc,
+  registerGiftMdIpc, // 🎯 配列に追加
 ];
 
 let initialized = false;

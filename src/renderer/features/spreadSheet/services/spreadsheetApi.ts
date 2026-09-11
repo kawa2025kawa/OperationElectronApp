@@ -1,4 +1,6 @@
-﻿import type { SheetId } from "@shared/types/spreadsheet";
+﻿//src\renderer\features\spreadSheet\services\spreadsheetApi.//
+
+import type { SheetId } from "@shared/types/spreadsheet";
 
 export interface SpreadsheetConfig {
   spreadsheetId: string;

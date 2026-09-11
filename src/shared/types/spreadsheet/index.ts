@@ -5,7 +5,6 @@ export * from "./shop";
 export * from "./kokyuhyo";
 export * from "./jugyoin";
 export * from "./tantou";
-export * from "./ui";
 
 import type { Jugyoin } from "./jugyoin";
 import type { Kokyuhyo } from "./kokyuhyo";
@@ -13,9 +12,10 @@ import type { Shop } from "./shop";
 import type { Tantou } from "./tantou";
 
 /**
- * アプリ内で使用するスプレッドシートの識別IDマッピング
- * ※ キー名をアプリ側の統一ID (JugyoinList) に揃えます
+ * スプレッドシート系の全エンティティの統合ユニオン型
  */
+export type SpreadSheetEntity = Shop | Kokyuhyo | Jugyoin | Tantou;
+
 export type SheetRowMap = {
   StoreMasterData: Shop;
   KokyuhyoMasterData: Kokyuhyo;
@@ -23,9 +23,6 @@ export type SheetRowMap = {
   KokyuhyoTantouMasterData: Tantou;
 };
 
-/**
- * アプリ内で回遊・指定するスプレッドシートID型
- */
 export type SheetId = keyof SheetRowMap;
 
 export interface SheetDataResponse {

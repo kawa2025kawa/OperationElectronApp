@@ -24,6 +24,16 @@ import {
 } from "@renderer/features/other/store/pdfUploadSlice";
 
 import {
+  createGiftMdSlice,
+  type GiftMdSlice,
+} from "@renderer/features/other/store/giftMdSlice";
+
+import {
+  createGmailDraftSlice,
+  type GmailDraftSlice,
+} from "@renderer/features/other/store/gmailDraftSlice";
+
+import {
   createRdpSlice,
   type RdpSlice,
 } from "@renderer/features/remoteDesktop/store/rdpSlice";
@@ -68,6 +78,8 @@ export type AppState = AuthSlice &
   ModalSlice &
   InitSlice &
   PdfUploadSlice &
+  GiftMdSlice &
+  GmailDraftSlice &
   PollingSlice &
   CenterSlice;
 
@@ -88,6 +100,8 @@ export const useAppStore = create<AppState>()(
       ...createModalSlice(...args),
       ...createInitSlice(...args),
       ...createPdfUploadSlice(...args),
+      ...createGiftMdSlice(...args),
+      ...createGmailDraftSlice(...args),
       ...createPollingSlice(...args),
       ...createCenterSlice(...args),
     })),

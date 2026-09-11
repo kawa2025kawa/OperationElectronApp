@@ -97,10 +97,7 @@ export const darkThemeClass = createTheme(
     color: {
       bg: {
         base: "rgba(30, 34, 39, 1)",
-        surface: "rgba(28, 28, 40, 1)",
-        inset: "rgba(16, 16, 22, 1)",
         header: "rgba(20, 20, 25, 0.8)",
-        // ★ ハイライト用のすりガラス調背景を追加
         frostedGlass: "rgba(255, 255, 255, 0.1)",
       },
 
@@ -237,8 +234,6 @@ export const lightThemeClass = createTheme(
     color: {
       bg: {
         base: "rgba(236, 240, 243, 1)",
-        surface: "rgba(242, 245, 248, 1)",
-        inset: "rgba(225, 230, 235, 1)",
         header: "rgba(242, 245, 248, 0.8)",
         // ★ ライトモード用に明るい反転値で調整
         frostedGlass: "rgba(0, 0, 0, 0.05)",

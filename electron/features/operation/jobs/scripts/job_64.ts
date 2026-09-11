@@ -1,12 +1,11 @@
 ﻿// electron/features/operation/jobs/scripts/job_64.ts
-// NMA8000エラーログ確認
-
 import path from "node:path";
 import { format } from "date-fns";
 import fs from "fs-extra";
 import iconv from "iconv-lite";
 
-const BASE_DIR = "C:\\Users\\C3088091\\Desktop\\test\\NMA8000エラーログ";
+const BASE_DIR = "\\\\172.25.101.51\\if\\LOG\\DCMMD";
+
 const SYSTEM_ID = "C1088241";
 const ENCODING = "Shift_JIS";
 
@@ -30,17 +29,21 @@ interface MoveTarget {
 }
 
 export async function runJob64(): Promise<string> {
-  console.log("[Job64] ========== ジョブ処理を開始します ==========");
   const now = new Date();
   const today = format(now, "yyyyMMdd");
   const timestamp = format(now, "yyyyMMddHHmmss");
   const targetDir = path.join(BASE_DIR, today);
+  const outputLines: string[] = [];
 
-  console.log(`[Job64] 実行日時: ${format(now, "yyyy-MM-dd HH:mm:ss")}`);
-  console.log(`[Job64] ターゲットフォルダ: ${targetDir}`);
+  const addLine = (message: string = "") => outputLines.push(message);
+
+  addLine(`==================================================`);
+  addLine(` [Job64] NMA8000エラーログ確認・振分 (日付: ${today})`);
+  addLine(`==================================================`);
+  addLine(`▶ 監視フォルダ: ${targetDir}`);
 
   if (!(await fs.pathExists(targetDir))) {
-    throw new Error(`本日分のDCMMDフォルダがありません: ${targetDir}`);
+    throw new Error(`本日分のDCMMDフォルダが存在しません: ${targetDir}`);
   }
 
   const result: CheckResult = {
@@ -51,18 +54,24 @@ export async function runJob64(): Promise<string> {
   };
   const moveTargets: MoveTarget[] = [];
   const entries = await fs.readdir(targetDir, { withFileTypes: true });
+  const fileEntries = entries.filter((e) => e.isFile());
 
-  console.log(`[Job64] 検出されたファイル/エントリ数: ${entries.length}`);
+  addLine(`▶ 検出ファイル数: 計 ${fileEntries.length} 件`);
+  addLine();
 
-  for (const entry of entries.filter((e) => e.isFile())) {
+  for (const entry of fileEntries) {
     const fileName = entry.name;
     const filePath = path.join(targetDir, fileName);
-    console.log(`\n[Job64] --- ファイル処理中: ${fileName} ---`);
+    const stat = await fs.stat(filePath);
+    const formattedDate = format(stat.mtime, "yyyy/MM/dd HH:mm:ss");
+
+    addLine(`▶ 対象ファイル: ${fileName}`);
+    addLine(`   └ 更新日時: ${formattedDate}`);
 
     if (fileName.startsWith("PLU")) {
       const isNg = (await readShiftJis(filePath)).trim().length !== 12;
       result.pluNg ||= isNg;
-      console.log(`[Job64] [PLU Check] -> ${isNg ? "NG" : "OK"}`);
+      addLine(`   └ 判定: PLUチェック -> ${isNg ? "❌ NG (桁数不備)" : "OK"}`);
       continue;
     }
 
@@ -70,76 +79,91 @@ export async function runJob64(): Promise<string> {
 
     if (fileName.includes("SKU")) {
       result.skuNg ||= hasProcessableRow;
-      console.log(
-        `[Job64] SKUファイル判定: ${hasProcessableRow ? "処理対象行あり (NG)" : "対象行なし"}`,
+      addLine(
+        `   └ 判定: SKUチェック -> ${hasProcessableRow ? "❌ NG (処理対象行あり)" : "OK"}`,
       );
     }
 
     if (isPluDuplicateFile(fileName)) {
-      console.log(
-        `[Job64] [移動非対象] ＰＬＵ重複ファイルのため移動対象から除外: ${fileName}`,
-      );
+      addLine(`   └ 判定: PLU重複ファイルのため移動スキップ`);
       continue;
     }
 
     moveTargets.push({ filePath, processed: hasProcessableRow });
   }
 
-  console.log("\n[Job64] --- 出力ファイル生成 ---");
-  await writeOutput(
+  addLine();
+  addLine(`--------------------------------------------------`);
+  addLine(` 📄 出力ファイル生成結果`);
+
+  const syohinDatName = `Syohin_toMD_N_${SYSTEM_ID}_${timestamp}.dat`;
+  const tokusyoDatName = `Tokusyo_toMD_N_MD_${SYSTEM_ID}_${timestamp}.dat`;
+
+  const createdSyohin = await writeOutput(
     targetDir,
-    `Syohin_toMD_N_${SYSTEM_ID}_${timestamp}.dat`,
+    syohinDatName,
     result.syohinLines,
   );
-  await writeOutput(
+  if (createdSyohin) {
+    addLine(
+      ` ▶ [商品DAT] 生成完了: ${syohinDatName} (${result.syohinLines.length} 行)`,
+    );
+  } else {
+    addLine(` ▶ [商品DAT] スキップ (対象行なし)`);
+  }
+
+  const createdTokusyo = await writeOutput(
     targetDir,
-    `Tokusyo_toMD_N_MD_${SYSTEM_ID}_${timestamp}.dat`,
+    tokusyoDatName,
     result.tokusyoLines,
   );
+  if (createdTokusyo) {
+    addLine(
+      ` ▶ [特商DAT] 生成完了: ${tokusyoDatName} (${result.tokusyoLines.length} 行)`,
+    );
+  } else {
+    addLine(` ▶ [特商DAT] スキップ (対象行なし)`);
+  }
 
-  console.log("\n[Job64] --- ファイル移動処理 ---");
   await moveProcessedFiles(targetDir, moveTargets);
 
   const syohinNg = result.syohinLines.length > 0;
   const tokusyoNg = result.tokusyoLines.length > 0;
   const nma8100Required = result.pluNg || result.skuNg || syohinNg || tokusyoNg;
 
-  console.log("\n[Job64] --- 集計・最終判定結果 ---");
-  console.log(`[Job64] PLU判定 : ${result.pluNg ? "NG" : "OK"}`);
-  console.log(`[Job64] SKU判定 : ${result.skuNg ? "NG" : "OK"}`);
-  console.log(
-    `[Job64] 商品判定: ${syohinNg ? "NG" : "OK"} (行数: ${result.syohinLines.length})`,
+  addLine();
+  addLine(`--------------------------------------------------`);
+  addLine(` 📊 判定サマリー`);
+  addLine(`   ├ PLU判定   : ${result.pluNg ? "❌ NG" : "OK"}`);
+  addLine(`   ├ SKU判定   : ${result.skuNg ? "❌ NG" : "OK"}`);
+  addLine(
+    `   ├ 商品判定  : ${syohinNg ? "❌ NG" : "OK"} (${result.syohinLines.length} 行)`,
   );
-  console.log(
-    `[Job64] 特商判定: ${tokusyoNg ? "NG" : "OK"} (行数: ${result.tokusyoLines.length})`,
+  addLine(
+    `   ├ 特商判定  : ${tokusyoNg ? "❌ NG" : "OK"} (${result.tokusyoLines.length} 行)`,
   );
-  console.log(`[Job64] NMA8100要否: ${nma8100Required ? "必要" : "不要"}`);
-
-  // モーダル表示用メッセージの組み立て
-  const summaryLines: string[] = [
-    "【判定結果】",
-    `PLU: ${result.pluNg ? "NG" : "OK"} | SKU: ${result.skuNg ? "NG" : "OK"} | 商品: ${syohinNg ? "NG" : "OK"} | 特商: ${tokusyoNg ? "NG" : "OK"}`,
-    `NMA8100: ${nma8100Required ? "必要" : "不要"}`,
-  ];
+  addLine(`   └ NMA8100要否: ${nma8100Required ? "⚠️ 必要" : "不要"}`);
 
   if (moveTargets.length > 0) {
-    summaryLines.push("\n【処理ファイル】");
+    addLine();
+    addLine(`【移動処理実績】`);
     moveTargets.forEach((target) => {
       const fileName = path.basename(target.filePath);
       const dest = target.processed ? PROCESSED_DIR : EXCLUDED_DIR;
-      summaryLines.push(`・${fileName} (${dest})`);
+      addLine(` ・${fileName} -> ${dest}/`);
     });
   }
 
-  const modalMessage = summaryLines.join("\n");
+  addLine(`--------------------------------------------------`);
 
   if (nma8100Required) {
-    console.error(`[Job64] エラー終了 (NMA8100が必要):\n${modalMessage}`);
-    throw new Error(`NMA8100要対応:\n${modalMessage}`);
+    throw new Error(`NMA8100要対応\n\n${outputLines.join("\n")}`);
   }
 
-  console.log(`[Job64] 正常終了:\n${modalMessage}`);
-  return `確認完了:\n${modalMessage}`;
+  addLine(` [Job64] 正常終了 (NMA8100不要)`);
+  addLine(`==================================================`);
+
+  return outputLines.join("\n");
 }
 
 // ヘルパー関数
@@ -151,7 +175,6 @@ const readShiftJis = async (p: string) =>
 async function processDataFile(filePath: string, result: CheckResult) {
   const text = await readShiftJis(filePath);
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
-  let [processedCount, excludedCount, syohinCount, tokusyoCount] = [0, 0, 0, 0];
   let hasProcessableRow = false;
 
   for (const line of lines) {
@@ -160,26 +183,19 @@ async function processDataFile(filePath: string, result: CheckResult) {
 
     const [type, status] = [cols[4]?.trim(), cols[5]?.trim()];
     if (EXCLUDED_STATUSES.has(status)) {
-      excludedCount++;
       continue;
     }
 
     hasProcessableRow = true;
-    processedCount++;
     const output = cols.slice(4).join(",");
 
     if (SYOHIN_TYPES.has(type)) {
       result.syohinLines.push(output);
-      syohinCount++;
     } else if (TOKUSYO_TYPES.has(type)) {
       result.tokusyoLines.push(output);
-      tokusyoCount++;
     }
   }
 
-  console.log(
-    `[Job64] [Parse Summary] 総行数:${lines.length} | 処理対象:${processedCount} | 対象外ステータス(8/9):${excludedCount} | 商品マッチ:${syohinCount} | 特商マッチ:${tokusyoCount}`,
-  );
   return { hasProcessableRow };
 }
 
@@ -187,22 +203,18 @@ async function writeOutput(
   targetDir: string,
   fileName: string,
   lines: string[],
-) {
-  if (lines.length === 0) {
-    console.log(
-      `[Job64] [Output Skip] 書き込み行数が0件のためスキップ: ${fileName}`,
-    );
-    return;
-  }
+): Promise<boolean> {
+  if (lines.length === 0) return false;
+
   const datPath = path.join(targetDir, fileName);
   await fs.writeFile(datPath, iconv.encode(lines.join("\r\n"), ENCODING));
-  console.log(`[Job64] [DAT作成] ${datPath} (${lines.length} 行)`);
 
   const dmyPath = datPath.replace(/\.dat$/, ".dmy");
   if (!(await fs.pathExists(dmyPath))) {
     await fs.copy(datPath, dmyPath);
-    console.log(`[Job64] [DMY作成] ${dmyPath}`);
   }
+
+  return true;
 }
 
 async function moveProcessedFiles(
@@ -221,15 +233,9 @@ async function moveProcessedFiles(
 
     const destPath = path.join(destFolder, baseName);
     if (await fs.pathExists(destPath)) {
-      console.log(
-        `[Job64] [Move Skip] 移動先に同名ファイルが存在するためスキップ: ${destPath}`,
-      );
       continue;
     }
 
     await fs.move(filePath, destPath);
-    console.log(
-      `[Job64] [Move Success] ${baseName} -> ${processed ? PROCESSED_DIR : EXCLUDED_DIR}/`,
-    );
   }
 }
