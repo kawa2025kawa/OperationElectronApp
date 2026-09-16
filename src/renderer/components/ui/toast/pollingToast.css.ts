@@ -93,7 +93,7 @@ export const item = style([
 
     selectors: {
       "&:hover": {
-        backgroundColor: tokens.color.bg.inset,
+        backgroundColor: tokens.color.bg.base,
         transform: "translateX(2px)",
         boxShadow: tokens.shadow.raised.md,
       },

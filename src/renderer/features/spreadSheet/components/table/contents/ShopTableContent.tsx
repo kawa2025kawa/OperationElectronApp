@@ -1,5 +1,4 @@
 ﻿// src/renderer/features/spreadSheet/components/table/contents/ShopTableContent.tsx
-
 import React, { useCallback } from "react";
 import type { Column, TableRowProps } from "@shared/types";
 import { getValueByPath } from "@shared/utils/getValueByPath";
@@ -13,6 +12,8 @@ interface ShopTableContentProps<T extends object> {
   rowKey: keyof T | string;
   selectedId?: string | number | null;
   onRowClick?: (item: T) => void;
+  parentRef: React.RefObject<HTMLDivElement | null>;
+  totalSize: number;
 }
 
 const TableHeader = <T extends object>({
@@ -24,7 +25,6 @@ const TableHeader = <T extends object>({
     {columns.map((col) => {
       const alignClass = styles.thAlignVariants[col.align ?? "left"] ?? "";
       const width = col.width ?? "150px";
-
       return (
         <div
           key={String(col.key)}
@@ -47,7 +47,6 @@ const TableRowInner = <T extends object>({
   style,
 }: TableRowProps<T>) => {
   const state = isSelected ? "selected" : onRowClick ? "clickable" : "idle";
-
   const handleClick = useCallback(() => {
     onRowClick?.(item);
   }, [onRowClick, item]);
@@ -95,40 +94,50 @@ export const ShopTableContent = <T extends object>({
   rowKey,
   selectedId,
   onRowClick,
+  parentRef,
+  totalSize,
 }: ShopTableContentProps<T>) => {
   return (
     <>
       <div className={styles.headerWrapper}>
         <TableHeader columns={columns} />
       </div>
-      <div className={styles.virtualBodyContent}>
-        {virtualItems.map((virtualRow) => {
-          const item = data[virtualRow.index];
-          const keyStr = String(rowKey);
-          const id = String(
-            getValueByPath(item as Record<string, unknown>, keyStr) ??
-              virtualRow.index,
-          );
-          const isSelected = selectedId != null && String(selectedId) === id;
+      <div ref={parentRef} className={styles.bodyWrapper}>
+        <div
+          className={styles.virtualBody}
+          style={{ height: `${totalSize}px` }}
+        >
+          <div className={styles.virtualBodyContent}>
+            {virtualItems.map((virtualRow) => {
+              const item = data[virtualRow.index];
+              const keyStr = String(rowKey);
+              const id = String(
+                getValueByPath(item as Record<string, unknown>, keyStr) ??
+                  virtualRow.index,
+              );
+              const isSelected =
+                selectedId != null && String(selectedId) === id;
 
-          return (
-            <TableRow
-              key={id}
-              item={item}
-              columns={columns}
-              isSelected={isSelected}
-              onRowClick={onRowClick}
-              dataIndex={virtualRow.index}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            />
-          );
-        })}
+              return (
+                <TableRow
+                  key={id}
+                  item={item}
+                  columns={columns}
+                  isSelected={isSelected}
+                  onRowClick={onRowClick}
+                  dataIndex={virtualRow.index}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
       </div>
     </>
   );

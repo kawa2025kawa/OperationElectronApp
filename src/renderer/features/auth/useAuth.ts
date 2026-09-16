@@ -1,8 +1,8 @@
 ﻿// src/renderer/features/auth/useAuth.ts
 
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
-import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { commands } from "@renderer/services/commands";
 import { useAppStore } from "@renderer/store";
 import type { AuthState } from "@shared/types/auth/authTypes";
@@ -23,15 +23,12 @@ export const useAuth = () => {
     );
 
   const handleLogin = useCallback(async (): Promise<void> => {
-    if (isLoginProcessing) {
-      console.warn("[Auth] Login is already in progress.");
-      return;
-    }
+    if (isLoginProcessing) return;
 
     setIsLoginProcessing(true);
     setGlobalProcessing({
-      message: "認証処理中（ブラウザでログインを完了してください）...",
-      target: "認証処理中",
+      message: "ブラウザで認証を行ってください...",
+      target: "Google OAuth Login",
     });
 
     try {
@@ -50,6 +47,11 @@ export const useAuth = () => {
         throw new Error("アクセストークンの取得に失敗しました");
       }
 
+      setGlobalProcessing({
+        message: "アカウント情報を同期中...",
+        target: session.email ?? "Google Account",
+      });
+
       await handleLoginSuccess(
         session.accessToken,
         session.email,
@@ -57,13 +59,9 @@ export const useAuth = () => {
       );
     } catch (error) {
       console.error("[Auth] Login failed:", error);
-
-      usePollingToastStore
-        .getState()
-        .addToast(
-          error instanceof Error ? error.message : "ログインに失敗しました",
-          "error",
-        );
+      const message =
+        error instanceof Error ? error.message : "ログインに失敗しました";
+      toast.error(message);
     } finally {
       setIsLoginProcessing(false);
       setGlobalProcessing(null);
@@ -71,7 +69,13 @@ export const useAuth = () => {
   }, [isLoginProcessing, handleLoginSuccess, setGlobalProcessing]);
 
   const handleLogout = useCallback(async (): Promise<void> => {
-    await logout();
+    try {
+      await logout();
+      toast.success("ログアウトしました");
+    } catch (error) {
+      console.error("[Auth] Logout failed:", error);
+      toast.error("ログアウトに失敗しました");
+    }
   }, [logout]);
 
   const handleAuthToggle = useCallback((): void => {

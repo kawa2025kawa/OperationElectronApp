@@ -1,7 +1,6 @@
-//src\renderer\features\operation\components\table\OperationTable.tsx
-
+// src/renderer/features/operation/components/table/OperationTable.tsx
 import React from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import type { OperationItem } from "@shared/types/operation";
 import type { Column } from "@shared/types/table/tableType";
 import { UnifiedTableRow } from "./UnifiedTableRow";
@@ -48,7 +47,7 @@ export const UnifiedTable: React.FC = React.memo(() => {
   return (
     <div className={styles.container}>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div
+        <m.div
           key={currentMode}
           initial={{ opacity: 0, x: 6 }}
           animate={{ opacity: 1, x: 0 }}
@@ -83,12 +82,10 @@ export const UnifiedTable: React.FC = React.memo(() => {
               </tbody>
             </table>
           </div>
-        </motion.div>
+        </m.div>
       </AnimatePresence>
     </div>
   );
 });
 
 UnifiedTable.displayName = "UnifiedTable";
-
-UnifiedTable;

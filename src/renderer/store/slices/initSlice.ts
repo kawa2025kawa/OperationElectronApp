@@ -1,15 +1,10 @@
-// src/renderer/store/slices/initSlice.ts
+﻿// src/renderer/store/slices/initSlice.ts
 
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
 import { INITIAL_INIT_STATUS, type InitStatus } from "@shared/types/system";
 import { appService } from "@renderer/services/appService";
 import { commands } from "@renderer/services/commands";
-import {
-  evaluateDependenciesCascade,
-  updateEntityInState,
-} from "@renderer/features/operation/helpers/operationEntities";
-import { refreshSummary } from "@renderer/features/operation/services/operationServices";
 import { handleStatusToastNotification } from "@renderer/components/ui/toast/statusToastHandler";
 
 const APP_LOADER_DELAY_MS = 2000;
@@ -77,7 +72,7 @@ export const createInitSlice: StateCreator<
       }
     }),
 
-  /** 初期化成功時の完了処理（タイマー含む） */
+  /** 初期化成功時の完了処理（ローダー非表示用タイマー含む） */
   markInitializationCompleted: () => {
     set((state) => {
       state.initStatus.operation = "OK";
@@ -129,12 +124,9 @@ export const createInitSlice: StateCreator<
       get().setTheme?.(theme);
     });
 
+    // 🎯 ステータス更新イベント受信時: updateItemStatus を呼ぶことでマージ・連鎖評価・サマリー計算を安全に一元実行
     const unbindStatus = commands.onOperationStatusUpdated((update) => {
-      set((state) => {
-        updateEntityInState(state, update);
-        evaluateDependenciesCascade(state);
-        refreshSummary(state);
-      });
+      get().updateItemStatus?.(update);
       handleStatusToastNotification(update);
     });
 

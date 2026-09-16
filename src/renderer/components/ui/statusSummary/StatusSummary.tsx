@@ -3,7 +3,6 @@
 import React, { useCallback } from "react";
 import { useAppStore } from "@renderer/store";
 import { SummaryModalContent } from "@renderer/features/operation/components/modal/summaryModal/SummaryModalContent";
-import { DEFAULT_MODAL_SIZE } from "@renderer/features/operation/helpers/operationEntities";
 import type { OperationItem } from "@shared/types/operation";
 import type { StatusSummary as FilteredSummary } from "@shared/types/ui";
 import { useStatusSummary } from "./useStatusSummary";
@@ -19,13 +18,12 @@ export const StatusSummary: React.FC<StatusSummaryProps> = React.memo(
 
     const handleOpenModal = useCallback(
       (summaryItems: OperationItem[], titleLabel: string) => {
-        // 🎯【修正】コンポーネントを生成する無名関数（または React.createElement）を渡す
+        // 🎯 SummaryModalContent の静的プロパティ (modalSize 等) を保持したままラッパー関数を作成
         const Content = () => <SummaryModalContent items={summaryItems} />;
         Object.assign(Content, SummaryModalContent);
 
         openGlobalModal(Content, {
           title: titleLabel,
-          ...DEFAULT_MODAL_SIZE,
         });
       },
       [openGlobalModal],

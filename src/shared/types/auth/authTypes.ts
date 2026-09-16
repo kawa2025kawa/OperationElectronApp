@@ -1,6 +1,4 @@
-﻿// src/renderer/features/auth/types/authTypes.ts
-
-// src/shared/types/authTypes.ts
+﻿//src\shared\types\auth\authTypes.ts
 
 export interface OAuthToken {
   accessToken: string;

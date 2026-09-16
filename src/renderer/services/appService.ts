@@ -6,7 +6,10 @@ import { commands } from "@renderer/services/commands";
 import { checkAndApplyUpdate } from "@renderer/hooks/useMainViewLogic";
 import { DATA_LOADING_STATUS } from "@renderer/store/slices/initSlice";
 import { useAppStore } from "@renderer/store";
-import type { OperationItem } from "@shared/types/operation";
+import {
+  DEFAULT_ACTIVE_FLAGS,
+  type OperationItem,
+} from "@shared/types/operation";
 
 const operations = operationData as OperationItem[];
 const irregulars = irregularData as OperationItem[];
@@ -28,15 +31,8 @@ async function registerOperationTargets(): Promise<void> {
   // 1. ターゲットリストの登録 (バックエンドの statusManager/apiTargets へ登録)
   await commands.registerTargets(targets);
 
-  // 2. バックエンドの評価ロジック(pollingStatusEvaluator)が求める ActiveFlags の同期
-  // ※ 個別の kanriNo ではなく、バックエンド仕様のグループキー構造で渡す
-  const defaultActiveFlags = {
-    is1CActive: true,
-    is2CActive: true,
-    is3CActive: true,
-  };
-
-  await commands.setActiveFlags(defaultActiveFlags);
+  // 2. バックエンドの評価ロジック(pollingStatusEvaluator)が求める ActiveFlags の初期同期
+  await commands.setActiveFlags(DEFAULT_ACTIVE_FLAGS);
 }
 
 async function initializeSheets(isAuthenticated: boolean): Promise<void> {

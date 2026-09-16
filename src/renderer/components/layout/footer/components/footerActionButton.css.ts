@@ -26,7 +26,7 @@ export const actionButton = style([
         transform: "scale(0.96)",
       },
       "&[data-active='true']": {
-        backgroundColor: tokens.color.bg.inset,
+        backgroundColor: tokens.color.bg.base,
         boxShadow: `${tokens.shadow.glow.brand}, ${tokens.shadow.raised.md}`,
       },
     },

@@ -1,6 +1,5 @@
-﻿//src\renderer\features\operation\helpers\operationEntities.ts
+﻿// src/renderer/features/operation/helpers/operationEntities.ts
 
-import type { AppState } from "@renderer/store";
 import {
   JOB_STATUS,
   type JobStatus,
@@ -12,27 +11,9 @@ import {
   type StatusSummary,
 } from "@shared/types/ui";
 import { isIrregularToday } from "@shared/utils/isIrregularToday";
-import { checkJobDependencies } from "@shared/utils/dependencyHelper";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-type OperationEntityState = Pick<
-  AppState,
-  "operationEntities" | "irregularEntities"
->;
+import type { AppState } from "@renderer/store";
 
 type EntityCollection = Record<string, OperationItem> | OperationItem[];
-
-export interface UpdateEntityResult {
-  updated: boolean;
-  statusChanged: boolean;
-}
-
-// ============================================================================
-// Constants
-// ============================================================================
 
 export const INITIAL_SUMMARY: StatusSummary = {
   ...EMPTY_STATUS_SUMMARY,
@@ -50,23 +31,8 @@ export const MANUAL_ALIAS_MAP: Readonly<Record<string, string>> = {
   "68": "28",
 };
 
-export const DEFAULT_MODAL_SIZE = {
-  width: "min(80vw, 800px)",
-  height: "min(70vh, 550px)",
-} as const;
-
 const VALID_STATUSES = new Set<JobStatus>(STATUS_ORDER);
-
-const ENTITY_KEYS = [
-  "operationEntities",
-  "irregularEntities",
-] as const satisfies readonly (keyof OperationEntityState)[];
-
 const MIN_GLOBAL_PROCESSING_DISPLAY_TIME_MS = 3000;
-
-// ============================================================================
-// Manual
-// ============================================================================
 
 export function getManualUrl(kanriNo: string | number): string {
   const normalizedKanriNo = String(kanriNo).trim();
@@ -76,20 +42,53 @@ export function getManualUrl(kanriNo: string | number): string {
   return `https://sites.google.com/belc.co.jp/operation-manual-${targetKanriNo}`;
 }
 
-// ============================================================================
-// Entity Helpers
-// ============================================================================
-
 export function hasValidJobId(item: OperationItem): boolean {
-  if (item.kind !== "operation") {
-    return false;
+  if (!("jobId" in item) || !item.jobId) return false;
+  return item.jobId !== "-";
+}
+
+export function mapRawEntities(
+  items: EntityCollection,
+): Record<string, OperationItem> {
+  const source = Array.isArray(items) ? items : Object.values(items);
+
+  return source.reduce<Record<string, OperationItem>>((entities, item) => {
+    if (!item) return entities;
+    const kanriNo = String(item.kanriNo).trim();
+    if (!kanriNo) return entities;
+
+    entities[kanriNo] = { ...item } as OperationItem;
+    return entities;
+  }, {});
+}
+
+export function calculateSummary(
+  input: EntityCollection,
+  _options?: Record<string, boolean>,
+): StatusSummary {
+  const items = Array.isArray(input) ? input : Object.values(input);
+
+  // 🎯 今日の全対象アイテムを正確に集計
+  const summary: StatusSummary = {
+    ...INITIAL_SUMMARY,
+    total: items.length,
+  };
+
+  for (const item of items) {
+    if (!item?.status) continue;
+    const status = item.status.toLowerCase() as JobStatus;
+    if (!VALID_STATUSES.has(status)) continue;
+    summary[status] += 1;
   }
 
-  return Boolean(item.jobId && item.jobId !== "-");
+  summary.progress =
+    summary.total > 0 ? Math.round((summary.success / summary.total) * 100) : 0;
+
+  return summary;
 }
 
 export function getAllEntitiesMap(
-  state: OperationEntityState,
+  state: Pick<AppState, "operationEntities" | "irregularEntities">,
 ): Record<string, OperationItem> {
   return {
     ...state.operationEntities,
@@ -98,7 +97,7 @@ export function getAllEntitiesMap(
 }
 
 export function getAllEntitiesArray(
-  state: OperationEntityState & Pick<AppState, "todayIds">,
+  state: Pick<AppState, "operationEntities" | "irregularEntities" | "todayIds">,
 ): OperationItem[] {
   const operations = Object.values(state.operationEntities);
   const todayIds = new Set(state.todayIds.map((id) => String(id)));
@@ -111,69 +110,11 @@ export function getAllEntitiesArray(
 }
 
 export function findEntityByKanriNo(
-  state: OperationEntityState,
+  state: Pick<AppState, "operationEntities" | "irregularEntities">,
   kanriNo: string | number,
 ): OperationItem | undefined {
   const key = String(kanriNo).trim();
-
   return state.operationEntities[key] ?? state.irregularEntities[key];
-}
-
-/**
- * 生成時に kind ("operation" | "irregular") を確定させてマッピング
- */
-export function mapRawEntities(
-  items: EntityCollection,
-  kind: "operation" | "irregular",
-): Record<string, OperationItem> {
-  const source = Array.isArray(items) ? items : Object.values(items);
-
-  return source.reduce<Record<string, OperationItem>>((entities, item) => {
-    if (!item) {
-      return entities;
-    }
-
-    const kanriNo = String(item.kanriNo).trim();
-
-    if (!kanriNo) {
-      return entities;
-    }
-
-    entities[kanriNo] = {
-      ...item,
-      kind,
-    } as OperationItem;
-
-    return entities;
-  }, {});
-}
-
-// ============================================================================
-// Summary
-// ============================================================================
-
-export function calculateSummary(
-  input: EntityCollection,
-  _options?: Record<string, boolean>,
-): StatusSummary {
-  const items = Array.isArray(input) ? input : Object.values(input);
-  const summary: StatusSummary = {
-    ...INITIAL_SUMMARY,
-    total: items.length,
-  };
-  for (const item of items) {
-    if (!item?.status) {
-      continue;
-    }
-    const status = item.status.toLowerCase() as JobStatus;
-    if (!VALID_STATUSES.has(status)) {
-      continue;
-    }
-    summary[status] += 1;
-  }
-  summary.progress =
-    summary.total > 0 ? Math.round((summary.success / summary.total) * 100) : 0;
-  return summary;
 }
 
 export async function runJobWithGlobalProcessing<T = void>(
@@ -184,10 +125,7 @@ export async function runJobWithGlobalProcessing<T = void>(
 ): Promise<T> {
   const alreadyProcessing = state.globalProcessing !== null;
   if (!alreadyProcessing) {
-    state.setGlobalProcessing({
-      message,
-      target,
-    });
+    state.setGlobalProcessing({ message, target });
   }
   const startedAt = Date.now();
   try {
@@ -206,64 +144,28 @@ export async function runJobWithGlobalProcessing<T = void>(
   }
 }
 
-// ============================================================================
-// Status Merge
-// ============================================================================
-
-function mergeStringValue(
-  next: string | null | undefined,
-  current: string | null | undefined,
-): string | null {
-  const normalizedNext = next?.trim();
-
-  if (normalizedNext) {
-    return normalizedNext;
-  }
-
-  return current ?? null;
-}
+// ------------------------------------------------------------
+// Status Factory & Merge Functions
+// ------------------------------------------------------------
 
 export function mergeStatus(
   entity: OperationItem,
   update: OperationItem,
 ): void {
-  if (update.status) {
-    entity.status = update.status;
-  }
-
+  if (update.status) entity.status = update.status;
   if (update.comment != null) {
     const comment = update.comment.trim();
-
-    if (comment) {
-      entity.comment = comment;
-    }
+    if (comment) entity.comment = comment;
   }
-
-  entity.startTime = mergeStringValue(update.startTime, entity.startTime);
-  entity.endTime = mergeStringValue(update.endTime, entity.endTime);
-
-  entity.expectedStartTime = mergeStringValue(
-    update.expectedStartTime,
-    entity.expectedStartTime,
-  );
-
-  entity.expectedEndTime = mergeStringValue(
-    update.expectedEndTime,
-    entity.expectedEndTime,
-  );
-
-  if (update.substatus != null) {
-    entity.substatus = update.substatus;
-  }
-
-  if (update.info != null) {
-    entity.info = update.info;
-  }
+  if (update.startTime) entity.startTime = update.startTime.trim();
+  if (update.endTime) entity.endTime = update.endTime.trim();
+  if (update.expectedStartTime)
+    entity.expectedStartTime = update.expectedStartTime.trim();
+  if (update.expectedEndTime)
+    entity.expectedEndTime = update.expectedEndTime.trim();
+  if (update.substatus != null) entity.substatus = update.substatus;
+  if (update.info != null) entity.info = update.info;
 }
-
-// ============================================================================
-// Status Factory
-// ============================================================================
 
 function createBaseStatus(
   kanriNo: string,
@@ -309,85 +211,18 @@ export function createSuccessStatus(
   return createBaseStatus(kanriNo, item, status, comment);
 }
 
-// ============================================================================
-// Entity Updates
-// ============================================================================
-
-export function updateEntityInState(
-  state: AppState,
-  update: OperationItem,
-): UpdateEntityResult {
-  const kanriNo = String(update.kanriNo).trim();
-
-  let updated = false;
-  let statusChanged = false;
-
-  for (const entityKey of ENTITY_KEYS) {
-    const entity = state[entityKey][kanriNo];
-
-    if (!entity) {
-      continue;
-    }
-
-    const previousStatus = entity.status;
-
-    mergeStatus(entity, update);
-
-    updated = true;
-    statusChanged ||= previousStatus !== entity.status;
-  }
-
-  return {
-    updated,
-    statusChanged,
-  };
-}
-
-// ============================================================================
-// Reset
-// ============================================================================
-
-function resetEntityStatus(entity: OperationItem): OperationItem {
-  return {
-    ...entity,
-    status: JOB_STATUS.SCHEDULED,
-    comment: null,
-    startTime: null,
-    endTime: null,
-    expectedStartTime: null,
-    expectedEndTime: null,
-    substatus: null,
-    info: null,
-  };
-}
-
-export function resetAllEntityStatuses(state: AppState): void {
-  for (const entityKey of ENTITY_KEYS) {
-    const entities = state[entityKey];
-
-    for (const [kanriNo, entity] of Object.entries(entities)) {
-      entities[kanriNo] = resetEntityStatus(entity);
-    }
-  }
-}
-
-// ============================================================================
-// Initial Data
-// ============================================================================
-
 export function buildInitialOperationData(
   operations: OperationItem[],
   irregulars: OperationItem[],
   statuses: Record<string, OperationItem>,
 ) {
-  const operationEntities = mapRawEntities(operations, "operation");
-  const irregularEntities = mapRawEntities(irregulars, "irregular");
+  const operationEntities = mapRawEntities(operations);
+  const irregularEntities = mapRawEntities(irregulars);
 
   for (const [kanriNo, status] of Object.entries(statuses)) {
     if (operationEntities[kanriNo]) {
       mergeStatus(operationEntities[kanriNo], status);
     }
-
     if (irregularEntities[kanriNo]) {
       mergeStatus(irregularEntities[kanriNo], status);
     }
@@ -395,73 +230,11 @@ export function buildInitialOperationData(
 
   return {
     operationIds: operations.map(({ kanriNo }) => String(kanriNo)),
-
     operationEntities,
-
     irregularIds: irregulars.map(({ kanriNo }) => String(kanriNo)),
-
     irregularEntities,
-
     todayIds: irregulars
       .filter(isIrregularToday)
       .map(({ kanriNo }) => String(kanriNo)),
   };
-}
-
-/**
- * 全ジョブの依存関係を再評価し、条件が満たされたジョブのステータスを即座に更新する（連鎖更新対応）。
- */
-export function evaluateDependenciesCascade(state: AppState): boolean {
-  const activeFlags = {
-    is1CActive: Boolean(state.is1CActive),
-    is2CActive: Boolean(state.is2CActive),
-    is3CActive: Boolean(state.is3CActive),
-  };
-
-  let anyChanged = false;
-  let hasChangesInLoop = true;
-
-  while (hasChangesInLoop) {
-    hasChangesInLoop = false;
-    const entities = getAllEntitiesMap(state);
-
-    for (const item of Object.values(entities)) {
-      if (!item.dependency) {
-        continue;
-      }
-
-      if (
-        item.status === JOB_STATUS.RUNNING ||
-        item.status === JOB_STATUS.SCRIPT_RUNNING ||
-        item.status === JOB_STATUS.SUCCESS ||
-        item.status === JOB_STATUS.ERROR
-      ) {
-        continue;
-      }
-
-      const check = checkJobDependencies(item.kanriNo, entities, activeFlags);
-
-      if (check.ok) {
-        if (
-          item.status === JOB_STATUS.WAITING ||
-          item.status === JOB_STATUS.SCHEDULED
-        ) {
-          item.status = JOB_STATUS.READY;
-          hasChangesInLoop = true;
-          anyChanged = true;
-        }
-      } else {
-        if (
-          item.status === JOB_STATUS.READY ||
-          item.status === JOB_STATUS.SCHEDULED
-        ) {
-          item.status = JOB_STATUS.WAITING;
-          hasChangesInLoop = true;
-          anyChanged = true;
-        }
-      }
-    }
-  }
-
-  return anyChanged;
 }

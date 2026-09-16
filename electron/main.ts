@@ -4,7 +4,8 @@ import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerIpcHandlers } from "./ipc";
-import { stopPolling } from "@electron/features/operation/polling";
+// 直接 pollingLoop.ts からインポートするよう修正
+import { stopPolling } from "@electron/features/operation/polling/pollingLoop";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

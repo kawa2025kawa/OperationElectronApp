@@ -77,12 +77,12 @@ export const SHOP_FIELD_LABELS = {
   comment: "コメント",
 
   // 画像・メディア参照
-  timeRecorder1: "TR1 画像",
-  timeRecorder2: "TR2 画像",
-  timeRecorder3: "TR3 画像",
-  timeRecorder4: "TR4 画像",
-  hub: "HUB 画像",
-  outlet: "コンセント 画像",
+  tr1ImageUrl: "TR1",
+  tr2ImageUrl: "TR2",
+  tr3ImageUrl: "TR3",
+  tr4ImageUrl: "TR4",
+  hub: "HUB",
+  outlet: "コンセント",
 } as const;
 
 /**

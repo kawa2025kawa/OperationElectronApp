@@ -69,26 +69,40 @@ export const GlobalModalManager: React.FC = () => {
           )}
         </main>
 
-        {/* フッター */}
+        {/* 🎯 フッター（伸縮対応 & クラス化でスッキリ整理） */}
         {!state.hideFooter && (
           <footer className={styles.footer}>
             {state.footerContent ?? (
-              <>
-                <ActionButton
-                  variant="default"
-                  onClick={actions.handleCancel}
-                  disabled={state.isProcessing}
-                >
-                  {state.cancelText}
-                </ActionButton>
-                <ActionButton
-                  variant="default"
-                  onClick={actions.handleConfirm}
-                  disabled={state.isConfirmDisabled || state.isProcessing}
-                >
-                  {state.isProcessing ? "処理中..." : state.confirmText}
-                </ActionButton>
-              </>
+              <div className={styles.footerContainer}>
+                {/* 左側アクションボタン群 (自動伸縮エリア) */}
+                <div className={styles.footerLeft}>
+                  {state.leftActions.map((action) => (
+                    <ActionButton
+                      key={action.id}
+                      className={styles.footerLeftButton}
+                      variant={action.variant ?? "default"}
+                      onClick={() => void action.onClick()}
+                      disabled={action.disabled || state.isProcessing}
+                    >
+                      {action.label}
+                    </ActionButton>
+                  ))}
+                </div>
+
+                {/* 右側アクションボタン群 (固定エリア) */}
+                <div className={styles.footerRight}>
+                  {state.rightActions.map((action) => (
+                    <ActionButton
+                      key={action.id}
+                      variant={action.variant ?? "default"}
+                      onClick={() => void action.onClick()}
+                      disabled={action.disabled || state.isProcessing}
+                    >
+                      {action.label}
+                    </ActionButton>
+                  ))}
+                </div>
+              </div>
             )}
           </footer>
         )}

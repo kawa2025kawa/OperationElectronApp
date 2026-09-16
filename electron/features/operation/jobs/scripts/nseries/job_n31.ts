@@ -1,4 +1,5 @@
-﻿// electron/features/operation/jobs/scripts/job_n31.ts
+﻿// electron/features/operation/jobs/scripts/nseries/job_n31.ts
+
 import type { Page } from "playwright";
 
 const TOP_URL = "https://www2.belc.co.jp:8002/webedi/belcwebedi.html";
@@ -14,27 +15,40 @@ const getToday = () =>
     .format(new Date())
     .replaceAll("-", "/");
 
-export async function runJobN31(kanriNo: string): Promise<string> {
-  console.log(`[JOB_N31] start ${kanriNo}`);
+export async function runJobN31(): Promise<string> {
+  const outputLines: string[] = [];
+  const addLine = (message: string = "") => outputLines.push(message);
+
+  addLine(`==================================================`);
+  addLine(` [JobN31] WEB-EDI 自動操作`);
+  addLine(`==================================================`);
+  addLine(`▶ 対象URL: ${TOP_URL}`);
+
   const { chromium } = await import("playwright");
   const browser = await chromium.launch({ headless: false, channel: "chrome" });
 
   try {
     const page = await browser.newPage();
     await executeN31(page);
-    return `WEB-EDI 操作完了: ${kanriNo}`;
+
+    addLine(`▶ WEB-EDI の自動操作が完了しました。`);
+    addLine(`--------------------------------------------------`);
+    addLine(` [JobN31] 正常終了`);
+    addLine(`==================================================`);
+
+    return outputLines.join("\n");
   } catch (error) {
-    console.error("[JOB_N31] failed", error);
-    throw error;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    addLine(`❌ WEB-EDI 操作失敗: ${errorMessage}`);
+    addLine(`--------------------------------------------------`);
+    throw new Error(`${errorMessage}\n\n${outputLines.join("\n")}`);
   } finally {
     await browser.close();
-    console.log("[JOB_N31] browser closed");
   }
 }
 
 async function executeN31(page: Page): Promise<void> {
   await page.goto(TOP_URL);
-  console.log("[JOB_N31] login page loaded");
 
   await page.locator("img[name='botan_img1_01']").click();
   await page.locator("#TANTCD").fill(USER_ID);
@@ -44,7 +58,6 @@ async function executeN31(page: Page): Promise<void> {
 
   const frame = page.frames().find((f) => f.name() === "contentFrame");
   if (!frame) throw new Error("contentFrame not found");
-  console.log("[JOB_N31] contentFrame found");
 
   await frame.locator("#menu_btn1").click();
   await page.waitForTimeout(2000);
@@ -66,5 +79,4 @@ async function executeN31(page: Page): Promise<void> {
 
   await frame.locator("#fkey_12").click();
   await page.waitForTimeout(5000);
-  console.log("[JOB_N31] completed");
 }

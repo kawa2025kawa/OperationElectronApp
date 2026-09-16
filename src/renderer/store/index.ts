@@ -47,7 +47,10 @@ import {
 // Global Slices
 // ============================================================================
 
-import { createCenterSlice, type CenterSlice } from "./slices/centerSlice";
+import {
+  createCenterSlice,
+  type CenterSlice,
+} from "../features/operation/store/centerSlice";
 
 import { createInitSlice, type InitSlice } from "./slices/initSlice";
 
@@ -60,7 +63,10 @@ import {
 
 import { createOverlaySlice, type OverlaySlice } from "./slices/overlaySlice";
 
-import { createPollingSlice, type PollingSlice } from "./slices/pollingSlice";
+import {
+  createPollingSlice,
+  type PollingSlice,
+} from "../features/operation/store/pollingSlice";
 
 import { createThemeSlice, type ThemeSlice } from "./slices/themeSlice";
 

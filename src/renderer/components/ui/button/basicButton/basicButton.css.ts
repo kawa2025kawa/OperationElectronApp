@@ -41,7 +41,7 @@ export const basicButton = style([
         opacity: 0.35,
         cursor: "not-allowed",
         pointerEvents: "none",
-        backgroundColor: tokens.color.bg.inset,
+        backgroundColor: tokens.color.bg.base,
         borderColor: tokens.color.border.subtle,
         color: tokens.color.text.base,
         boxShadow: tokens.shadow.pressed.low,

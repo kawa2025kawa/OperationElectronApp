@@ -11,9 +11,9 @@ import type {
 
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 
-// ============================================================
-// Google UserInfo API
-// ============================================================
+// ----------------------------------------------------------------------------
+// External API Services
+// ----------------------------------------------------------------------------
 
 async function fetchUserInfo(
   accessToken: string,
@@ -25,12 +25,10 @@ async function fetchUserInfo(
         Accept: "application/json",
       },
     });
-
     if (!response.ok) {
       console.warn(`[Auth] Google UserInfo API failed: ${response.status}`);
       return null;
     }
-
     return (await response.json()) as GoogleUserInfo;
   } catch (error) {
     console.error("[Auth] Failed to fetch Google user info:", error);
@@ -38,9 +36,9 @@ async function fetchUserInfo(
   }
 }
 
-// ============================================================
-// Profile Processing
-// ============================================================
+// ----------------------------------------------------------------------------
+// Profile Resolvers
+// ----------------------------------------------------------------------------
 
 function normalize(value?: string | null): string | null {
   const normalized = value?.trim();
@@ -63,16 +61,15 @@ async function resolveAuthProfile(
   }
 
   const userInfo = await fetchUserInfo(accessToken);
-
   return {
     email: resolvedEmail ?? normalize(userInfo?.email),
     familyName: resolvedFamilyName ?? normalize(userInfo?.family_name),
   };
 }
 
-// ============================================================
+// ----------------------------------------------------------------------------
 // State Mutators
-// ============================================================
+// ----------------------------------------------------------------------------
 
 function clearAuthState(state: AppState): void {
   state.isAuthenticated = false;
@@ -93,9 +90,9 @@ function applyAuthenticatedState(
   state.familyName = profile.familyName;
 }
 
-// ============================================================
+// ----------------------------------------------------------------------------
 // Slice Implementation
-// ============================================================
+// ----------------------------------------------------------------------------
 
 export type { AuthSlice } from "@shared/types/auth/authTypes";
 
@@ -107,7 +104,6 @@ export const createAuthSlice: StateCreator<
 > = (set, get) => ({
   isAuthenticated: false,
   isChecking: false,
-
   accessToken: null,
   userEmail: null,
   familyName: null,
@@ -144,7 +140,6 @@ export const createAuthSlice: StateCreator<
 
     try {
       const session = await commands.loadAuthSession();
-
       if (!session?.accessToken) {
         set((state) => {
           clearAuthState(state);
@@ -161,7 +156,6 @@ export const createAuthSlice: StateCreator<
       set((state) => {
         applyAuthenticatedState(state, session.accessToken, profile);
       });
-
       return true;
     } catch (error) {
       console.error("[Auth] Session check failed:", error);
@@ -178,12 +172,11 @@ export const createAuthSlice: StateCreator<
 
   handleLoginSuccess: async (accessToken, email, familyName): Promise<void> => {
     const profile = await resolveAuthProfile(accessToken, email, familyName);
-
     set((state) => {
       applyAuthenticatedState(state, accessToken, profile);
     });
 
-    void get().prefetchSheets(accessToken);
+    await get().prefetchSheets(accessToken);
   },
 
   logout: async (): Promise<void> => {
@@ -194,6 +187,7 @@ export const createAuthSlice: StateCreator<
       });
     } catch (error) {
       console.error("[Auth] Logout failed:", error);
+      throw error;
     }
   },
 });

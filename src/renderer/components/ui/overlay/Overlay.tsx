@@ -1,6 +1,6 @@
 // src/renderer/components/ui/overlay/Overlay.tsx
 import React from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import * as styles from "./overlay.css";
 
 interface OverlayProps {
@@ -12,7 +12,7 @@ export const Overlay: React.FC<OverlayProps> = ({ isOpen, onClick }) => {
   const state = isOpen ? "open" : "closed";
 
   return (
-    <motion.div
+    <m.div
       className={`${styles.backdropBase} ${styles.backdropStates[state]}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: isOpen ? 1 : 0 }}

@@ -17,9 +17,6 @@ export interface ModalSlice {
   closeGlobalModal: () => void;
 }
 
-/**
- * コンポーネント本体に静的に定義された modalSize を抽出する
- */
 function extractComponentModalSize(
   content: ModalContentType,
 ): ModalSize | undefined {
@@ -70,9 +67,6 @@ function extractComponentModalSize(
   return undefined;
 }
 
-/**
- * コンポーネント本体に静的に定義された modalConfig を抽出する
- */
 function extractComponentModalConfig(
   content: ModalContentType,
 ): ModalConfig | undefined {
@@ -112,7 +106,6 @@ export const createModalSlice: StateCreator<
       const componentModalSize = extractComponentModalSize(content);
       const componentModalConfig = extractComponentModalConfig(content);
 
-      // 優先順位: コンポーネント静的サイズ < コンポーネント静的Config < 開く際の明示的Config
       const mergedConfig: ModalConfig = {
         ...componentModalSize,
         ...componentModalConfig,

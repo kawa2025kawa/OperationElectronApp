@@ -1,8 +1,7 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/kokyuhyo/KokyuhyoModalContent.tsx
 
-import React, { useEffect } from "react";
+import React from "react";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
-import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Kokyuhyo } from "@shared/types/spreadsheet";
 import { useKokyuhyoModalContent } from "./useKokyuhyoModalContent";
@@ -15,23 +14,9 @@ export interface KokyuhyoModalContentProps {
 export const KokyuhyoModalContent: GlobalModalComponent<KokyuhyoModalContentProps> =
   React.memo(({ data }) => {
     const { state, actions } = useKokyuhyoModalContent(data);
-    const updateModalConfig = useAppStore((s) => s.updateModalConfig);
-    const closeModal = useAppStore((s) => s.closeGlobalModal);
-
-    // 🎯 フッター領域へ「閉じる」ボタン単体を注入
-    useEffect(() => {
-      updateModalConfig({
-        footerContent: (
-          <ActionButton variant="default" onClick={closeModal}>
-            閉じる
-          </ActionButton>
-        ),
-      });
-    }, [updateModalConfig, closeModal]);
 
     return (
       <div className={styles.contentContainer}>
-        {/* プロフィール領域 */}
         <div className={styles.profileCard}>
           <div className={styles.profileGrid}>
             <div className={styles.profileItem}>
@@ -57,7 +42,6 @@ export const KokyuhyoModalContent: GlobalModalComponent<KokyuhyoModalContentProp
           )}
         </div>
 
-        {/* スケジュール領域 */}
         {state.schedules.map((item) => (
           <div key={item.label} className={styles.tableGrid}>
             <div className={styles.cell.date}>

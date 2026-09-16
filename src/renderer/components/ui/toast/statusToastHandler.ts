@@ -24,20 +24,16 @@ export const handleStatusToastNotification = (
 
   const toastStore = usePollingToastStore.getState();
 
-  // 1. ステータス変化がなければ即リターン＆Store側で状態記憶
   if (currentStatus === toastStore.getPrevStatus(kanriNo)) return;
   toastStore.setPrevStatus(kanriNo, currentStatus);
 
-  // 2. トースト対象外のステータスならリターン
   const toastType = TOAST_TYPE_MAP[currentStatus];
   if (!toastType) return;
 
-  // 3. 手動成功通知の抑止チェック
   if (currentStatus === "success" && consumeSuppressedSuccessToast(kanriNo)) {
     return;
   }
 
-  // 4. Selector/Helper経由での安全な参照（後述の改善2とも連動）
   const item = state.getEntityByKanriNo
     ? state.getEntityByKanriNo(kanriNo)
     : (state.operationEntities[kanriNo] ?? state.irregularEntities[kanriNo]);
@@ -47,9 +43,7 @@ export const handleStatusToastNotification = (
   const nameLabel =
     item?.workName ||
     update.workName ||
-    (update.kind === "operation" && update.jobId
-      ? String(update.jobId)
-      : null) ||
+    ("jobId" in update && update.jobId ? String(update.jobId) : null) ||
     `管理No.${kanriNo}`;
 
   toastStore.addToast(`${nameLabel} ${currentStatus}`, toastType);

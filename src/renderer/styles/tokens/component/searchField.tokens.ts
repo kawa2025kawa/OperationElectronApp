@@ -4,7 +4,7 @@ import { tokens } from "@renderer/styles/tokens";
 
 export const searchFieldTokens = {
   maxWidth: "300px",
-  bg: tokens.color.bg.inset,
+  bg: tokens.color.bg.base,
   radius: tokens.radius.full,
   shadow: tokens.shadow.pressed.low,
   focusShadow: tokens.shadow.pressed.md,

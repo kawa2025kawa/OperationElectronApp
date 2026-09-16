@@ -1,6 +1,7 @@
 ﻿// src/shared/utils/dependencyHelper.ts
 
 import type {
+  ActiveFlags,
   JobDependency,
   JobStatus,
   OperationItem,
@@ -59,10 +60,10 @@ function getRequiredStatuses(
   const req = dependency.requiredStatus;
   if (!req) return [DEFAULT_REQUIRED_STATUS];
 
-  const raw = Array.isArray(req) ? req : req[kanriNo];
-  return raw?.length
-    ? raw.map((s) => String(s).toLowerCase())
-    : [DEFAULT_REQUIRED_STATUS];
+  const statuses = Array.isArray(req) ? req : req[kanriNo];
+  if (!statuses || statuses.length === 0) return [DEFAULT_REQUIRED_STATUS];
+
+  return statuses.map((s) => String(s).toLowerCase());
 }
 
 // ============================================================================
@@ -71,13 +72,13 @@ function getRequiredStatuses(
 
 function checkRequiredActiveFlags(
   dependency: JobDependency,
-  activeFlags?: Record<string, boolean>,
+  activeFlags?: ActiveFlags,
 ): DependencyCheckResult {
   if (!dependency.requiresActive?.length) return res(true);
   if (!activeFlags) return res(false);
 
   const isActive = dependency.requiresActive.every((key) =>
-    Boolean(activeFlags[key]),
+    Boolean(activeFlags[key as keyof ActiveFlags]),
   );
   return res(isActive);
 }
@@ -119,21 +120,29 @@ function checkAllJobsSuccess(
   targetKanriNo: string,
   dependency: JobDependency,
   entities: Record<string, OperationItem>,
+  operationIds?: string[],
 ): DependencyCheckResult {
   if (!dependency.requiresAllJobsSuccess) return res(true);
 
-  const missingDependencies = Object.values(entities)
-    .filter((item) => normalize(item.kanriNo) !== targetKanriNo)
-    // kind === "operation" に絞り込むことで、TypeScript に jobId の存在を認識させる
-    .filter(
-      (item): item is Extract<OperationItem, { kind: "operation" }> =>
-        item.kind === "operation" && Boolean(item.jobId && item.jobId !== "-"),
-    )
+  // operationIds が指定されている場合は reduce で一元処理、無ければ Object.values でフィルタ
+  const targetItems: OperationItem[] = operationIds?.length
+    ? operationIds.reduce<OperationItem[]>((acc, id) => {
+        const normId = normalize(id);
+        if (normId !== targetKanriNo && entities[normId]) {
+          acc.push(entities[normId]);
+        }
+        return acc;
+      }, [])
+    : Object.values(entities).filter(
+        (item) => normalize(item.kanriNo) !== targetKanriNo,
+      );
+
+  const missingDependencies: MissingDependency[] = targetItems
     .filter((item) => item.status?.toLowerCase() !== "success")
     .map((item) => ({
       kanriNo: String(item.kanriNo),
       status: item.status,
-      comment: item.comment ?? `Job ID (${item.jobId}) 未完了`,
+      comment: item.comment ?? `管理No.${item.kanriNo} 未完了`,
     }));
 
   return res(missingDependencies.length === 0, missingDependencies);
@@ -146,32 +155,32 @@ function checkDependsOn(
   const dependsOn = dependency.dependsOn.map(normalize);
   if (dependsOn.length === 0) return res(true);
 
-  const results = dependsOn.map((depKanriNo) => {
+  const missingDependencies: MissingDependency[] = [];
+  let satisfiedCount = 0;
+
+  for (const depKanriNo of dependsOn) {
     const entity = entities[depKanriNo];
     const currentStatus = entity?.status?.toLowerCase() ?? "";
     const requiredStatuses = getRequiredStatuses(dependency, depKanriNo);
+    const isOk = requiredStatuses.includes(currentStatus);
 
-    return {
-      ok: requiredStatuses.includes(currentStatus),
-      missing: {
+    if (isOk) {
+      satisfiedCount++;
+    } else {
+      missingDependencies.push({
         kanriNo: depKanriNo,
         status: entity?.status,
         comment: entity?.comment ?? "",
-      },
-    };
-  });
+      });
+    }
+  }
 
   const isSatisfied =
     dependency.condition === "some"
-      ? results.some(({ ok }) => ok)
-      : results.every(({ ok }) => ok);
+      ? satisfiedCount > 0
+      : missingDependencies.length === 0;
 
-  return isSatisfied
-    ? res(true)
-    : res(
-        false,
-        results.filter(({ ok }) => !ok).map(({ missing }) => missing),
-      );
+  return isSatisfied ? res(true) : res(false, missingDependencies);
 }
 
 // ============================================================================
@@ -181,7 +190,8 @@ function checkDependsOn(
 export function checkJobDependencies(
   kanriNo: string,
   entities: Record<string, OperationItem>,
-  activeFlags?: Record<string, boolean>,
+  activeFlags?: ActiveFlags,
+  operationIds?: string[],
 ): DependencyCheckResult {
   const targetKanriNo = normalize(kanriNo);
   const targetEntity = entities[targetKanriNo];
@@ -195,7 +205,12 @@ export function checkJobDependencies(
   const timeRes = checkAfterTime(targetKanriNo, dependency, targetEntity);
   if (!timeRes.ok) return timeRes;
 
-  const allJobsRes = checkAllJobsSuccess(targetKanriNo, dependency, entities);
+  const allJobsRes = checkAllJobsSuccess(
+    targetKanriNo,
+    dependency,
+    entities,
+    operationIds,
+  );
   if (!allJobsRes.ok) return allJobsRes;
 
   return checkDependsOn(dependency, entities);
@@ -205,11 +220,17 @@ export function validateJobDependencies(
   kanriNo: string,
   entities: Record<string, OperationItem>,
   options: JobExecutionOptions = DEFAULT_JOB_EXECUTION_OPTIONS,
-  activeFlags?: Record<string, boolean>,
+  activeFlags?: ActiveFlags,
+  operationIds?: string[],
 ): ValidationResult {
   if (options.ignoreDependencies) return { ok: true };
 
-  const result = checkJobDependencies(kanriNo, entities, activeFlags);
+  const result = checkJobDependencies(
+    kanriNo,
+    entities,
+    activeFlags,
+    operationIds,
+  );
   if (result.ok) return { ok: true };
 
   const message =

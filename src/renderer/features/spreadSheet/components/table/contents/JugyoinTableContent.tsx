@@ -1,10 +1,13 @@
 ﻿// src/renderer/features/spreadSheet/components/table/contents/JugyoinTableContent.tsx
-
 import React, { useCallback } from "react";
 import type { Column, TableRowProps } from "@shared/types";
 import { getValueByPath } from "@shared/utils/getValueByPath";
 import * as styles from "../spreadSheetTable.css";
-import { areRowPropsEqual, getCellValue } from "../useSpreadSheetTable";
+import {
+  areRowPropsEqual,
+  getCellValue,
+  useHeaderGroups,
+} from "../useSpreadSheetTable";
 
 interface JugyoinTableContentProps<T extends object> {
   columns: readonly Column<T>[];
@@ -13,30 +16,84 @@ interface JugyoinTableContentProps<T extends object> {
   rowKey: keyof T | string;
   selectedId?: string | number | null;
   onRowClick?: (item: T) => void;
+  parentRef: React.RefObject<HTMLDivElement | null>;
+  totalSize: number;
 }
 
 const TableHeader = <T extends object>({
   columns,
 }: {
   columns: readonly Column<T>[];
-}) => (
-  <div className={styles.headerRow}>
-    {columns.map((col) => {
-      const alignClass = styles.thAlignVariants[col.align ?? "left"] ?? "";
-      const width = col.width ?? "150px";
+}) => {
+  const groupedColumns = useHeaderGroups(columns);
 
-      return (
-        <div
-          key={String(col.key)}
-          className={`${styles.thBase} ${alignClass}`}
-          style={{ width, minWidth: width, maxWidth: width }}
-        >
-          {col.label}
-        </div>
-      );
-    })}
-  </div>
-);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+      {/* 1段目：グループヘッダー */}
+      <div
+        className={styles.headerRow}
+        style={{ minHeight: "36px", height: "36px", paddingBlock: "2px" }}
+      >
+        {groupedColumns.ungrouped.map((col) => {
+          const width = col.width ?? "150px";
+          return (
+            <div
+              key={`top-${String(col.key)}`}
+              className={styles.thBase}
+              style={{
+                width,
+                minWidth: width,
+                maxWidth: width,
+                height: "100%",
+              }}
+            />
+          );
+        })}
+        {groupedColumns.groups.map((group, idx) => (
+          <div
+            key={`group-${idx}`}
+            className={styles.headerGroupCell}
+            style={{
+              width: `calc(${group.width} - 4px)`,
+              minWidth: `calc(${group.width} - 4px)`,
+              maxWidth: `calc(${group.width} - 4px)`,
+              height: "100%",
+            }}
+          >
+            {group.label}
+          </div>
+        ))}
+      </div>
+      {/* 2段目：詳細項目（AM/PM等） */}
+      <div
+        className={styles.headerRow}
+        style={{ minHeight: "36px", height: "36px", paddingBlock: "2px" }}
+      >
+        {columns.map((col) => {
+          const alignClass = styles.thAlignVariants[col.align ?? "left"] ?? "";
+          const width = col.width ?? "150px";
+          const isSubGroupCol = col.headerGroup != null;
+          return (
+            <div
+              key={String(col.key)}
+              className={`${styles.thBase} ${
+                isSubGroupCol ? styles.headerGroupCell : ""
+              } ${alignClass}`}
+              style={{
+                width: isSubGroupCol ? `calc(${width} - 4px)` : width,
+                minWidth: isSubGroupCol ? `calc(${width} - 4px)` : width,
+                maxWidth: isSubGroupCol ? `calc(${width} - 4px)` : width,
+                height: "100%",
+              }}
+            >
+              {col.label}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 const TableRowInner = <T extends object>({
   item,
@@ -47,7 +104,6 @@ const TableRowInner = <T extends object>({
   style,
 }: TableRowProps<T>) => {
   const state = isSelected ? "selected" : onRowClick ? "clickable" : "idle";
-
   const handleClick = useCallback(() => {
     onRowClick?.(item);
   }, [onRowClick, item]);
@@ -95,40 +151,50 @@ export const JugyoinTableContent = <T extends object>({
   rowKey,
   selectedId,
   onRowClick,
+  parentRef,
+  totalSize,
 }: JugyoinTableContentProps<T>) => {
   return (
     <>
       <div className={styles.headerWrapper}>
         <TableHeader columns={columns} />
       </div>
-      <div className={styles.virtualBodyContent}>
-        {virtualItems.map((virtualRow) => {
-          const item = data[virtualRow.index];
-          const keyStr = String(rowKey);
-          const id = String(
-            getValueByPath(item as Record<string, unknown>, keyStr) ??
-              virtualRow.index,
-          );
-          const isSelected = selectedId != null && String(selectedId) === id;
+      <div ref={parentRef} className={styles.bodyWrapper}>
+        <div
+          className={styles.virtualBody}
+          style={{ height: `${totalSize}px` }}
+        >
+          <div className={styles.virtualBodyContent}>
+            {virtualItems.map((virtualRow) => {
+              const item = data[virtualRow.index];
+              const keyStr = String(rowKey);
+              const id = String(
+                getValueByPath(item as Record<string, unknown>, keyStr) ??
+                  virtualRow.index,
+              );
+              const isSelected =
+                selectedId != null && String(selectedId) === id;
 
-          return (
-            <TableRow
-              key={id}
-              item={item}
-              columns={columns}
-              isSelected={isSelected}
-              onRowClick={onRowClick}
-              dataIndex={virtualRow.index}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            />
-          );
-        })}
+              return (
+                <TableRow
+                  key={id}
+                  item={item}
+                  columns={columns}
+                  isSelected={isSelected}
+                  onRowClick={onRowClick}
+                  dataIndex={virtualRow.index}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
       </div>
     </>
   );

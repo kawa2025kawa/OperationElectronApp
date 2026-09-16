@@ -1,4 +1,6 @@
-﻿import {
+﻿// electron/features/operation/helpers/trackerHelper.ts
+
+import {
   JOB_STATUS,
   type JobStatus,
   type OperationItem,
@@ -39,7 +41,7 @@ export interface TrackerApiResponse {
 // ============================================================
 export function validateJobId(target: OperationItem): string {
   if (
-    target.kind !== "operation" ||
+    !("jobId" in target) ||
     typeof target.jobId !== "string" ||
     target.jobId.trim().length === 0 ||
     target.jobId === "-"

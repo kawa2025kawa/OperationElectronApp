@@ -28,7 +28,6 @@ const UPDATE_URL =
  */
 function getVersion() {
   const packageJsonPath = path.join(projectRoot, "package.json");
-
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
 
   if (!packageJson.version) {
@@ -39,7 +38,13 @@ function getVersion() {
 }
 
 /**
- * release ディレクトリから現在バージョンの Setup.exe を取得
+ * release ディレクトリから最新の Setup.exe を取得
+ *
+ * ⚠️【重要警告・変更厳禁】⚠️
+ * ここでファイル名の文字列比較やバージョン番号（version）でのフィルター判定を行わないこと！
+ * electron-builder の出力名変更やスペーシングの違い、過去ビルドの残骸により、
+ * 正しい最新 EXE を誤検知・取得失敗してアップデート通知が壊れる原因になります。
+ * 絶対に `mtimeMs`（ファイルの最終更新日時）によるソートロジックを変更しないでください。
  */
 function findInstaller(version) {
   if (!fs.existsSync(RELEASE_DIR)) {
@@ -48,23 +53,38 @@ function findInstaller(version) {
     );
   }
 
-  const installer = fs
+  // 🎯 【重要】ファイル名文字列ではなく、ファイルの更新日時（mtimeMs）で最新の EXE を特定する
+  const exeFiles = fs
     .readdirSync(RELEASE_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
     .filter(
-      (name) => name.toLowerCase().endsWith(".exe") && name.includes(version),
+      (entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".exe"),
     )
-    .sort()
-    .at(-1);
+    .map((entry) => {
+      const fullPath = path.join(RELEASE_DIR, entry.name);
+      return {
+        path: fullPath,
+        name: entry.name,
+        mtime: fs.statSync(fullPath).mtimeMs,
+      };
+    })
+    .sort((a, b) => b.mtime - a.mtime); // 更新日時が新しい順（降順）にソート
 
-  if (!installer) {
+  if (exeFiles.length === 0) {
     throw new Error(
-      `[Release] v${version} の Setup.exe が見つかりません: ${RELEASE_DIR}`,
+      `[Release] release ディレクトリに .exe ファイルが見つかりません: ${RELEASE_DIR}`,
     );
   }
 
-  return path.join(RELEASE_DIR, installer);
+  const latestInstaller = exeFiles[0].path;
+
+  // バージョン番号チェック（警告ログのみ。取得ロジックには絶対に介入させない）
+  if (!exeFiles[0].name.includes(version)) {
+    console.warn(
+      `[Release] Warning: 最新の EXE (${exeFiles[0].name}) にバージョン文字列 (${version}) が含まれていない可能性があります。`,
+    );
+  }
+
+  return latestInstaller;
 }
 
 /**

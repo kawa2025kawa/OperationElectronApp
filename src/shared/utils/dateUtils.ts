@@ -1,7 +1,7 @@
 // src/shared/utils/dateUtils.ts
 
 import { format, addDays } from "date-fns";
-import { ja } from "date-fns/locale";
+import { ja } from "date-fns/locale/ja";
 import type { ScheduledTime } from "@shared/types/operation";
 
 export const getOffsetDate = (offsetDays: number): Date => {

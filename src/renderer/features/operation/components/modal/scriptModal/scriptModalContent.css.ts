@@ -173,13 +173,3 @@ export const linkValue = style({
   width: "100%",
   minWidth: 0,
 });
-
-// 🎯 新規追加: フッターボタンコンテナ
-export const footerActionRow = style({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  gap: tokens.space.sm,
-  paddingTop: tokens.space.sm,
-  borderTop: `1px solid ${tokens.color.border.default}`,
-});

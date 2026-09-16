@@ -1,4 +1,4 @@
-﻿// electron/features/operation/jobs/scripts/helpers/shared/zip-helper.ts
+﻿// electron\features\operation\jobs\scripts\helpers\shared\zipHelper.ts
 
 import * as path from "path";
 import fs from "fs-extra";

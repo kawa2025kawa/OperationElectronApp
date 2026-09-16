@@ -10,7 +10,7 @@ export const button = style({
   alignItems: "center",
   width: "45px",
   height: "45px",
-  backgroundColor: tokens.color.bg.surface,
+  backgroundColor: tokens.color.bg.base,
   border: `1px solid ${tokens.color.border.default}`,
   borderRadius: tokens.radius.full,
   cursor: "pointer",

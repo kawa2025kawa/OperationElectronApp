@@ -1,19 +1,20 @@
 ﻿// electron/features/operation/polling/pollingLoop.ts
+
 import { BrowserWindow } from "electron";
 import { evaluateAllTargetStatuses } from "./pollingStatusEvaluator";
 import { syncTrackerStatuses } from "./trackerMonitor";
-import {
-  getAllTargets,
-  getActiveFlags,
-} from "@electron/features/operation/statusManager";
-import { triggerAutoStartJobs } from "@electron/features/operation/jobRunner";
+import { getAllTargets } from "@electron/features/operation/statusManager";
+import { getActiveFlags } from "@electron/features/operation/activeFlagsManager";
+import { triggerAutoStartJcJobs } from "@electron/features/operation/runners/jcRunner";
+import { triggerAutoStartScriptJobs } from "@electron/features/operation/runners/scriptRunner";
+import { JOB_STATUS } from "@shared/types/operation";
 
 let timer: NodeJS.Timeout | null = null;
 let resolveSleep: (() => void) | null = null;
 let running = false;
 let isCycleRunning = false;
 
-const clearTimer = () => {
+const clearTimer = (): void => {
   if (timer) {
     clearTimeout(timer);
     timer = null;
@@ -25,10 +26,8 @@ const clearTimer = () => {
 };
 
 const sleepUntilNextMinute = (): Promise<void> => {
-  const now = new Date();
-  const next = new Date(now);
-  next.setSeconds(0, 0);
-  next.setMinutes(next.getMinutes() + 1);
+  const now = Date.now();
+  const next = new Date(now).setSeconds(0, 0) + 60000;
   return new Promise((resolve) => {
     resolveSleep = resolve;
     timer = setTimeout(
@@ -37,15 +36,15 @@ const sleepUntilNextMinute = (): Promise<void> => {
         resolveSleep = null;
         resolve();
       },
-      Math.max(0, next.getTime() - now.getTime()),
+      Math.max(0, next - now),
     );
   });
 };
 
-const notifyPollingCycleComplete = () => {
-  BrowserWindow.getAllWindows().forEach((win) => {
+const notifyPollingCycleComplete = (): void => {
+  for (const win of BrowserWindow.getAllWindows()) {
     if (!win.isDestroyed()) win.webContents.send("polling-cycle-complete");
-  });
+  }
 };
 
 export async function runCycle(): Promise<void> {
@@ -54,12 +53,21 @@ export async function runCycle(): Promise<void> {
   isCycleRunning = true;
 
   try {
-    const activeFlags = getActiveFlags() as unknown as Record<string, boolean>;
-    evaluateAllTargetStatuses(targets, () => running, activeFlags);
+    // 1. 全対象の依存関係評価（メモリ上）
+    evaluateAllTargetStatuses(targets, () => running);
     if (!running) return;
-    await syncTrackerStatuses(targets);
-    if (!running) return;
-    await triggerAutoStartJobs(targets, () => running);
+
+    // 2. 自動起動対象の安全網チェック
+    void triggerAutoStartJcJobs(targets, () => running);
+    void triggerAutoStartScriptJobs(targets, () => running);
+
+    // 3. 🎯 RUNNING ジョブの定期同期（統一エントリーポイント経由で並列同期＆一括ログ出力）
+    const runningTargets = targets.filter(
+      (t) => t.status === JOB_STATUS.RUNNING,
+    );
+    if (runningTargets.length > 0) {
+      await syncTrackerStatuses(runningTargets);
+    }
   } finally {
     isCycleRunning = false;
   }
@@ -77,7 +85,7 @@ async function pollingLoop(): Promise<void> {
   }
 }
 
-export const isPollingRunning = () => running;
+export const isPollingRunning = (): boolean => running;
 
 export function startPolling(): void {
   if (running) return;

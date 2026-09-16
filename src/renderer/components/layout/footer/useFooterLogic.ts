@@ -5,17 +5,16 @@ import type { ChangeEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
+import type { CenterId } from "@shared/types/operation";
 import { APP_VIEW_IDS } from "@shared/types/ui";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
-import { selectIsAllCenterActive } from "@renderer/store/slices/centerSlice";
 
 export const useFooterLogic = () => {
   const {
     is1CActive,
     is2CActive,
     is3CActive,
-    isAllCenterActive,
-    toggleCenterPill,
+    toggleCenter,
     currentView,
     searchTerm,
     setSearchTerm,
@@ -24,18 +23,14 @@ export const useFooterLogic = () => {
       is1CActive: state.is1CActive,
       is2CActive: state.is2CActive,
       is3CActive: state.is3CActive,
-      isAllCenterActive: selectIsAllCenterActive(state),
-      toggleCenterPill: state.toggleCenterPill,
+      toggleCenter: state.toggleCenter,
       currentView: state.currentView,
       searchTerm: state.searchTerm,
       setSearchTerm: state.setSearchTerm,
     })),
   );
 
-  // --------------------------------------------------------------------------
-  // Search
-  // --------------------------------------------------------------------------
-
+  // Search State
   const [inputValue, setInputValue] = useState(searchTerm);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -45,9 +40,7 @@ export const useFooterLogic = () => {
 
   useEffect(() => {
     return () => {
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-      }
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
     };
   }, []);
 
@@ -56,55 +49,30 @@ export const useFooterLogic = () => {
       const value = event.target.value;
       setInputValue(value);
 
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-      }
-
-      timerRef.current = setTimeout(() => {
-        setSearchTerm(value);
-      }, 300);
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setSearchTerm(value), 300);
     },
     [setSearchTerm],
   );
 
-  // --------------------------------------------------------------------------
-  // View
-  // --------------------------------------------------------------------------
+  // Center Toggle Handler
+  const handleToggleCenter = useCallback(
+    (id: CenterId) => toggleCenter(id),
+    [toggleCenter],
+  );
 
   const currentViewDef = getAppViewConfig(currentView);
-  const searchPlaceholder = currentViewDef?.search?.placeholder ?? null;
-  const isOperationView = currentView === APP_VIEW_IDS.OPERATION;
-
-  // --------------------------------------------------------------------------
-  // Center toggle
-  // --------------------------------------------------------------------------
-
-  const handleToggle1C = useCallback(() => {
-    toggleCenterPill("is1CActive");
-  }, [toggleCenterPill]);
-
-  const handleToggle2C = useCallback(() => {
-    toggleCenterPill("is2CActive");
-  }, [toggleCenterPill]);
-
-  const handleToggle3C = useCallback(() => {
-    toggleCenterPill("is3CActive");
-  }, [toggleCenterPill]);
 
   return {
-    is1CActive,
-    is2CActive,
-    is3CActive,
-    isAllCenterActive,
-
-    isOperationView,
-
+    centers: {
+      "1C": is1CActive,
+      "2C": is2CActive,
+      "3C": is3CActive,
+    },
+    isOperationView: currentView === APP_VIEW_IDS.OPERATION,
     searchTerm: inputValue,
-    searchPlaceholder,
+    searchPlaceholder: currentViewDef?.search?.placeholder ?? null,
     handleSearchChange,
-
-    handleToggle1C,
-    handleToggle2C,
-    handleToggle3C,
+    handleToggleCenter,
   };
 };

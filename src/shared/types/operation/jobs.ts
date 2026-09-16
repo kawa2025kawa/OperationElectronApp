@@ -1,7 +1,32 @@
 // src/shared/types/operation/jobs.ts
+
 import type { JobDependency } from "./dependency";
 import type { OperationStatusFields } from "./status";
 import type { ScheduledTime } from "./time";
+
+/* ============================================================================
+ * Center & Active Flags Types
+ * ========================================================================== */
+
+export type CenterId = "1C" | "2C" | "3C";
+
+export type ActiveFlags = Record<`is${CenterId}Active`, boolean>;
+
+export const CENTER_IDS: readonly CenterId[] = ["1C", "2C", "3C"];
+
+export const DEFAULT_ACTIVE_FLAGS: ActiveFlags = {
+  is1CActive: false,
+  is2CActive: false,
+  is3CActive: false,
+};
+
+export function getCenterKey(id: CenterId): keyof ActiveFlags {
+  return `is${id}Active`;
+}
+
+/* ============================================================================
+ * Job Types
+ * ========================================================================== */
 
 export interface GmailTemplate {
   to?: string;
@@ -10,16 +35,14 @@ export interface GmailTemplate {
   body?: string;
 }
 
-// 🎯 スクリプトごとの設定（自動起動フラグや専用管理Noに対応）
 export interface ScriptConfig {
-  key: string; // アクション識別キー (例: "main", "check")
-  label: string; // UIボタン表示名 (例: "Script", "照会")
-  scriptKanriNo?: string; // 実行対象の管理No (未指定時は親の kanriNo を参照)
-  autoStart?: boolean; // スクリプト単位の自動実行フラグ
+  key: string;
+  label: string;
+  scriptKanriNo?: string;
+  autoStart?: boolean;
 }
 
 export interface OperationJobItem extends OperationStatusFields {
-  kind: "operation"; // タグを追加
   kanriNo: string;
   workName: string;
   jobId?: string;
@@ -27,10 +50,8 @@ export interface OperationJobItem extends OperationStatusFields {
   kanshiTime?: string | null;
   manual?: boolean | null;
 
-  // 🎯 複数スクリプト設定に対応
   scripts?: ScriptConfig[] | null;
 
-  // 互換性維持のための任意フィールド（移行完了後削除可）
   script?: boolean | null;
   autoStart?: boolean | null;
 
@@ -39,7 +60,6 @@ export interface OperationJobItem extends OperationStatusFields {
 }
 
 export interface IrregularJobItem extends OperationStatusFields {
-  kind: "irregular"; // タグを追加
   kanriNo: string;
   workName: string;
   cycle1?: string | null;
@@ -48,10 +68,8 @@ export interface IrregularJobItem extends OperationStatusFields {
   kanshiTime?: string | null;
   manual?: boolean | null;
 
-  // 🎯 複数スクリプト設定に対応
   scripts?: ScriptConfig[] | null;
 
-  // 互換性維持のための任意フィールド（移行完了後削除可）
   script?: boolean | null;
   autoStart?: boolean | null;
 

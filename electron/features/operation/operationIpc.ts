@@ -1,110 +1,114 @@
 ﻿// electron/features/operation/operationIpc.ts
-import { ipcMain, dialog } from "electron";
+
 import fs from "node:fs";
-import { executeJob } from "@electron/features/operation/jobRunner";
+import { dialog, ipcMain } from "electron";
+import { executeScriptJob } from "@electron/features/operation/runners/scriptRunner";
 import {
+  runCycle,
   startPolling,
   stopPolling,
-} from "@electron/features/operation/polling";
+} from "@electron/features/operation/polling/pollingLoop";
+import { setActiveFlags } from "@electron/features/operation/activeFlagsManager";
 import {
   deleteAllStatuses,
   getTargetByKanriNo,
   initializeStatuses,
   registerTargets,
-  setActiveFlags,
   updateManualStatus,
 } from "@electron/features/operation/statusManager";
-import { fetchTrackerByJobId } from "@electron/features/operation/services/trackerServiceClient";
-import type { OperationItem, OperationJobItem } from "@shared/types/operation";
+import { syncTrackerStatus } from "@electron/features/operation/polling/trackerMonitor";
+import type { JobResult, OperationItem } from "@shared/types/operation";
 
-const cleanKanriNo = (val?: string | number) => String(val ?? "").trim();
+const cleanKanriNo = (val?: string | number): string =>
+  String(val ?? "").trim();
 
-function getValidJobId(target: OperationJobItem, kanriNo: string): string {
-  const jobId = typeof target.jobId === "string" ? target.jobId.trim() : "";
-  if (!jobId || jobId === "-")
-    throw new Error(`Invalid jobId (kanriNo=${kanriNo})`);
-  return jobId;
+async function runScriptWithZipRecovery(
+  scriptId: string,
+  filePath?: string | string[],
+): Promise<JobResult> {
+  try {
+    return await executeScriptJob(scriptId, filePath);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    const zipMatch = errorMessage.match(/([A-Z]:\\[^\r\n]+\.zip)/i);
+    if (zipMatch?.[1]) {
+      const zipPath = zipMatch[1];
+      const response = dialog.showMessageBoxSync({
+        type: "question",
+        buttons: ["削除して再実行", "キャンセル"],
+        defaultId: 0,
+        cancelId: 1,
+        title: "ZIPファイル存在エラー",
+        message:
+          "出力先のZipファイルが既に存在します。削除して再実行しますか？",
+        detail: zipPath,
+      });
+
+      if (response === 0) {
+        if (fs.existsSync(zipPath)) {
+          fs.unlinkSync(zipPath);
+        }
+        return await executeScriptJob(scriptId, filePath);
+      }
+    }
+    throw error;
+  }
 }
 
 export function registerOperationIpc(): void {
-  // Target & Status Handlers
   ipcMain.handle("registerTargets", (_, args) =>
     registerTargets(args?.items ?? []),
   );
-  ipcMain.handle("setActiveFlags", (_, flags) => setActiveFlags(flags ?? {}));
+
+  ipcMain.handle("setActiveFlags", (_, flags) => setActiveFlags(flags));
+
   ipcMain.handle("deleteAllJobStatuses", deleteAllStatuses);
+
   ipcMain.handle("initializeStatus", initializeStatuses);
 
   ipcMain.handle("updateJobStatus", (_, args) => {
     const kanriNo = cleanKanriNo(args?.kanriNo);
-    if (!kanriNo || !args?.status) throw new Error("Invalid parameters");
+    if (!kanriNo || !args?.status) {
+      throw new Error("Invalid parameters");
+    }
     updateManualStatus(kanriNo, args.status, args.comment ?? "");
   });
 
-  // Polling Handlers
   ipcMain.handle("startPolling", startPolling);
+
   ipcMain.handle("stopPolling", stopPolling);
 
-  // Script Handler
   ipcMain.handle("executeScript", async (_, args) => {
     const scriptId = cleanKanriNo(args?.scriptId);
-    if (!scriptId) throw new Error("scriptId is required");
-    try {
-      return await executeJob(scriptId, args?.filePath);
-    } catch (error: any) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      const zipMatch = errorMessage.match(/([A-Z]:\\[^\r\n]+\.zip)/i);
-      if (zipMatch) {
-        const response = dialog.showMessageBoxSync({
-          type: "question",
-          buttons: ["削除して再実行", "キャンセル"],
-          defaultId: 0,
-          cancelId: 1,
-          title: "ZIPファイル存在エラー",
-          message:
-            "出力先のZipファイルが既に存在します。削除して再実行しますか？",
-          detail: zipMatch[1],
-        });
-        if (response === 0) {
-          if (fs.existsSync(zipMatch[1])) fs.unlinkSync(zipMatch[1]);
-          return await executeJob(scriptId, args?.filePath);
-        }
-      }
-      throw error;
+    if (!scriptId) {
+      throw new Error("scriptId is required");
     }
+
+    // 1. スクリプトの実行（SUCCESS / ERROR のステータス更新が内部で走る）
+    const result = await runScriptWithZipRecovery(scriptId, args?.filePath);
+
+    // 2. 【即時反映】60秒の定時ポーリングを待たず、即座に評価サイクルを回して依存ジョブをトリガー・通知
+    void runCycle();
+
+    return result;
   });
 
-  // Tracker Handler
   ipcMain.handle(
     "fetchSingleJobStatus",
     async (_, args): Promise<OperationItem> => {
       const kanriNo = cleanKanriNo(args?.kanriNo);
-      if (!kanriNo) throw new Error("kanriNo is required");
+      if (!kanriNo) {
+        throw new Error("kanriNo is required");
+      }
 
       const target = getTargetByKanriNo(kanriNo);
-      if (!target) throw new Error(`Target not found (kanriNo=${kanriNo})`);
-      if (target.kind !== "operation")
-        throw new Error(`Target is not an operation job (kanriNo=${kanriNo})`);
+      if (!target) {
+        throw new Error(`Target not found (kanriNo=${kanriNo})`);
+      }
 
-      const jobId = getValidJobId(target, kanriNo);
-      const [tracker] = await fetchTrackerByJobId(target);
-      if (!tracker) throw new Error("Tracker data not found");
-
-      return {
-        ...target,
-        kanriNo,
-        jobId,
-        status: tracker.status,
-        startTime: tracker.startTime,
-        endTime: tracker.endTime,
-        expectedStartTime: tracker.expectedStartTime,
-        expectedEndTime: tracker.expectedEndTime,
-        comment: tracker.comment,
-        substatus: tracker.substatus,
-        info: tracker.info,
-        updatedAt: new Date().toISOString(),
-      };
+      // 🎯 統一された API エントリーポイント経由で直接同期・最新結果を取得
+      return await syncTrackerStatus(target);
     },
   );
 }

@@ -144,7 +144,7 @@ export const footerLabel = style({
 export const toggleTrack = style({
   width: "44px",
   height: "22px",
-  backgroundColor: tokens.color.bg.inset,
+  backgroundColor: tokens.color.bg.base,
   borderRadius: tokens.radius.full,
   position: "relative",
   cursor: "pointer",

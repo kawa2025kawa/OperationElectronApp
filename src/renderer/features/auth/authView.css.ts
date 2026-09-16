@@ -3,10 +3,6 @@
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens";
 
-/* ============================================================
- * AuthView Root Container
- * ============================================================ */
-
 export const viewContainer = style({
   width: "100%",
   height: "100%",
@@ -16,5 +12,5 @@ export const viewContainer = style({
   containerType: "size",
   overflow: "hidden",
   boxSizing: "border-box",
-  padding: `${tokens.space.xs} ${tokens.space.md}`, // 🎯 上下余白を絞り高さ領域を拡張
+  padding: `${tokens.space.xs} ${tokens.space.md}`,
 });

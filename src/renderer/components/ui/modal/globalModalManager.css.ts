@@ -1,3 +1,5 @@
+// src/renderer/components/ui/modal/globalModalManager.css.ts
+
 import { style, styleVariants } from "@vanilla-extract/css";
 import { themeTransition, tokens } from "@renderer/styles/tokens";
 
@@ -71,9 +73,9 @@ export const body = style({
   display: "flex",
   flex: 1,
   flexDirection: "column",
-  minHeight: 0, // 🎯 Flex配下での縦崩れ・はみ出しを防止
+  minHeight: 0,
   padding: tokens.space.lg,
-  overflowY: "auto", // 🎯 長いコンテンツのみここをスクロール
+  overflowY: "auto",
   overflowX: "hidden",
   boxSizing: "border-box",
   gap: tokens.space.md,
@@ -85,17 +87,48 @@ export const body = style({
 export const footer = style({
   display: "flex",
   alignItems: "center",
-  justifyContent: "flex-end",
+  justifyContent: "space-between",
   padding: `${tokens.space.md} ${tokens.space.lg}`,
   borderTop: `1px solid ${tokens.color.border.subtle}`,
   backgroundColor: tokens.color.bg.base,
-  flexShrink: 0, // 🎯 スクロール時も最下部に完全固定
-  gap: tokens.space.sm,
+  flexShrink: 0,
+  gap: tokens.space.md,
+  minWidth: 0,
 });
 
-/**
- * デフォルト閉じるボタン用 Neumorphism スタイル
- */
+export const footerContainer = style({
+  display: "flex",
+  width: "100%",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: tokens.space.md,
+  minWidth: 0,
+});
+
+export const footerLeft = style({
+  display: "flex",
+  alignItems: "center",
+  gap: tokens.space.xs,
+  flex: 1,
+  minWidth: 0,
+});
+
+export const footerRight = style({
+  display: "flex",
+  alignItems: "center",
+  gap: tokens.space.xs,
+  flexShrink: 0,
+});
+
+export const footerLeftButton = style({
+  flex: 1,
+  minWidth: 0,
+  padding: "8px 12px",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
 export const defaultCloseButton = style([
   themeTransition,
   {
@@ -122,10 +155,9 @@ export const defaultCloseButton = style([
   },
 ]);
 
-/* -------------------------------------------------------------------------- */
-/* メッセージバナー基本スタイル                                                */
-/* -------------------------------------------------------------------------- */
-
+// ============================================================
+// Message Banner & Variants
+// ============================================================
 export const messageBanner = style({
   display: "flex",
   alignItems: "center",
@@ -140,33 +172,25 @@ export const messageBanner = style({
   backdropFilter: `blur(${tokens.glass.blur})`,
 });
 
-/* -------------------------------------------------------------------------- */
-/* メッセージタイプ別バリアント (info | success | error | warning)              */
-/* -------------------------------------------------------------------------- */
-
 export const messageTypes = styleVariants({
-  // info: waiting トークンを適用
   info: {
     backgroundColor: tokens.color.bg.frostedGlass,
     color: tokens.color.status.waiting,
     border: `1px solid ${tokens.color.status.waiting}`,
     boxShadow: tokens.shadow.glow.waiting,
   },
-  // success: success トークンを適用
   success: {
     backgroundColor: tokens.color.bg.frostedGlass,
     color: tokens.color.status.success,
     border: `1px solid ${tokens.color.status.success}`,
     boxShadow: tokens.shadow.glow.success,
   },
-  // error: error トークンを適用
   error: {
     backgroundColor: tokens.color.bg.frostedGlass,
     color: tokens.color.status.error,
     border: `1px solid ${tokens.color.status.error}`,
     boxShadow: tokens.shadow.glow.error,
   },
-  // warning: running トークンを適用
   warning: {
     backgroundColor: tokens.color.bg.frostedGlass,
     color: tokens.color.status.running,

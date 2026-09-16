@@ -1,7 +1,6 @@
 ﻿// src/renderer/features/other/components/modal/contents/giftMd/GiftMdModalContent.tsx
 
 import React, { useEffect } from "react";
-import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import { FileDropZone } from "@renderer/components/ui/fileDropZone/FileDropZone";
 import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
@@ -12,27 +11,23 @@ export const GiftMdModalContent: GlobalModalComponent = React.memo(() => {
   const updateModalConfig = useAppStore((s) => s.updateModalConfig);
   const closeModal = useAppStore((s) => s.closeGlobalModal);
 
-  // 🎯 フッター領域へ「キャンセル」と「転送実行」ボタンを注入
   useEffect(() => {
     updateModalConfig({
-      footerContent: (
-        <>
-          <ActionButton
-            variant="default"
-            onClick={closeModal}
-            disabled={state.isProcessing}
-          >
-            キャンセル
-          </ActionButton>
-          <ActionButton
-            variant="default"
-            onClick={actions.handleExecute}
-            disabled={!state.hasFile || state.isProcessing}
-          >
-            {state.isProcessing ? "処理中..." : "転送実行"}
-          </ActionButton>
-        </>
-      ),
+      rightActions: [
+        {
+          id: "cancel",
+          label: "キャンセル",
+          onClick: closeModal,
+          disabled: state.isProcessing,
+        },
+        {
+          id: "execute",
+          label: state.isProcessing ? "処理中..." : "転送実行",
+          onClick: actions.handleExecute,
+          disabled: !state.hasFile || state.isProcessing,
+          variant: "default",
+        },
+      ],
     });
   }, [
     state.hasFile,
@@ -53,7 +48,6 @@ export const GiftMdModalContent: GlobalModalComponent = React.memo(() => {
   );
 });
 
-// モーダルサイズ設定
 GiftMdModalContent.modalSize = {
   width: "min(80vw, 850px)",
   height: "min(75vh, 650px)",

@@ -50,15 +50,14 @@ export function useOperationViewLogic() {
     }),
   );
 
-  // 🎯 selectedItem に応じてアクションを動的に展開
   const activeActions = useMemo<ViewAction[]>(() => {
     if (!selectedItem) return [];
 
     const actions: ViewAction[] = [];
 
-    // 1. JC アクション
+    // 🎯 kind ではなく jobId の存在判定に修正
     if (
-      selectedItem.kind === "operation" &&
+      "jobId" in selectedItem &&
       Boolean(selectedItem.jobId && selectedItem.jobId !== "-")
     ) {
       actions.push({
@@ -73,7 +72,6 @@ export function useOperationViewLogic() {
       });
     }
 
-    // 2. 🎯 Scripts 配列のアクション群を自動生成
     if (selectedItem.scripts && selectedItem.scripts.length > 0) {
       selectedItem.scripts.forEach((scriptConfig) => {
         actions.push({
@@ -95,7 +93,6 @@ export function useOperationViewLogic() {
         });
       });
     } else if (selectedItem.script) {
-      // 旧データ用のフォールバック
       actions.push({
         key: "script",
         label: "Script",
@@ -111,7 +108,6 @@ export function useOperationViewLogic() {
       });
     }
 
-    // 3. Link アクション
     if (selectedItem.link && Object.keys(selectedItem.link).length > 0) {
       actions.push({
         key: "link",
@@ -122,15 +118,12 @@ export function useOperationViewLogic() {
             const Content = () =>
               React.createElement(LinkModalContent, { link: item.link });
             Object.assign(Content, LinkModalContent);
-            openGlobalModal(Content, {
-              title: "関連リンク",
-            });
+            openGlobalModal(Content, { title: "関連リンク" });
           }
         },
       });
     }
 
-    // 4. Manual アクション
     if (selectedItem.manual) {
       actions.push({
         key: "manual",

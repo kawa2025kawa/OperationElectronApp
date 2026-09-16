@@ -2,8 +2,8 @@
 
 import path from "node:path";
 import fs from "fs-extra";
-import { parseAmount } from "./helpers/shared/parseAmount";
-import { parseCsv } from "./helpers/shared/parseCsvLine";
+import { parseAmount } from "../helpers/shared/parseAmount";
+import { parseCsv } from "../helpers/shared/parseCsvLine";
 
 type YosanMap = Map<string, number>;
 

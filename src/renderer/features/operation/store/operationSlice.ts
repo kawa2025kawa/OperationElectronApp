@@ -12,24 +12,24 @@ import type { StatusSummary } from "@shared/types/ui";
 import { showToast } from "@renderer/utils/toastUtils";
 import { suppressNextSuccessToast } from "@shared/utils/statusToastSuppression";
 import { checkJobDependencies } from "@shared/utils/dependencyHelper";
+import { refreshSummary } from "@renderer/features/operation/services/operationSummaryService";
 
 import {
   buildInitialOperationData,
-  evaluateDependenciesCascade,
+  calculateSummary,
   findEntityByKanriNo,
   INITIAL_SUMMARY,
-  resetAllEntityStatuses,
-  updateEntityInState,
+  mergeStatus,
 } from "@renderer/features/operation/helpers/operationEntities";
 
+import { filterSummaryItems } from "@renderer/features/operation/services/operationSummaryService";
+import { executeJcJob } from "@renderer/features/operation/services/jcJobService";
 import {
-  executeJcJob,
   executeScriptJob,
-  filterSummaryItems,
-  refreshSummary,
   type ScriptFilePath,
-} from "@renderer/features/operation/services/operationServices";
+} from "@renderer/features/operation/services/scriptJobService";
 
+import { getActiveFlagsFromState } from "@renderer/features/operation/store/centerSlice";
 import { selectActiveSelectedItem } from "./operationSelectors";
 
 export interface OperationSlice {
@@ -60,9 +60,15 @@ export interface OperationSlice {
     filePath?: ScriptFilePath,
   ) => Promise<JobResult>;
   runJcJob: (kanriNo: string) => Promise<void>;
-
-  // 🎯 統合: 選択中ジョブの完了アクション
   completeSelectedOperation: () => Promise<void>;
+}
+
+function refreshSummaryInternal(state: AppState): void {
+  const allItems = [
+    ...Object.values(state.operationEntities),
+    ...Object.values(state.irregularEntities),
+  ];
+  state.summary = calculateSummary(allItems, getActiveFlagsFromState(state));
 }
 
 export const createOperationSlice: StateCreator<
@@ -75,33 +81,6 @@ export const createOperationSlice: StateCreator<
     kanriNo: string | number,
   ): OperationItem | undefined => {
     return findEntityByKanriNo(get(), kanriNo);
-  };
-
-  const updateItemAndRefreshSummary = (update: OperationItem): boolean => {
-    let updated = false;
-    set((state: AppState) => {
-      const result = updateEntityInState(state, update);
-      if (!result.updated) return;
-      evaluateDependenciesCascade(state);
-      updated = true;
-      refreshSummary(state);
-    });
-    return updated;
-  };
-
-  const updateCurrentItemStatus = (
-    kanriNo: string,
-    status: OperationItem["status"],
-    comment?: string,
-  ): void => {
-    const currentItem = getOperationItem(kanriNo);
-    if (!currentItem) return;
-
-    updateItemAndRefreshSummary({
-      ...currentItem,
-      status,
-      comment: comment ?? currentItem.comment ?? "",
-    });
   };
 
   return {
@@ -122,18 +101,49 @@ export const createOperationSlice: StateCreator<
           statuses,
         );
         Object.assign(state, initialData);
-        evaluateDependenciesCascade(state);
+        refreshSummaryInternal(state);
+      });
+    },
+
+    /**
+     * 🎯【差分更新 (Incremental Update)】
+     * Main プロセスから受け取った更新データに基づき、旧ステータス(-1)と新ステータス(+1)の差分のみで高速計算
+     */
+    updateItemStatus: (update): void => {
+      set((state: AppState) => {
+        const kanriNo = String(update.kanriNo).trim();
+        const entity =
+          state.operationEntities[kanriNo] ?? state.irregularEntities[kanriNo];
+
+        if (!entity) return;
+
+        const prevStatus = entity.status;
+        mergeStatus(entity, update);
+
+        // ステータス値に変化がない場合（コメント更新等）はサマリー更新をスキップ
+        if (prevStatus === update.status) return;
+
+        // 🎯 常に正しい判定基準（todayIrregulars を含めた全対象）で集計を同期
         refreshSummary(state);
       });
     },
 
-    updateItemStatus: (update): void => {
-      updateItemAndRefreshSummary(update);
+    recalculateSummary: (): void => {
+      set((state: AppState) => {
+        refreshSummary(state);
+      });
     },
 
     updateJobStatus: async ({ kanriNo, status, comment }): Promise<void> => {
       if (!status) return;
-      updateCurrentItemStatus(kanriNo, status, comment);
+      const item = getOperationItem(kanriNo);
+      if (item) {
+        get().updateItemStatus({
+          ...item,
+          status,
+          comment: comment ?? item.comment ?? "",
+        });
+      }
       try {
         await commands.updateJobStatus(kanriNo, status, comment);
       } catch (error) {
@@ -147,14 +157,17 @@ export const createOperationSlice: StateCreator<
     resetAllOperationStatuses: async (): Promise<void> => {
       await commands.deleteAllJobStatuses();
       set((state: AppState) => {
-        resetAllEntityStatuses(state);
-        refreshSummary(state);
-      });
-    },
-
-    recalculateSummary: (): void => {
-      set((state: AppState) => {
-        refreshSummary(state);
+        const resetEntity = (item: OperationItem) => {
+          item.status = JOB_STATUS.SCHEDULED;
+          item.comment = null;
+          item.startTime = null;
+          item.endTime = null;
+          item.substatus = null;
+          item.info = null;
+        };
+        Object.values(state.operationEntities).forEach(resetEntity);
+        Object.values(state.irregularEntities).forEach(resetEntity);
+        refreshSummaryInternal(state);
       });
     },
 
@@ -170,17 +183,12 @@ export const createOperationSlice: StateCreator<
       return executeJcJob(get(), kanriNo);
     },
 
-    // 🎯 完了処理の一本化
     completeSelectedOperation: async (): Promise<void> => {
       const state = get();
       const selectedItem = selectActiveSelectedItem(state);
       if (!selectedItem) return;
 
-      const activeFlags = {
-        is1CActive: state.is1CActive,
-        is2CActive: state.is2CActive,
-        is3CActive: state.is3CActive,
-      };
+      const activeFlags = getActiveFlagsFromState(state);
 
       const dependencyResult = checkJobDependencies(
         selectedItem.kanriNo,

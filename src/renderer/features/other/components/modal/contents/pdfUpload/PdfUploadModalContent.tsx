@@ -1,64 +1,46 @@
-﻿// src/renderer/features/pdfUpload/components/modal/PdfUploadModalContent.tsx
+﻿// src/renderer/features/other/components/modal/contents/pdfUpload/PdfUploadModalContent.tsx
 
 import React, { useEffect } from "react";
-import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import { FileDropZone } from "@renderer/components/ui/fileDropZone/FileDropZone";
 import { useAppStore } from "@renderer/store";
-import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import type { GlobalModalComponent, ModalAction } from "@shared/types/ui/modal";
 import { usePdfUploadModalContent } from "./usePdfUploadModalContent";
 
-/**
- * モーダル本文領域（ドロップゾーン）
- */
 export const PdfUploadModalContent: GlobalModalComponent = React.memo(() => {
   const { state, actions } = usePdfUploadModalContent();
   const updateModalConfig = useAppStore((s) => s.updateModalConfig);
   const closeModal = useAppStore((s) => s.closeGlobalModal);
 
-  // 🎯 子側から親 (GlobalModalManager) のフッター領域へボタン要素を注入する
   useEffect(() => {
-    updateModalConfig({
-      footerContent: (
-        <div
-          style={{
-            display: "flex",
-            width: "100%",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          {/* 左側: ファイル一覧クリアボタン */}
-          <div>
-            {!state.isEmpty && (
-              <ActionButton
-                variant="default"
-                onClick={actions.handleClearPdfFiles}
-                disabled={state.isProcessing}
-              >
-                クリア
-              </ActionButton>
-            )}
-          </div>
+    const leftActions: ModalAction[] = [];
+    if (!state.isEmpty) {
+      leftActions.push({
+        id: "clear",
+        label: "クリア",
+        onClick: actions.handleClearPdfFiles,
+        disabled: state.isProcessing,
+      });
+    }
 
-          {/* 右側: キャンセル / アップロード実行ボタン */}
-          <div style={{ display: "flex", gap: "8px" }}>
-            <ActionButton
-              variant="default"
-              onClick={closeModal}
-              disabled={state.isProcessing}
-            >
-              キャンセル
-            </ActionButton>
-            <ActionButton
-              variant="default"
-              onClick={actions.handleExecuteUpload}
-              disabled={state.isEmpty || state.isProcessing}
-            >
-              {state.isProcessing ? "アップロード中..." : "アップロード"}
-            </ActionButton>
-          </div>
-        </div>
-      ),
+    const rightActions: ModalAction[] = [
+      {
+        id: "cancel",
+        label: "キャンセル",
+        onClick: closeModal,
+        disabled: state.isProcessing,
+      },
+      {
+        id: "upload",
+        label: state.isProcessing ? "アップロード中..." : "アップロード",
+        onClick: actions.handleExecuteUpload,
+        disabled: state.isEmpty || state.isProcessing,
+        variant: "default",
+      },
+    ];
+
+    updateModalConfig({
+      leftActions,
+      rightActions,
     });
   }, [
     state.isEmpty,
@@ -82,7 +64,6 @@ export const PdfUploadModalContent: GlobalModalComponent = React.memo(() => {
   );
 });
 
-// 静的プロパティ設定
 PdfUploadModalContent.displayName = "PdfUploadModalContent";
 PdfUploadModalContent.modalSize = {
   width: "min(85vw, calc(75vh * 16 / 9))",

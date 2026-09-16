@@ -1,7 +1,6 @@
 ﻿// src/renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent.tsx
 
 import React, { useEffect } from "react";
-import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import { AuthView } from "@renderer/features/auth/AuthView";
 import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
@@ -27,42 +26,31 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
   const updateModalConfig = useAppStore((s) => s.updateModalConfig);
   const closeModal = useAppStore((s) => s.closeGlobalModal);
 
-  // 🎯 認証状態に応じてフッター領域を制御
   useEffect(() => {
+    // 🎯 未認証時は空配列を渡す（親側で自動的にデフォルトの「閉じる」ボタンが割り当てられる）
     if (!isAuthenticated) {
-      // 🎯 未認証時は「閉じる」ボタン単体をフッターに配置
       updateModalConfig({
-        hideFooter: false,
-        footerContent: (
-          <ActionButton variant="default" onClick={closeModal}>
-            閉じる
-          </ActionButton>
-        ),
+        rightActions: [],
       });
       return;
     }
 
-    // 🎯 認証済みの場合は「キャンセル」と「下書き作成」ボタンを注入
     updateModalConfig({
-      hideFooter: false,
-      footerContent: (
-        <>
-          <ActionButton
-            variant="default"
-            onClick={closeModal}
-            disabled={isSaving}
-          >
-            キャンセル
-          </ActionButton>
-          <ActionButton
-            variant="default"
-            onClick={handleExecute}
-            disabled={!formValues.to.trim() || isSaving}
-          >
-            {isSaving ? "処理中..." : "下書き作成"}
-          </ActionButton>
-        </>
-      ),
+      rightActions: [
+        {
+          id: "cancel",
+          label: "キャンセル",
+          onClick: closeModal,
+          disabled: isSaving,
+        },
+        {
+          id: "create-draft",
+          label: isSaving ? "処理中..." : "下書き作成",
+          onClick: handleExecute,
+          disabled: !formValues.to.trim() || isSaving,
+          variant: "default",
+        },
+      ],
     });
   }, [
     isAuthenticated,
@@ -73,7 +61,6 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
     closeModal,
   ]);
 
-  // 🎯 未認証時はモーダル埋め込み（embedded）で AuthView を表示
   if (!isAuthenticated) {
     return <AuthView />;
   }
@@ -113,14 +100,13 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
         />
       </div>
 
-      {/* 宛先 (To) */}
       <div className={styles.fieldGroup}>
         <label className={styles.label} htmlFor="gmail-to">
           宛先 (To)
         </label>
         <textarea
           id="gmail-to"
-          className={styles.addressTextarea} // 🎯 修正: addressTextarea を適用
+          className={styles.addressTextarea}
           rows={1}
           placeholder="example@domain.com"
           value={formValues.to}
@@ -129,14 +115,13 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
         />
       </div>
 
-      {/* CC */}
       <div className={styles.fieldGroup}>
         <label className={styles.label} htmlFor="gmail-cc">
           CC
         </label>
         <textarea
           id="gmail-cc"
-          className={styles.addressTextarea} // 🎯 修正: addressTextarea を適用
+          className={styles.addressTextarea}
           rows={1}
           placeholder="cc@domain.com"
           value={formValues.cc}
@@ -145,7 +130,6 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
         />
       </div>
 
-      {/* 件名 (Subject) */}
       <div className={styles.fieldGroup}>
         <label className={styles.label} htmlFor="gmail-subject">
           件名 (Subject)
@@ -160,14 +144,13 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
         />
       </div>
 
-      {/* 本文 (Body) */}
       <div className={styles.bodyFieldGroup}>
         <label className={styles.label} htmlFor="gmail-body">
           本文 (Body)
         </label>
         <textarea
           id="gmail-body"
-          className={styles.bodyTextarea} // 🎯 修正: bodyTextarea を適用
+          className={styles.bodyTextarea}
           value={formValues.body}
           onChange={handleInputChange("body")}
           disabled={isSaving}

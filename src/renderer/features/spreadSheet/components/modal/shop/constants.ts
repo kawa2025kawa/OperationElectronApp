@@ -18,10 +18,10 @@ export const TIME_RECORDER_IMAGE_ITEMS: readonly {
   key: keyof Shop;
   label: string;
 }[] = [
-  { key: "timeRecorder1", label: SHOP_FIELD_LABELS.timeRecorder1 },
-  { key: "timeRecorder2", label: SHOP_FIELD_LABELS.timeRecorder2 },
-  { key: "timeRecorder3", label: SHOP_FIELD_LABELS.timeRecorder3 },
-  { key: "timeRecorder4", label: SHOP_FIELD_LABELS.timeRecorder4 },
+  { key: "tr1ImageUrl", label: SHOP_FIELD_LABELS.tr1ImageUrl },
+  { key: "tr2ImageUrl", label: SHOP_FIELD_LABELS.tr2ImageUrl },
+  { key: "tr3ImageUrl", label: SHOP_FIELD_LABELS.tr3ImageUrl },
+  { key: "tr4ImageUrl", label: SHOP_FIELD_LABELS.tr4ImageUrl },
   { key: "hub", label: SHOP_FIELD_LABELS.hub },
   { key: "outlet", label: SHOP_FIELD_LABELS.outlet },
 ] as const;

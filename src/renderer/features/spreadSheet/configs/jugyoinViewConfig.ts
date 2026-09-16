@@ -18,7 +18,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   // 本日グループ
   {
     key: "todayAmStatus",
-    label: "AM",
+    label: "区分",
     width: "7%",
     headerGroup: {
       groupKey: "today",
@@ -27,7 +27,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
   {
     key: "todayAmDetail",
-    label: "AM詳細",
+    label: "午前",
     width: "10.5%",
     headerGroup: {
       groupKey: "today",
@@ -36,7 +36,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
   {
     key: "todayPmStatus",
-    label: "PM",
+    label: "区分",
     width: "7%",
     headerGroup: {
       groupKey: "today",
@@ -45,7 +45,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
   {
     key: "todayPmDetail",
-    label: "PM詳細",
+    label: "午後",
     width: "10.5%",
     headerGroup: {
       groupKey: "today",
@@ -56,7 +56,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   // 明日グループ
   {
     key: "tomorrowAmStatus",
-    label: "AM",
+    label: "区分",
     width: "7%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -65,7 +65,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
   {
     key: "tomorrowAmDetail",
-    label: "AM詳細",
+    label: "午前",
     width: "10.5%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -74,7 +74,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
   {
     key: "tomorrowPmStatus",
-    label: "PM",
+    label: "区分",
     width: "7%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -83,7 +83,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
   {
     key: "tomorrowPmDetail",
-    label: "PM詳細",
+    label: "午後",
     width: "10.5%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -94,7 +94,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
 
 export const jugyoinViewConfig: AppViewDefinition<Jugyoin> = {
   id: APP_VIEW_IDS.JUGYOIN,
-  title: "従業員表",
+  title: "従業員情報",
   component: null,
   isProtected: true,
   sidebarMenu: {

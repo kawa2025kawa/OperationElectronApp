@@ -1,17 +1,12 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/shop/ShopModalContent.tsx
 
 import React, { useEffect } from "react";
-import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Shop } from "@shared/types/spreadsheet";
 import { useShopModalFooter } from "../hooks/useShopModalFooter";
 import { useShopModalContent } from "./useShopModalContent";
-import {
-  TERMINAL_TYPES,
-  TERMINAL_FIELDS,
-  TIME_RECORDER_IMAGE_ITEMS,
-} from "./constants";
+import { TERMINAL_TYPES, TERMINAL_FIELDS } from "./constants";
 import * as styles from "./shopModalContent.css";
 
 export interface ShopModalContentProps {
@@ -20,66 +15,27 @@ export interface ShopModalContentProps {
 
 export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
   React.memo(({ data }) => {
+    const { excelPath, pdfPath, handleOpen } = useShopModalFooter(data);
+
     const {
       selectedIndex,
       setSelectedIndex,
       groups,
       displayItems,
       isTimeRecorderTab,
-      commentValue,
-      handleOpenImage,
-      getImageLinkUrl,
-    } = useShopModalContent(data);
+      leftActions,
+    } = useShopModalContent({ data, excelPath, pdfPath, handleOpen });
 
-    const { excelPath, pdfPath, handleOpen } = useShopModalFooter(data);
     const updateModalConfig = useAppStore((s) => s.updateModalConfig);
-    const closeModal = useAppStore((s) => s.closeGlobalModal);
 
-    // 🎯 子側から親 (GlobalModalManager) のフッター領域へボタン要素を注入する
+    // 🎯 leftActions が変化したらストアを即更新し、アンマウント時はリセットする
     useEffect(() => {
-      updateModalConfig({
-        footerContent: (
-          <div
-            style={{
-              display: "flex",
-              width: "100%",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            {/* 左側: Excel / PDF アクションボタン */}
-            <div
-              className={styles.actionRow}
-              style={{ border: "none", padding: 0 }}
-            >
-              {excelPath && (
-                <button
-                  type="button"
-                  className={styles.button}
-                  onClick={() => void handleOpen(excelPath)}
-                >
-                  Excel
-                </button>
-              )}
-              {pdfPath && (
-                <button
-                  type="button"
-                  className={styles.button}
-                  onClick={() => void handleOpen(pdfPath)}
-                >
-                  PDF
-                </button>
-              )}
-            </div>
+      updateModalConfig({ leftActions });
 
-            {/* 右側: 閉じるボタン */}
-            <ActionButton variant="default" onClick={closeModal}>
-              閉じる
-            </ActionButton>
-          </div>
-        ),
-      });
-    }, [excelPath, pdfPath, handleOpen, updateModalConfig, closeModal]);
+      return () => {
+        updateModalConfig({ leftActions: [] });
+      };
+    }, [leftActions, updateModalConfig]);
 
     return (
       <div className={styles.mainContainer}>
@@ -103,36 +59,6 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
         <div className={styles.contentContainer}>
           {isTimeRecorderTab ? (
             <div className={styles.trTabWrapper}>
-              <div className={styles.trSummaryRow}>
-                <div className={styles.summaryBadge}>
-                  <span>設置台数 :</span>
-                  <span>{data.deviceCount || "-"}</span>
-                </div>
-                {commentValue && commentValue !== "-" && (
-                  <div className={styles.summaryComment}>
-                    <span>備考 :</span>
-                    <span>{commentValue}</span>
-                  </div>
-                )}
-                <div className={styles.imageButtonList}>
-                  {TIME_RECORDER_IMAGE_ITEMS.map(({ key, label }) => {
-                    const rawValue = data[key];
-                    const imageUrl = getImageLinkUrl(rawValue);
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        className={styles.imageLinkButton}
-                        onClick={() => handleOpenImage(rawValue)}
-                        disabled={!imageUrl}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
               <div className={styles.terminalSection}>
                 <div className={styles.terminalHeaderRow}>
                   <div className={styles.terminalHeaderBadge}>端末</div>
@@ -181,10 +107,9 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
     );
   });
 
-// モーダルサイズ設定
 ShopModalContent.modalSize = {
-  width: "min(90vw, 950px)",
-  height: "min(80vh, 700px)",
+  width: "min(95vw, calc(75vh * (21 / 9)))",
+  height: "min(75vh, calc(95vw * (9 / 21)))",
 };
 
 ShopModalContent.displayName = "ShopModalContent";

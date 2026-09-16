@@ -22,7 +22,7 @@ export const actionButton = style([
         opacity: 0.35,
         cursor: "not-allowed",
         pointerEvents: "none",
-        backgroundColor: tokens.color.bg.inset,
+        backgroundColor: tokens.color.bg.base,
         borderColor: tokens.color.border.subtle,
         color: tokens.color.text.base,
         boxShadow: tokens.shadow.pressed.low,
@@ -60,7 +60,7 @@ export const variants = styleVariants({
     padding: "0.8vmin 2vmin",
     borderRadius: tokens.radius.md,
     fontSize: tokens.font.fluid.sm,
-    backgroundColor: tokens.color.bg.inset,
+    backgroundColor: tokens.color.bg.base,
     color: tokens.color.text.base, // muted から base へ修正
     opacity: 0.8,
     border: `1px solid ${tokens.color.border.subtle}`,

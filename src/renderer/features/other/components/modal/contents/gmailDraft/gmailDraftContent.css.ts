@@ -86,8 +86,8 @@ export const selectInput = style([
 
     selectors: {
       "&:hover:not(:disabled)": {
-        color: tokens.color.text.hover,
-        boxShadow: tokens.shadow.raised.md,
+        borderColor: tokens.color.accent.base,
+        boxShadow: `${tokens.shadow.raised.low}, ${tokens.shadow.glow.brand}`,
       },
       "&:focus": {
         borderColor: tokens.color.accent.base,

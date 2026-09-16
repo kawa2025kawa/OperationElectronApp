@@ -23,7 +23,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   // --------------------------------------------------------------------------
   {
     key: "todayAmStatus",
-    label: "AM",
+    label: "区分",
     width: "8%",
     headerGroup: {
       groupKey: "today",
@@ -32,7 +32,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   },
   {
     key: "todayAmDetail",
-    label: "AM詳細",
+    label: "午前",
     width: "12%",
     headerGroup: {
       groupKey: "today",
@@ -41,7 +41,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   },
   {
     key: "todayPmStatus",
-    label: "PM",
+    label: "区分",
     width: "8%",
     headerGroup: {
       groupKey: "today",
@@ -50,7 +50,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   },
   {
     key: "todayPmDetail",
-    label: "PM詳細",
+    label: "午後",
     width: "12%",
     headerGroup: {
       groupKey: "today",
@@ -62,7 +62,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   // --------------------------------------------------------------------------
   {
     key: "tomorrowAmStatus",
-    label: "AM",
+    label: "区分",
     width: "8%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -71,7 +71,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   },
   {
     key: "tomorrowAmDetail",
-    label: "AM詳細",
+    label: "午前",
     width: "12%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -80,7 +80,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   },
   {
     key: "tomorrowPmStatus",
-    label: "PM",
+    label: "区分",
     width: "8%",
     headerGroup: {
       groupKey: "tomorrow",
@@ -89,7 +89,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
   },
   {
     key: "tomorrowPmDetail",
-    label: "PM詳細",
+    label: "午後",
     width: "12%",
     headerGroup: {
       groupKey: "tomorrow",

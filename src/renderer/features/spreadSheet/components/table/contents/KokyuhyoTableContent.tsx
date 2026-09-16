@@ -1,5 +1,4 @@
 ﻿// src/renderer/features/spreadSheet/components/table/contents/KokyuhyoTableContent.tsx
-
 import React, { useCallback } from "react";
 import type { Column, TableRowProps } from "@shared/types";
 import { getValueByPath } from "@shared/utils/getValueByPath";
@@ -31,7 +30,6 @@ const TableHeader = <T extends object>({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-      {/* 1段目: 本日/明日 凸型グループ */}
       <div
         className={styles.headerRow}
         style={{ minHeight: "36px", height: "36px", paddingBlock: "2px" }}
@@ -51,7 +49,6 @@ const TableHeader = <T extends object>({
             />
           );
         })}
-
         {groupedColumns.groups.map((group, idx) => (
           <div
             key={`group-${idx}`}
@@ -67,8 +64,6 @@ const TableHeader = <T extends object>({
           </div>
         ))}
       </div>
-
-      {/* 2段目: AM/PM 凸型グループ */}
       <div
         className={styles.headerRow}
         style={{ minHeight: "36px", height: "36px", paddingBlock: "2px" }}
@@ -77,7 +72,6 @@ const TableHeader = <T extends object>({
           const alignClass = styles.thAlignVariants[col.align ?? "left"] ?? "";
           const width = col.width ?? "150px";
           const isSubGroupCol = col.headerGroup != null;
-
           return (
             <div
               key={String(col.key)}
@@ -109,7 +103,6 @@ const TableRowInner = <T extends object>({
   style,
 }: TableRowProps<T>) => {
   const state = isSelected ? "selected" : onRowClick ? "clickable" : "idle";
-
   const handleClick = useCallback(() => {
     onRowClick?.(item);
   }, [onRowClick, item]);
@@ -124,7 +117,6 @@ const TableRowInner = <T extends object>({
           const keyStr = String(col.key);
           const alignClass = styles.tdAlignVariants[col.align ?? "left"] ?? "";
           const width = col.width ?? "150px";
-
           const { rawValue, strValue } = getCellValue(item, col);
           const isHoliday = checkIsHolidayText(rawValue);
 
@@ -168,44 +160,44 @@ export const KokyuhyoTableContent = <T extends object>({
 }: KokyuhyoTableContentProps<T>) => {
   return (
     <>
-      {/* 🎯 1. ヘッダーエリア（固定） */}
       <div className={styles.headerWrapper}>
         <TableHeader columns={columns} />
       </div>
-
-      {/* 🎯 2. ボディ領域（縦スクロール対象） */}
       <div ref={parentRef} className={styles.bodyWrapper}>
         <div
           className={styles.virtualBody}
           style={{ height: `${totalSize}px` }}
         >
-          {virtualItems.map((virtualRow) => {
-            const item = data[virtualRow.index];
-            const keyStr = String(rowKey);
-            const id = String(
-              getValueByPath(item as Record<string, unknown>, keyStr) ??
-                virtualRow.index,
-            );
-            const isSelected = selectedId != null && String(selectedId) === id;
+          <div className={styles.virtualBodyContent}>
+            {virtualItems.map((virtualRow) => {
+              const item = data[virtualRow.index];
+              const keyStr = String(rowKey);
+              const id = String(
+                getValueByPath(item as Record<string, unknown>, keyStr) ??
+                  virtualRow.index,
+              );
+              const isSelected =
+                selectedId != null && String(selectedId) === id;
 
-            return (
-              <TableRow
-                key={id}
-                item={item}
-                columns={columns}
-                isSelected={isSelected}
-                onRowClick={onRowClick}
-                dataIndex={virtualRow.index}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              />
-            );
-          })}
+              return (
+                <TableRow
+                  key={id}
+                  item={item}
+                  columns={columns}
+                  isSelected={isSelected}
+                  onRowClick={onRowClick}
+                  dataIndex={virtualRow.index}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
     </>

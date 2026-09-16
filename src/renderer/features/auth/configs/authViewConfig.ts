@@ -1,4 +1,4 @@
-﻿//src\renderer\features\auth\configs\authViewConfig.//
+﻿// src/renderer/features/auth/configs/authViewConfig.ts
 
 import type { AppViewDefinition } from "@shared/types/registry";
 import { APP_VIEW_IDS } from "@shared/types/ui";

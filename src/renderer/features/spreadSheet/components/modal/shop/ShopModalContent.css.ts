@@ -91,7 +91,7 @@ export const button = style([
 ]);
 
 // ----------------------------------------------------
-// タイムレコーダ サマリーバー
+// タイムレコーダ タブ ラッパー
 // ----------------------------------------------------
 
 export const trTabWrapper = style({
@@ -99,73 +99,6 @@ export const trTabWrapper = style({
   flexDirection: "column",
   gap: tokens.space.md,
 });
-
-export const trSummaryRow = style({
-  display: "flex",
-  alignItems: "center",
-  gap: tokens.space.md,
-  padding: "8px 14px",
-  backgroundColor: tokens.color.bg.base,
-  borderRadius: tokens.radius.md,
-  boxShadow: tokens.shadow.pressed.low,
-  fontSize: tokens.font.fluid.md,
-});
-
-export const summaryBadge = style({
-  display: "flex",
-  alignItems: "center",
-  gap: tokens.space.xs,
-  whiteSpace: "nowrap",
-  fontWeight: tokens.font.weight.bold,
-  color: tokens.color.accent.base,
-});
-
-export const summaryComment = style({
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-  flex: 1,
-  minWidth: 0,
-  color: tokens.color.text.base,
-  ...ellipsisStyle,
-});
-
-export const imageButtonList = style({
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-  marginLeft: "auto",
-});
-
-export const imageLinkButton = style([
-  themeTransition,
-  {
-    border: "none",
-    cursor: "pointer",
-    backgroundColor: tokens.color.bg.base,
-    color: tokens.color.text.base,
-    fontWeight: tokens.font.weight.medium,
-    borderRadius: tokens.radius.sm,
-    padding: "5px 10px",
-    boxShadow: tokens.shadow.raised.low,
-    outline: "none",
-    whiteSpace: "nowrap",
-    selectors: {
-      "&:hover:not(:disabled)": {
-        color: tokens.color.text.hover,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-      },
-      "&:active:not(:disabled)": {
-        boxShadow: tokens.shadow.pressed.low,
-      },
-      "&:disabled": {
-        cursor: "default",
-        opacity: 0.35,
-        boxShadow: "none",
-      },
-    },
-  },
-]);
 
 // ----------------------------------------------------
 // テーブルリスト（ヘッダー & データ行）
@@ -237,7 +170,6 @@ export const terminalBadge = style({
   letterSpacing: "0.5px",
 });
 
-// 🎯【修正箇所】配列の中にクラス名と上書きオブジェクトを並べる
 export const nonTrBadge = style([
   terminalBadge,
   {
@@ -255,7 +187,6 @@ export const flexCell = style({
   flex: 1,
 });
 
-// 🎯【修正箇所】文字列クラスを直渡しせず配列形式にする
 export const terminalGrid = style([gridBase]);
 
 export const cellValue = style({
@@ -268,18 +199,4 @@ export const cellValue = style({
       color: tokens.color.text.hover,
     },
   },
-});
-
-// ----------------------------------------------------
-// Action Row (フッター)
-// ----------------------------------------------------
-
-export const actionRow = style({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  gap: tokens.space.sm,
-  marginTop: "auto",
-  paddingTop: tokens.space.sm,
-  borderTop: `1px solid ${tokens.color.border.subtle}`,
 });

@@ -3,7 +3,7 @@
 import fs from "fs-extra";
 import path from "path";
 import iconv from "iconv-lite";
-import { parseCsvLine } from "./helpers/shared/parseCsvLine";
+import { parseCsvLine } from "../helpers/shared/parseCsvLine";
 
 const INPUT_FILE_NAME = "TENF0140.csv";
 const OUTPUT_DIR = "\\\\C0088150\\nec\\ftp";

@@ -1,8 +1,8 @@
 ﻿import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
+
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import react from "@vitejs/plugin-react";
-import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite";
 import electron from "vite-plugin-electron/simple";
 
@@ -42,19 +42,22 @@ export default defineConfig({
     vanillaExtractPlugin(),
 
     electron({
+      // ============================================================
+      // Electron Main Process
+      // electron/main.ts 保存 → Electronを再起動
+      // ============================================================
       main: {
         entry: resolvePath("electron/main.ts"),
+
         vite: {
           build: {
             outDir: resolvePath("dist-electron"),
             target: "node22",
-            watch: {
-              // 🎯 renderer / shared の変更で Main プロセスが再起動するのを防ぐ
-              exclude: ["src/renderer/**", "src/shared/**"],
-            },
+
             rolldownOptions: {
               external: isElectronExternal,
             },
+
             rollupOptions: {
               output: {
                 format: "es",
@@ -64,16 +67,24 @@ export default defineConfig({
           },
         },
       },
+
+      // ============================================================
+      // Electron Preload
+      // electron/preload.ts 保存 → Windowをreload
+      // Electron Main Process自体は再起動しない
+      // ============================================================
       preload: {
         input: resolvePath("electron/preload.ts"),
+
+        onstart({ reload }) {
+          reload();
+        },
+
         vite: {
           build: {
             outDir: resolvePath("dist-electron"),
             target: "node22",
-            watch: {
-              // 🎯 renderer 側の変更を除外
-              exclude: ["src/renderer/**"],
-            },
+
             rollupOptions: {
               output: {
                 format: "cjs",
@@ -84,14 +95,12 @@ export default defineConfig({
         },
       },
     }),
-
-    // 🎯 ビルド時にどのライブラリが大きいかをグラフ可視化するプラグイン
-    visualizer({
-      open: true, // ビルド完了後に自動的にブラウザで分析画面を開く
-      filename: "stats.html",
-    }),
   ],
 
+  // ================================================================
+  // Renderer
+  // src/**/*.tsx / ts / css 保存 → Vite HMR
+  // ================================================================
   resolve: {
     alias: {
       "@renderer": resolvePath("src/renderer"),
@@ -106,13 +115,40 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 5173,
     strictPort: true,
+
+    // dist-electronはRenderer側のwatch対象から除外
+    watch: {
+      ignored: ["**/dist-electron/**", "**/node_modules/**"],
+    },
   },
 
+  // ================================================================
+  // Renderer production build
+  // ================================================================
   build: {
     target: "esnext",
     outDir: resolvePath("dist"),
     emptyOutDir: true,
-    // 🎯 デスクトップアプリ用にしきい値を 1000 kB (1MB) に引き上げて不要な警告を抑制
     chunkSizeWarningLimit: 1000,
+
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react") || id.includes("react-dom")) {
+              return "vendor-react";
+            }
+
+            if (id.includes("framer-motion") || id.includes("@radix-ui")) {
+              return "vendor-ui";
+            }
+
+            if (id.includes("@tanstack/react-virtual")) {
+              return "vendor-table";
+            }
+          }
+        },
+      },
+    },
   },
 });

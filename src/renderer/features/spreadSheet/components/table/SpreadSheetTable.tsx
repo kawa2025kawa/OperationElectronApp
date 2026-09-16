@@ -1,3 +1,4 @@
+// src/renderer/features/spreadSheet/components/table/SpreadSheetTable.tsx
 import React from "react";
 import type { SpreadSheetTableProps } from "@shared/types";
 import * as styles from "./spreadSheetTable.css";
@@ -47,28 +48,21 @@ const SpreadSheetTableComponent = <T extends object>({
 
   return (
     <div className={styles.container}>
-      <div ref={parentRef} className={styles.bodyWrapper}>
-        <div
-          className={styles.virtualBody}
-          style={{ height: `${totalSize}px` }}
-        >
-          {!data || data.length === 0 ? (
-            <div className={styles.emptyText}>データが存在しません</div>
-          ) : (
-            <TableContentDispatcher
-              sheetId={sheetId}
-              data={data}
-              columns={columns}
-              rowKey={rowKey}
-              onRowClick={onRowClick}
-              selectedId={selectedId}
-              virtualItems={virtualItems}
-              parentRef={parentRef}
-              totalSize={totalSize}
-            />
-          )}
-        </div>
-      </div>
+      {!data || data.length === 0 ? (
+        <div className={styles.emptyText}>データがありません</div>
+      ) : (
+        <TableContentDispatcher
+          sheetId={sheetId}
+          data={data}
+          columns={columns}
+          rowKey={rowKey}
+          onRowClick={onRowClick}
+          selectedId={selectedId}
+          virtualItems={virtualItems}
+          parentRef={parentRef}
+          totalSize={totalSize}
+        />
+      )}
     </div>
   );
 };

@@ -6,10 +6,11 @@ import { addDays, format } from "date-fns";
 
 type ScriptFilePath = string | string[];
 
-const BACKUP_PATH = "\\\\C0088150\\nec\\ftp\\GIFTSYS\\giftRecv\\BackUp\\";
+//const BACKUP_PATH = "\\\\C0088150\\nec\\ftp\\GIFTSYS\\giftRecv\\BackUp\\";
+const BACKUP_PATH = "C:\\Users\\C3088091\\Desktop\\test\\giftRecv\\BackUp";
+
 //const OUTPUT_PATH = "\\\\C0088150\\nec\\ftp\\GIFTSYS\\giftRecv\\";
-const OUTPUT_PATH =
-  "C:\\Users\\C3088091\\Desktop\\test\\ギフトデータMD転送テスト";
+const OUTPUT_PATH = "C:\\Users\\C3088091\\Desktop\\test\\giftRecv";
 
 const ERROR_PREFIX = "マスタ情報獲得エラー :";
 

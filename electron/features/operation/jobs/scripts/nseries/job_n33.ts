@@ -15,18 +15,6 @@ const FTP_CONFIG = {
 } as const;
 
 const FTP_DIR = "/fep/chkcount";
-const TARGET_VALUES = new Set([
-  "24",
-  "43",
-  "51",
-  "57",
-  "59",
-  "88",
-  "700",
-  "881",
-  "882",
-  "883",
-]);
 
 interface UnassignedDetail {
   code: string;
@@ -72,12 +60,6 @@ async function processCsvStream(
 
     if (status === "未格納") {
       unassignedItems.push({ code: normalizedCode, detail: rawDetail });
-
-      if (!TARGET_VALUES.has(normalizedCode)) {
-        throw new Error(
-          `[${codeName}] 行${rowIndex} で不可値 '${rawCode}' を検出しました`,
-        );
-      }
     }
   }
 
@@ -91,6 +73,7 @@ export async function runJobN33(): Promise<string> {
   const client = new Client();
   const today = format(new Date(), "yyyyMMdd");
   const outputLines: string[] = [];
+  let hasUnassigned = false;
 
   const addLine = (message: string = "") => {
     outputLines.push(message);
@@ -114,8 +97,9 @@ export async function runJobN33(): Promise<string> {
         .sort((a, b) => b.name.localeCompare(a.name));
 
       const file = matchedFiles[0];
-      if (!file)
+      if (!file) {
         throw new Error(`[${codeName}] 当日CSV (${today}) が見つかりません`);
+      }
 
       addLine(`▶ [${codeName}] 対象: ${file.name}`);
 
@@ -130,6 +114,7 @@ export async function runJobN33(): Promise<string> {
       );
 
       if (result.unassignedItems.length > 0) {
+        hasUnassigned = true;
         addLine();
         result.unassignedItems.forEach((item) => {
           addLine(`${item.code}:${item.detail}`);
@@ -142,10 +127,35 @@ export async function runJobN33(): Promise<string> {
     await checkFile("S332");
 
     addLine(`--------------------------------------------------`);
+
+    // 未格納が存在する場合は、ログを整形した上で例外を投げる
+    if (hasUnassigned) {
+      addLine(` [JobN33] エラー (未格納データを検出)`);
+      addLine(`==================================================`);
+
+      // モーダル側にエラーとして判定させるため Error を throw
+      const customError = new Error(outputLines.join("\n"));
+      // ログ文字列をそのままエラーメッセージとして設定
+      throw customError;
+    }
+
     addLine(` [JobN33] 完了`);
     addLine(`==================================================`);
 
     return outputLines.join("\n");
+  } catch (error) {
+    if (hasUnassigned) {
+      // 未格納エラーの場合は整形済みログを保持したまま投げる
+      throw error;
+    }
+
+    // その他のシステムエラー（接続失敗等）のログ整形
+    const message = error instanceof Error ? error.message : String(error);
+    addLine(`❌ [JobN33] エラー発生: ${message}`);
+    addLine(`--------------------------------------------------`);
+    addLine(` [JobN33] エラー`);
+    addLine(`==================================================`);
+    throw new Error(outputLines.join("\n"));
   } finally {
     client.close();
   }
