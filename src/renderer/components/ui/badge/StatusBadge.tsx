@@ -1,22 +1,24 @@
 // src/renderer/components/ui/badge/StatusBadge.tsx
 
-import type { JobStatus } from "@shared/types/operation";
-import { STATUS_LABEL } from "@shared/types/ui";
+import React from "react";
+import {
+  JOB_STATUS,
+  STATUS_LABEL,
+  type JobStatus,
+} from "@shared/types/operation/operationTypes";
 import * as styles from "./statusBadge.css";
 
-export interface StatusBadgeProps {
-  status?: JobStatus | undefined;
+interface StatusBadgeProps {
+  status?: JobStatus;
 }
 
-export function StatusBadge({ status = "scheduled" }: StatusBadgeProps) {
-  // CSS側のキーに変換（安全化）
-  const cssKey = status.toLowerCase() as keyof typeof styles.tone;
+export const StatusBadge: React.FC<StatusBadgeProps> = React.memo(
+  ({ status = JOB_STATUS.SCHEDULED }) => {
+    const toneClass = styles.tone[status] ?? styles.tone.scheduled;
+    const label = STATUS_LABEL[status] ?? status;
 
-  const toneClass = styles.tone[cssKey] ?? styles.tone.neutral;
+    return <div className={`${styles.badge} ${toneClass}`}>{label}</div>;
+  },
+);
 
-  return (
-    <div className={`${styles.badge} ${toneClass}`}>{STATUS_LABEL[status]}</div>
-  );
-}
-
-StatusBadge;
+StatusBadge.displayName = "StatusBadge";

@@ -3,7 +3,7 @@
 import React from "react";
 import { DataTable } from "@renderer/components/ui/table/DataTable";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-import type { OperationItem } from "@shared/types/operation";
+import type { OperationItem } from "@shared/types/operation/operationTypes";
 import { useSummaryModalContent } from "./useSummaryModalContent";
 import * as styles from "./summaryModalContent.css";
 

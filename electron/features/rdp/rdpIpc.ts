@@ -1,4 +1,4 @@
-﻿//electron\features\rdp\rdpIpc.ts
+﻿// electron/features/rdp/rdpIpc.ts
 
 import { ipcMain } from "electron";
 import { exec } from "node:child_process";
@@ -50,15 +50,9 @@ const RDP_TARGETS: RdpTargetWithAuth[] = [
   },
 ];
 
-/**
- * レンダラープロセスへ公開する安全なターゲット一覧を取得
- */
+/** レンダラープロセスへ公開する安全なターゲット一覧を取得（PW等は除外） */
 const getPublicRdpTargets = (): RdpTarget[] =>
-  RDP_TARGETS.map((target) => ({
-    id: target.id,
-    host: target.host,
-    name: target.name,
-  }));
+  RDP_TARGETS.map(({ id, host, name }) => ({ id, host, name }));
 
 export function registerRdpIpc(): void {
   ipcMain.handle("getRdpTargets", () => getPublicRdpTargets());
@@ -66,7 +60,7 @@ export function registerRdpIpc(): void {
   ipcMain.handle(
     "startRdpSession",
     async (_e, { payload }: { payload: { id: string } }) => {
-      const target = RDP_TARGETS.find((t) => t.id === payload.id);
+      const target = RDP_TARGETS.find((t) => t.id === payload?.id);
       if (!target) throw new Error("RDP target not found");
 
       if (target.username && target.password) {

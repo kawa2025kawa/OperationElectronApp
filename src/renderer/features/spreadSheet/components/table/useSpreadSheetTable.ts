@@ -4,7 +4,7 @@ import type {
   Column,
   SpreadSheetTableProps,
   TableRowProps,
-} from "@shared/types";
+} from "@shared/types/table/tableType";
 import { getValueByPath } from "@shared/utils/getValueByPath";
 
 const ROW_HEIGHT = 56;

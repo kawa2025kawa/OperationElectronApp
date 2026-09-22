@@ -4,8 +4,8 @@ import React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { UnifiedTable } from "@renderer/features/operation/components/table/OperationTable";
-import type { JobStatus } from "@shared/types/operation";
-import type { ViewMode } from "@shared/types/ui";
+import type { JobStatus } from "@shared/types/operation/operationTypes";
+import type { ViewMode } from "@renderer/registry/appRegistry";
 import {
   useOperationViewLogic,
   MODES,

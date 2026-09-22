@@ -2,7 +2,7 @@
 
 import React from "react";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-import type { Tantou } from "@shared/types/spreadsheet";
+import type { Tantou } from "@shared/types/spreadsheet/tantou";
 import { useTantouModalContent } from "./useTantouModalContent";
 import * as styles from "./TantouModalContent.css";
 

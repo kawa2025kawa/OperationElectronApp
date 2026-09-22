@@ -1,7 +1,7 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/hooks/useSpreadSheetTabData.ts
 import { useMemo, useState } from "react";
 import { getValueByPath } from "@shared/utils/getValueByPath";
-import type { BaseSheetEntity } from "@shared/types/spreadsheet";
+import type { SpreadSheetEntity } from "@shared/types/spreadsheet/sheetTypes";
 
 /**
  * タブグループの設計定義
@@ -23,7 +23,7 @@ export interface TabGroupDisplay {
 }
 
 export function useSpreadSheetTabData<
-  T extends BaseSheetEntity,
+  T extends SpreadSheetEntity,
   K extends string = string,
 >(data: T | undefined, groupConfigs: readonly TabGroupConfig<K>[]) {
   const [selectedIndex, setSelectedIndex] = useState(0);

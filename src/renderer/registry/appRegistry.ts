@@ -1,15 +1,17 @@
 // src/renderer/registry/appRegistry.ts
 
 import type React from "react";
-import { APP_VIEW_IDS, type AppViewId } from "@shared/types/ui";
-import type { AppViewDefinition } from "@shared/types/registry";
-import type { OperationItem } from "@shared/types/operation";
-import type {
-  Jugyoin,
-  Kokyuhyo,
-  Shop,
-  Tantou,
-} from "@shared/types/spreadsheet";
+import type { OperationItem } from "@shared/types/operation/operationTypes";
+import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
+import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
+import type { Shop } from "@shared/types/spreadsheet/shop";
+import type { Tantou } from "@shared/types/spreadsheet/tantou";
+import {
+  APP_VIEW_IDS,
+  type AppViewId,
+  type AppViewDefinition,
+  type ViewMode,
+} from "@shared/types/registry/viewDefinition";
 
 // Configs
 import { operationViewConfig } from "@renderer/features/operation/configs/operationViewConfig";
@@ -21,12 +23,14 @@ import { otherViewConfig } from "@renderer/features/other/configs/otherViewConfi
 import { rdpViewConfig } from "@renderer/features/remoteDesktop/configs/rdpViewConfig";
 import { authViewConfig } from "@renderer/features/auth/configs/authViewConfig";
 
-// Views (直接参照をこちらに集約)
+// Views
 import { OperationView } from "@renderer/features/operation/OperationView";
 import { RdpView } from "@renderer/features/remoteDesktop/RdpView";
 import { OtherView } from "@renderer/features/other/OtherView";
 import { AuthView } from "@renderer/features/auth/AuthView";
 import { SpreadSheetView } from "@renderer/features/spreadSheet/SpreadSheetView";
+
+export { APP_VIEW_IDS, type AppViewId, type ViewMode };
 
 export type ViewEntityMap = {
   [APP_VIEW_IDS.OPERATION]: OperationItem;

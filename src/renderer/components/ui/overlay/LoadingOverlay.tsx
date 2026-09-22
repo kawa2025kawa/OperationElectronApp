@@ -45,19 +45,36 @@ const LoadingOverlayComponent: React.FC<LoadingOverlayProps> = ({
 }) => {
   const loaderState = isOpen ? "active" : "inactive";
 
+  // 🎯 processingTarget が明示されていない場合、dataStatus で現在 LOADING の項目ラベルを自動取得
+  const currentTarget = React.useMemo(() => {
+    if (processingTarget) return processingTarget;
+    if (!dataStatus) return null;
+
+    const loadingEntry = (
+      Object.entries(dataStatus) as [keyof InitStatus, string][]
+    ).find(([_, value]) => value === "LOADING");
+
+    if (!loadingEntry) return null;
+
+    const [key] = loadingEntry;
+    return PANEL_LABELS[key as keyof Required<InitStatus>] ?? String(key);
+  }, [dataStatus, processingTarget]);
+
   return (
     <div
       className={`${styles.fullScreenLoaderBase} ${styles.fullScreenLoaderStates[loaderState]}`}
     >
       <LoadingContent message={message} statusMessage={statusMessage} />
 
-      <div className={styles.processingTargetPanel}>
-        <span className={styles.processingTargetLabel}>PROCESSING TARGET</span>
-
-        <span className={styles.processingTargetValue}>
-          {processingTarget ?? ""}
-        </span>
-      </div>
+      {/* 🎯 target が存在する時だけ左下パネルを描画 */}
+      {currentTarget && (
+        <div className={styles.processingTargetPanel}>
+          <span className={styles.processingTargetLabel}>
+            PROCESSING TARGET
+          </span>
+          <span className={styles.processingTargetValue}>{currentTarget}</span>
+        </div>
+      )}
 
       {dataStatus && (
         <div className={styles.statusPanel}>

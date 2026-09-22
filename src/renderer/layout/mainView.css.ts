@@ -1,4 +1,4 @@
-// src/renderer/layout/AppLayout.css.ts
+// src\renderer\layout\mainView.css.ts
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens, themeTransition } from "@renderer/styles/tokens";
 

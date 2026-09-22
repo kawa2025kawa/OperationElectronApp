@@ -1,6 +1,11 @@
 ﻿// src/renderer/features/spreadSheet/components/table/contents/KokyuhyoTableContent.tsx
+
 import React, { useCallback } from "react";
-import type { Column, TableRowProps } from "@shared/types";
+import type {
+  Column,
+  SpreadSheetTableProps,
+  TableRowProps,
+} from "@shared/types/table/tableType";
 import { getValueByPath } from "@shared/utils/getValueByPath";
 import * as styles from "../spreadSheetTable.css";
 import {
@@ -10,13 +15,10 @@ import {
   useHeaderGroups,
 } from "../useSpreadSheetTable";
 
-interface KokyuhyoTableContentProps<T extends object> {
-  columns: readonly Column<T>[];
+export interface KokyuhyoTableContentProps<
+  T extends object,
+> extends SpreadSheetTableProps<T> {
   virtualItems: Array<{ index: number; start: number }>;
-  data: T[];
-  rowKey: keyof T | string;
-  selectedId?: string | number | null;
-  onRowClick?: (item: T) => void;
   parentRef: React.RefObject<HTMLDivElement | null>;
   totalSize: number;
 }
@@ -152,7 +154,7 @@ export const KokyuhyoTableContent = <T extends object>({
   columns,
   virtualItems,
   data,
-  rowKey,
+  rowKey = "id",
   selectedId,
   onRowClick,
   parentRef,
@@ -171,10 +173,13 @@ export const KokyuhyoTableContent = <T extends object>({
           <div className={styles.virtualBodyContent}>
             {virtualItems.map((virtualRow) => {
               const item = data[virtualRow.index];
-              const keyStr = String(rowKey);
               const id = String(
-                getValueByPath(item as Record<string, unknown>, keyStr) ??
-                  virtualRow.index,
+                typeof rowKey === "function"
+                  ? rowKey(item)
+                  : (getValueByPath(
+                      item as Record<string, unknown>,
+                      String(rowKey),
+                    ) ?? virtualRow.index),
               );
               const isSelected =
                 selectedId != null && String(selectedId) === id;

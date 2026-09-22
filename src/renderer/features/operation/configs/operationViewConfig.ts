@@ -1,5 +1,9 @@
-﻿import type { AppViewDefinition } from "@shared/types/registry";
-import { APP_VIEW_IDS } from "@shared/types/ui";
+﻿// src/renderer/features/operation/configs/operationViewConfig.ts
+
+import {
+  APP_VIEW_IDS,
+  type AppViewDefinition,
+} from "@shared/types/registry/viewDefinition";
 
 export const operationViewConfig: AppViewDefinition = {
   id: APP_VIEW_IDS.OPERATION,

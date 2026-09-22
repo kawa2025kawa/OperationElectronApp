@@ -1,9 +1,10 @@
-//tsconfig.base.json
+// tsconfig.base.json
 {
   "compilerOptions": {
     "target": "ES2023",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "jsx": "react-jsx", // 🎯 ここを追加
     "strict": true,
     "noEmit": true,
 

@@ -1,9 +1,23 @@
-﻿import { style } from "@vanilla-extract/css";
+﻿// src/renderer/components/ui/button/pollingToggleButton/pollingToggleButton.css.ts
+
+import { keyframes, style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens";
+
+const pulseAnimation = keyframes({
+  "0%": {
+    boxShadow: "0 0 0 0 rgba(0, 240, 255, 0.7)",
+  },
+  "70%": {
+    boxShadow: "0 0 0 6px rgba(0, 240, 255, 0)",
+  },
+  "100%": {
+    boxShadow: "0 0 0 0 rgba(0, 240, 255, 0)",
+  },
+});
 
 export const button = style({
   position: "relative",
-  width: "15rem",
+  width: "13rem",
   height: "3rem",
   boxSizing: "border-box",
   padding: `0 ${tokens.space.md}`,
@@ -46,7 +60,8 @@ export const button = style({
 export const content = style({
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
+  justifyContent: "center",
+  gap: "0.75rem",
   width: "100%",
   height: "100%",
 });
@@ -55,30 +70,19 @@ export const indicatorContainer = style({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  width: "1.25em",
-  height: "1.25em",
+  width: "1em",
+  height: "1em",
   flexShrink: 0,
 });
 
-export const progressRing = style({
+export const onlineDot = style({
   display: "block",
-  width: "100%",
-  height: "100%",
-  transform: "rotate(-90deg)",
-});
-
-export const ringBg = style({
-  fill: "none",
-  stroke: "rgba(0, 240, 255, 0.15)",
-  strokeWidth: "2.5",
-});
-
-export const ringMeter = style({
-  fill: "none",
-  stroke: "#00f0ff",
-  strokeWidth: "2.5",
-  strokeLinecap: "round",
-  transition: "stroke-dashoffset 1s linear",
+  width: "0.6em",
+  height: "0.6em",
+  borderRadius: "50%",
+  backgroundColor: "#00f0ff",
+  boxShadow: "0 0 8px #00f0ff",
+  animation: `${pulseAnimation} 2s infinite`,
 });
 
 export const offlineDot = style({
@@ -87,28 +91,10 @@ export const offlineDot = style({
   height: "0.5em",
   borderRadius: "50%",
   backgroundColor: tokens.color.text.base ?? "#666",
+  opacity: 0.5,
 });
 
 export const label = style({
   letterSpacing: "0.05em",
-  flexGrow: 1,
-  textAlign: "center",
-  lineHeight: 1.2,
-});
-
-// 秒数コンテナの幅と内側余白を微調整して左寄りに移動
-export const timerContainer = style({
-  width: "2.5em", // 少し広げて可動域を拡大
-  paddingRight: "0.5em", // 右端に余白を設けて全体を左寄せに
-  display: "inline-flex",
-  justifyContent: "center", // 中央寄せで配置安定化
-  alignItems: "center",
-  flexShrink: 0,
-});
-
-export const timerText = style({
-  fontSize: tokens.font.size.sm,
-  opacity: 0.85,
-  fontFamily: "monospace",
   lineHeight: 1.2,
 });

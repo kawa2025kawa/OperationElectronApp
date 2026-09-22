@@ -1,9 +1,13 @@
 ﻿// src/renderer/features/operation/services/scriptJobService.ts
+
 import { toast } from "sonner";
 import { commands } from "@renderer/services/commands";
 import type { AppState } from "@renderer/store";
-import type { JobResult, OperationItem } from "@shared/types/operation";
-import type { JobExecutionOptions } from "@shared/utils/dependencyHelper";
+import type {
+  JobResult,
+  OperationItem,
+} from "@shared/types/operation/operationTypes";
+import type { JobExecutionOptions } from "@shared/utils/dependency/dependencyUtils";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/operationEntities";
 import {
   getErrorMessage,
@@ -37,6 +41,7 @@ export async function executeScriptJob(
 
   const resolvedOptions = resolveJobExecutionOptions(options);
   let item: OperationItem;
+
   try {
     item = requireOperationItem(state, kanriNo);
   } catch (error) {
@@ -48,6 +53,7 @@ export async function executeScriptJob(
   }
 
   const targetName = item.workName || kanriNo;
+
   return runJobWithGlobalProcessing(
     state,
     "スクリプト実行中...",

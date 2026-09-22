@@ -1,36 +1,35 @@
-// src/renderer/features/operation/components/modal/linkModal/LinkModalContent.tsx
-
 import React from "react";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import type { LinkConfig } from "@shared/types/operation/operationTypes"; // ★ インポート
 import { useLinkModalContent } from "./useLinkModalContent";
 import * as styles from "./linkModalContent.css";
 
 interface LinkModalContentProps {
-  link?: Record<string, string> | null;
+  link?: LinkConfig[] | null; // ★ LinkConfig[] に変更
 }
 
 export const LinkModalContent: GlobalModalComponent<LinkModalContentProps> =
   React.memo(({ link }) => {
     const { state, actions } = useLinkModalContent(link);
-
     return (
       <div className={styles.contentContainer}>
-        <div className={styles.sectionTitle}>関連リンク一覧</div>
+        <div className={styles.sectionTitle}>リンク一覧</div>
         <div className={styles.terminalSection}>
           {state.isEmpty ? (
-            <EmptyState message="関連リンクが存在しません" />
+            <EmptyState message="リンクがありません" />
           ) : (
-            state.linkEntries.map(([label, url]) => (
+            // ★ linkEntries (LinkConfig) の配列をループ処理
+            state.linkItems.map((item) => (
               <button
-                key={label}
+                key={item.key}
                 type="button"
                 className={styles.terminalRow}
-                onClick={() => void actions.handleOpenUrl(String(url))}
+                onClick={() => void actions.handleOpenUrl(item.url)}
               >
-                <div className={styles.nonTrBadge}>{label}</div>
+                <div className={styles.nonTrBadge}>{item.key}</div>
                 <div className={styles.flexCell}>
-                  <div className={styles.cellValue}>{String(url)}</div>
+                  <div className={styles.cellValue}>{item.url}</div>
                 </div>
               </button>
             ))

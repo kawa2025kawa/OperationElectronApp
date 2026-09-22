@@ -1,7 +1,7 @@
 // src/renderer/components/ui/toast/pollingToastStore.ts
 
 import { create } from "zustand";
-import type { JobStatus } from "@shared/types/operation";
+import type { JobStatus } from "@shared/types/operation/operationTypes";
 
 export type ToastType = "info" | "success" | "error" | "warning";
 

@@ -1,7 +1,7 @@
 // src/renderer/features/operation/components/table/OperationTable.tsx
 import React from "react";
 import { AnimatePresence, m } from "framer-motion";
-import type { OperationItem } from "@shared/types/operation";
+import type { OperationItem } from "@shared/types/operation/operationTypes";
 import type { Column } from "@shared/types/table/tableType";
 import { UnifiedTableRow } from "./UnifiedTableRow";
 import { useOperationTable } from "./useOperationTable";

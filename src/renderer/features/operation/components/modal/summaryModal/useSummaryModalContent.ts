@@ -1,6 +1,6 @@
 ﻿import React, { useMemo } from "react";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
-import type { OperationItem } from "@shared/types/operation";
+import type { OperationItem } from "@shared/types/operation/operationTypes";
 import type { Column } from "@shared/types/table/tableType";
 
 export function useSummaryModalContent(items: OperationItem[] = []) {

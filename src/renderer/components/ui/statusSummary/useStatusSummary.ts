@@ -1,14 +1,14 @@
-﻿//src\renderer\components\ui\statusSummary\useStatusSummary.ts
+﻿// src/renderer/components/ui/statusSummary/useStatusSummary.ts
 
 import { useCallback, useMemo } from "react";
 import { useAppStore } from "@renderer/store";
-import type { OperationItem } from "@shared/types/operation";
 import {
   STATUS_LABEL,
-  SUMMARY_ORDER,
+  SummaryOrder,
+  type OperationItem,
   type StatusSummary as FilteredSummary,
   type SummaryDisplayKey,
-} from "@shared/types/ui";
+} from "@shared/types/operation/operationTypes";
 import * as styles from "./statusSummary.css";
 
 // ============================================================
@@ -40,7 +40,8 @@ export const useStatusSummary = ({
   );
 
   const items = useMemo<StatusItemData[]>(() => {
-    return SUMMARY_ORDER.map((key) => {
+    // 🎯 SummaryOrder.ORDER 配列を参照してループを回す
+    return SummaryOrder.ORDER.map((key: SummaryDisplayKey) => {
       const rawValue = data[key] ?? 0;
       const displayValue = key === "progress" ? `${rawValue}%` : rawValue;
       const label = STATUS_LABEL[key];

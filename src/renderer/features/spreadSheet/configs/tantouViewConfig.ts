@@ -1,9 +1,11 @@
 ﻿// src/renderer/features/spreadSheet/configs/tantouViewConfig.ts
 
-import type { AppViewDefinition } from "@shared/types/registry";
-import type { Tantou } from "@shared/types/spreadsheet";
+import type { Tantou } from "@shared/types/spreadsheet/tantou";
 import type { Column } from "@shared/types/table/tableType";
-import { APP_VIEW_IDS } from "@shared/types/ui";
+import {
+  APP_VIEW_IDS,
+  type AppViewDefinition,
+} from "@shared/types/registry/viewDefinition";
 
 export const TANTOU_COLUMNS: readonly Column<Tantou>[] = [
   { key: "todayHayaban", label: "早番", width: "10.5%" },

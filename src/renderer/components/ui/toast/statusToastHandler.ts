@@ -3,13 +3,29 @@
 import { useAppStore } from "@renderer/store/index";
 import { consumeSuppressedSuccessToast } from "@shared/utils/statusToastSuppression";
 import { usePollingToastStore, type ToastType } from "./pollingToastStore";
-import type { JobStatus, OperationItem } from "@shared/types/operation";
+import {
+  JOB_STATUS,
+  type JobStatus,
+  type OperationItem,
+} from "@shared/types/operation/operationTypes";
+
+/* ============================================================================
+ * Constants & Helpers
+ * ========================================================================== */
 
 const TOAST_TYPE_MAP: Partial<Record<JobStatus, ToastType>> = {
-  error: "error",
-  success: "success",
-  ready: "info",
+  [JOB_STATUS.ERROR]: "error",
+  [JOB_STATUS.SUCCESS]: "success",
+  [JOB_STATUS.READY]: "info",
 };
+
+function isAutoNotificationTarget(item: OperationItem): boolean {
+  return item.executionType !== "manual";
+}
+
+/* ============================================================================
+ * Handler Implementation
+ * ========================================================================== */
 
 export const handleStatusToastNotification = (
   update: OperationItem,
@@ -24,27 +40,34 @@ export const handleStatusToastNotification = (
 
   const toastStore = usePollingToastStore.getState();
 
+  // 直前と同じステータスの場合は通知スキップ
   if (currentStatus === toastStore.getPrevStatus(kanriNo)) return;
   toastStore.setPrevStatus(kanriNo, currentStatus);
 
   const toastType = TOAST_TYPE_MAP[currentStatus];
   if (!toastType) return;
 
-  if (currentStatus === "success" && consumeSuppressedSuccessToast(kanriNo)) {
+  // 手動完了時などのトースト抑制チェック
+  if (
+    currentStatus === JOB_STATUS.SUCCESS &&
+    consumeSuppressedSuccessToast(kanriNo)
+  ) {
     return;
   }
 
   const item = state.getEntityByKanriNo
     ? state.getEntityByKanriNo(kanriNo)
-    : (state.operationEntities[kanriNo] ?? state.irregularEntities[kanriNo]);
+    : (state.operationEntities[kanriNo] ??
+      state.irregularEntities[kanriNo] ??
+      update);
 
-  if (!item?.autoStart || item?.manual) return;
+  if (!item || !isAutoNotificationTarget(item)) return;
 
   const nameLabel =
-    item?.workName ||
+    item.workName ||
     update.workName ||
     ("jobId" in update && update.jobId ? String(update.jobId) : null) ||
-    `管理No.${kanriNo}`;
+    `No.${kanriNo}`;
 
   toastStore.addToast(`${nameLabel} ${currentStatus}`, toastType);
 };

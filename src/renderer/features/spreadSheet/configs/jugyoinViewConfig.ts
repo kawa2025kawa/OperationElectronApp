@@ -1,9 +1,11 @@
 ﻿// src/renderer/features/spreadSheet/configs/jugyoinViewConfig.ts
 
-import type { AppViewDefinition } from "@shared/types/registry";
-import type { Jugyoin } from "@shared/types/spreadsheet";
+import {
+  APP_VIEW_IDS,
+  type AppViewDefinition,
+} from "@shared/types/registry/viewDefinition";
+import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
 import type { Column } from "@shared/types/table/tableType";
-import { APP_VIEW_IDS } from "@shared/types/ui";
 import { formatDateForHeader, getOffsetDate } from "@shared/utils/dateUtils";
 
 const DATE_LABELS = {

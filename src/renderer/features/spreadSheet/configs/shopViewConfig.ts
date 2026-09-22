@@ -1,7 +1,9 @@
-﻿import type { AppViewDefinition } from "@shared/types/registry";
-import type { Shop } from "@shared/types/spreadsheet";
+﻿import type { Shop } from "@shared/types/spreadsheet/shop";
 import type { Column } from "@shared/types/table/tableType";
-import { APP_VIEW_IDS } from "@shared/types/ui";
+import {
+  APP_VIEW_IDS,
+  type AppViewDefinition,
+} from "@shared/types/registry/viewDefinition";
 
 export const SHOP_COLUMNS: readonly Column<Shop>[] = [
   { key: "shopCode", label: "店舗コード", width: "10%" },

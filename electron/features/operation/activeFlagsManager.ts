@@ -3,7 +3,7 @@
 import {
   DEFAULT_ACTIVE_FLAGS,
   type ActiveFlags,
-} from "@shared/types/operation";
+} from "@shared/types/operation/operationTypes";
 
 let activeFlags: ActiveFlags = { ...DEFAULT_ACTIVE_FLAGS };
 

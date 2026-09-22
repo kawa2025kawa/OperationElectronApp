@@ -1,6 +1,6 @@
 ﻿import { useMemo } from "react";
 import { addDays } from "date-fns";
-import type { Tantou } from "@shared/types/spreadsheet";
+import type { Tantou } from "@shared/types/spreadsheet/tantou";
 import { formatDateForHeader } from "@shared/utils/dateUtils";
 import {
   type TabGroupConfig,

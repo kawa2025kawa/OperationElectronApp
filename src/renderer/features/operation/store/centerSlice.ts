@@ -3,11 +3,10 @@
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
 import { commands } from "@renderer/services/commands";
-import {
-  getCenterKey,
-  type ActiveFlags,
-  type CenterId,
-} from "@shared/types/operation";
+import type {
+  ActiveFlags,
+  CenterId,
+} from "@shared/types/operation/operationTypes";
 
 export interface CenterSlice extends ActiveFlags {
   toggleCenter: (id: CenterId) => void;
@@ -24,7 +23,8 @@ export const createCenterSlice: StateCreator<
   is3CActive: false,
 
   toggleCenter: (id) => {
-    const key = getCenterKey(id);
+    // 🎯 operationTypes の関数を使わず、直接キー名を生成
+    const key = `is${id}Active` as keyof ActiveFlags;
 
     set((state) => {
       state[key] = !state[key];

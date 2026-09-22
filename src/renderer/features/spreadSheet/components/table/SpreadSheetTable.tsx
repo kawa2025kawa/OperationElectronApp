@@ -1,26 +1,33 @@
 // src/renderer/features/spreadSheet/components/table/SpreadSheetTable.tsx
+
 import React from "react";
-import type { SpreadSheetTableProps } from "@shared/types";
+import type { SpreadSheetTableProps } from "@shared/types/table/tableType";
+import type { SheetId } from "@shared/types/spreadsheet/sheetTypes";
 import * as styles from "./spreadSheetTable.css";
 import { useSpreadSheetTable } from "./useSpreadSheetTable";
 import { KokyuhyoTableContent } from "./contents/KokyuhyoTableContent";
 import { JugyoinTableContent } from "./contents/JugyoinTableContent";
 import { ShopTableContent } from "./contents/ShopTableContent";
 
-interface ExtendedSpreadSheetTableProps<
+export interface ExtendedSpreadSheetTableProps<
   T extends object,
 > extends SpreadSheetTableProps<T> {
-  sheetId?: string;
+  sheetId?: SheetId | string | null;
 }
+
+// 🎯 rowKey を Required にした DispatcherProps を定義
+type TableContentDispatcherProps<T extends object> =
+  ExtendedSpreadSheetTableProps<T> & {
+    rowKey: keyof T | string | ((record: T) => string);
+    virtualItems: Array<{ index: number; start: number }>;
+    parentRef: React.RefObject<HTMLDivElement | null>;
+    totalSize: number;
+  };
 
 const TableContentDispatcher = <T extends object>({
   sheetId,
   ...props
-}: ExtendedSpreadSheetTableProps<T> & {
-  virtualItems: Array<{ index: number; start: number }>;
-  parentRef: React.RefObject<HTMLDivElement | null>;
-  totalSize: number;
-}) => {
+}: TableContentDispatcherProps<T>) => {
   switch (sheetId) {
     case "KokyuhyoMasterData":
     case "kokyuhyo":

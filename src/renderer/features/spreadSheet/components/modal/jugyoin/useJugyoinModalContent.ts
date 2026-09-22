@@ -1,7 +1,7 @@
 ﻿import { useCallback, useMemo } from "react";
 import { addDays } from "date-fns";
 import { commands } from "@renderer/services/commands";
-import type { Jugyoin } from "@shared/types/spreadsheet";
+import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
 import { formatDateWithDay } from "@renderer/features/spreadSheet/utils/scheduleUtils";
 
 export function useJugyoinModalContent(data: Jugyoin) {

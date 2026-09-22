@@ -1,18 +1,22 @@
 // src/renderer/features/operation/store/operationSelectors.ts
 
 import type { AppState } from "@renderer/store";
-import { JOB_STATUS, type OperationItem } from "@shared/types/operation";
-import { STATUS_LABEL } from "@shared/types/ui";
+import {
+  JOB_STATUS,
+  type JobStatus,
+  type OperationItem,
+} from "@shared/types/operation/operationTypes";
+import { STATUS_LABEL } from "@shared/types/operation/operationTypes";
 
-// ============================================================================
-// Common Selectors
-// ============================================================================
+/* ============================================================================
+ * Common Selectors
+ * ========================================================================== */
 
 export const selectCurrentMode = (state: AppState) => state.currentMode;
 
-// ============================================================================
-// Entity Selectors
-// ============================================================================
+/* ============================================================================
+ * Entity Selectors
+ * ========================================================================== */
 
 function getEntitiesByIds(
   ids: string[],
@@ -23,9 +27,9 @@ function getEntitiesByIds(
     .filter((item): item is OperationItem => item !== undefined);
 }
 
-// ============================================================================
-// Search
-// ============================================================================
+/* ============================================================================
+ * Search Helpers
+ * ========================================================================== */
 
 function containsSearchTerm(value: unknown, term: string): boolean {
   if (value == null) {
@@ -70,7 +74,8 @@ function filterTableItems(
       return false;
     }
 
-    const label = STATUS_LABEL[item.status];
+    // item.status (JobStatus) に対応する UI 表示ラベルを取得して検索
+    const label = STATUS_LABEL[item.status as JobStatus];
 
     return label?.toLowerCase().includes(searchTerm) ?? false;
   });
@@ -80,9 +85,9 @@ function getNormalizedSearchTerm(state: AppState): string {
   return state.searchTerm.trim().toLowerCase();
 }
 
-// ============================================================================
-// Table Selectors
-// ============================================================================
+/* ============================================================================
+ * Table Data Selectors
+ * ========================================================================== */
 
 export const selectOperationTableData = (state: AppState): OperationItem[] => {
   return filterTableItems(
@@ -105,9 +110,9 @@ export const selectTodayTableData = (state: AppState): OperationItem[] => {
   );
 };
 
-// ============================================================================
-// Filtered IDs
-// ============================================================================
+/* ============================================================================
+ * Filtered IDs Selectors
+ * ========================================================================== */
 
 export const selectFilteredOperationIds = (state: AppState): string[] =>
   selectOperationTableData(state).map((item) => item.kanriNo);
@@ -118,48 +123,48 @@ export const selectFilteredIrregularIds = (state: AppState): string[] =>
 export const selectFilteredTodayIds = (state: AppState): string[] =>
   selectTodayTableData(state).map((item) => item.kanriNo);
 
-// ============================================================================
-// Selected Item
-// ============================================================================
+/* ============================================================================
+ * Active Selected Item Selectors
+ * ========================================================================== */
 
 export const selectActiveSelectedItem = (
   state: AppState,
 ): OperationItem | undefined => {
-  const selectedId = state.selectedIds[state.currentMode];
+  const rawId = state.selectedIds[state.currentMode];
 
-  if (!selectedId) {
+  if (!rawId) {
     return undefined;
   }
 
+  const selectedId = String(rawId).trim();
+
   if (state.currentMode === "operation") {
-    return state.operationEntities[selectedId];
+    return (
+      state.operationEntities[selectedId] ?? state.operationEntities[rawId]
+    );
   }
 
-  return state.irregularEntities[selectedId];
+  return state.irregularEntities[selectedId] ?? state.irregularEntities[rawId];
 };
 
-// ============================================================================
-// Selected Item Status
-// ============================================================================
+/* ============================================================================
+ * Active Item Status Flags Selector
+ * ========================================================================== */
 
 export const selectActiveItemStatusFlags = (state: AppState) => {
   const item = selectActiveSelectedItem(state);
 
-  const status = item?.status ?? JOB_STATUS.SCHEDULED;
+  // ステータスが未定義の場合はデフォルト値として JOB_STATUS.SCHEDULED を採用
+  const status: JobStatus = (item?.status as JobStatus) ?? JOB_STATUS.SCHEDULED;
 
   return {
     item,
     status,
-
     isExecuting:
       status === JOB_STATUS.RUNNING || status === JOB_STATUS.SCRIPT_RUNNING,
-
     isError: status === JOB_STATUS.ERROR,
-
     isSuccess: status === JOB_STATUS.SUCCESS,
-
     isWaiting: status === JOB_STATUS.WAITING,
-
     isReady: status === JOB_STATUS.READY,
   };
 };

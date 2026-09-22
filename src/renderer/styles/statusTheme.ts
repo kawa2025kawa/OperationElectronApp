@@ -1,7 +1,7 @@
 // src/renderer/styles/statusTheme.ts
 
 import { tokens } from "@renderer/styles/tokens";
-import type { JobStatus } from "@shared/types/operation";
+import type { JobStatus } from "@shared/types/operation/operationTypes";
 
 /* =====================================================
  * 🎯 Theme型

@@ -1,9 +1,11 @@
 ﻿// src/renderer/features/spreadSheet/configs/kokyuhyoViewConfig.ts
 
-import type { AppViewDefinition } from "@shared/types/registry";
-import type { Kokyuhyo } from "@shared/types/spreadsheet";
+import {
+  APP_VIEW_IDS,
+  type AppViewDefinition,
+} from "@shared/types/registry/viewDefinition";
+import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
 import type { Column } from "@shared/types/table/tableType";
-import { APP_VIEW_IDS } from "@shared/types/ui";
 import { formatDateForHeader, getOffsetDate } from "@shared/utils/dateUtils";
 
 // 1段目に表示するグループラベル（「本日 (09/09水)」「明日 (09/10木)」）

@@ -20,23 +20,31 @@ const UPDATE_INFO_PATH = path.join(
   "OperationElectronApp_update.json",
 );
 
+function getMainWindow(): BrowserWindow | null {
+  const win = BrowserWindow.getAllWindows()[0];
+  return win && !win.isDestroyed() ? win : null;
+}
+
+function isUpdateInfo(value: unknown): value is UpdateInfo {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as Record<string, unknown>).version === "string"
+  );
+}
+
 export function registerSystemIpc(): void {
   ipcMain.handle("getAppVersion", () => app.getVersion());
 
   ipcMain.handle("showMainWindow", () => {
-    const mainWindow = BrowserWindow.getAllWindows()[0];
-
-    if (!mainWindow) {
-      return null;
-    }
+    const mainWindow = getMainWindow();
+    if (!mainWindow) return null;
 
     if (mainWindow.isMinimized()) {
       mainWindow.restore();
     }
-
     mainWindow.show();
     mainWindow.focus();
-
     return null;
   });
 
@@ -49,8 +57,9 @@ export function registerSystemIpc(): void {
     "openExternal",
     async (_event, { urlOrPath }: { urlOrPath: string }) => {
       const target = urlOrPath.trim();
+      if (!target) return null;
 
-      if (target.startsWith("http://") || target.startsWith("https://")) {
+      if (/^https?:\/\//i.test(target)) {
         await shell.openExternal(target);
       } else {
         const normalized = target.replace(/\//g, "\\");
@@ -66,14 +75,10 @@ export function registerSystemIpc(): void {
   ipcMain.handle(
     "showOpenDialog",
     async (_event, options: OpenDialogOptions) => {
-      const mainWindow = BrowserWindow.getAllWindows()[0];
-
-      if (!mainWindow) {
-        return null;
-      }
+      const mainWindow = getMainWindow();
+      if (!mainWindow) return null;
 
       const result = await dialog.showOpenDialog(mainWindow, options);
-
       return result.canceled ? null : result.filePaths;
     },
   );
@@ -84,7 +89,7 @@ export function registerSystemIpc(): void {
       const data: unknown = JSON.parse(content);
 
       if (!isUpdateInfo(data)) {
-        console.warn("[Update] Invalid update info");
+        console.warn("[Update] Invalid update info format");
         return null;
       }
 
@@ -94,14 +99,4 @@ export function registerSystemIpc(): void {
       return null;
     }
   });
-}
-
-function isUpdateInfo(value: unknown): value is UpdateInfo {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const data = value as Record<string, unknown>;
-
-  return typeof data.version === "string";
 }

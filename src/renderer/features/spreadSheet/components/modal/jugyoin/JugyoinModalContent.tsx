@@ -3,7 +3,7 @@
 import React from "react";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-import type { Jugyoin } from "@shared/types/spreadsheet";
+import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
 import { useJugyoinModalContent } from "./useJugyoinModalContent";
 import * as styles from "./JugyoinModalContent.css";
 

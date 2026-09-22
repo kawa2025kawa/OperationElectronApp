@@ -1,5 +1,7 @@
-﻿import type { AppViewDefinition } from "@shared/types/registry";
-import { APP_VIEW_IDS } from "@shared/types/ui";
+﻿import {
+  APP_VIEW_IDS,
+  type AppViewDefinition,
+} from "@shared/types/registry/viewDefinition";
 
 export const rdpViewConfig: AppViewDefinition = {
   id: APP_VIEW_IDS.RDP,

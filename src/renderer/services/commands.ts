@@ -6,18 +6,15 @@ import type {
   JobResult,
   JobStatus,
   OperationItem,
-} from "@shared/types/operation";
+} from "@shared/types/operation/operationTypes";
 import type { RdpTarget } from "@shared/types/rdp";
 import type { UpdateInfo } from "@shared/types/system";
-
-/**
- * Renderer → Main IPC の一元管理アダプター。
- */
+import type { OperationMasterCache } from "@electron/features/operation/services/operationMasterService";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 
 /* ============================================================================
- * Types
+ * Types & Type Guards
  * ========================================================================== */
-
 export type ScriptFilePath = string | string[];
 
 export interface CreateGmailDraftParams {
@@ -31,121 +28,93 @@ interface OperationStatusUpdatedPayload {
 
 export type AppTheme = "dark" | "light";
 
-/* ============================================================================
- * Type Guards
- * ========================================================================== */
-
-function isOperationStatusUpdatedPayload(
+const isOperationStatusUpdatedPayload = (
   payload: unknown,
-): payload is OperationStatusUpdatedPayload {
-  if (typeof payload !== "object" || payload === null) {
-    return false;
-  }
+): payload is OperationStatusUpdatedPayload =>
+  typeof payload === "object" && payload !== null && "status" in payload;
 
-  return "status" in payload;
-}
-
-function isAppTheme(value: unknown): value is AppTheme {
-  return value === "dark" || value === "light";
-}
+const isAppTheme = (value: unknown): value is AppTheme =>
+  value === "dark" || value === "light";
 
 /* ============================================================================
- * Commands
+ * Commands Adapter
  * ========================================================================== */
-
 export const commands = {
-  // ========================================================================
   // Operation / Polling
-  // ========================================================================
+  startPolling: (): Promise<void> =>
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.START_POLLING),
 
-  /**
-   * Pollingを開始する。
-   */
-  startPolling: (): Promise<void> => window.electronAPI.invoke("startPolling"),
+  stopPolling: (): Promise<void> =>
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.STOP_POLLING),
 
-  /**
-   * Pollingを停止する。
-   */
-  stopPolling: (): Promise<void> => window.electronAPI.invoke("stopPolling"),
-
-  /**
-   * Auto Start対象のActive FlagをMainへ同期する。
-   */
   setActiveFlags: (flags?: Partial<ActiveFlags>): Promise<void> =>
-    window.electronAPI.invoke("setActiveFlags", flags ?? {}),
+    window.electronAPI.invoke(
+      IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS,
+      flags ?? {},
+    ),
 
-  /**
-   * Job Statusを更新する。
-   */
   updateJobStatus: (
     kanriNo: string,
     status: JobStatus,
     comment?: string,
   ): Promise<void> =>
-    window.electronAPI.invoke("updateJobStatus", {
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS, {
       kanriNo,
       status,
       comment,
     }),
 
-  /**
-   * 全Job Statusを削除する。
-   */
   deleteAllJobStatuses: (): Promise<void> =>
-    window.electronAPI.invoke("deleteAllJobStatuses"),
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.DELETE_ALL_STATUSES),
 
-  /**
-   * 単一Jobの最新Statusを取得する。
-   */
+  resetOperationStatusesFromSpreadsheet: (payload?: {
+    operations?: OperationItem[];
+    irregulars?: OperationItem[];
+    todayIrregulars?: OperationItem[];
+  }): Promise<{ success: boolean; data: OperationItem[] }> =>
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.RESET_STATUSES, payload),
+
   fetchSingleJobStatus: (kanriNo: string): Promise<OperationItem> =>
-    window.electronAPI.invoke("fetchSingleJobStatus", {
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS, {
       kanriNo,
     }),
 
-  /**
-   * Operation対象をMain側へ登録する。
-   */
   registerTargets: (items: OperationItem[]): Promise<void> =>
-    window.electronAPI.invoke("registerTargets", { items }),
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.REGISTER_TARGETS, {
+      items,
+    }),
 
-  /**
-   * 初期Statusを取得する。
-   */
+  syncOperationMaster: (payload: {
+    operations: OperationItem[];
+    irregulars: OperationItem[];
+    todayIrregulars: OperationItem[];
+  }): Promise<{ success: boolean }> =>
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.SYNC_MASTER, payload),
+
+  loadOperationMasterCache: (): Promise<OperationMasterCache | null> =>
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.LOAD_MASTER_CACHE),
+
   initializeStatus: (): Promise<Record<string, OperationItem>> =>
-    window.electronAPI.invoke("initializeStatus"),
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.INITIALIZE_STATUS),
 
-  // ========================================================================
   // Jobs / Scripts
-  // ========================================================================
-
-  /**
-   * Script / Jobを実行する。
-   */
   executeScript: (
     scriptId: string,
     filePath?: ScriptFilePath,
   ): Promise<JobResult> =>
-    window.electronAPI.invoke("executeScript", {
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT, {
       scriptId,
       filePath,
     }),
 
-  // ========================================================================
   // RDP
-  // ========================================================================
-
   getRdpTargets: (): Promise<RdpTarget[]> =>
     window.electronAPI.invoke("getRdpTargets"),
 
   startRdpSession: (id: string): Promise<void> =>
-    window.electronAPI.invoke("startRdpSession", {
-      payload: { id },
-    }),
+    window.electronAPI.invoke("startRdpSession", { payload: { id } }),
 
-  // ========================================================================
   // Authentication
-  // ========================================================================
-
   loadAuthSession: (): Promise<AuthSession | null> =>
     window.electronAPI.invoke("googleAuth:loadSession"),
 
@@ -154,10 +123,7 @@ export const commands = {
 
   logout: (): Promise<void> => window.electronAPI.invoke("googleAuth:logout"),
 
-  // ========================================================================
   // System / File
-  // ========================================================================
-
   tempomaticUploadDocument: (
     filePaths: string[],
     expireDate: string,
@@ -181,53 +147,49 @@ export const commands = {
   showOpenDialog: (options: unknown): Promise<unknown> =>
     window.electronAPI.invoke("showOpenDialog", options),
 
-  // ========================================================================
   // Gmail
-  // ========================================================================
-
   getGmailSignature: (accessToken?: string): Promise<string> =>
     window.electronAPI.invoke("gmail:getSignature", accessToken),
 
   createGmailDraft: (params: CreateGmailDraftParams): Promise<void> =>
     window.electronAPI.invoke("gmail:createDraft", params),
 
-  // ========================================================================
   // Gift MD
-  // ========================================================================
-
   processGiftMd: (filePath?: ScriptFilePath): Promise<string> =>
     window.electronAPI.invoke("gift-md:process", filePath),
 
-  // ========================================================================
   // Events
-  // ========================================================================
-
   onOperationStatusUpdated: (
     callback: (update: OperationItem) => void,
   ): (() => void) =>
-    window.electronAPI.on("operationStatusUpdated", (payload: unknown) => {
-      if (!isOperationStatusUpdatedPayload(payload)) {
-        return;
+    window.electronAPI.on("operation:status-updated", (payload: unknown) => {
+      // payload が { status: item } の場合と、そのまま OperationItem の場合の両方に対応
+      if (isOperationStatusUpdatedPayload(payload) && payload.status) {
+        callback(payload.status);
+      } else if (
+        payload &&
+        typeof payload === "object" &&
+        "kanriNo" in payload
+      ) {
+        callback(payload as OperationItem);
       }
-
-      const { status } = payload;
-
-      if (!status) {
-        return;
-      }
-
-      callback(status);
     }),
 
   onThemeChanged: (callback: (theme: AppTheme) => void): (() => void) =>
     window.electronAPI.on("theme-changed", (theme: unknown) => {
-      if (!isAppTheme(theme)) {
-        return;
+      if (isAppTheme(theme)) {
+        callback(theme);
       }
-
-      callback(theme);
     }),
 
-  onPollingCycleComplete: (callback: () => void): (() => void) =>
-    window.electronAPI.on("polling-cycle-complete", callback),
+  onPollingCycleComplete: (
+    callback: (nextPollTime: number) => void,
+  ): (() => void) =>
+    window.electronAPI.on("polling-cycle-complete", (payload: unknown) => {
+      if (typeof payload === "number") {
+        callback(payload);
+      } else {
+        callback(Date.now() + 60000);
+      }
+    }),
 } as const;

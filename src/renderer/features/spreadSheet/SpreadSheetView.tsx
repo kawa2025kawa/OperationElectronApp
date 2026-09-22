@@ -4,13 +4,11 @@ import React, { useCallback } from "react";
 import { AuthView } from "@renderer/features/auth/AuthView";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
-import type {
-  SpreadSheetEntity,
-  Shop,
-  Jugyoin,
-  Kokyuhyo,
-  Tantou,
-} from "@shared/types/spreadsheet";
+import type { SpreadSheetEntity } from "@shared/types/spreadsheet/sheetTypes";
+import type { Shop } from "@shared/types/spreadsheet/shop";
+import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
+import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
+import type { Tantou } from "@shared/types/spreadsheet/tantou";
 
 // Modal Content Components
 import { ShopModalContent } from "./components/modal/shop/ShopModalContent";

@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-import type { Shop } from "@shared/types/spreadsheet";
+import type { Shop } from "@shared/types/spreadsheet/shop";
 import { useShopModalFooter } from "../hooks/useShopModalFooter";
 import { useShopModalContent } from "./useShopModalContent";
 import { TERMINAL_TYPES, TERMINAL_FIELDS } from "./constants";

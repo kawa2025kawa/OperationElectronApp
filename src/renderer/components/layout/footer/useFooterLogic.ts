@@ -5,9 +5,10 @@ import type { ChangeEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
-import type { CenterId } from "@shared/types/operation";
-import { APP_VIEW_IDS } from "@shared/types/ui";
+import type { CenterId } from "@shared/types/operation/operationTypes";
+
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
+import { APP_VIEW_IDS } from "@shared/types/registry/viewDefinition";
 
 export const useFooterLogic = () => {
   const {

@@ -3,7 +3,7 @@
 import React, { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@renderer/store";
-import type { Tantou } from "@shared/types/spreadsheet";
+import type { Tantou } from "@shared/types/spreadsheet/tantou";
 import { TantouModalContent } from "@renderer/features/spreadSheet/components/modal/tantou/TantouModalContent";
 import * as styles from "./tantouButton.css";
 

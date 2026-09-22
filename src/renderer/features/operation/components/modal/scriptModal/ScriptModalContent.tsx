@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { FileDropZone } from "@renderer/components/ui/fileDropZone/FileDropZone";
 import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-import type { OperationItem } from "@shared/types/operation";
+import type { OperationItem } from "@shared/types/operation/operationTypes";
 import { ExecutionResultView } from "./ExecutionResultView";
 import {
   ScriptModalProvider,
@@ -14,9 +14,11 @@ import * as styles from "./scriptModalContent.css";
 
 const FILE_ACCEPT = ".xlsx,.csv";
 
+// 🎯 scriptKey を型定義に追加
 interface ScriptModalContentProps {
   item: OperationItem;
   kanriNo?: string;
+  scriptKey?: string;
 }
 
 const ScriptModalBody: React.FC = React.memo(function ScriptModalBody() {
@@ -86,7 +88,7 @@ const ScriptModalBody: React.FC = React.memo(function ScriptModalBody() {
 });
 
 export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
-  React.memo(function ScriptModalContent({ item, kanriNo }) {
+  React.memo(function ScriptModalContent({ item, kanriNo, scriptKey }) {
     const targetItem = kanriNo ? { ...item, kanriNo } : item;
 
     return (

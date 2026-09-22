@@ -1,7 +1,6 @@
-﻿// src/renderer/features/operation/services/internal/operationValidators.ts
-import type { AppState } from "@renderer/store";
-import type { JobExecutionOptions } from "@shared/utils/dependencyHelper";
-import { validateJobDependencies } from "@shared/utils/dependencyHelper";
+﻿import type { AppState } from "@renderer/store";
+import type { JobExecutionOptions } from "@shared/utils/dependency/dependencyUtils";
+import { validateJobDependencies } from "@shared/utils/dependency/dependencyUtils";
 import { getAllEntitiesMap } from "@renderer/features/operation/helpers/operationEntities";
 
 export type ExecutionValidationResult =

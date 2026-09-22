@@ -11,9 +11,9 @@ import type {
 
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 
-// ----------------------------------------------------------------------------
-// External API Services
-// ----------------------------------------------------------------------------
+/* ============================================================================
+ * External API Services
+ * ========================================================================== */
 
 async function fetchUserInfo(
   accessToken: string,
@@ -25,10 +25,14 @@ async function fetchUserInfo(
         Accept: "application/json",
       },
     });
+
     if (!response.ok) {
-      console.warn(`[Auth] Google UserInfo API failed: ${response.status}`);
+      console.warn(
+        `[Auth] Google UserInfo API failed with status: ${response.status}`,
+      );
       return null;
     }
+
     return (await response.json()) as GoogleUserInfo;
   } catch (error) {
     console.error("[Auth] Failed to fetch Google user info:", error);
@@ -36,9 +40,9 @@ async function fetchUserInfo(
   }
 }
 
-// ----------------------------------------------------------------------------
-// Profile Resolvers
-// ----------------------------------------------------------------------------
+/* ============================================================================
+ * Profile Resolvers
+ * ========================================================================== */
 
 function normalize(value?: string | null): string | null {
   const normalized = value?.trim();
@@ -61,15 +65,16 @@ async function resolveAuthProfile(
   }
 
   const userInfo = await fetchUserInfo(accessToken);
+
   return {
     email: resolvedEmail ?? normalize(userInfo?.email),
     familyName: resolvedFamilyName ?? normalize(userInfo?.family_name),
   };
 }
 
-// ----------------------------------------------------------------------------
-// State Mutators
-// ----------------------------------------------------------------------------
+/* ============================================================================
+ * State Mutators (Immer Mutators)
+ * ========================================================================== */
 
 function clearAuthState(state: AppState): void {
   state.isAuthenticated = false;
@@ -90,9 +95,9 @@ function applyAuthenticatedState(
   state.familyName = profile.familyName;
 }
 
-// ----------------------------------------------------------------------------
-// Slice Implementation
-// ----------------------------------------------------------------------------
+/* ============================================================================
+ * Slice Implementation
+ * ========================================================================== */
 
 export type { AuthSlice } from "@shared/types/auth/authTypes";
 
@@ -102,12 +107,14 @@ export const createAuthSlice: StateCreator<
   [],
   AuthSlice
 > = (set, get) => ({
+  // --- Initial State ---
   isAuthenticated: false,
   isChecking: false,
   accessToken: null,
   userEmail: null,
   familyName: null,
 
+  // --- Actions ---
   setIsAuthenticated: (auth) =>
     set((state) => {
       state.isAuthenticated = auth;
@@ -140,6 +147,7 @@ export const createAuthSlice: StateCreator<
 
     try {
       const session = await commands.loadAuthSession();
+
       if (!session?.accessToken) {
         set((state) => {
           clearAuthState(state);
@@ -156,6 +164,7 @@ export const createAuthSlice: StateCreator<
       set((state) => {
         applyAuthenticatedState(state, session.accessToken, profile);
       });
+
       return true;
     } catch (error) {
       console.error("[Auth] Session check failed:", error);
@@ -171,23 +180,33 @@ export const createAuthSlice: StateCreator<
   },
 
   handleLoginSuccess: async (accessToken, email, familyName): Promise<void> => {
-    const profile = await resolveAuthProfile(accessToken, email, familyName);
-    set((state) => {
-      applyAuthenticatedState(state, accessToken, profile);
-    });
+    try {
+      const profile = await resolveAuthProfile(accessToken, email, familyName);
 
-    await get().prefetchSheets(accessToken);
+      set((state) => {
+        applyAuthenticatedState(state, accessToken, profile);
+      });
+
+      // スプレッドシートの事前読み込みを開始
+      if (typeof get().prefetchSheets === "function") {
+        await get().prefetchSheets(accessToken);
+      }
+    } catch (error) {
+      console.error("[Auth] Login success handler failed:", error);
+      throw error;
+    }
   },
 
   logout: async (): Promise<void> => {
     try {
       await commands.logout();
+    } catch (error) {
+      console.error("[Auth] Logout command failed:", error);
+    } finally {
+      // コマンドが失敗した場合でもフロントエンド側の状態は確実にクリアする
       set((state) => {
         clearAuthState(state);
       });
-    } catch (error) {
-      console.error("[Auth] Logout failed:", error);
-      throw error;
     }
   },
 });

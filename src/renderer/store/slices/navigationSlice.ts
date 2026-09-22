@@ -1,6 +1,6 @@
 ﻿import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
-import type { AppViewId, ViewMode } from "@shared/types/ui";
+import type { AppViewId, ViewMode } from "@renderer/registry/appRegistry";
 
 type SelectedIds = Record<ViewMode, string | null>;
 

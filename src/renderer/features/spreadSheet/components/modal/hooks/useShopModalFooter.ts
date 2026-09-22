@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo } from "react";
 import { commands } from "@renderer/services/commands";
 import { useAppStore } from "@renderer/store";
-import type { Shop } from "@shared/types/spreadsheet";
+import type { Shop } from "@shared/types/spreadsheet/shop";
 
 const SHOP_SHEET_ID = "StoreMasterData" as const;
 

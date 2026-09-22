@@ -1,5 +1,4 @@
 ﻿// src/renderer/store/slices/initSlice.ts
-
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
 import { INITIAL_INIT_STATUS, type InitStatus } from "@shared/types/system";
@@ -8,6 +7,8 @@ import { commands } from "@renderer/services/commands";
 import { handleStatusToastNotification } from "@renderer/components/ui/toast/statusToastHandler";
 
 const APP_LOADER_DELAY_MS = 2000;
+let loaderTimeoutId: number | null = null;
+let cleanupIpcListeners: (() => void) | null = null;
 
 export const DATA_LOADING_STATUS: InitStatus = {
   update: "LOADING",
@@ -39,8 +40,6 @@ export interface InitSlice {
   initializeApp: () => Promise<void>;
 }
 
-let cleanupIpcListeners: (() => void) | null = null;
-
 export const createInitSlice: StateCreator<
   AppState,
   [["zustand/immer", never]],
@@ -63,49 +62,65 @@ export const createInitSlice: StateCreator<
       state.showAppLoader = show;
     }),
 
-  setInitStatus: (update) =>
+  setInitStatus: (update) => {
     set((state) => {
       const next =
         typeof update === "function" ? update(state.initStatus) : update;
       if (next) {
         Object.assign(state.initStatus, next);
       }
-    }),
-
-  /** 初期化成功時の完了処理（ローダー非表示用タイマー含む） */
-  markInitializationCompleted: () => {
-    set((state) => {
-      state.initStatus.operation = "OK";
-      state.initStatus.irregular = "OK";
-      state.isInitialLoaded = true;
     });
 
-    get().recalculateSummary?.();
+    const currentStatus = get().initStatus;
+    const statusValues = Object.values(currentStatus);
 
-    window.setTimeout(() => {
-      set((state) => {
-        state.showAppLoader = false;
-      });
-    }, APP_LOADER_DELAY_MS);
+    // 全てのステータスが OK / NG / CONNECTED に定まったか判定
+    const isAllSettled =
+      statusValues.length > 0 &&
+      statusValues.every(
+        (val) => val === "OK" || val === "NG" || val === "CONNECTED",
+      );
+
+    // 全て完了かつ初回ロード未完了の場合、2秒後にローダーを閉じる
+    if (isAllSettled && !get().isInitialLoaded && loaderTimeoutId === null) {
+      loaderTimeoutId = window.setTimeout(() => {
+        set((state) => {
+          state.isInitialLoaded = true;
+          state.showAppLoader = false;
+        });
+        loaderTimeoutId = null;
+      }, APP_LOADER_DELAY_MS);
+    }
   },
 
-  /** 初期化失敗時の状態リカバリー */
+  markInitializationCompleted: () => {
+    const updatedStatus: Partial<InitStatus> = {};
+    Object.keys(get().initStatus).forEach((key) => {
+      const k = key as keyof InitStatus;
+      updatedStatus[k] = "OK";
+    });
+    get().setInitStatus(updatedStatus);
+  },
+
   markInitializationFailed: (error) => {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[InitSlice] Failed to initialize app:", message);
 
+    const updatedStatus: Partial<InitStatus> = {};
+    Object.keys(get().initStatus).forEach((key) => {
+      const k = key as keyof InitStatus;
+      const val = get().initStatus[k];
+      if (val !== "OK" && val !== "CONNECTED") {
+        updatedStatus[k] = "NG";
+      }
+    });
+
     set((state) => {
       state.isAuthenticated = false;
       state.accessToken = null;
-
-      Object.keys(state.initStatus).forEach((key) => {
-        const k = key as keyof InitStatus;
-        const val = state.initStatus[k];
-        if (val !== "OK" && val !== "CONNECTED") {
-          state.initStatus[k] = "NG";
-        }
-      });
     });
+
+    get().setInitStatus(updatedStatus);
   },
 
   setupIpcListeners: () => {
@@ -124,13 +139,20 @@ export const createInitSlice: StateCreator<
       get().setTheme?.(theme);
     });
 
-    // 🎯 ステータス更新イベント受信時: updateItemStatus を呼ぶことでマージ・連鎖評価・サマリー計算を安全に一元実行
-    const unbindStatus = commands.onOperationStatusUpdated((update) => {
-      get().updateItemStatus?.(update);
-      handleStatusToastNotification(update);
-    });
+    const unbindStatus = commands.onOperationStatusUpdated((payload) => {
+      const item =
+        payload &&
+        typeof payload === "object" &&
+        "status" in payload &&
+        payload.status
+          ? payload.status
+          : payload;
 
-    const unbindPolling = commands.onPollingCycleComplete(() => {
+      if (item && typeof item === "object") {
+        handleStatusToastNotification(item as any);
+      }
+    });
+    const unbindPolling = commands.onPollingCycleComplete((nextPollTime) => {
       get().updateLastPollTime?.();
     });
 

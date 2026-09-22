@@ -1,88 +1,112 @@
-﻿// electron/features/operation/helpers/trackerHelper.ts
-
-import {
+﻿import {
   JOB_STATUS,
   type JobStatus,
   type OperationItem,
-} from "@shared/types/operation";
+  type OperationJobItem,
+  type OperationStatusState,
+  type ScheduledTime,
+  type TrackerApiResponse,
+  type TrackerApiResponseItem,
+} from "@shared/types/operation/operationTypes";
 
-// ============================================================
-// 1. 定数 & 型定義
-// ============================================================
 const TRACKER_API_KEY = "71e7f0bcc0f995c1d2d322cbdde23543a5be8f91";
 const TRACKER_API_BASE_URL = "http://192.88.1.152/api/v2/trackers";
-const PREVIOUS_DAY_JOB_PATTERNS = [
-  "NMA8510",
-  "NMA8101",
-  "NMA8300",
-  "BENIF7000_",
-  "NSI8010",
-  "BENMSEXP_",
-] as const;
+const DEFAULT_KANSHI_TIME: readonly [number, number] = [1, 0];
 
-export interface TrackerApiResponseItem {
-  status?: string[];
-  start_time?: string;
-  end_time?: string;
-  expected_start_time?: string;
-  expected_end_time?: string;
-  comment?: string;
-  substatus?: string[];
-  info?: string;
+const PREVIOUS_DAY_KANRI_NOS = new Set<string>(["2", "3", "4", "5", "6", "7"]);
+
+const STATUS_ALIAS_MAP: Readonly<Record<string, JobStatus>> = {
+  scheduled: JOB_STATUS.SCHEDULED,
+  running: JOB_STATUS.RUNNING,
+  run: JOB_STATUS.RUNNING,
+  processing: JOB_STATUS.RUNNING,
+  scriptrunning: JOB_STATUS.SCRIPT_RUNNING,
+  success: JOB_STATUS.SUCCESS,
+  done: JOB_STATUS.SUCCESS,
+  ready: JOB_STATUS.READY,
+  waiting: JOB_STATUS.WAITING,
+  wait: JOB_STATUS.WAITING,
+  error: JOB_STATUS.ERROR,
+  failed: JOB_STATUS.ERROR,
+  warning: JOB_STATUS.SUCCESS,
+};
+
+export type { TrackerApiResponse, TrackerApiResponseItem };
+
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export interface TrackerApiResponse {
-  count: number;
-  data: TrackerApiResponseItem[];
+export function getJobId(target: OperationItem): string | undefined {
+  if (!("jobId" in target)) return undefined;
+
+  const jobId = (target as OperationJobItem).jobId;
+
+  return jobId && jobId !== "-" ? jobId : undefined;
 }
 
-// ============================================================
-// 2. バリデーション & 汎用ユーティリティ
-// ============================================================
-export function validateJobId(target: OperationItem): string {
-  if (
-    !("jobId" in target) ||
-    typeof target.jobId !== "string" ||
-    target.jobId.trim().length === 0 ||
-    target.jobId === "-"
-  ) {
-    throw new Error(`Invalid jobId kanriNo=${target.kanriNo}`);
+function parseHHMM(
+  value?: string | null,
+): readonly [number, number] | null {
+  if (!value) return null;
+
+  const [h, m] = value.split(":");
+
+  return h && m ? [Number(h), Number(m)] : null;
+}
+
+function isPreviousDayJob(
+  kanriNo?: string | number | null,
+  scheduledTime?: ScheduledTime | null,
+): boolean {
+  if (kanriNo != null) {
+    const cleanNo = String(kanriNo).trim();
+
+    if (PREVIOUS_DAY_KANRI_NOS.has(cleanNo)) {
+      return true;
+    }
   }
-  return target.jobId.trim();
+
+  if (scheduledTime) {
+    const timeStr = String(scheduledTime).trim();
+
+    if (timeStr.includes("前日")) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
-export const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
-const formatTrackerDate = (date: Date) =>
-  date.toISOString().split(".")[0] + "Z";
-
-function parseHHMM(timeStr?: string | null): [number, number] | null {
-  if (!timeStr?.trim()) return null;
-  const [h, m] = timeStr.split(":").map(Number);
-  return Number.isInteger(h) && Number.isInteger(m) ? [h, m] : null;
-}
-
-export const isPreviousDayJob = (jobId: string) =>
-  PREVIOUS_DAY_JOB_PATTERNS.some((p) => jobId === p || jobId.startsWith(p));
-
-// ============================================================
-// 3. URL生成 & 日付計算ヘルパー
-// ============================================================
 export function getTargetTime(
-  jobId: string,
-  scheduledTime?: string | null,
+  kanriNo?: string | number | null,
+  scheduledTime?: ScheduledTime | null,
 ): string {
-  const date = new Date();
-  const time = parseHHMM(scheduledTime);
-  date.setHours(
-    time ? time[0] : date.getHours(),
-    time ? time[1] : date.getMinutes(),
-    0,
-    0,
+  const now = new Date();
+
+  const [hour, minute] = parseHHMM(scheduledTime) ?? [
+    now.getHours(),
+    now.getMinutes(),
+  ];
+
+  const dayOffset = isPreviousDayJob(
+    kanriNo,
+    scheduledTime,
+  )
+    ? -1
+    : 0;
+
+  const trackerDate = new Date(
+    Date.UTC(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + dayOffset,
+      hour - 9,
+      minute,
+    ),
   );
-  if (isPreviousDayJob(jobId)) date.setDate(date.getDate() - 1);
-  return formatTrackerDate(date);
+
+  return trackerDate.toISOString();
 }
 
 export function addKanshiTime(
@@ -90,64 +114,102 @@ export function addKanshiTime(
   kanshiTime?: string | null,
 ): string {
   const date = new Date(fromStr);
-  const time = parseHHMM(kanshiTime);
-  date.setHours(date.getHours() + (time ? time[0] : 1));
-  if (time) date.setMinutes(date.getMinutes() + time[1]);
-  return formatTrackerDate(date);
+
+  const [hours, minutes] =
+    parseHHMM(kanshiTime) ?? DEFAULT_KANSHI_TIME;
+
+  date.setUTCHours(
+    date.getUTCHours() + hours,
+    date.getUTCMinutes() + minutes,
+  );
+
+  return date.toISOString();
 }
 
-export const buildTrackerUrl = (jobId: string, from: string, to: string) =>
-  `${TRACKER_API_BASE_URL}?api_key=${TRACKER_API_KEY}&jobnetwork_name=${encodeURIComponent(jobId)}&from=${from}&to=${to}`;
+export function buildTrackerUrl(
+  jobId: string,
+  from?: string,
+  to?: string,
+): string {
+  const params = new URLSearchParams({
+    api_key: TRACKER_API_KEY,
+    jobnetwork_name: jobId,
+  });
 
-export const buildFallbackTrackerUrl = (jobId: string) =>
-  `${TRACKER_API_BASE_URL}?api_key=${TRACKER_API_KEY}&jobnetwork_name=${encodeURIComponent(jobId)}`;
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
 
-// ============================================================
-// 4. ステータスマッピング & ノーマライズ
-// ============================================================
-function normalizeStatus(status?: string[]): JobStatus | undefined {
-  if (!status?.length) return undefined;
-  const values = status.map((v) => v.toLowerCase());
-  if (values.some((v) => ["done", "success", "normal", "end"].includes(v))) {
-    return JOB_STATUS.SUCCESS;
-  }
-  if (values.some((v) => ["error", "failed", "err"].includes(v))) {
-    return JOB_STATUS.ERROR;
-  }
-  if (values.some((v) => ["running", "run", "executing"].includes(v))) {
-    return JOB_STATUS.RUNNING;
-  }
-  return undefined;
+  return `${TRACKER_API_BASE_URL}?${params.toString()}`;
 }
 
 export function normalizeItem(
   item: TrackerApiResponseItem,
-): Partial<OperationItem> {
+): OperationStatusState {
+  let status: JobStatus | undefined;
+
+  if (item.status?.length) {
+    for (let i = item.status.length - 1; i >= 0; i--) {
+      const mapped =
+        STATUS_ALIAS_MAP[item.status[i].toLowerCase()];
+
+      if (mapped) {
+        status = mapped;
+        break;
+      }
+    }
+  }
+
   return {
-    status: normalizeStatus(item.status),
-    startTime: item.start_time,
-    endTime: item.end_time,
-    expectedStartTime: item.expected_start_time,
-    expectedEndTime: item.expected_end_time,
-    comment: item.comment,
-    substatus: item.substatus,
-    info: item.info,
+    status,
+    startTime: item.start_time ?? null,
+    endTime: item.end_time ?? null,
+    expectedStartTime: item.expected_start_time ?? null,
+    expectedEndTime: item.expected_end_time ?? null,
+    comment: item.comment ?? null,
+    substatus: item.substatus?.length
+      ? item.substatus.join(", ")
+      : null,
+    info: item.info ?? null,
   };
 }
 
 export function applyTrackerItem(
-  tracker: Partial<OperationItem>,
+  tracker: OperationStatusState,
   base: OperationItem,
 ): OperationItem {
-  return {
-    ...base,
-    status: tracker.status ?? base.status,
-    startTime: tracker.startTime ?? base.startTime,
-    endTime: tracker.endTime ?? base.endTime,
-    expectedStartTime: tracker.expectedStartTime ?? base.expectedStartTime,
-    expectedEndTime: tracker.expectedEndTime ?? base.expectedEndTime,
-    comment: tracker.comment ?? base.comment,
-    substatus: tracker.substatus ?? base.substatus,
-    info: tracker.info ?? base.info,
-  };
+  const res = { ...base };
+
+  if (tracker.status !== undefined) {
+    res.status = tracker.status;
+  }
+
+  if (tracker.startTime !== undefined) {
+    res.startTime = tracker.startTime;
+  }
+
+  if (tracker.endTime !== undefined) {
+    res.endTime = tracker.endTime;
+  }
+
+  if (tracker.expectedStartTime !== undefined) {
+    res.expectedStartTime = tracker.expectedStartTime;
+  }
+
+  if (tracker.expectedEndTime !== undefined) {
+    res.expectedEndTime = tracker.expectedEndTime;
+  }
+
+  if (tracker.comment !== undefined) {
+    res.comment = tracker.comment;
+  }
+
+  if (tracker.substatus !== undefined) {
+    res.substatus = tracker.substatus;
+  }
+
+  if (tracker.info !== undefined) {
+    res.info = tracker.info;
+  }
+
+  return res;
 }

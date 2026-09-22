@@ -4,7 +4,7 @@ import * as path from "path";
 import fs from "fs-extra";
 import * as ExcelJS from "exceljs";
 import { format, subMonths } from "date-fns";
-import type { JobResult } from "@shared/types/operation";
+import type { JobResult } from "@shared/types/operation/operationTypes";
 import { compressFiles } from "../helpers/shared/zipHelper";
 
 // ============================================================

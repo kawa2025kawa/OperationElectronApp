@@ -4,14 +4,14 @@ import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@renderer/store";
 import type { Column } from "@shared/types/table/tableType";
-import type { ViewMode } from "@shared/types/ui";
+import type { ViewMode } from "@renderer/registry/appRegistry";
 import {
   selectCurrentMode,
   selectFilteredIrregularIds,
   selectFilteredOperationIds,
   selectFilteredTodayIds,
 } from "@renderer/features/operation/store/operationSelectors";
-import type { OperationItem } from "@shared/types/operation";
+import type { OperationItem } from "@shared/types/operation/operationTypes";
 import { useTableHotkeys } from "./useOperationTableHotkeys";
 
 const OPERATION_COLUMNS: Column<OperationItem>[] = [

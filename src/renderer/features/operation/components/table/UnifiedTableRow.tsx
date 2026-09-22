@@ -1,4 +1,4 @@
-﻿﻿// src/renderer/features/operation/components/table/UnifiedTableRow.tsx
+// src/renderer/features/operation/components/table/UnifiedTableRow.tsx
 
 import React, { useCallback } from "react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
@@ -7,7 +7,7 @@ import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { StatusContextMenu } from "@renderer/features/operation/components/contextMenu/StatusContextMenu";
 
 import { useAppStore } from "@renderer/store";
-import type { OperationItem } from "@shared/types/operation";
+import type { OperationItem } from "@shared/types/operation/operationTypes";
 import type { Column } from "@shared/types/table/tableType";
 
 import * as styles from "./operationTable.css";
@@ -19,73 +19,72 @@ interface TableRowProps {
   onRowClick: (kanriNo: string) => void;
 }
 
-export const UnifiedTableRow: React.FC<TableRowProps> = React.memo(
-  ({ kanriNo, columns, isSelected, onRowClick }) => {
-    const item = useAppStore(
-      (state) =>
-        (state.operationEntities[kanriNo] ??
-          state.irregularEntities[kanriNo]) as OperationItem | undefined,
-    );
+export const UnifiedTableRow: React.FC<TableRowProps> = ({
+  kanriNo,
+  columns,
+  isSelected,
+  onRowClick,
+}) => {
+  const normalizedKanriNo = String(kanriNo).trim();
+  const item = useAppStore(
+    (state) =>
+      state.operationEntities[normalizedKanriNo] ??
+      state.irregularEntities[normalizedKanriNo] ??
+      state.operationEntities[kanriNo] ??
+      state.irregularEntities[kanriNo],
+  );
 
-    const handleClick = useCallback(() => {
-      onRowClick(kanriNo);
-    }, [kanriNo, onRowClick]);
+  const handleClick = useCallback(() => {
+    onRowClick(normalizedKanriNo);
+  }, [normalizedKanriNo, onRowClick]);
 
-    if (!item) {
-      return null;
-    }
+  if (!item) {
+    return null;
+  }
 
-    const rowClass = [
-      styles.tableRowBase,
-      isSelected
-        ? styles.tableRowStates.selected
-        : styles.tableRowStates.clickable,
-    ].join(" ");
+  const rowClass = [
+    styles.tableRowBase,
+    isSelected
+      ? styles.tableRowStates.selected
+      : styles.tableRowStates.clickable,
+  ].join(" ");
 
-    return (
-      <tr className={rowClass} onClick={handleClick}>
-        {columns.map((column) => {
-          const alignClass = styles.tdAlignVariants[column.align ?? "left"];
+  return (
+    <tr className={rowClass} onClick={handleClick}>
+      {columns.map((column) => {
+        const alignClass = styles.tdAlignVariants[column.align ?? "left"];
 
-          if (column.key === "status") {
-            return (
-              <td key="status" className={`${styles.tdBase} ${alignClass}`}>
-                <ContextMenu.Root>
-                  <ContextMenu.Trigger asChild>
-                    <div className={styles.statusCellWrapper}>
-                      <StatusBadge status={item.status ?? undefined} />
-                    </div>
-                  </ContextMenu.Trigger>
-
-                  <StatusContextMenu kanriNo={item.kanriNo} />
-                </ContextMenu.Root>
-              </td>
-            );
-          }
-
-          const value = item[column.key as keyof OperationItem];
-
+        if (column.key === "status") {
           return (
-            <td
-              key={String(column.key)}
-              className={`${styles.tdBase} ${alignClass}`}
-            >
-              <span className={styles.cellText}>
-                {value != null ? String(value) : "-"}
-              </span>
+            <td key="status" className={`${styles.tdBase} ${alignClass}`}>
+              <ContextMenu.Root>
+                <ContextMenu.Trigger asChild>
+                  <div className={styles.statusCellWrapper}>
+                    <StatusBadge status={item.status ?? undefined} />
+                  </div>
+                </ContextMenu.Trigger>
+
+                <StatusContextMenu kanriNo={item.kanriNo} />
+              </ContextMenu.Root>
             </td>
           );
-        })}
-      </tr>
-    );
-  },
-  (prev, next) =>
-    prev.kanriNo === next.kanriNo &&
-    prev.isSelected === next.isSelected &&
-    prev.columns === next.columns &&
-    prev.onRowClick === next.onRowClick,
-);
+        }
+
+        const value = item[column.key as keyof OperationItem];
+
+        return (
+          <td
+            key={String(column.key)}
+            className={`${styles.tdBase} ${alignClass}`}
+          >
+            <span className={styles.cellText}>
+              {value != null ? String(value) : "-"}
+            </span>
+          </td>
+        );
+      })}
+    </tr>
+  );
+};
 
 UnifiedTableRow.displayName = "UnifiedTableRow";
-
-UnifiedTableRow;

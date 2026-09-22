@@ -1,7 +1,7 @@
 ﻿import { useCallback, useMemo } from "react";
 import { addDays } from "date-fns";
 import { commands } from "@renderer/services/commands";
-import type { Kokyuhyo } from "@shared/types/spreadsheet";
+import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
 import { formatDateWithDay } from "@renderer/features/spreadSheet/utils/scheduleUtils";
 
 export function useKokyuhyoModalContent(data: Kokyuhyo) {

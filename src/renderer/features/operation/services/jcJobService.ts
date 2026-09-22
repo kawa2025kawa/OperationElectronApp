@@ -1,9 +1,13 @@
 ﻿// src/renderer/features/operation/services/jcJobService.ts
+
 import { toast } from "sonner";
 import { commands } from "@renderer/services/commands";
 import type { AppState } from "@renderer/store";
-import { JOB_STATUS, type OperationItem } from "@shared/types/operation";
-import type { JobExecutionOptions } from "@shared/utils/dependencyHelper";
+import {
+  JOB_STATUS,
+  type OperationItem,
+} from "@shared/types/operation/operationTypes";
+import type { JobExecutionOptions } from "@shared/utils/dependency/dependencyUtils";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/operationEntities";
 import {
   applyExecutionError,
@@ -28,7 +32,8 @@ function mergeJobStatus(
   const status = result.status ?? JOB_STATUS.SCHEDULED;
   const comment =
     result.comment ??
-    (status === JOB_STATUS.RUNNING ? "JC実行中..." : "JC完了");
+    (status === JOB_STATUS.RUNNING ? "JC実行中..." : "JC実行完了");
+
   return {
     ...item,
     status,
@@ -47,7 +52,11 @@ export async function executeJcJob(
   kanriNo: string,
   options?: JobExecutionOptions,
 ): Promise<void> {
-  const resolvedOptions = resolveJobExecutionOptions(options);
+  const resolvedOptions = resolveJobExecutionOptions({
+    ignoreDependencies: true,
+    ...options,
+  });
+
   const item = requireOperationItem(state, kanriNo);
   const jobId = resolveJobId(item, kanriNo);
 
@@ -66,17 +75,18 @@ export async function executeJcJob(
       const status = result.status ?? JOB_STATUS.SCHEDULED;
       const comment =
         result.comment ??
-        (status === JOB_STATUS.RUNNING ? "JC実行中..." : "JC完了");
+        (status === JOB_STATUS.RUNNING ? "JC実行中..." : "JC実行完了");
 
       await commands.updateJobStatus(kanriNo, status, comment);
       state.updateItemStatus(mergeJobStatus(item, result));
 
       if (!resolvedOptions.silent) {
-        toast.info(`No.${kanriNo} JC更新完了`);
+        toast.info(`No.${kanriNo} JC実行状態を確認しました`);
       }
     } catch (error) {
       const message = getErrorMessage(error);
-      const errorMessage = `JC実行エラー: ${message}`;
+      const errorMessage = `JC起動失敗: ${message}`;
+
       await applyExecutionError(
         state,
         kanriNo,

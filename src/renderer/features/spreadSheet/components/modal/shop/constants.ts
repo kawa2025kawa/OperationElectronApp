@@ -1,6 +1,6 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/shop/constants.ts
 
-import type { Shop } from "@shared/types/spreadsheet";
+import type { Shop } from "@shared/types/spreadsheet/shop";
 import { SHOP_FIELD_LABELS } from "@shared/types/spreadsheet/shop";
 import type { TabGroupConfig } from "@renderer/features/spreadSheet/components/modal/hooks/useSpreadSheetTabData";
 

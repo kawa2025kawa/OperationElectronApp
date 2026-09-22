@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 import { useAppStore } from "@renderer/store";
-import type { ViewMode } from "@shared/types/ui";
-// 🎯 削除した operationActions の import を除去し、suppressNextSuccessToast のみ残す
+import type { ViewMode } from "@renderer/registry/appRegistry";
 import { suppressNextSuccessToast } from "@shared/utils/statusToastSuppression";
 
 export const useTableHotkeys = (
@@ -18,7 +17,8 @@ export const useTableHotkeys = (
       if (mode !== targetMode) return;
 
       const target = e.target as HTMLElement;
-      if (["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName)) return;
+      if (["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target?.tagName))
+        return;
       if (rowIds.length === 0) return;
 
       const currentIndex = selectedId ? rowIds.indexOf(selectedId) : -1;
@@ -37,10 +37,15 @@ export const useTableHotkeys = (
         }
       } else if (e.key === "Enter") {
         e.preventDefault();
+
+        // 🎯 画面上でアクティブになっているフォーカス（ボタン等）を強制的に解除
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+
         if (!selectedId) return;
 
         suppressNextSuccessToast(selectedId);
-        // 🎯 Slice 側の統合アクションを呼び出す
         void useAppStore.getState().completeSelectedOperation();
       }
     };

@@ -4,8 +4,7 @@ import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerIpcHandlers } from "./ipc";
-// 直接 pollingLoop.ts からインポートするよう修正
-import { stopPolling } from "@electron/features/operation/polling/pollingLoop";
+import { stopPolling } from "@electron/features/operation/services/operationScheduler";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,7 +51,15 @@ async function loadRenderer(): Promise<void> {
 
   if (devUrl) {
     await mainWindow.loadURL(devUrl);
+
+    // 🎯 npm run dev（開発時）のみ、別ウィンドウで DevTools を自動起動
+    mainWindow.webContents.openDevTools({ mode: "detach" });
     return;
+  }
+
+  // ビルド済みの本番環境で万が一開発フラグで起動された場合の判定
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools({ mode: "detach" });
   }
 
   const rendererPath = path.join(__dirname, "../dist/index.html");
@@ -87,3 +94,4 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
+

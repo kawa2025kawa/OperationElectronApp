@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";
 import { useAppStore } from "@renderer/store";
-import type { AppViewId } from "@shared/types/ui";
+import type { AppViewId } from "@renderer/registry/appRegistry";
 
 const ORDERED_MENU_ITEMS = Object.values(APP_REGISTRY)
   .filter((item) => item.sidebarMenu?.show)

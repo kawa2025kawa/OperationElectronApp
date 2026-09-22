@@ -1,6 +1,6 @@
 ﻿import { getValueByPath } from "@shared/utils/getValueByPath";
 import type { AppState } from "@renderer/store";
-import type { SheetId } from "@shared/types/spreadsheet";
+import type { SheetId } from "@shared/types/spreadsheet/sheetTypes";
 
 const EMPTY_ROWS: readonly unknown[] = [];
 

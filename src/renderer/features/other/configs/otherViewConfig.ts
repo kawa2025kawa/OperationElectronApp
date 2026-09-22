@@ -1,7 +1,9 @@
 ﻿//src\renderer\features\other\configs\otherViewConfig.ts
 
-import type { AppViewDefinition } from "@shared/types/registry";
-import { APP_VIEW_IDS } from "@shared/types/ui";
+import {
+  APP_VIEW_IDS,
+  type AppViewDefinition,
+} from "@shared/types/registry/viewDefinition";
 
 export const otherViewConfig: AppViewDefinition = {
   id: APP_VIEW_IDS.OTHER,

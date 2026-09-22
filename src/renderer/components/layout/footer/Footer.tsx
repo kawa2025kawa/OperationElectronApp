@@ -5,7 +5,7 @@ import * as styles from "./footer.css";
 import { FooterActionButton } from "./components/FooterActionButton";
 import { SearchField } from "@renderer/components/ui/searchField/SearchField";
 import { useFooterLogic } from "./useFooterLogic";
-import { CENTER_IDS } from "@shared/types/operation";
+import type { CenterId } from "@shared/types/operation/operationTypes";
 
 const APP_VERSION = import.meta.env.APP_VERSION ?? "1.0.0";
 
@@ -27,12 +27,13 @@ export const Footer: React.FC = React.memo(() => {
       </div>
 
       <div className={styles.controlsContainer}>
-        {CENTER_IDS.map((id) => (
+        {/* 🎯 logic.centers のオブジェクトキー/値を直接ループさせる */}
+        {Object.entries(logic.centers).map(([id, isActive]) => (
           <FooterActionButton
             key={id}
             label={id}
-            isActive={logic.centers[id]}
-            onClick={() => logic.handleToggleCenter(id)}
+            isActive={isActive}
+            onClick={() => logic.handleToggleCenter(id as CenterId)}
           />
         ))}
       </div>

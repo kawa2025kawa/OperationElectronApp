@@ -1,7 +1,10 @@
 ﻿// src/renderer/features/operation/components/modal/scriptModal/ExecutionResultView.tsx
 
 import React, { useCallback } from "react";
-import type { JobArtifact, JobResult } from "@shared/types/operation";
+import type {
+  JobArtifact,
+  JobResult,
+} from "@shared/types/operation/operationTypes";
 import { commands } from "@renderer/services/commands";
 import * as styles from "./scriptModalContent.css";
 
@@ -58,17 +61,24 @@ const ArtifactList = React.memo(function ArtifactList({
         marginTop: "12px",
       }}
     >
-      {artifacts.map((artifact) => (
-        <button
-          key={artifact.path}
-          type="button"
-          className={styles.linkCardButton}
-          onClick={() => void handleOpenArtifact(artifact.path)}
-        >
-          <span className={styles.linkLabel}>{artifact.name ?? "成果物"}:</span>
-          <span className={styles.linkValue}>{artifact.path}</span>
-        </button>
-      ))}
+      {artifacts.map((artifact, index) => {
+        // 🎯 path が存在しない場合は開く処理が行えないため安全にスキップ・処理
+        if (!artifact.path) return null;
+
+        return (
+          <button
+            key={artifact.path || index}
+            type="button"
+            className={styles.linkCardButton}
+            onClick={() => void handleOpenArtifact(artifact.path!)}
+          >
+            <span className={styles.linkLabel}>
+              {artifact.name ?? "成果物"}:
+            </span>
+            <span className={styles.linkValue}>{artifact.path}</span>
+          </button>
+        );
+      })}
     </div>
   );
 });

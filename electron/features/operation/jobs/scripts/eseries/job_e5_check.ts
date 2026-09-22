@@ -4,7 +4,7 @@ import fs from "fs-extra";
 import path from "path";
 import iconv from "iconv-lite";
 import { isSameDay } from "date-fns";
-import type { JobResult } from "@shared/types/operation";
+import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const OUTPUT_DIR = "\\\\C0088150\\nec\\ftp";
 const TARGET_FILE = "TENF0140.dat";

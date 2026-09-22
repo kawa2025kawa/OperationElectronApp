@@ -3,8 +3,8 @@
 import React, { useCallback } from "react";
 import { useAppStore } from "@renderer/store";
 import { SummaryModalContent } from "@renderer/features/operation/components/modal/summaryModal/SummaryModalContent";
-import type { OperationItem } from "@shared/types/operation";
-import type { StatusSummary as FilteredSummary } from "@shared/types/ui";
+import type { OperationItem } from "@shared/types/operation/operationTypes";
+import type { StatusSummary as FilteredSummary } from "@shared/types/operation/operationTypes";
 import { useStatusSummary } from "./useStatusSummary";
 import * as styles from "./statusSummary.css";
 

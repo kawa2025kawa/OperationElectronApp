@@ -22,12 +22,10 @@ export interface Column<T = unknown> {
 /**
  * SpreadSheetTable 用の共通 Props
  */
-export interface SpreadSheetTableProps<
-  T extends object = Record<string, unknown>,
-> {
+export interface SpreadSheetTableProps<T extends object = object> {
   data: T[];
-  columns: readonly Column<any>[];
-  rowKey: keyof T | string;
+  columns: readonly Column<T>[];
+  rowKey?: keyof T | string | ((record: T) => string); // 🎯 関数型とオプショナル(?)を許容
   onRowClick?: (item: T) => void;
   selectedId?: string | number | null;
 }

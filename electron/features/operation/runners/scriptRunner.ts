@@ -4,15 +4,14 @@ import {
   JOB_STATUS,
   type JobResult,
   type OperationItem,
-} from "@shared/types/operation";
-import { hasJobId } from "@electron/features/operation/polling/trackerMonitor";
+} from "@shared/types/operation/operationTypes";
+import { hasJobId } from "@electron/features/operation/services/trackerServiceClient";
 import {
   getStatus,
   updateStatus,
 } from "@electron/features/operation/statusManager";
 import { cleanErrorMessage } from "@electron/features/operation/helpers/errorHelper";
 
-// 既存の Job インポート群
 import { runJob114 } from "@electron/features/operation/jobs/scripts/numeric/job_114";
 import { runJob16 } from "@electron/features/operation/jobs/scripts/numeric/job_16";
 import { runJob20 } from "@electron/features/operation/jobs/scripts/numeric/job_20";
@@ -84,45 +83,18 @@ const jobRunners: Record<string, JobRunnerFn> = {
   n33: runJobN33,
 };
 
-async function dispatchScript(
-  kanriNo: string,
-  filePath?: ScriptFilePath,
-  options?: JobOptions,
-): Promise<JobResult> {
-  const normalized = String(kanriNo).trim().toLowerCase();
-  const runner = jobRunners[normalized];
-  if (!runner) {
-    throw new Error(`未定義のスクリプトキー: ${kanriNo}`);
-  }
-  const result = await runner(normalized, filePath, options);
-  return typeof result === "string" ? { message: result } : result;
-}
-
 const runningScriptJobs = new Set<string>();
-let isTriggeringScript = false;
-
-/**
- * 🎯 autoStart が true かどうか判定するヘルパー
- */
-function isAutoStartEnabled(item: OperationItem): boolean {
-  // 1. item 直下の autoStart が指定されている場合
-  if (typeof item.autoStart === "boolean") {
-    return item.autoStart;
-  }
-  // 2. scripts 配下に autoStart が指定されている場合
-  if (Array.isArray(item.scripts) && item.scripts.length > 0) {
-    return item.scripts.some((s) => s.autoStart === true);
-  }
-  return false;
-}
 
 export async function executeScriptJob(
   rawKanriNo: string | number,
   filePath?: ScriptFilePath,
 ): Promise<JobResult> {
-  const kanriNo = String(rawKanriNo).trim();
+  const kanriNo = String(rawKanriNo);
   if (!kanriNo) throw new Error("kanriNo is required");
   if (runningScriptJobs.has(kanriNo)) throw new Error(`実行中: No.${kanriNo}`);
+
+  const runner = jobRunners[kanriNo.toLowerCase()];
+  if (!runner) throw new Error(`未定義のスクリプトキー: ${kanriNo}`);
 
   runningScriptJobs.add(kanriNo);
   const isReadOnlyCheckJob = kanriNo.toUpperCase().endsWith("_CHECK");
@@ -138,12 +110,13 @@ export async function executeScriptJob(
       });
     }
 
-    const dsi8020Item = getStatus("DSI8020");
     const scriptOptions: JobOptions = {
-      dsi8020Status: dsi8020Item?.status ?? undefined,
+      dsi8020Status: getStatus("DSI8020")?.status,
     };
 
-    const result = await dispatchScript(kanriNo, filePath, scriptOptions);
+    const rawResult = await runner(kanriNo, filePath, scriptOptions);
+    const result =
+      typeof rawResult === "string" ? { message: rawResult } : rawResult;
     const endTime = new Date().toISOString();
 
     if (!isReadOnlyCheckJob) {
@@ -158,7 +131,6 @@ export async function executeScriptJob(
 
     return result;
   } catch (error) {
-    console.error("[ScriptRunner ERROR]", { kanriNo, error });
     const formattedError = cleanErrorMessage(error);
     const endTime = new Date().toISOString();
 
@@ -177,65 +149,15 @@ export async function executeScriptJob(
   }
 }
 
-/**
- * ⚡【イベント駆動】READYステータス検知時の即時 Script 起動
- */
 export async function executeScriptJobImmediately(
   item: OperationItem,
 ): Promise<void> {
-  if (hasJobId(item)) return; // JCジョブは対象外
+  if (hasJobId(item) || item.executionType !== "autoScript") return;
 
-  const kanriNo = String(item.kanriNo).trim();
+  const kanriNo = String(item.kanriNo);
   if (runningScriptJobs.has(kanriNo)) return;
 
-  // 🎯 autoStart が false または未定義の場合は自動実行しない
-  if (!isAutoStartEnabled(item)) {
-    return;
-  }
-
-  const currentStatus = getStatus(kanriNo)?.status;
-  if (currentStatus === JOB_STATUS.READY) {
-    await executeScriptJob(kanriNo).catch((error) => {
-      console.error("[ScriptRunner] Immediate execution FAILED", {
-        kanriNo,
-        error: cleanErrorMessage(error),
-      });
-    });
-  }
-}
-
-/**
- * ⏰【タイマー駆動】60秒周期の定期チェック（取りこぼし安全網）
- */
-export async function triggerAutoStartScriptJobs(
-  targets: OperationItem[],
-  runningCheck: () => boolean,
-): Promise<void> {
-  if (isTriggeringScript || !runningCheck()) return;
-  isTriggeringScript = true;
-
-  try {
-    for (const item of targets) {
-      if (!runningCheck()) break;
-
-      const kanriNo = String(item.kanriNo).trim();
-      const currentStatus = getStatus(kanriNo)?.status;
-
-      if (
-        currentStatus === JOB_STATUS.READY &&
-        !hasJobId(item) &&
-        isAutoStartEnabled(item) && // 🎯 autoStart === true の場合のみ
-        !runningScriptJobs.has(kanriNo)
-      ) {
-        void executeScriptJob(kanriNo).catch((error) => {
-          console.error("[ScriptRunner] Auto-start FAILED", {
-            kanriNo,
-            error: cleanErrorMessage(error),
-          });
-        });
-      }
-    }
-  } finally {
-    isTriggeringScript = false;
+  if (getStatus(kanriNo)?.status === JOB_STATUS.READY) {
+    await executeScriptJob(kanriNo).catch(() => {});
   }
 }

@@ -16,6 +16,20 @@ const FTP_CONFIG = {
 
 const FTP_DIR = "/fep/chkcount";
 
+/** チェック対象外とする店番のリスト */
+const EXCLUDE_STORE_CODES = new Set([
+  "24", // 幸手南店
+  "43", // 市川原木店
+  "51", // ぐりーんうぉーく店
+  "57", // 上里ＳＣ店
+  "59", // 伊勢崎スマーク店
+  "88", // 本社
+  "700", // ＥＣサイト
+  "881", // ホームデリカ第一工場店
+  "882", // ホームデリカ第一工場店
+  "883", // ホームデリカ第三工場店
+]);
+
 interface UnassignedDetail {
   code: string;
   detail: string;
@@ -43,24 +57,33 @@ async function processCsvStream(
   let processedRows = 0;
   const unassignedItems: UnassignedDetail[] = [];
 
-  for await (const line of rl) {
-    rowIndex++;
-    if (rowIndex === 1) continue;
+  try {
+    for await (const line of rl) {
+      rowIndex++;
+      if (rowIndex === 1) continue; // ヘッダースキップ
 
-    const trimmedLine = line.trim();
-    if (!trimmedLine) continue;
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
 
-    processedRows++;
+      processedRows++;
 
-    const [, status = "", rawCode = "", rawDetail = ""] = trimmedLine
-      .split(",")
-      .map((c) => c.trim());
+      const [, status = "", rawCode = "", rawDetail = ""] = trimmedLine
+        .split(",")
+        .map((c) => c.trim());
 
-    const normalizedCode = rawCode.replace(/^0+/, "");
+      const normalizedCode = rawCode.replace(/^0+/, "");
 
-    if (status === "未格納") {
-      unassignedItems.push({ code: normalizedCode, detail: rawDetail });
+      // 除外対象の店番であれば未格納チェックを行わない
+      if (EXCLUDE_STORE_CODES.has(normalizedCode)) {
+        continue;
+      }
+
+      if (status === "未格納") {
+        unassignedItems.push({ code: normalizedCode, detail: rawDetail });
+      }
     }
+  } finally {
+    rl.close();
   }
 
   return { codeName, processedRows, unassignedItems };
@@ -128,15 +151,11 @@ export async function runJobN33(): Promise<string> {
 
     addLine(`--------------------------------------------------`);
 
-    // 未格納が存在する場合は、ログを整形した上で例外を投げる
+    // 除外対象外の「未格納」が残っている場合のみエラーとする
     if (hasUnassigned) {
       addLine(` [JobN33] エラー (未格納データを検出)`);
       addLine(`==================================================`);
-
-      // モーダル側にエラーとして判定させるため Error を throw
-      const customError = new Error(outputLines.join("\n"));
-      // ログ文字列をそのままエラーメッセージとして設定
-      throw customError;
+      throw new Error(outputLines.join("\n"));
     }
 
     addLine(` [JobN33] 完了`);
@@ -145,11 +164,10 @@ export async function runJobN33(): Promise<string> {
     return outputLines.join("\n");
   } catch (error) {
     if (hasUnassigned) {
-      // 未格納エラーの場合は整形済みログを保持したまま投げる
       throw error;
     }
 
-    // その他のシステムエラー（接続失敗等）のログ整形
+    // FTP接続失敗等のシステムエラー時
     const message = error instanceof Error ? error.message : String(error);
     addLine(`❌ [JobN33] エラー発生: ${message}`);
     addLine(`--------------------------------------------------`);

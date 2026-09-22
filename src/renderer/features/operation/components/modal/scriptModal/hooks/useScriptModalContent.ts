@@ -10,9 +10,16 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { useShallow } from "zustand/react/shallow";
-import type { JobResult, OperationItem } from "@shared/types/operation";
+import type {
+  JobResult,
+  OperationItem,
+} from "@shared/types/operation/operationTypes";
 import { useAppStore } from "@renderer/store";
 import { commands } from "@renderer/services/commands";
+
+/* ============================================================================
+ * Types & Constants
+ * ========================================================================== */
 
 export interface ScriptFileItem {
   name: string;
@@ -23,7 +30,11 @@ export type ExecutionState = "idle" | "completed" | "error";
 
 const FILE_SELECTION_JOB_IDS = new Set(["E5", "E14", "E29", "E30", "E41"]);
 
-function normalizeKanriNo(kanriNo: string | number | undefined): string {
+/* ============================================================================
+ * Pure Helper Functions
+ * ========================================================================== */
+
+function normalizeKanriNo(kanriNo?: string): string {
   return String(kanriNo ?? "")
     .trim()
     .toUpperCase();
@@ -60,9 +71,10 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-// ------------------------------------------------------------
-// Core Hook Logic
-// ------------------------------------------------------------
+/* ============================================================================
+ * Core Hook Logic
+ * ========================================================================== */
+
 function useScriptModalContentValue(item?: OperationItem | null) {
   const { runScriptJob, closeGlobalModal, setGlobalProcessing } = useAppStore(
     useShallow((state) => ({
@@ -189,19 +201,25 @@ function useScriptModalContentValue(item?: OperationItem | null) {
   };
 }
 
-// ------------------------------------------------------------
-// Context & Pure JS/TS Provider
-// ------------------------------------------------------------
+/* ============================================================================
+ * Context & Provider Setup
+ * ========================================================================== */
+
 type ScriptModalContextType = ReturnType<typeof useScriptModalContentValue>;
 
 const ScriptModalContext = createContext<ScriptModalContextType | null>(null);
 
-export function ScriptModalProvider(props: {
+export interface ScriptModalProviderProps {
   item: OperationItem;
   children: ReactNode;
-}) {
-  const value = useScriptModalContentValue(props.item);
-  return createElement(ScriptModalContext.Provider, { value }, props.children);
+}
+
+export function ScriptModalProvider({
+  item,
+  children,
+}: ScriptModalProviderProps) {
+  const value = useScriptModalContentValue(item);
+  return createElement(ScriptModalContext.Provider, { value }, children);
 }
 
 export function useScriptModalContent() {

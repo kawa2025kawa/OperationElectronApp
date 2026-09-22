@@ -1,9 +1,14 @@
 ﻿import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
-import type { SheetDataResponse, SheetId } from "@shared/types/spreadsheet";
-import { ALL_SHEET_IDS } from "@renderer/features/spreadSheet/services/spreadsheetApi";
-import { fetchSheetValues } from "@renderer/features/spreadSheet/services/mappers/spreadsheetMapper";
+import type {
+  SheetDataResponse,
+  SheetId,
+} from "@shared/types/spreadsheet/sheetTypes";
+import {
+  ALL_SHEET_IDS,
+  fetchSheetValues,
+} from "@renderer/features/spreadSheet/services/mappers/sheetDefinitions";
 
 const PROGRESS_MAPPING: Partial<Record<SheetId, keyof AppState["initStatus"]>> =
   {

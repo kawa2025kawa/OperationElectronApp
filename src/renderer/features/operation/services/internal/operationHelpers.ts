@@ -1,20 +1,17 @@
-﻿// src/renderer/features/operation/services/internal/operationHelpers.ts
-import { toast } from "sonner";
-import { commands } from "@renderer/services/commands";
+﻿import { commands } from "@renderer/services/commands";
 import type { AppState } from "@renderer/store";
-import {
-  JOB_STATUS,
-  type JobStatus,
-  type OperationItem,
-} from "@shared/types/operation";
-import type { JobExecutionOptions } from "@shared/utils/dependencyHelper";
+import type {
+  JobStatus,
+  OperationItem,
+} from "@shared/types/operation/operationTypes";
+import type { JobExecutionOptions } from "@shared/utils/dependency/dependencyUtils";
 import {
   createErrorStatus,
   findEntityByKanriNo,
 } from "@renderer/features/operation/helpers/operationEntities";
 
 export const DEFAULT_JOB_EXECUTION_OPTIONS: JobExecutionOptions = {
-  ignoreDependencies: true,
+  ignoreDependencies: false,
   silent: true,
 };
 
@@ -38,11 +35,27 @@ export function requireOperationItem(
   state: AppState,
   kanriNo: string,
 ): OperationItem {
-  const item = findEntityByKanriNo(state, kanriNo);
-  if (!item) {
-    throw new Error(`対象項目が見つかりません: ${kanriNo}`);
+  const key = String(kanriNo).trim();
+
+  const operation = state.operationEntities[key];
+
+  if (operation) {
+    return operation;
   }
-  return item;
+
+  const isTodayIrregular = state.todayIds.some(
+    (id) => String(id).trim() === key,
+  );
+
+  if (isTodayIrregular) {
+    const todayIrregular = state.irregularEntities[key];
+
+    if (todayIrregular) {
+      return todayIrregular;
+    }
+  }
+
+  throw new Error(`Status管理対象の管理Noが見つかりません: ${kanriNo}`);
 }
 
 export function applyValidationError(
