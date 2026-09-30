@@ -1,50 +1,28 @@
 ﻿// src/renderer/features/operation/services/jcJobService.ts
 
 import { toast } from "sonner";
-import { commands } from "@renderer/services/commands";
+
+import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
+import { operationCommands } from "@renderer/services/commands";
 import type { AppState } from "@renderer/store";
-import {
-  JOB_STATUS,
-  type OperationItem,
-} from "@shared/types/operation/operationTypes";
+
+import { JOB_STATUS } from "@shared/types/operation/operationTypes";
 import type { JobExecutionOptions } from "@shared/utils/dependency/dependencyUtils";
-import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/operationEntities";
+
 import {
-  applyExecutionError,
-  applyValidationError,
+  applyOperationError,
   getErrorMessage,
-  requireOperationItem,
+  requireMaster,
   resolveJobExecutionOptions,
-} from "./internal/operationHelpers";
+} from "./internal/operationExecutionUtils";
 import { validateExecution } from "./internal/operationValidators";
 
-function resolveJobId(item: OperationItem, kanriNo: string): string {
-  if ("jobId" in item && item.jobId) {
+function resolveJobId(item: { jobId?: string }, kanriNo: string): string {
+  if (item.jobId && item.jobId !== "-") {
     return String(item.jobId);
   }
+
   return kanriNo;
-}
-
-function mergeJobStatus(
-  item: OperationItem,
-  result: OperationItem,
-): OperationItem {
-  const status = result.status ?? JOB_STATUS.SCHEDULED;
-  const comment =
-    result.comment ??
-    (status === JOB_STATUS.RUNNING ? "JC実行中..." : "JC実行完了");
-
-  return {
-    ...item,
-    status,
-    startTime: result.startTime ?? item.startTime,
-    endTime: result.endTime ?? item.endTime,
-    expectedStartTime: result.expectedStartTime ?? item.expectedStartTime,
-    expectedEndTime: result.expectedEndTime ?? item.expectedEndTime,
-    comment,
-    substatus: result.substatus ?? item.substatus,
-    info: result.info ?? item.info,
-  };
 }
 
 export async function executeJcJob(
@@ -57,47 +35,52 @@ export async function executeJcJob(
     ...options,
   });
 
-  const item = requireOperationItem(state, kanriNo);
-  const jobId = resolveJobId(item, kanriNo);
+  const master = requireMaster(state, kanriNo);
 
-  await runJobWithGlobalProcessing(state, "JC実行中...", jobId, async () => {
+  const jobId = resolveJobId("jobId" in master ? master : {}, kanriNo);
+
+  await runJobWithGlobalProcessing(state, "JC 実行中...", jobId, async () => {
     const validation = validateExecution(state, kanriNo, resolvedOptions);
+
     if (!validation.ok) {
-      applyValidationError(state, kanriNo, item, validation.message);
+      await applyOperationError(kanriNo, validation.message);
+
       if (!resolvedOptions.silent) {
         toast.error(validation.message);
       }
+
       return;
     }
 
     try {
-      const result = await commands.fetchSingleJobStatus(kanriNo);
+      const result = await operationCommands.fetchSingleJobStatus(kanriNo);
+
+      if (!result) {
+        throw new Error(`No.${kanriNo} のステータスを取得できませんでした`);
+      }
+
       const status = result.status ?? JOB_STATUS.SCHEDULED;
+
       const comment =
         result.comment ??
-        (status === JOB_STATUS.RUNNING ? "JC実行中..." : "JC実行完了");
+        (status === JOB_STATUS.RUNNING ? "JC 実行中..." : "JC 状態更新");
 
-      await commands.updateJobStatus(kanriNo, status, comment);
-      state.updateItemStatus(mergeJobStatus(item, result));
+      await operationCommands.updateJobStatus(kanriNo, status, comment);
 
       if (!resolvedOptions.silent) {
-        toast.info(`No.${kanriNo} JC実行状態を確認しました`);
+        toast.info(`No.${kanriNo} JC 状態を更新しました`);
       }
     } catch (error) {
       const message = getErrorMessage(error);
-      const errorMessage = `JC起動失敗: ${message}`;
 
-      await applyExecutionError(
-        state,
-        kanriNo,
-        item,
-        JOB_STATUS.ERROR,
-        errorMessage,
-      );
+      const errorMessage = `JC 実行エラー: ${message}`;
+
+      await applyOperationError(kanriNo, errorMessage);
 
       if (!resolvedOptions.silent) {
         toast.error(errorMessage);
       }
+
       throw error;
     }
   });

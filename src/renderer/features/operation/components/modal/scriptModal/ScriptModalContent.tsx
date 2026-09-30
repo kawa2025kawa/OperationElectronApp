@@ -1,10 +1,10 @@
 ﻿// src/renderer/features/operation/components/modal/scriptModal/ScriptModalContent.tsx
 
-import React, { useEffect } from "react";
+import { memo, useEffect } from "react";
 import { FileDropZone } from "@renderer/components/ui/fileDropZone/FileDropZone";
 import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-import type { OperationItem } from "@shared/types/operation/operationTypes";
+import type { MasterRow } from "@renderer/features/operation/helpers/entityUtils";
 import { ExecutionResultView } from "./ExecutionResultView";
 import {
   ScriptModalProvider,
@@ -14,19 +14,17 @@ import * as styles from "./scriptModalContent.css";
 
 const FILE_ACCEPT = ".xlsx,.csv";
 
-// 🎯 scriptKey を型定義に追加
 interface ScriptModalContentProps {
-  item: OperationItem;
+  item: MasterRow;
   kanriNo?: string;
   scriptKey?: string;
 }
 
-const ScriptModalBody: React.FC = React.memo(function ScriptModalBody() {
+const ScriptModalBody = memo(function ScriptModalBody() {
   const { state, actions } = useScriptModalContent();
   const updateModalConfig = useAppStore((s) => s.updateModalConfig);
 
   useEffect(() => {
-    // 🎯 完了時は空配列を渡すことで、親側でデフォルトの「閉じる」ボタンが自動適用される
     if (state.isFinished) {
       updateModalConfig({
         rightActions: [],
@@ -88,7 +86,7 @@ const ScriptModalBody: React.FC = React.memo(function ScriptModalBody() {
 });
 
 export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
-  React.memo(function ScriptModalContent({ item, kanriNo, scriptKey }) {
+  memo(function ScriptModalContent({ item, kanriNo }) {
     const targetItem = kanriNo ? { ...item, kanriNo } : item;
 
     return (
@@ -102,5 +100,3 @@ ScriptModalContent.modalSize = {
   width: "min(85vw, calc(75vh * 16 / 9))",
   height: "min(75vh, calc(85vw * 9 / 16))",
 };
-
-ScriptModalContent.displayName = "ScriptModalContent";

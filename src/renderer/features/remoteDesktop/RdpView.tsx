@@ -1,13 +1,12 @@
-// src/renderer/features/remoteDesktop/RdpView.tsx
+// src\renderer\features\remoteDesktop\RdpView.tsx
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@renderer/store";
 import { UnknownView } from "@renderer/layout/UnknownView";
-
 import * as styles from "./rdpView.css";
 
-export const RdpView: React.FC = () => {
+export const RdpView = () => {
   const { rdpTargets, fetchRdpTargets, isRdpLoading, runRdp } = useAppStore(
     useShallow((state) => ({
       rdpTargets: state.rdpTargets,
@@ -21,26 +20,22 @@ export const RdpView: React.FC = () => {
     void fetchRdpTargets();
   }, [fetchRdpTargets]);
 
-  if (isRdpLoading) {
-    return null;
-  }
-
-  if (rdpTargets.length === 0) {
+  if (isRdpLoading) return null;
+  if (rdpTargets.length === 0)
     return <UnknownView view="remoteDesktop (RDP Target Empty)" />;
-  }
 
   return (
     <div className={styles.rdpContainer}>
       <div className={styles.grid}>
         {rdpTargets.map((target) => (
           <button
-            key={target.id}
+            key={target.name}
             className={styles.card}
-            onClick={() => void runRdp(target.id)}
+            onClick={() => void runRdp(target.name)}
             type="button"
           >
             <span className={styles.cardTitle}>{target.name}</span>
-            <span className={styles.cardHost}>{target.host}</span>
+            <span className={styles.cardHost}>{target.ipAddress}</span>
           </button>
         ))}
       </div>

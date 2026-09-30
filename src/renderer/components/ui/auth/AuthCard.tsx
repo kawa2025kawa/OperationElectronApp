@@ -1,6 +1,6 @@
 ﻿// src/renderer/components/ui/auth/AuthCard.tsx
 
-import React from "react";
+import { memo } from "react";
 import { clsx } from "clsx";
 import * as styles from "./authCard.css";
 
@@ -13,7 +13,7 @@ export interface AuthCardProps {
   onButtonClick: () => void;
 }
 
-export const AuthCard: React.FC<AuthCardProps> = React.memo(
+export const AuthCard = memo<AuthCardProps>(
   ({
     isAuthenticated,
     userEmail,
@@ -94,5 +94,3 @@ export const AuthCard: React.FC<AuthCardProps> = React.memo(
     );
   },
 );
-
-AuthCard.displayName = "AuthCard";

@@ -12,12 +12,12 @@ interface EmptyStateProps {
   retryText?: string;
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({
+export const EmptyState = ({
   className,
   message,
   onRetry,
   retryText = "再試行",
-}) => {
+}: EmptyStateProps) => {
   return (
     <div className={clsx(styles.emptyWrapper, animateFadeIn, className)}>
       {message ? (

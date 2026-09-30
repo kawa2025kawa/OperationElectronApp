@@ -1,17 +1,13 @@
-﻿// src/renderer/components/ui/button/pollingToggleButton/PollingToggleButton.tsx
-
-import React, { useCallback } from "react";
+﻿import { useCallback } from "react";
+import type { MouseEvent } from "react";
 import { useAppStore } from "@renderer/store";
 import { showToast } from "@renderer/utils/toastUtils";
 import { useShallow } from "zustand/react/shallow";
-import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
 import * as styles from "./pollingToggleButton.css";
 
-export const PollingToggleButton: React.FC = () => {
+export const PollingToggleButton = () => {
   const {
     isPolling,
-    isAuthenticated,
-    setCurrentView,
     startPolling,
     stopPolling,
     resetAllOperationStatuses,
@@ -21,8 +17,6 @@ export const PollingToggleButton: React.FC = () => {
   } = useAppStore(
     useShallow((state) => ({
       isPolling: state.isPolling,
-      isAuthenticated: state.isAuthenticated,
-      setCurrentView: state.setCurrentView,
       startPolling: state.startPolling,
       stopPolling: state.stopPolling,
       resetAllOperationStatuses: state.resetAllOperationStatuses,
@@ -48,49 +42,35 @@ export const PollingToggleButton: React.FC = () => {
   }, [isPolling, startPolling, stopPolling]);
 
   const handleContextMenu = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
+    (e: MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       if (isPolling) return;
 
-      if (!isAuthenticated) {
-        showToast("Google認証が必要です。ログイン画面へ移動します", "error");
-        setCurrentView?.(APP_VIEW_IDS.AUTH);
-        return;
-      }
+      openGlobalModal("すべてのステータスを初期化（未実行）に戻しますか？", {
+        title: "ステータスの全リセット",
+        confirmText: "リセット実行",
+        cancelText: "キャンセル",
+        onConfirm: async () => {
+          updateModalConfig({ isProcessing: true });
 
-      openGlobalModal(
-        "スプレッドシートから最新マスターを取得し、ステータスをリセットしますか？",
-        {
-          title: "ステータスの全リセット",
-          confirmText: "リセット実行",
-          cancelText: "キャンセル",
-          onConfirm: async () => {
-            updateModalConfig({ isProcessing: true });
+          try {
+            await resetAllOperationStatuses();
 
-            try {
-              await resetAllOperationStatuses();
-
-              showToast(
-                "最新マスターを取得し、ステータスをリセットしました",
-                "success",
-              );
-              closeGlobalModal();
-            } catch (error) {
-              console.error("Failed to reset operation statuses:", error);
-              const message =
-                error instanceof Error ? error.message : String(error);
-              showToast(`ステータスリセットエラー: ${message}`, "error");
-            } finally {
-              updateModalConfig({ isProcessing: false });
-            }
-          },
+            showToast("ステータスを初期化しました", "success");
+            closeGlobalModal();
+          } catch (error) {
+            console.error("Failed to reset operation statuses:", error);
+            const message =
+              error instanceof Error ? error.message : String(error);
+            showToast(`ステータスリセットエラー: ${message}`, "error");
+          } finally {
+            updateModalConfig({ isProcessing: false });
+          }
         },
-      );
+      });
     },
     [
       isPolling,
-      isAuthenticated,
-      setCurrentView,
       openGlobalModal,
       updateModalConfig,
       closeGlobalModal,
@@ -100,7 +80,7 @@ export const PollingToggleButton: React.FC = () => {
 
   const title = isPolling
     ? "システム稼働中（クリックで停止）"
-    : "左クリック: 監視開始 / 右クリック: 最新マスター取得 & 全データリセット";
+    : "左クリック: 監視開始 / 右クリック: 全データステータスリセット";
 
   return (
     <button

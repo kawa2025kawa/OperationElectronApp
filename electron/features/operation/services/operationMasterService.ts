@@ -1,49 +1,80 @@
-﻿import fs from "node:fs";
-import path from "node:path";
-import { app } from "electron";
-import type { OperationItem } from "@shared/types/operation/operationTypes";
+﻿// electron/features/operation/services/operationMasterService.ts
 
-export interface OperationMasterCache {
-  fetchedDate: string;
-  operations: OperationItem[];
-  irregulars: OperationItem[];
-  todayIrregulars: OperationItem[];
-}
-
-type OperationMasterData = Omit<OperationMasterCache, "fetchedDate">;
+import {
+  getTodayString,
+  loadCache,
+  saveCache,
+} from "@electron/shared/cache/fileCache";
+import type {
+  OperationMasterCache,
+  OperationMasterData,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
+import type { DependencyMasters } from "@shared/utils/dependency/dependencyUtils";
 
 const CACHE_FILE_NAME = "operationMaster.cache.json";
-const CACHE_FILE_PATH = path.join(app.getPath("userData"), CACHE_FILE_NAME);
 
-export function getTodayString(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
+let masterData: OperationMasterData = {
+  operations: [],
+  irregulars: [],
+  todayIrregulars: [],
+};
 
 export function loadMasterCache(): OperationMasterCache | null {
-  try {
-    const raw = fs.readFileSync(CACHE_FILE_PATH, "utf-8");
-    const data = JSON.parse(raw);
-    return data && typeof data.fetchedDate === "string" ? data : null;
-  } catch {
+  const cache = loadCache<unknown>(CACHE_FILE_NAME);
+
+  if (!isOperationMasterCache(cache)) {
     return null;
   }
+
+  setOperationMasterData(cache);
+
+  return cache;
+}
+
+export function getOperationMasterData(): OperationMasterData {
+  return {
+    operations: [...masterData.operations],
+    irregulars: [...masterData.irregulars],
+    todayIrregulars: [...masterData.todayIrregulars],
+  };
+}
+
+export function getDependencyMasters(): DependencyMasters {
+  return {
+    operationMasters: masterData.operations,
+    irregularMasters: masterData.irregulars,
+    todayIrregularMasters: masterData.todayIrregulars,
+  };
+}
+
+function setOperationMasterData(data: OperationMasterData): void {
+  masterData = {
+    operations: [...data.operations],
+    irregulars: [...data.irregulars],
+    todayIrregulars: [...data.todayIrregulars],
+  };
 }
 
 export function saveMasterCache(data: OperationMasterData): void {
-  const cache: OperationMasterCache = {
+  saveCache<OperationMasterCache>(CACHE_FILE_NAME, {
     fetchedDate: getTodayString(),
     ...data,
-  };
+  });
 
-  try {
-    fs.writeFileSync(CACHE_FILE_PATH, JSON.stringify(cache, null, 2), "utf-8");
-  } catch (error) {
-    console.error("[MasterService] Failed to save cache file:", error);
-  }
+  setOperationMasterData(data);
 }
 
-export function isTodayCacheAvailable(): boolean {
-  return loadMasterCache()?.fetchedDate === getTodayString();
+function isOperationMasterCache(value: unknown): value is OperationMasterCache {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const data = value as Record<string, unknown>;
+
+  return (
+    typeof data.fetchedDate === "string" &&
+    Array.isArray(data.operations) &&
+    Array.isArray(data.irregulars) &&
+    Array.isArray(data.todayIrregulars)
+  );
 }

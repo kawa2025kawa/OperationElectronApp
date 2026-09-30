@@ -1,48 +1,121 @@
-﻿// src/renderer/features/other/components/modal/contents/gmailDraft/useGmailModalLogic.ts
+// src/renderer/features/other/components/modal/contents/gmailDraft/useGmailModalLogic.ts
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, type ChangeEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { gmailService } from "@renderer/features/other/services/gmailService";
+
+import { gmailDraftService } from "@renderer/features/other/services/gmailDraftService";
+import { getNextTuesdayString } from "@renderer/features/other/utils/gmailModalUtils";
+import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/templates/gmailTemplates";
+import type {
+  EmailTemplateKey,
+  GmailDraftFormValues,
+} from "@renderer/features/other/types/gmailDraftTypes";
 import { useAppStore } from "@renderer/store";
-import { type EmailTemplateKey } from "./gmailTemplates";
-import {
-  type FormValues,
-  getNextTuesdayString,
-  stripHtmlTags,
-  createFormValues,
-  formatEmailAddresses,
-} from "./gmailModalUtils";
 
 export function useGmailModalLogic() {
   const {
     isAuthenticated,
     familyName,
     userEmail,
-    updateModalConfig,
+    templateKey,
+    formValues,
+    isProcessing,
     updateGmailDraftForm,
+    setGmailDraft,
+    setGmailDraftProcessing,
+    updateModalConfig,
+    closeGlobalModal,
   } = useAppStore(
-    useShallow((s) => ({
-      isAuthenticated: s.isAuthenticated,
-      familyName: s.familyName,
-      userEmail: s.userEmail,
-      updateModalConfig: s.updateModalConfig,
-      updateGmailDraftForm: s.updateGmailDraftForm,
+    useShallow((state) => ({
+      isAuthenticated: state.isAuthenticated,
+      familyName: state.familyName,
+      userEmail: state.userEmail,
+
+      templateKey: state.gmailDraft.templateKey,
+      formValues: state.gmailDraft.formValues,
+      isProcessing: state.gmailDraft.isProcessing,
+
+      updateGmailDraftForm: state.updateGmailDraftForm,
+      setGmailDraft: state.setGmailDraft,
+      setGmailDraftProcessing: state.setGmailDraftProcessing,
+
+      updateModalConfig: state.updateModalConfig,
+      closeGlobalModal: state.closeGlobalModal,
     })),
   );
 
-  const lastName = familyName || "担当者";
-  const nextTuesdayStr = getNextTuesdayString();
+  const handleInputChange = useCallback(
+    (field: keyof GmailDraftFormValues) =>
+      (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        updateGmailDraftForm({
+          [field]: event.target.value,
+        });
 
-  const [templateKey, setTemplateKey] = useState<EmailTemplateKey | null>(null);
-  const [formValues, setFormValues] = useState<FormValues>({
-    to: "",
-    cc: "",
-    subject: "",
-    body: "",
-  });
-  const [isSaving, setIsSaving] = useState(false);
+        updateModalConfig({
+          message: null,
+        });
+      },
+    [updateGmailDraftForm, updateModalConfig],
+  );
 
-  // 1. 下書き作成の実行ロジック
+  const handleTemplateChange = useCallback(
+    async (event: ChangeEvent<HTMLSelectElement>) => {
+      const value = event.target.value;
+
+      updateModalConfig({
+        message: null,
+      });
+
+      if (!value) {
+        setGmailDraft({
+          templateKey: null,
+          formValues: {
+            to: "",
+            cc: "",
+            subject: "",
+            body: "",
+          },
+        });
+
+        return;
+      }
+
+      const option = EMAIL_TEMPLATE_OPTIONS.find((item) => item.key === value);
+
+      if (!option) {
+        return;
+      }
+
+      const key: EmailTemplateKey = option.key;
+
+      try {
+        const draft =
+          await gmailDraftService.createDraftFromTemplateWithSignature(key, {
+            lastName: familyName ?? "",
+            nextTuesdayStr: getNextTuesdayString(),
+          });
+
+        setGmailDraft({
+          templateKey: key,
+          formValues: draft,
+        });
+      } catch (error) {
+        console.error("[useGmailModalLogic] Failed to create template:", error);
+
+        updateModalConfig({
+          message: {
+            text:
+              error instanceof Error
+                ? error.message
+                : "テンプレートの生成に失敗しました。",
+            type: "error",
+          },
+        });
+      }
+    },
+    [familyName, setGmailDraft, updateModalConfig],
+  );
+
   const handleExecute = useCallback(async () => {
     if (!formValues.to.trim()) {
       updateModalConfig({
@@ -51,19 +124,19 @@ export function useGmailModalLogic() {
           type: "warning",
         },
       });
+
       return;
     }
 
-    setIsSaving(true);
-    updateModalConfig({ isProcessing: true, message: null });
+    setGmailDraftProcessing(true);
+
+    updateModalConfig({
+      isProcessing: true,
+      message: null,
+    });
 
     try {
-      await gmailService.createDraft({
-        to: formatEmailAddresses(formValues.to),
-        cc: formatEmailAddresses(formValues.cc),
-        subject: formValues.subject.trim(),
-        body: formValues.body,
-      });
+      await gmailDraftService.createDraft(formValues);
 
       updateModalConfig({
         message: {
@@ -72,7 +145,8 @@ export function useGmailModalLogic() {
         },
       });
     } catch (error) {
-      console.error("[GmailModal] Failed to create draft:", error);
+      console.error("[useGmailModalLogic] Failed to create draft:", error);
+
       updateModalConfig({
         message: {
           text:
@@ -83,77 +157,50 @@ export function useGmailModalLogic() {
         },
       });
     } finally {
-      setIsSaving(false);
-      updateModalConfig({ isProcessing: false });
+      setGmailDraftProcessing(false);
+
+      updateModalConfig({
+        isProcessing: false,
+      });
     }
-  }, [formValues, updateModalConfig]);
+  }, [formValues, setGmailDraftProcessing, updateModalConfig]);
 
-  // 2. 入力値の変更ハンドラ
-  const handleInputChange = useCallback(
-    (field: keyof FormValues) =>
-      (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const val = e.target.value;
-        setFormValues((prev) => {
-          const next = { ...prev, [field]: val };
-          updateGmailDraftForm(next);
-          return next;
-        });
-        updateModalConfig({ message: null });
-      },
-    [updateGmailDraftForm, updateModalConfig],
-  );
-
-  // 3. テンプレート選択ハンドラ
-  const handleTemplateChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const nextKey = (event.target.value as EmailTemplateKey) || null;
-      setTemplateKey(nextKey);
-      const nextValues = createFormValues(nextKey, lastName, nextTuesdayStr);
-
-      setFormValues(nextValues);
-      updateGmailDraftForm(nextValues);
-      updateModalConfig({ message: null });
-    },
-    [lastName, nextTuesdayStr, updateGmailDraftForm, updateModalConfig],
-  );
-
-  // 4. Gmail署名自動適用
   useEffect(() => {
-    if (!isAuthenticated || !templateKey) return;
-    let mounted = true;
-
-    void gmailService
-      .getPrimarySignature()
-      .then((signature) => {
-        const plainSignature = stripHtmlTags(signature || "");
-        if (!mounted || !plainSignature) return;
-
-        setFormValues((prev) => {
-          if (prev.body.includes(plainSignature)) return prev;
-          const currentBody = prev.body.trimEnd();
-          const nextValues = {
-            ...prev,
-            body: `${currentBody}\n\n--\n${plainSignature}`,
-          };
-          updateGmailDraftForm(nextValues);
-          return nextValues;
-        });
-      })
-      .catch((err) => console.warn("[GmailModal] Signature error:", err));
-
-    return () => {
-      mounted = false;
-    };
-  }, [isAuthenticated, templateKey, updateGmailDraftForm]);
+    updateModalConfig({
+      rightActions: isAuthenticated
+        ? [
+            {
+              id: "cancel",
+              label: "キャンセル",
+              onClick: closeGlobalModal,
+              disabled: isProcessing,
+            },
+            {
+              id: "create-draft",
+              label: isProcessing ? "処理中..." : "下書き作成",
+              onClick: handleExecute,
+              disabled: !formValues.to.trim() || isProcessing,
+              variant: "default",
+            },
+          ]
+        : [],
+    });
+  }, [
+    isAuthenticated,
+    formValues.to,
+    isProcessing,
+    handleExecute,
+    updateModalConfig,
+    closeGlobalModal,
+  ]);
 
   return {
     isAuthenticated,
     userEmail,
     templateKey,
     formValues,
-    isSaving,
+    isSaving: isProcessing,
     handleInputChange,
     handleTemplateChange,
-    handleExecute,
   };
 }

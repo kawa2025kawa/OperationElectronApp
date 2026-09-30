@@ -1,8 +1,8 @@
 ﻿import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-import { commands } from "@renderer/services/commands";
+import { systemCommands } from "@renderer/services/commands";
 import type { AppState } from "@renderer/store";
-import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/operationEntities";
+import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
 import {
   calculateExpireDate,
   createInitialPdfUploadState,
@@ -107,7 +107,7 @@ export const createPdfUploadSlice: StateCreator<
       )
       .map(
         (f) =>
-          commands.getFilePath(f) ||
+          systemCommands.getFilePath(f) ||
           ("path" in f && typeof f.path === "string" ? f.path : f.name),
       )
       .filter(Boolean);
@@ -180,7 +180,7 @@ export const createPdfUploadSlice: StateCreator<
         "店舗maticPDFアップロード",
         async () => {
           const filePaths = files.map((file) => file.path);
-          await commands.tempomaticUploadDocument(filePaths, expireDate);
+          await systemCommands.tempomaticUploadDocument(filePaths, expireDate);
         },
       );
 

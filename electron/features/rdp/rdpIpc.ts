@@ -1,75 +1,45 @@
 ﻿// electron/features/rdp/rdpIpc.ts
 
-import { ipcMain } from "electron";
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import util from "node:util";
-import type { RdpTarget } from "@shared/types/rdp";
+import { ipcMain } from "electron";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { getRdpMaster, loadRdpMasters } from "./rdpMasterService";
 
-const execPromise = util.promisify(exec);
-
-interface RdpTargetWithAuth extends RdpTarget {
-  username: string;
-  password?: string;
-}
-
-const RDP_TARGETS: RdpTargetWithAuth[] = [
-  {
-    id: "target_172_25_10_10",
-    host: "172.25.10.10",
-    name: "WEBEDI_AP",
-    username: "wediadmin",
-    password: process.env.RDP_PASS_WEBEDI_AP ?? "belc_nec_2019",
-  },
-  {
-    id: "target_172_25_20_20",
-    host: "172.25.20.20",
-    name: "WEBEDI_DB",
-    username: "wediadmin",
-    password: process.env.RDP_PASS_WEBEDI_DB ?? "belc_nec_2019",
-  },
-  {
-    id: "target_192_88_100_1",
-    host: "192.88.100.1",
-    name: "マスタメンテ",
-    username: "Administrator",
-    password: process.env.RDP_PASS_DB ?? "Belcedp",
-  },
-  {
-    id: "target_172_25_101_31",
-    host: "172.25.101.31",
-    name: "MD帳票サーバ",
-    username: "dcmmd",
-    password: process.env.RDP_PASS_MD ?? "Dcmmd2013",
-  },
-  {
-    id: "target_192_88_1_59",
-    host: "192.88.1.59",
-    name: "WEBEDI",
-    username: "Administrator",
-    password: process.env.RDP_PASS_WEBEDI ?? "belcedp",
-  },
-];
-
-/** レンダラープロセスへ公開する安全なターゲット一覧を取得（PW等は除外） */
-const getPublicRdpTargets = (): RdpTarget[] =>
-  RDP_TARGETS.map(({ id, host, name }) => ({ id, host, name }));
+const execFilePromise = util.promisify(execFile);
+let registered = false;
 
 export function registerRdpIpc(): void {
-  ipcMain.handle("getRdpTargets", () => getPublicRdpTargets());
+  if (registered) return;
+  registered = true;
+
+  ipcMain.handle(IPC_CHANNELS.RDP.GET_MASTERS, async () => loadRdpMasters());
 
   ipcMain.handle(
-    "startRdpSession",
-    async (_e, { payload }: { payload: { id: string } }) => {
-      const target = RDP_TARGETS.find((t) => t.id === payload?.id);
-      if (!target) throw new Error("RDP target not found");
+    IPC_CHANNELS.RDP.START_SESSION,
+    async (_event, { payload }: { payload: { name: string } }) => {
+      const name = payload?.name?.trim();
 
-      if (target.username && target.password) {
-        await execPromise(
-          `cmdkey /generic:TERMSRV/${target.host} /user:${target.username} /pass:${target.password}`,
-        );
+      if (!name) {
+        throw new Error("RDP target name is required");
       }
 
-      exec(`mstsc /v:${target.host}`);
+      const master = getRdpMaster(name);
+
+      if (!master) {
+        throw new Error(`RDP target not found: ${name}`);
+      }
+
+      if (master.userName && master.password) {
+        await execFilePromise("cmdkey", [
+          `/generic:TERMSRV/${master.ipAddress}`,
+          `/user:${master.userName}`,
+          `/pass:${master.password}`,
+        ]);
+      }
+
+      execFile("mstsc", [`/v:${master.ipAddress}`]);
+
       return null;
     },
   );

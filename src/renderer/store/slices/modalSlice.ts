@@ -1,6 +1,6 @@
 ﻿// src/renderer/store/slices/modalSlice.ts
 
-import React from "react";
+import { isValidElement } from "react";
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
 import type {
@@ -29,7 +29,7 @@ function extractComponentModalSize(
   if (
     typeof content === "object" &&
     content !== null &&
-    !React.isValidElement(content)
+    !isValidElement(content)
   ) {
     if ("modalSize" in content) {
       return (content as { modalSize?: ModalSize }).modalSize;
@@ -43,7 +43,7 @@ function extractComponentModalSize(
     }
   }
 
-  if (React.isValidElement(content)) {
+  if (isValidElement(content)) {
     const target = content.type as unknown;
 
     if (typeof target === "function" && "modalSize" in target) {
@@ -74,7 +74,7 @@ function extractComponentModalConfig(
 
   let target: unknown = content;
 
-  if (React.isValidElement(content)) {
+  if (isValidElement(content)) {
     target = content.type;
   }
 

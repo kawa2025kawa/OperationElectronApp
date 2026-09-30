@@ -1,19 +1,25 @@
 ﻿// src/renderer/components/ui/statusSummary/useStatusSummary.ts
 
 import { useCallback, useMemo } from "react";
-import { useAppStore } from "@renderer/store";
-import {
-  STATUS_LABEL,
-  SummaryOrder,
-  type OperationItem,
-  type StatusSummary as FilteredSummary,
-  type SummaryDisplayKey,
-} from "@shared/types/operation/operationTypes";
-import * as styles from "./statusSummary.css";
+import { useShallow } from "zustand/react/shallow";
 
-// ============================================================
-// Types
-// ============================================================
+import {
+  filterSummaryItems,
+  type OperationSummaryRow,
+  type TodaySummaryRow,
+} from "@renderer/features/operation/services/operationSummaryService";
+import {
+  selectOperationMasters,
+  selectTodayIrregularMasters,
+} from "@renderer/features/spreadSheet/store/spreadsheetSelectors";
+import { useAppStore } from "@renderer/store";
+
+import type { SummaryDisplayKey } from "@shared/types/statusSummary/statusSummaryTypes";
+
+import * as styles from "./statusSummary.css";
+import { getSummaryLabel, SUMMARY_DISPLAY_ORDER } from "./statusSummaryConfig";
+
+export type SummaryRow = OperationSummaryRow | TodaySummaryRow;
 
 export interface StatusItemData {
   key: SummaryDisplayKey;
@@ -23,53 +29,70 @@ export interface StatusItemData {
 }
 
 export interface UseStatusSummaryParams {
-  data: FilteredSummary;
-  openModal: (items: OperationItem[], title: string) => void;
+  openModal: (items: SummaryRow[], title: string) => void;
 }
 
-// ============================================================
-// Hook
-// ============================================================
+type StatusSummaryBadgeKey = keyof typeof styles.valueBadgeVariants;
 
-export const useStatusSummary = ({
-  data,
-  openModal,
-}: UseStatusSummaryParams) => {
-  const getFilteredSummaryItems = useAppStore(
-    (state) => state.getFilteredSummaryItems,
+const getBadgeClass = (key: SummaryDisplayKey): string => {
+  return styles.valueBadgeVariants[key as StatusSummaryBadgeKey];
+};
+
+export const useStatusSummary = ({ openModal }: UseStatusSummaryParams) => {
+  const {
+    summary,
+    operationMasters,
+    todayIrregularMasters,
+    operationStatuses,
+    todayStatuses,
+  } = useAppStore(
+    useShallow((state) => ({
+      summary: state.summary,
+      operationMasters: selectOperationMasters(state),
+      todayIrregularMasters: selectTodayIrregularMasters(state),
+      operationStatuses: state.operationStatuses,
+      todayStatuses: state.todayStatuses,
+    })),
   );
 
   const items = useMemo<StatusItemData[]>(() => {
-    // 🎯 SummaryOrder.ORDER 配列を参照してループを回す
-    return SummaryOrder.ORDER.map((key: SummaryDisplayKey) => {
-      const rawValue = data[key] ?? 0;
-      const displayValue = key === "progress" ? `${rawValue}%` : rawValue;
-      const label = STATUS_LABEL[key];
-      const badgeClass =
-        styles.valueBadgeVariants[
-          key as keyof typeof styles.valueBadgeVariants
-        ];
+    return SUMMARY_DISPLAY_ORDER.map((key) => {
+      const value = summary[key] ?? 0;
 
       return {
         key,
-        label,
-        displayValue,
-        badgeClass,
+        label: getSummaryLabel(key),
+        displayValue: key === "progress" ? `${value}%` : value,
+        badgeClass: getBadgeClass(key),
       };
     });
-  }, [data]);
+  }, [summary]);
 
   const handleClick = useCallback(
     (key: SummaryDisplayKey, label: string) => {
-      // 進捗率(progress)の場合はモーダルを開かない安全制御
       if (key === "progress") {
         return;
       }
 
-      const filteredItems = getFilteredSummaryItems(key);
+      const filteredItems = filterSummaryItems(
+        {
+          operationMasters,
+          todayIrregularMasters,
+          operationStatuses,
+          todayStatuses,
+        },
+        key,
+      );
+
       openModal(filteredItems, label);
     },
-    [getFilteredSummaryItems, openModal],
+    [
+      operationMasters,
+      todayIrregularMasters,
+      operationStatuses,
+      todayStatuses,
+      openModal,
+    ],
   );
 
   return {

@@ -129,32 +129,6 @@ export const footerLeftButton = style({
   textOverflow: "ellipsis",
 });
 
-export const defaultCloseButton = style([
-  themeTransition,
-  {
-    border: "none",
-    cursor: "pointer",
-    backgroundColor: tokens.color.bg.base,
-    color: tokens.color.text.base,
-    fontWeight: tokens.font.weight.bold,
-    fontSize: tokens.font.size.sm,
-    outline: "none",
-    boxShadow: tokens.shadow.raised.low,
-    borderRadius: tokens.radius.md,
-    padding: "8px 20px",
-    whiteSpace: "nowrap",
-    selectors: {
-      "&:hover": {
-        color: tokens.color.text.hover,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-      },
-      "&:active": {
-        boxShadow: tokens.shadow.pressed.low,
-      },
-    },
-  },
-]);
-
 // ============================================================
 // Message Banner & Variants
 // ============================================================

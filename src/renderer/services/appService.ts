@@ -1,212 +1,241 @@
-﻿import { commands } from "@renderer/services/commands";
-import { DATA_LOADING_STATUS } from "@renderer/store/slices/initSlice";
+﻿// src/renderer/services/appService.ts
+
+import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
+import { operationCommands } from "@renderer/services/commands";
+import { updateService } from "@renderer/services/updateService";
 import { useAppStore } from "@renderer/store";
+
 import {
-  DEFAULT_ACTIVE_FLAGS,
-  type OperationItem,
-} from "@shared/types/operation/operationTypes";
-import type { SheetId } from "@shared/types/spreadsheet/sheetTypes";
+  ALL_SHEET_IDS,
+  SHEETS,
+  type OperationMasterData,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 
-async function showMainWindow(): Promise<void> {
+/* =========================
+ * Types
+ * ========================= */
+
+type TargetSourceName = "operation" | "irregular" | "todayIrregular";
+
+interface Target {
+  kanriNo: string | number;
+}
+
+interface TargetSource {
+  source: TargetSourceName;
+  targets: Target[];
+}
+
+interface KanriNoSource {
+  source: TargetSourceName;
+  count: number;
+}
+
+/* =========================
+ * Status Restore
+ * ========================= */
+
+/**
+ * Main側に保存されているStatusをRenderer Storeへ復元する。
+ *
+ * Statusの取得・正規化はoperationCommands側で行う。
+ * このServiceではOperationStatusStateだけを扱う。
+ */
+async function restorePersistedStatuses(): Promise<void> {
   try {
-    await commands.showMainWindow();
+    const savedStatuses = await operationCommands.initializeStatus();
+
+    const updates = Object.values(savedStatuses);
+
+    if (updates.length === 0) {
+      return;
+    }
+
+    useAppStore.getState().applyOperationStatusUpdates(updates);
   } catch (error) {
-    console.error("[appService] Failed to show main window:", error);
-  }
-}
-
-const MASTER_SHEET_IDS = [
-  "OperationMasterList",
-  "IrregularMasterList",
-  "TodayIrregularMasterList",
-] as const satisfies readonly SheetId[];
-
-function getTodayString(): string {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-export function setupOperationIpcListeners(): void {
-  commands.onOperationStatusUpdated((item: OperationItem) => {
-    if (item && item.kanriNo != null) {
-      console.log(
-        `[Renderer IPC] Mainからステータス更新通知を受信 -> No.${item.kanriNo}, Status: ${item.status}, Start: ${item.startTime ?? ""}, End: ${item.endTime ?? ""}`,
-      );
-
-      useAppStore.getState().updateOperationStatusFromMain({
-        kanriNo: item.kanriNo,
-        status: item.status ?? "",
-        comment: item.comment ?? undefined,
-        startTime: item.startTime ?? undefined,
-        endTime: item.endTime ?? undefined,
-        expectedStartTime: item.expectedStartTime ?? undefined,
-        expectedEndTime: item.expectedEndTime ?? undefined,
-        substatus: item.substatus ?? undefined,
-        info: item.info ?? undefined,
-      });
-    }
-  });
-
-  console.log(
-    "[appService] Registered IPC listener via commands.onOperationStatusUpdated",
-  );
-}
-
-async function loadMasterData(isAuthenticated: boolean): Promise<{
-  operations: OperationItem[];
-  irregulars: OperationItem[];
-  todayIrregulars: OperationItem[];
-}> {
-  const store = useAppStore.getState();
-  const todayStr = getTodayString();
-
-  console.log("[appService] Checking local master data cache...");
-
-  const cached = await commands.loadOperationMasterCache();
-
-  if (cached && cached.fetchedDate === todayStr) {
-    console.log(
-      `[appService] Using today's cached master data (Date: ${cached.fetchedDate})`,
+    console.error(
+      "[AppService] Failed to restore persisted operation statuses:",
+      error,
     );
-
-    return {
-      operations: cached.operations ?? [],
-      irregulars: cached.irregulars ?? [],
-      todayIrregulars: cached.todayIrregulars ?? [],
-    };
   }
+}
 
-  if (isAuthenticated && store.accessToken) {
-    while (true) {
-      try {
-        console.log(
-          "[appService] Fetching initial master data from Google Sheets API...",
-        );
+/* =========================
+ * Operation Master
+ * ========================= */
 
-        await Promise.all(
-          MASTER_SHEET_IDS.map((id) =>
-            store.fetchSheetData(id, store.accessToken!, false, true),
-          ),
-        );
-
-        const latestStore = useAppStore.getState();
-
-        const isAllFetched = MASTER_SHEET_IDS.every((id) =>
-          Array.isArray(latestStore.sheetData[id]?.data),
-        );
-
-        if (isAllFetched) {
-          const [operations, irregulars, todayIrregulars] =
-            MASTER_SHEET_IDS.map(
-              (id) =>
-                (latestStore.sheetData[id]?.data ?? []) as OperationItem[],
-            );
-
-          await commands.syncOperationMaster({
-            operations,
-            irregulars,
-            todayIrregulars,
-          });
-
-          console.log(
-            `[appService] Successfully fetched online master data (Ops: ${operations.length}, Irregs: ${irregulars.length}, Today: ${todayIrregulars.length})`,
-          );
-
-          return {
-            operations,
-            irregulars,
-            todayIrregulars,
-          };
-        }
-
-        throw new Error(
-          "スプレッドシートデータの一部または全件の取得に失敗しました",
-        );
-      } catch (error) {
-        console.warn("[appService] Failed to fetch online master data:", error);
-
-        if (cached) {
-          const shouldRetry = window.confirm(
-            "スプレッドシートからのデータ取得（ネットワーク通信）に失敗しました。\n\n" +
-              "【OK】: 再度通信を試みる（再試行）\n" +
-              `【キャンセル】: 前回の保存データ（${cached.fetchedDate} 時点）を使用して起動する`,
-          );
-
-          if (!shouldRetry) {
-            console.log(
-              `[appService] User chosen fallback to previous cache (Date: ${cached.fetchedDate})`,
-            );
-
-            return {
-              operations: cached.operations ?? [],
-              irregulars: cached.irregulars ?? [],
-              todayIrregulars: cached.todayIrregulars ?? [],
-            };
-          }
-        } else {
-          const shouldRetry = window.confirm(
-            "ネットワークエラーにより最新データの取得に失敗しました（保存されているキャッシュもありません）。\n\n" +
-              "【OK】: 再度接続を試みる\n" +
-              "【キャンセル】: 空の状態で起動する",
-          );
-
-          if (!shouldRetry) {
-            return {
-              operations: [],
-              irregulars: [],
-              todayIrregulars: [],
-            };
-          }
-        }
-      }
-    }
-  }
-
-  if (cached) {
-    return {
-      operations: cached.operations ?? [],
-      irregulars: cached.irregulars ?? [],
-      todayIrregulars: cached.todayIrregulars ?? [],
-    };
-  }
+function getOperationMasterData(): OperationMasterData {
+  const { sheetData } = useAppStore.getState();
 
   return {
-    operations: [],
-    irregulars: [],
-    todayIrregulars: [],
+    operations: sheetData[SHEETS.OPERATION.sheetName]?.data ?? [],
+
+    irregulars: sheetData[SHEETS.IRREGULAR.sheetName]?.data ?? [],
+
+    todayIrregulars: sheetData[SHEETS.TODAY_IRREGULAR.sheetName]?.data ?? [],
   };
 }
 
-async function registerOperationTargets(
-  operations: OperationItem[],
-  todayIrregulars: OperationItem[],
-): Promise<void> {
-  const targets = [...operations, ...todayIrregulars].filter(({ kanriNo }) =>
-    Boolean(kanriNo),
+function logOperationMasterData(masterData: OperationMasterData): void {
+  console.log(
+    "[AppService] sheetData operation masters:",
+    masterData.operations.length,
   );
 
-  if (targets.length === 0) return;
+  console.log(
+    "[AppService] sheetData irregular masters:",
+    masterData.irregulars.length,
+  );
 
-  await commands.registerTargets(targets);
-
-  await commands.setActiveFlags(DEFAULT_ACTIVE_FLAGS);
+  console.log(
+    "[AppService] sheetData today irregular masters:",
+    masterData.todayIrregulars.length,
+  );
 }
 
-async function initializeSheets(isAuthenticated: boolean): Promise<void> {
+function logDuplicateKanriNos(sources: TargetSource[]): void {
+  const countsByKanriNo = new Map<string, KanriNoSource[]>();
+
+  for (const { source, targets } of sources) {
+    for (const target of targets) {
+      const kanriNo = String(target.kanriNo).trim();
+
+      if (!kanriNo) {
+        continue;
+      }
+
+      const entries = countsByKanriNo.get(kanriNo) ?? [];
+
+      const existing = entries.find((entry) => entry.source === source);
+
+      if (existing) {
+        existing.count += 1;
+      } else {
+        entries.push({
+          source,
+          count: 1,
+        });
+      }
+
+      countsByKanriNo.set(kanriNo, entries);
+    }
+  }
+
+  const duplicates = [...countsByKanriNo.entries()]
+    .filter(([, entries]) => {
+      const totalCount = entries.reduce(
+        (total, entry) => total + entry.count,
+        0,
+      );
+
+      return totalCount > 1 || entries.some((entry) => entry.count > 1);
+    })
+    .map(([kanriNo, entries]) => ({
+      kanriNo,
+      entries,
+    }));
+
+  if (duplicates.length === 0) {
+    return;
+  }
+
+  console.warn("[AppService] duplicate kanriNo:", duplicates);
+}
+
+function createTargetSources(masterData: OperationMasterData): TargetSource[] {
+  return [
+    {
+      source: "operation",
+      targets: masterData.operations,
+    },
+    {
+      source: "irregular",
+      targets: masterData.irregulars,
+    },
+    {
+      source: "todayIrregular",
+      targets: masterData.todayIrregulars,
+    },
+  ];
+}
+
+/**
+ * Spreadsheetから取得したMasterを
+ * Main側へ登録する。
+ */
+async function registerOperationTargets(): Promise<void> {
+  const masterData = getOperationMasterData();
+
+  logOperationMasterData(masterData);
+
+  logDuplicateKanriNos(createTargetSources(masterData));
+
+  await operationCommands.registerTargets(masterData);
+
+  useAppStore.getState().refreshStatusSummary();
+}
+
+/* =========================
+ * Initialization Status
+ * ========================= */
+
+function markAllTasksAsNg(): void {
+  useAppStore.getState().setInitStatus({
+    update: "NG",
+    operation: "NG",
+    irregular: "NG",
+    todayIrregular: "NG",
+    store: "NG",
+    jugyoin: "NG",
+    kokyuhyo: "NG",
+    tantou: "NG",
+  });
+}
+
+/* =========================
+ * Operation Initialization
+ * ========================= */
+
+async function loadOperationData(): Promise<void> {
   const store = useAppStore.getState();
+
+  /*
+   * Spreadsheet取得と
+   * Main側Status復元は独立しているため並列実行する。
+   *
+   * 両方完了してからMaster登録を行う。
+   */
+  await Promise.all([
+    store.prefetchSheets(ALL_SHEET_IDS),
+    restorePersistedStatuses(),
+  ]);
+
+  await registerOperationTargets();
+}
+
+/* =========================
+ * Application Initialization
+ * ========================= */
+
+async function initializeAppData(): Promise<void> {
+  const store = useAppStore.getState();
+
+  await updateService.check();
+
+  store.setInitStatus({
+    auth: "LOADING",
+  });
+
+  const isAuthenticated = await store.checkAuthStatus();
 
   if (!isAuthenticated) {
     store.setInitStatus({
-      auth: "PENDING",
-      store: "PENDING",
-      jugyoin: "PENDING",
-      kokyuhyo: "PENDING",
-      tantou: "PENDING",
+      auth: "NG",
     });
+
+    markAllTasksAsNg();
+
+    store.setCurrentView(APP_VIEW_IDS.AUTH);
 
     return;
   }
@@ -215,51 +244,15 @@ async function initializeSheets(isAuthenticated: boolean): Promise<void> {
     auth: "OK",
   });
 
-  await store.prefetchSheets(store.accessToken || undefined);
+  store.setCurrentView(APP_VIEW_IDS.OPERATION);
+
+  await loadOperationData();
 }
 
-async function loadInitialData(): Promise<void> {
-  const store = useAppStore.getState();
-
-  const [isAuthenticated, savedStatuses] = await Promise.all([
-    store.checkAuthStatus(),
-    commands.initializeStatus(),
-  ]);
-
-  const { operations, irregulars, todayIrregulars } =
-    await loadMasterData(isAuthenticated);
-
-  await Promise.all([
-    registerOperationTargets(operations, todayIrregulars),
-    initializeSheets(isAuthenticated),
-  ]);
-
-  store.setInitialRawData(
-    operations,
-    irregulars,
-    savedStatuses,
-    todayIrregulars,
-  );
-}
+/* =========================
+ * Service
+ * ========================= */
 
 export const appService = {
-  async initializeApp(): Promise<void> {
-    const store = useAppStore.getState();
-
-    store.setInitStatus(DATA_LOADING_STATUS);
-
-    try {
-      await showMainWindow();
-
-      setupOperationIpcListeners();
-
-      await loadInitialData();
-
-      store.markInitializationCompleted();
-    } catch (error) {
-      console.error("[appService] Failed to initialize application:", error);
-
-      store.markInitializationFailed(error);
-    }
-  },
+  initializeAppData,
 };

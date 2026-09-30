@@ -1,17 +1,15 @@
-﻿// src/renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent.tsx
+// src/renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent.tsx
 
-import React, { useEffect } from "react";
+import { memo } from "react";
+
 import { AuthView } from "@renderer/features/auth/AuthView";
-import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
+
 import * as styles from "./gmailDraftContent.css";
-import {
-  EMAIL_TEMPLATE_OPTIONS,
-  type EmailTemplateOption,
-} from "./gmailTemplates";
+import { EMAIL_TEMPLATE_OPTIONS } from "../../../../templates/gmailTemplates";
 import { useGmailModalLogic } from "./useGmailModalLogic";
 
-export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
+export const GmailDraftContent: GlobalModalComponent = memo(() => {
   const {
     isAuthenticated,
     userEmail,
@@ -20,46 +18,7 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
     isSaving,
     handleInputChange,
     handleTemplateChange,
-    handleExecute,
   } = useGmailModalLogic();
-
-  const updateModalConfig = useAppStore((s) => s.updateModalConfig);
-  const closeModal = useAppStore((s) => s.closeGlobalModal);
-
-  useEffect(() => {
-    // 🎯 未認証時は空配列を渡す（親側で自動的にデフォルトの「閉じる」ボタンが割り当てられる）
-    if (!isAuthenticated) {
-      updateModalConfig({
-        rightActions: [],
-      });
-      return;
-    }
-
-    updateModalConfig({
-      rightActions: [
-        {
-          id: "cancel",
-          label: "キャンセル",
-          onClick: closeModal,
-          disabled: isSaving,
-        },
-        {
-          id: "create-draft",
-          label: isSaving ? "処理中..." : "下書き作成",
-          onClick: handleExecute,
-          disabled: !formValues.to.trim() || isSaving,
-          variant: "default",
-        },
-      ],
-    });
-  }, [
-    isAuthenticated,
-    formValues.to,
-    isSaving,
-    handleExecute,
-    updateModalConfig,
-    closeModal,
-  ]);
 
   if (!isAuthenticated) {
     return <AuthView />;
@@ -71,6 +30,7 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
         <label className={styles.label} htmlFor="gmail-template">
           テンプレート選択
         </label>
+
         <select
           id="gmail-template"
           className={styles.selectInput}
@@ -79,7 +39,8 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
           disabled={isSaving}
         >
           <option value="">手動作成（テンプレートなし）</option>
-          {EMAIL_TEMPLATE_OPTIONS.map((option: EmailTemplateOption) => (
+
+          {EMAIL_TEMPLATE_OPTIONS.map((option) => (
             <option key={option.key} value={option.key}>
               {option.label}
             </option>
@@ -91,6 +52,7 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
         <label className={styles.label} htmlFor="gmail-from">
           差出人 (From)
         </label>
+
         <input
           id="gmail-from"
           type="text"
@@ -104,6 +66,7 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
         <label className={styles.label} htmlFor="gmail-to">
           宛先 (To)
         </label>
+
         <textarea
           id="gmail-to"
           className={styles.addressTextarea}
@@ -119,6 +82,7 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
         <label className={styles.label} htmlFor="gmail-cc">
           CC
         </label>
+
         <textarea
           id="gmail-cc"
           className={styles.addressTextarea}
@@ -134,6 +98,7 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
         <label className={styles.label} htmlFor="gmail-subject">
           件名 (Subject)
         </label>
+
         <input
           id="gmail-subject"
           type="text"
@@ -148,6 +113,7 @@ export const GmailDraftContent: GlobalModalComponent = React.memo(() => {
         <label className={styles.label} htmlFor="gmail-body">
           本文 (Body)
         </label>
+
         <textarea
           id="gmail-body"
           className={styles.bodyTextarea}

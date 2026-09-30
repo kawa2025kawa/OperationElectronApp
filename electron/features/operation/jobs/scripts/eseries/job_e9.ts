@@ -1,13 +1,8 @@
-﻿// electron/features/operation/jobs/scripts/job_e9.ts
-
-import path from "node:path";
+﻿import path from "node:path";
 import os from "node:os";
-import { exec } from "node:child_process";
-import { promisify } from "node:util";
 import fs from "fs-extra";
 import { isSameDay, format } from "date-fns";
-
-const execAsync = promisify(exec);
+import { compressFiles } from "../helpers/shared/zipHelper";
 
 // 🎯 UNCパスは明確に \\\\ から始める
 const TARGET_DIR = "\\\\S0088003\\syn_tran\\from_ACOS\\SendData";
@@ -50,7 +45,7 @@ async function getTodayTargetFiles(dirPath: string): Promise<{
 
   // 4. 各ファイルの本日更新チェック
   for (const fileName of targetNames) {
-    const filePath = `${dirPath}\\${fileName}`;
+    const filePath = path.join(dirPath, fileName);
     const stat = await fs.stat(filePath);
 
     if (!isSameDay(stat.mtime, now)) {
@@ -66,23 +61,6 @@ async function getTodayTargetFiles(dirPath: string): Promise<{
   }
 
   return { paths: matchedPaths, fileNames: matchedFileNames };
-}
-
-/**
- * PowerShell を使用してファイルを PASS 無し ZIP 圧縮
- */
-async function compressToZip(
-  sourceFilePaths: string[],
-  outputZipPath: string,
-): Promise<void> {
-  if (await fs.pathExists(outputZipPath)) {
-    await fs.remove(outputZipPath);
-  }
-
-  const fileListStr = sourceFilePaths.map((p) => `'${p}'`).join(",");
-  const psCommand = `powershell -Command "Compress-Archive -Path ${fileListStr} -DestinationPath '${outputZipPath}' -Force"`;
-
-  await execAsync(psCommand);
 }
 
 export async function runJobE9(): Promise<string> {
@@ -108,8 +86,8 @@ export async function runJobE9(): Promise<string> {
   const zipFileName = `SendData_POP_${todayStr}.zip`;
   const outputZipPath = path.join(desktopDir, zipFileName);
 
-  // 4. PowerShell による ZIP 圧縮の実行
-  await compressToZip(targetFiles, outputZipPath);
+  // 4. zipHelper による高速かつ安全な ZIP 圧縮の実行
+  await compressFiles(targetFiles, outputZipPath);
 
   const fileListLog = fileNames
     .map((name, idx) => `\n ${idx + 1}. ${name}`)

@@ -1,87 +1,86 @@
-﻿// src/renderer/features/operation/services/operationSummaryService.ts
-
-import type { AppState } from "@renderer/store";
-
 import {
-  JOB_STATUS,
-  type OperationItem,
+  type JobStatus,
+  type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
 
-import { calculateSummary } from "@renderer/features/operation/helpers/operationEntities";
+import {
+  type OperationMaster,
+  type TodayIrregularMaster,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 
-/* ============================================================================
- * Types
- * ========================================================================== */
+import { isRunningStatus } from "@shared/utils/statusUtils";
 
-type SummaryFilter = "total" | "progress" | string;
+type SummaryFilter = "total" | "progress" | JobStatus | string;
 
-/* ============================================================================
- * Target Entities
- * ========================================================================== */
+export type OperationSummaryRow = OperationMaster & OperationStatusState;
+export type TodaySummaryRow = TodayIrregularMaster & OperationStatusState;
 
-/**
- * サマリー集計対象となる OperationItem を取得する。
- *
- * 対象:
- * - Operation は全件
- * - Irregular は todayIds に含まれるもののみ
- *
- * todayIds は kanriNo の集合として扱う。
- */
-export function getActiveTargetEntities(state: AppState): OperationItem[] {
-  const operations = Object.values(state.operationEntities);
-
-  const todayIds = new Set(state.todayIds.map(normalizeKanriNo));
-
-  const todayIrregulars = Object.values(state.irregularEntities).filter(
-    (item) => todayIds.has(normalizeKanriNo(item.kanriNo)),
-  );
-
-  return [...operations, ...todayIrregulars];
+export interface SummaryFilterData {
+  operationMasters: OperationMaster[];
+  todayIrregularMasters: TodayIrregularMaster[];
+  operationStatuses: Record<string, OperationStatusState>;
+  todayStatuses: Record<string, OperationStatusState>;
 }
 
-/* ============================================================================
- * Summary
- * ========================================================================== */
+const normalizeKanriNo = (kanriNo: string): string => {
+  return String(kanriNo).trim();
+};
 
-/**
- * 現在の Store state からサマリーを再計算する。
- */
-export function refreshSummary(state: AppState): void {
-  state.summary = calculateSummary(getActiveTargetEntities(state), {
-    is1CActive: state.is1CActive,
+const getOperationStatus = (
+  operationStatuses: Record<string, OperationStatusState>,
+  todayStatuses: Record<string, OperationStatusState>,
+  kanriNo: string,
+): OperationStatusState => {
+  const key = normalizeKanriNo(kanriNo);
 
-    is2CActive: state.is2CActive,
+  return operationStatuses[key] ?? todayStatuses[key] ?? {};
+};
 
-    is3CActive: state.is3CActive,
-  });
-}
+const createOperationRows = (
+  masters: OperationMaster[],
+  operationStatuses: Record<string, OperationStatusState>,
+  todayStatuses: Record<string, OperationStatusState>,
+): OperationSummaryRow[] => {
+  return masters.map((master) => ({
+    ...master,
+    ...getOperationStatus(operationStatuses, todayStatuses, master.kanriNo),
+  }));
+};
 
-/* ============================================================================
- * Summary Filtering
- * ========================================================================== */
+const createTodayRows = (
+  masters: TodayIrregularMaster[],
+  operationStatuses: Record<string, OperationStatusState>,
+  todayStatuses: Record<string, OperationStatusState>,
+): TodaySummaryRow[] => {
+  return masters.map((master) => ({
+    ...master,
+    ...getOperationStatus(operationStatuses, todayStatuses, master.kanriNo),
+  }));
+};
 
-/**
- * サマリー表示項目に対応する OperationItem を取得する。
- *
- * filter:
- * - total
- *     → 集計対象全件
- * - progress
- *     → 実行中 / スクリプト実行中
- * - JobStatus
- *     → 指定 status の項目
- *
- * status は Store 内では常に JobStatus に正規化済みなので、
- * 大文字小文字変換や raw string の normalization は行わない。
- */
+const getActiveTargetEntities = (
+  data: SummaryFilterData,
+): Array<OperationSummaryRow | TodaySummaryRow> => {
+  return [
+    ...createOperationRows(
+      data.operationMasters,
+      data.operationStatuses,
+      data.todayStatuses,
+    ),
+    ...createTodayRows(
+      data.todayIrregularMasters,
+      data.operationStatuses,
+      data.todayStatuses,
+    ),
+  ];
+};
+
 export function filterSummaryItems(
-  state: AppState,
+  data: SummaryFilterData,
   label: string,
-): OperationItem[] {
+): Array<OperationSummaryRow | TodaySummaryRow> {
   const filter = normalizeSummaryFilter(label);
-
-  const items = getActiveTargetEntities(state);
+  const items = getActiveTargetEntities(data);
 
   switch (filter) {
     case "total":
@@ -95,47 +94,11 @@ export function filterSummaryItems(
   }
 }
 
-/* ============================================================================
- * Predicates
- * ========================================================================== */
-
-/**
- * 進捗中として扱う status かどうか。
- *
- * progress:
- * - running
- * - scriptRunning
- */
-function isProgressItem(item: OperationItem): boolean {
-  return (
-    item.status === JOB_STATUS.RUNNING ||
-    item.status === JOB_STATUS.SCRIPT_RUNNING
-  );
+function isProgressItem(item: OperationSummaryRow | TodaySummaryRow): boolean {
+  return isRunningStatus(item.status);
 }
 
-/* ============================================================================
- * Normalization
- * ========================================================================== */
-
-/**
- * kanriNo を比較用の文字列へ正規化する。
- *
- * entity 側の kanriNo は string だが、
- * todayIds 側との比較では将来的な型差も吸収できるようにする。
- */
-function normalizeKanriNo(kanriNo: string | number): string {
-  return String(kanriNo).trim();
-}
-
-/**
- * サマリーフィルタ文字列を正規化する。
- *
- * total / progress は UI 側の固定キー。
- * それ以外は JobStatus として扱う。
- *
- * JobStatus 自体は lowercase の固定値なので、
- * UI から大文字で渡された場合だけ小文字化する。
- */
 function normalizeSummaryFilter(label: string): SummaryFilter {
   return label.trim().toLowerCase();
 }
+

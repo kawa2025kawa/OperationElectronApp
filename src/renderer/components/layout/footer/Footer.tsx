@@ -1,6 +1,6 @@
 // src/renderer/components/layout/footer/Footer.tsx
 
-import React from "react";
+import { memo } from "react";
 import * as styles from "./footer.css";
 import { FooterActionButton } from "./components/FooterActionButton";
 import { SearchField } from "@renderer/components/ui/searchField/SearchField";
@@ -9,7 +9,7 @@ import type { CenterId } from "@shared/types/operation/operationTypes";
 
 const APP_VERSION = import.meta.env.APP_VERSION ?? "1.0.0";
 
-export const Footer: React.FC = React.memo(() => {
+export const Footer = memo(() => {
   const logic = useFooterLogic();
 
   return (
@@ -40,5 +40,3 @@ export const Footer: React.FC = React.memo(() => {
     </footer>
   );
 });
-
-Footer.displayName = "Footer";

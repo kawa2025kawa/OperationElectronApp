@@ -1,7 +1,7 @@
 // src/renderer/registry/appRegistry.ts
 
-import type React from "react";
-import type { OperationItem } from "@shared/types/operation/operationTypes";
+import type { ComponentType } from "react";
+import type { MasterRow } from "@renderer/features/operation/helpers/entityUtils";
 import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
 import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
 import type { Shop } from "@shared/types/spreadsheet/shop";
@@ -13,27 +13,28 @@ import {
   type ViewMode,
 } from "@shared/types/registry/viewDefinition";
 
-// Configs
+// Integrated Views & Configs (Configが統合されたView)
+import { kokyuhyoViewConfig } from "@renderer/features/spreadSheet/kokyuhyo/KokyuhyoView";
+import { jugyoinViewConfig } from "@renderer/features/spreadSheet/jugyoin/JugyoinView";
+import { shopViewConfig } from "@renderer/features/spreadSheet/shop/ShopView";
+import { tantouViewConfig } from "@renderer/features/spreadSheet/tantou/TantouView";
+
+// Configs (独立Config)
 import { operationViewConfig } from "@renderer/features/operation/configs/operationViewConfig";
-import { kokyuhyoViewConfig } from "@renderer/features/spreadSheet/configs/kokyuhyoViewConfig";
-import { jugyoinViewConfig } from "@renderer/features/spreadSheet/configs/jugyoinViewConfig";
-import { shopViewConfig } from "@renderer/features/spreadSheet/configs/shopViewConfig";
-import { tantouViewConfig } from "@renderer/features/spreadSheet/configs/tantouViewConfig";
 import { otherViewConfig } from "@renderer/features/other/configs/otherViewConfig";
 import { rdpViewConfig } from "@renderer/features/remoteDesktop/configs/rdpViewConfig";
 import { authViewConfig } from "@renderer/features/auth/configs/authViewConfig";
 
-// Views
+// Views (独立View)
 import { OperationView } from "@renderer/features/operation/OperationView";
 import { RdpView } from "@renderer/features/remoteDesktop/RdpView";
 import { OtherView } from "@renderer/features/other/OtherView";
 import { AuthView } from "@renderer/features/auth/AuthView";
-import { SpreadSheetView } from "@renderer/features/spreadSheet/SpreadSheetView";
 
 export { APP_VIEW_IDS, type AppViewId, type ViewMode };
 
 export type ViewEntityMap = {
-  [APP_VIEW_IDS.OPERATION]: OperationItem;
+  [APP_VIEW_IDS.OPERATION]: MasterRow;
   [APP_VIEW_IDS.KOKYUHYO]: Kokyuhyo;
   [APP_VIEW_IDS.JUGYOIN]: Jugyoin;
   [APP_VIEW_IDS.SHOP]: Shop;
@@ -50,35 +51,23 @@ export type AppRegistryMap = {
 export const APP_REGISTRY: AppRegistryMap = {
   [APP_VIEW_IDS.OPERATION]: {
     ...operationViewConfig,
-    component: OperationView as React.ComponentType,
+    component: OperationView as ComponentType,
   },
-  [APP_VIEW_IDS.KOKYUHYO]: {
-    ...kokyuhyoViewConfig,
-    component: SpreadSheetView as React.ComponentType,
-  },
-  [APP_VIEW_IDS.JUGYOIN]: {
-    ...jugyoinViewConfig,
-    component: SpreadSheetView as React.ComponentType,
-  },
-  [APP_VIEW_IDS.SHOP]: {
-    ...shopViewConfig,
-    component: SpreadSheetView as React.ComponentType,
-  },
-  [APP_VIEW_IDS.TANTOU]: {
-    ...tantouViewConfig,
-    component: SpreadSheetView as React.ComponentType,
-  },
+  [APP_VIEW_IDS.KOKYUHYO]: kokyuhyoViewConfig,
+  [APP_VIEW_IDS.JUGYOIN]: jugyoinViewConfig,
+  [APP_VIEW_IDS.SHOP]: shopViewConfig,
+  [APP_VIEW_IDS.TANTOU]: tantouViewConfig,
   [APP_VIEW_IDS.OTHER]: {
     ...otherViewConfig,
-    component: OtherView as React.ComponentType,
+    component: OtherView as ComponentType,
   },
   [APP_VIEW_IDS.RDP]: {
     ...rdpViewConfig,
-    component: RdpView as React.ComponentType,
+    component: RdpView as ComponentType,
   },
   [APP_VIEW_IDS.AUTH]: {
     ...authViewConfig,
-    component: AuthView as React.ComponentType,
+    component: AuthView as ComponentType,
   },
 };
 

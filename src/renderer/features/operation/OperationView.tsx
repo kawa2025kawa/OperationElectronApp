@@ -1,70 +1,66 @@
-// src/renderer/features/operation/OperationView.tsx
-
-import React from "react";
+//src\renderer\features\operation\OperationView.tsx
+import { memo } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { UnifiedTable } from "@renderer/features/operation/components/table/OperationTable";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 import type { ViewMode } from "@renderer/registry/appRegistry";
+
 import {
-  useOperationViewLogic,
   MODES,
   type InfoRowData,
-  type ViewAction,
+  useOperationViewLogic,
 } from "./useOperationViewLogic";
 import * as styles from "./operationView.css";
 
-/* ============================================================
- * Sub Components
- * ============================================================ */
+// -----------------------------------------------------------------------------
+// Sub Components
+// -----------------------------------------------------------------------------
 
-const ModeSwitcher = React.memo<{
+interface ModeSwitcherProps {
   currentMode: ViewMode;
   onModeChange: (mode: ViewMode) => void;
-}>(({ currentMode, onModeChange }) => (
-  <div className={styles.modeToggleContainer} data-mode={currentMode}>
-    <div className={styles.modeToggleSlider} />
-    {MODES.map((mode) => (
-      <button
-        key={mode}
-        type="button"
-        className={styles.modeToggleButton}
-        data-active={currentMode === mode}
-        onClick={() => onModeChange(mode)}
-      >
-        {mode.charAt(0).toUpperCase() + mode.slice(1)}
-      </button>
-    ))}
+}
+
+const ModeSwitcher = memo(
+  ({ currentMode, onModeChange }: ModeSwitcherProps) => (
+    <div className={styles.modeToggleContainer} data-mode={currentMode}>
+      <div className={styles.modeToggleSlider} />
+
+      {MODES.map((mode) => (
+        <button
+          key={mode}
+          type="button"
+          className={styles.modeToggleButton}
+          data-active={currentMode === mode}
+          onClick={() => onModeChange(mode)}
+        >
+          {mode.charAt(0).toUpperCase() + mode.slice(1)}
+        </button>
+      ))}
+    </div>
+  ),
+);
+
+const InfoRow = memo(({ label, value, type }: InfoRowData) => (
+  <div className={styles.row} data-remarks={type === "remarks"}>
+    <span>{label}</span>
+
+    <span className={styles.resultValue}>
+      {type === "status" && value ? (
+        <StatusBadge status={value as JobStatus} />
+      ) : (
+        value || "-"
+      )}
+    </span>
   </div>
 ));
 
-ModeSwitcher.displayName = "ModeSwitcher";
+// -----------------------------------------------------------------------------
+// Main Component
+// -----------------------------------------------------------------------------
 
-const InfoRow = React.memo(({ label, value }: InfoRowData) => {
-  const isRemarks = label === "コメント" || label === "備考";
-  const isStatus = label === "ステータス";
-
-  return (
-    <div className={styles.row} data-remarks={isRemarks}>
-      <span>{label}</span>
-      <span className={styles.resultValue}>
-        {isStatus && value ? (
-          <StatusBadge status={value as JobStatus} />
-        ) : (
-          value || "-"
-        )}
-      </span>
-    </div>
-  );
-});
-
-InfoRow.displayName = "InfoRow";
-
-/* ============================================================
- * Main Component: OperationView
- * ============================================================ */
-
-export const OperationView: React.FC = React.memo(() => {
+export const OperationView = memo(() => {
   const {
     currentMode,
     activeActions,
@@ -76,17 +72,14 @@ export const OperationView: React.FC = React.memo(() => {
 
   return (
     <div className={styles.container}>
-      {/* メインテーブル表示エリア */}
       <div className={styles.tableArea}>
         <div className={styles.tableCard}>
           <UnifiedTable />
         </div>
       </div>
 
-      {/* 右側サイドパネル統合エリア */}
       <aside className={styles.panelArea}>
         <div className={styles.panelContainer}>
-          {/* 上部コントロール部 */}
           <div className={styles.topControls}>
             <ModeSwitcher currentMode={currentMode} onModeChange={setMode} />
 
@@ -104,7 +97,7 @@ export const OperationView: React.FC = React.memo(() => {
                     sideOffset={5}
                     align="end"
                   >
-                    {activeActions.map((action: ViewAction) => (
+                    {activeActions.map((action) => (
                       <DropdownMenu.Item
                         key={action.key}
                         className={styles.menuItem}
@@ -119,10 +112,9 @@ export const OperationView: React.FC = React.memo(() => {
             )}
           </div>
 
-          {/* 下部 INFO パネル */}
           <div className={styles.infoList}>
-            {infoRows.map((row: InfoRowData) => (
-              <InfoRow key={row.label} label={row.label} value={row.value} />
+            {infoRows.map((row) => (
+              <InfoRow key={row.field} {...row} />
             ))}
           </div>
         </div>
@@ -130,5 +122,3 @@ export const OperationView: React.FC = React.memo(() => {
     </div>
   );
 });
-
-OperationView.displayName = "OperationView";

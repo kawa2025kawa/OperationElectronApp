@@ -1,17 +1,16 @@
-﻿// src/renderer/components/ui/toast/statusToastHandler.ts
+// src/renderer/components/ui/toast/statusToastHandler.ts
 
+import { getAutoScriptKeys } from "@electron/features/operation/config/operationScriptRegistry";
+import { findMasterByKanriNo } from "@renderer/features/operation/helpers/entityUtils";
 import { useAppStore } from "@renderer/store/index";
-import { consumeSuppressedSuccessToast } from "@shared/utils/statusToastSuppression";
-import { usePollingToastStore, type ToastType } from "./pollingToastStore";
 import {
   JOB_STATUS,
   type JobStatus,
-  type OperationItem,
+  type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
+import { consumeSuppressedSuccessToast } from "@shared/utils/statusToastSuppression";
 
-/* ============================================================================
- * Constants & Helpers
- * ========================================================================== */
+import { usePollingToastStore, type ToastType } from "./pollingToastStore";
 
 const TOAST_TYPE_MAP: Partial<Record<JobStatus, ToastType>> = {
   [JOB_STATUS.ERROR]: "error",
@@ -19,55 +18,75 @@ const TOAST_TYPE_MAP: Partial<Record<JobStatus, ToastType>> = {
   [JOB_STATUS.READY]: "info",
 };
 
-function isAutoNotificationTarget(item: OperationItem): boolean {
-  return item.executionType !== "manual";
-}
+const isAutoNotificationTarget = (
+  kanriNo: string,
+  master?: object,
+): boolean => {
+  const jobId =
+    master && "jobId" in master && typeof master.jobId === "string"
+      ? master.jobId
+      : undefined;
 
-/* ============================================================================
- * Handler Implementation
- * ========================================================================== */
+  const hasJob = Boolean(
+    jobId && jobId.trim() !== "-" && jobId.trim() !== "ー",
+  );
+
+  const hasAutoScript = getAutoScriptKeys(kanriNo).length > 0;
+
+  return hasJob || hasAutoScript;
+};
 
 export const handleStatusToastNotification = (
-  update: OperationItem,
+  update: OperationStatusState,
   options?: { isManual?: boolean },
 ): void => {
   const state = useAppStore.getState();
-  if (options?.isManual || !state.isPolling) return;
 
-  const kanriNo = update?.kanriNo ? String(update.kanriNo) : null;
-  const currentStatus = update?.status;
-  if (!kanriNo || !currentStatus) return;
-
-  const toastStore = usePollingToastStore.getState();
-
-  // 直前と同じステータスの場合は通知スキップ
-  if (currentStatus === toastStore.getPrevStatus(kanriNo)) return;
-  toastStore.setPrevStatus(kanriNo, currentStatus);
-
-  const toastType = TOAST_TYPE_MAP[currentStatus];
-  if (!toastType) return;
-
-  // 手動完了時などのトースト抑制チェック
-  if (
-    currentStatus === JOB_STATUS.SUCCESS &&
-    consumeSuppressedSuccessToast(kanriNo)
-  ) {
+  if (options?.isManual || !state.isPolling) {
     return;
   }
 
-  const item = state.getEntityByKanriNo
-    ? state.getEntityByKanriNo(kanriNo)
-    : (state.operationEntities[kanriNo] ??
-      state.irregularEntities[kanriNo] ??
-      update);
+  const { kanriNo, status } = update;
 
-  if (!item || !isAutoNotificationTarget(item)) return;
+  if (!kanriNo || !status) {
+    return;
+  }
+
+  const toastStore = usePollingToastStore.getState();
+  const isFirstPollingCycle = toastStore.pollingCycle === 0;
+
+  if (status === toastStore.getPrevStatus(kanriNo)) {
+    return;
+  }
+
+  toastStore.setPrevStatus(kanriNo, status);
+
+  if (isFirstPollingCycle) {
+    return;
+  }
+
+  const toastType = TOAST_TYPE_MAP[status];
+
+  if (!toastType) {
+    return;
+  }
+
+  if (status === JOB_STATUS.SUCCESS && consumeSuppressedSuccessToast(kanriNo)) {
+    return;
+  }
+
+  const master = findMasterByKanriNo(state, kanriNo);
+
+  if (!master || !isAutoNotificationTarget(kanriNo, master)) {
+    return;
+  }
 
   const nameLabel =
-    item.workName ||
-    update.workName ||
-    ("jobId" in update && update.jobId ? String(update.jobId) : null) ||
+    master.workName ||
+    ("jobId" in master && master.jobId && master.jobId !== "-"
+      ? String(master.jobId)
+      : null) ||
     `No.${kanriNo}`;
 
-  toastStore.addToast(`${nameLabel} ${currentStatus}`, toastType);
+  toastStore.addToast(`${nameLabel} ${status}`, toastType);
 };

@@ -1,4 +1,4 @@
-﻿//src\shared\types\auth\authTypes.ts
+﻿// src/shared/types/auth/authTypes.ts
 
 export interface OAuthToken {
   accessToken: string;
@@ -7,6 +7,11 @@ export interface OAuthToken {
   idToken: string | null;
 }
 
+/**
+ * Main process内部でのみ使用するGoogle認証セッション。
+ *
+ * accessToken / refreshTokenはRendererへ返さない。
+ */
 export interface AuthSession {
   accessToken: string;
   refreshToken: string | null;
@@ -20,6 +25,9 @@ export interface GoogleUserInfo {
   family_name?: string;
 }
 
+/**
+ * Rendererへ公開する認証プロフィール。
+ */
 export interface AuthProfile {
   email: string | null;
   familyName: string | null;
@@ -30,7 +38,6 @@ export type AuthState = "loading" | "loggedIn" | "loggedOut";
 export interface AuthSliceState {
   isAuthenticated: boolean;
   isChecking: boolean;
-  accessToken: string | null;
   userEmail: string | null;
   familyName: string | null;
 }
@@ -38,15 +45,16 @@ export interface AuthSliceState {
 export interface AuthSliceActions {
   setIsAuthenticated: (auth: boolean) => void;
   setIsChecking: (check: boolean) => void;
-  setAccessToken: (token: string | null) => void;
   setUserEmail: (email: string | null) => void;
   setFamilyName: (familyName: string | null) => void;
-  checkAuthStatus: () => Promise<boolean>;
+
+  checkAuthStatus: (forceRefresh?: boolean) => Promise<boolean>;
+
   handleLoginSuccess: (
-    token: string,
     email?: string | null,
     familyName?: string | null,
   ) => Promise<void>;
+
   logout: () => Promise<void>;
 }
 

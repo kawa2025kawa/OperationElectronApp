@@ -1,24 +1,22 @@
 // src/renderer/components/ui/button/closeButton/CloseButton.tsx
 
-import React from "react";
+import type { ButtonHTMLAttributes } from "react";
 import { clsx } from "clsx";
+
 import { closeButton } from "./closeButton.css";
 
-export interface CloseButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface CloseButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "ghost";
-  ref?: React.Ref<HTMLButtonElement>;
 }
 
-export const CloseButton: React.FC<CloseButtonProps> = ({
+export const CloseButton = ({
   className,
   type = "button",
   "aria-label": ariaLabel = "閉じる",
-  ref,
   ...props
-}) => {
+}: CloseButtonProps) => {
   return (
     <button
-      ref={ref}
       type={type}
       className={clsx(closeButton, className)}
       aria-label={ariaLabel}
@@ -28,6 +26,3 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
     </button>
   );
 };
-
-CloseButton.displayName = "CloseButton";
-CloseButton;

@@ -1,14 +1,14 @@
-﻿//src\renderer\features\remoteDesktop\services\rdpService.ts
+// src/renderer/features/remoteDesktop/services/rdpService.ts
 
-import { commands } from "@renderer/services/commands";
-import type { RdpTarget } from "@shared/types/rdp";
+import { rdpCommands } from "@renderer/services/commands";
+import type { RdpMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 export const rdpService = {
-  async fetchTargets(): Promise<RdpTarget[]> {
-    return await commands.getRdpTargets();
+  async fetchTargets(): Promise<RdpMaster[]> {
+    return rdpCommands.getRdpMasters();
   },
 
-  async startSession(id: string): Promise<void> {
-    await commands.startRdpSession(id);
+  async startSession(name: string): Promise<void> {
+    await rdpCommands.startRdpSession(name);
   },
 };

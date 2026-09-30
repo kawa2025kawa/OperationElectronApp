@@ -3,7 +3,7 @@
 /**
  * 1. 各フィールドの「キー」と「日本語ラベル」を一元管理
  */
-export const KOKYUHYO_FIELD_LABELS = {
+const KOKYUHYO_FIELD_LABELS = {
   id: "ID",
   name: "氏名",
   nameKana: "氏名カナ",

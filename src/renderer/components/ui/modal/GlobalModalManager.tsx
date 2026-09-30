@@ -1,14 +1,14 @@
 // src/renderer/components/ui/modal/GlobalModalManager.tsx
 
-import React from "react";
 import ReactDOM from "react-dom";
+import type { ComponentType, ReactNode } from "react";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { useGlobalModalManager } from "./useGlobalModalManager";
 import * as styles from "./globalModalManager.css";
 
-export const GlobalModalManager: React.FC = () => {
+export const GlobalModalManager = () => {
   const { state, actions } = useGlobalModalManager();
 
   if (!state.isOpen || !state.content || !state.modalRoot) return null;
@@ -19,9 +19,7 @@ export const GlobalModalManager: React.FC = () => {
       state.content !== null &&
       "type" in state.content);
 
-  const ModalComponent = isComponent
-    ? (state.content as React.ComponentType)
-    : null;
+  const ModalComponent = isComponent ? (state.content as ComponentType) : null;
 
   const messageType = (state.message?.type ??
     "info") as keyof typeof styles.messageTypes;
@@ -62,11 +60,7 @@ export const GlobalModalManager: React.FC = () => {
 
         {/* 本文エリア */}
         <main className={styles.body}>
-          {ModalComponent ? (
-            <ModalComponent />
-          ) : (
-            (state.content as React.ReactNode)
-          )}
+          {ModalComponent ? <ModalComponent /> : (state.content as ReactNode)}
         </main>
 
         {/* 🎯 フッター（伸縮対応 & クラス化でスッキリ整理） */}
@@ -111,5 +105,3 @@ export const GlobalModalManager: React.FC = () => {
     state.modalRoot,
   );
 };
-
-GlobalModalManager.displayName = "GlobalModalManager";

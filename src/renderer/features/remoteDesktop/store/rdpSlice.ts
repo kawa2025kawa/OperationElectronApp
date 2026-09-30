@@ -4,65 +4,58 @@ import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
 import { rdpService } from "@renderer/features/remoteDesktop/services/rdpService";
-import type { RdpTarget } from "@shared/types/rdp";
+import type { RdpMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 export interface RdpSlice {
-  rdpTargets: RdpTarget[];
+  rdpTargets: RdpMaster[];
   isRdpLoading: boolean;
   fetchRdpTargets: () => Promise<void>;
-  runRdp: (id: string) => Promise<void>;
+  runRdp: (name: string) => Promise<void>;
 }
 
-export const createRdpSlice: StateCreator<
-  AppState,
-  [["zustand/immer", never]],
-  [],
-  RdpSlice
-> = (set, get) => ({
+export const createRdpSlice: StateCreator<AppState, [], [], RdpSlice> = (
+  set,
+  get,
+) => ({
   rdpTargets: [],
   isRdpLoading: false,
 
   fetchRdpTargets: async () => {
-    // 全画面 LOADING 表示を開始
     get().setGlobalProcessing({
-      message: "RDP ターゲット情報を読み込み中...",
-      target: "リモートデスクトップ",
+      message: "RDP 接続先を取得中...",
+      target: "RDP Master",
     });
 
-    set((s: AppState) => {
-      s.isRdpLoading = true;
-    });
+    set({ isRdpLoading: true });
 
     try {
       const targets = await rdpService.fetchTargets();
-      set((s: AppState) => {
-        s.rdpTargets = targets;
-      });
+
+      set({ rdpTargets: targets });
     } catch (error: unknown) {
-      toast.error(
-        `RDP取得エラー: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      const message = error instanceof Error ? error.message : String(error);
+
+      toast.error(`RDP取得エラー: ${message}`);
     } finally {
-      set((s: AppState) => {
-        s.isRdpLoading = false;
-      });
-      // 全画面 LOADING 表示を解除
+      set({ isRdpLoading: false });
       get().setGlobalProcessing(null);
     }
   },
 
-  runRdp: async (id: string) => {
-    const target = get().rdpTargets.find((t: RdpTarget) => t.id === id);
-    if (!target) {
-      toast.error("対象のRDP接続先が見つかりません");
+  runRdp: async (name: string) => {
+    const exists = get().rdpTargets.some((item) => item.name === name);
+
+    if (!exists) {
+      toast.error(`RDPターゲットが見つかりません: ${name}`);
       return;
     }
+
     try {
-      await rdpService.startSession(target.id);
+      await rdpService.startSession(name);
     } catch (error: unknown) {
-      toast.error(
-        `RDP接続エラー: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      const message = error instanceof Error ? error.message : String(error);
+
+      toast.error(`RDP起動エラー: ${message}`);
     }
   },
 });

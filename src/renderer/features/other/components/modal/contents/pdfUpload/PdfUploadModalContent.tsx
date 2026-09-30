@@ -1,71 +1,31 @@
-﻿// src/renderer/features/other/components/modal/contents/pdfUpload/PdfUploadModalContent.tsx
+// src/renderer/features/other/components/modal/contents/pdfUpload/PdfUploadModalContent.tsx
 
-import React, { useEffect } from "react";
+import { memo } from "react";
+
 import { FileDropZone } from "@renderer/components/ui/fileDropZone/FileDropZone";
-import { useAppStore } from "@renderer/store";
-import type { GlobalModalComponent, ModalAction } from "@shared/types/ui/modal";
-import { usePdfUploadModalContent } from "./usePdfUploadModalContent";
+import type { GlobalModalComponent } from "@shared/types/ui/modal";
 
-export const PdfUploadModalContent: GlobalModalComponent = React.memo(() => {
-  const { state, actions } = usePdfUploadModalContent();
-  const updateModalConfig = useAppStore((s) => s.updateModalConfig);
-  const closeModal = useAppStore((s) => s.closeGlobalModal);
+import { usePdfUploadModalContent } from "@renderer/features/other/components/modal/contents/pdfUpload/usePdfUploadModalContent";
 
-  useEffect(() => {
-    const leftActions: ModalAction[] = [];
-    if (!state.isEmpty) {
-      leftActions.push({
-        id: "clear",
-        label: "クリア",
-        onClick: actions.handleClearPdfFiles,
-        disabled: state.isProcessing,
-      });
-    }
-
-    const rightActions: ModalAction[] = [
-      {
-        id: "cancel",
-        label: "キャンセル",
-        onClick: closeModal,
-        disabled: state.isProcessing,
-      },
-      {
-        id: "upload",
-        label: state.isProcessing ? "アップロード中..." : "アップロード",
-        onClick: actions.handleExecuteUpload,
-        disabled: state.isEmpty || state.isProcessing,
-        variant: "default",
-      },
-    ];
-
-    updateModalConfig({
-      leftActions,
-      rightActions,
-    });
-  }, [
-    state.isEmpty,
-    state.isProcessing,
-    actions.handleClearPdfFiles,
-    actions.handleExecuteUpload,
-    updateModalConfig,
-    closeModal,
-  ]);
+export const PdfUploadModalContent: GlobalModalComponent = memo(() => {
+  const { files, isProcessing, addPdfFiles, handleFileReorder } =
+    usePdfUploadModalContent();
 
   return (
     <FileDropZone
-      files={state.files}
-      accept="application/pdf,.pdf"
+      files={files}
+      accept=".pdf,application/pdf"
       label="PDFファイルをドラッグ＆ドロップ または クリックして選択"
-      disabled={state.isProcessing}
-      onFileSelect={actions.addPdfFiles}
-      onReorderFile={actions.reorderPdfFiles}
-      onRemoveFile={actions.handleRemovePdfFile}
+      disabled={isProcessing}
+      onFileSelect={addPdfFiles}
+      onReorderFile={handleFileReorder}
     />
   );
 });
 
-PdfUploadModalContent.displayName = "PdfUploadModalContent";
 PdfUploadModalContent.modalSize = {
-  width: "min(85vw, calc(75vh * 16 / 9))",
-  height: "min(75vh, calc(85vw * 9 / 16))",
+  width: "min(90vw, 1000px)",
+  height: "min(85vh, 750px)",
 };
+
+PdfUploadModalContent.displayName = "PdfUploadModalContent";

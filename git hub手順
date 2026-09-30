@@ -3,3 +3,11 @@
 git commit -m "..."     （ローカルに記録）
   ↓
 git push                （GitHubへ送信） ← 今ここが完了！
+
+
+今後同じ症状になったら
+
+spawn ENAMETOOLONG が検索時だけ出て、PowerShellから同じ rg.exe が正常なら、
+
+Get-Process Code -ErrorAction SilentlyContinue | Stop-Process -Force
+Remove-Item "$env:APPDATA\Code\User\workspaceStorage" -Recurse -Force

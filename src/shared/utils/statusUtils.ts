@@ -1,4 +1,4 @@
-﻿// src/shared/utils/statusUtils.ts
+// src/shared/utils/statusUtils.ts
 
 import {
   JOB_STATUS,
@@ -14,9 +14,9 @@ export function isRunningStatus(status?: JobStatus | null): boolean {
 }
 
 /**
- * 指定されたステータスが「完了（終端）」かどうかを判定する（一元管理）
+ * 指定されたステータスが「完了」かどうかを判定する（一元管理）
  */
-export function isTerminalStatus(status?: JobStatus | null): boolean {
-  if (!status) return false;
-  return status === JOB_STATUS.SUCCESS || status === JOB_STATUS.ERROR;
+export function isSuccessStatus(status?: JobStatus | null): boolean {
+  return status === JOB_STATUS.SUCCESS;
 }
+

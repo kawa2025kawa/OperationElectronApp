@@ -1,4 +1,5 @@
 ﻿import { useRef, useState, useCallback } from "react";
+import type { DragEvent, KeyboardEvent, ChangeEvent } from "react";
 
 export interface FileDropZoneItem {
   name: string;
@@ -29,7 +30,7 @@ export const useFileDropZone = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
+    (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       if (disabled) return;
       setIsDragOver(true);
@@ -42,7 +43,7 @@ export const useFileDropZone = ({
   }, []);
 
   const handleDrop = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
+    (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       setIsDragOver(false);
       if (disabled) return;
@@ -61,7 +62,7 @@ export const useFileDropZone = ({
   }, [disabled]);
 
   const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
+    (event: KeyboardEvent<HTMLDivElement>) => {
       if (disabled) return;
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
@@ -72,7 +73,7 @@ export const useFileDropZone = ({
   );
 
   const handleInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+    (event: ChangeEvent<HTMLInputElement>) => {
       if (disabled) return;
       const selectedFiles = event.target.files;
       if (!selectedFiles || selectedFiles.length === 0) return;

@@ -5,45 +5,6 @@ import fs from "fs-extra";
 import archiver from "archiver";
 
 /**
- * 指定したフォルダをZIP圧縮する。
- *
- * ZIP内にはフォルダ自体も含まれる。
- */
-export async function compressFolder(
-  folderPath: string,
-  outputZipPath?: string,
-): Promise<string> {
-  const zipPath = outputZipPath ?? `${folderPath}.zip`;
-
-  await new Promise<void>((resolve, reject) => {
-    const output = fs.createWriteStream(zipPath);
-
-    const archive = archiver("zip", {
-      zlib: { level: 9 },
-    });
-
-    output.on("close", resolve);
-    output.on("error", reject);
-
-    archive.on("warning", (err: NodeJS.ErrnoException) => {
-      if (err.code !== "ENOENT") {
-        reject(err);
-      }
-    });
-
-    archive.on("error", reject);
-
-    archive.pipe(output);
-
-    archive.directory(folderPath, path.basename(folderPath));
-
-    void archive.finalize();
-  });
-
-  return zipPath;
-}
-
-/**
  * 指定したファイルを直接ZIP圧縮する。
  *
  * ZIP内には親フォルダを含めず、

@@ -1,6 +1,6 @@
 // src/renderer/features/auth/AuthView.tsx
 
-import React from "react";
+import { memo } from "react";
 import { AuthCard } from "@renderer/components/ui/auth/AuthCard";
 import { useAppStore } from "@renderer/store";
 import type { AuthState } from "@shared/types/auth/authTypes";
@@ -13,7 +13,7 @@ const AUTH_BUTTON_TEXT: Record<AuthState, string> = {
   loggedOut: "Login with Google",
 } as const;
 
-export const AuthView: React.FC = React.memo(() => {
+export const AuthView = memo(() => {
   const { isAuthenticated, authState, handleAuthToggle } = useAuth();
   const userEmail = useAppStore((state) => state.userEmail);
   const familyName = useAppStore((state) => state.familyName);
@@ -31,5 +31,3 @@ export const AuthView: React.FC = React.memo(() => {
     </div>
   );
 });
-
-AuthView.displayName = "AuthView";

@@ -1,12 +1,9 @@
 // src/renderer/layout/UnknownView.tsx
-
-import React from "react";
-
 type Props = {
   view: string;
 };
 
-export const UnknownView: React.FC<Props> = ({ view }) => {
+export const UnknownView = ({ view }: Props) => {
   return (
     <div
       style={{

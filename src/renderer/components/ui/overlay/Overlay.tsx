@@ -8,7 +8,7 @@ interface OverlayProps {
   onClick?: () => void;
 }
 
-export const Overlay: React.FC<OverlayProps> = ({ isOpen, onClick }) => {
+export const Overlay = ({ isOpen, onClick }: OverlayProps) => {
   const state = isOpen ? "open" : "closed";
 
   return (
@@ -29,10 +29,10 @@ export interface LoadingContentProps {
 
 const DOT_DELAYS = [0, 0.2, 0.4];
 
-export const LoadingContent: React.FC<LoadingContentProps> = ({
+export const LoadingContent = ({
   message = "LOADING...",
   statusMessage = "INITIALIZING SYSTEM CORE",
-}) => {
+}: LoadingContentProps) => {
   return (
     <div className={styles.contentWrapper}>
       <div className={styles.grid}>

@@ -1,10 +1,10 @@
 ﻿// src/renderer/components/layout/nav/components/HamburgerButton.tsx
 
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 import { useAppStore } from "@renderer/store";
 import * as styles from "./hamburgerButton.css";
 
-export const HamburgerButton: React.FC = () => {
+export const HamburgerButton = () => {
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
 
   const handleClick = useCallback(() => {

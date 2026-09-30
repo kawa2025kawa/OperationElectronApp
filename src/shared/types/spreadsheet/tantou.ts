@@ -3,7 +3,7 @@
 /**
  * 1. 各フィールドの「キー」と「日本語ラベル」を一元管理
  */
-export const TANTOU_FIELD_LABELS = {
+const TANTOU_FIELD_LABELS = {
   id: "ID",
 
   // 本日（today）

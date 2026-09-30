@@ -1,131 +1,117 @@
-﻿import {
+// electron/features/operation/helpers/trackerHelper.ts
+
+import {
   JOB_STATUS,
   type JobStatus,
-  type OperationItem,
-  type OperationJobItem,
   type OperationStatusState,
-  type ScheduledTime,
-  type TrackerApiResponse,
-  type TrackerApiResponseItem,
 } from "@shared/types/operation/operationTypes";
+import {
+  isPreviousDayJob,
+  parseHHMM,
+  type ParsedTime,
+} from "@electron/features/operation/helpers/operationUtils";
+import type { OperationMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
+
+export { parseHHMM, type ParsedTime };
 
 const TRACKER_API_KEY = "71e7f0bcc0f995c1d2d322cbdde23543a5be8f91";
 const TRACKER_API_BASE_URL = "http://192.88.1.152/api/v2/trackers";
-const DEFAULT_KANSHI_TIME: readonly [number, number] = [1, 0];
 
-const PREVIOUS_DAY_KANRI_NOS = new Set<string>(["2", "3", "4", "5", "6", "7"]);
+const TRACKER_TIMEZONE_OFFSET_HOURS = 9;
+
+const DEFAULT_KANSHI_TIME = {
+  hours: 1,
+  minutes: 0,
+} as const;
 
 const STATUS_ALIAS_MAP: Readonly<Record<string, JobStatus>> = {
   scheduled: JOB_STATUS.SCHEDULED,
+
   running: JOB_STATUS.RUNNING,
   run: JOB_STATUS.RUNNING,
-  processing: JOB_STATUS.RUNNING,
+
   scriptrunning: JOB_STATUS.SCRIPT_RUNNING,
+
   success: JOB_STATUS.SUCCESS,
   done: JOB_STATUS.SUCCESS,
+  warning: JOB_STATUS.SUCCESS,
+
   ready: JOB_STATUS.READY,
+
   waiting: JOB_STATUS.WAITING,
   wait: JOB_STATUS.WAITING,
+
   error: JOB_STATUS.ERROR,
   failed: JOB_STATUS.ERROR,
-  warning: JOB_STATUS.SUCCESS,
 };
 
-export type { TrackerApiResponse, TrackerApiResponseItem };
-
-export function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export interface TrackerApiResponseItem {
+  start_time: string | null;
+  end_time: string | null;
+  status: string[];
 }
 
-export function getJobId(target: OperationItem): string | undefined {
-  if (!("jobId" in target)) return undefined;
-
-  const jobId = (target as OperationJobItem).jobId;
-
-  return jobId && jobId !== "-" ? jobId : undefined;
+export interface TrackerApiResponse {
+  data: TrackerApiResponseItem[];
 }
 
-function parseHHMM(
-  value?: string | null,
-): readonly [number, number] | null {
-  if (!value) return null;
-
-  const [h, m] = value.split(":");
-
-  return h && m ? [Number(h), Number(m)] : null;
+/**
+ * OperationMasterからTrackerのJob IDを取得する。
+ */
+export function getJobId(target: OperationMaster): string | undefined {
+  return target.jobId?.trim() || undefined;
 }
 
-function isPreviousDayJob(
-  kanriNo?: string | number | null,
-  scheduledTime?: ScheduledTime | null,
-): boolean {
-  if (kanriNo != null) {
-    const cleanNo = String(kanriNo).trim();
-
-    if (PREVIOUS_DAY_KANRI_NOS.has(cleanNo)) {
-      return true;
-    }
-  }
-
-  if (scheduledTime) {
-    const timeStr = String(scheduledTime).trim();
-
-    if (timeStr.includes("前日")) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
+/**
+ * Tracker APIへ問い合わせる開始時刻を生成する。
+ *
+ * アプリ側のJST時刻をUTCへ変換する。
+ */
 export function getTargetTime(
-  kanriNo?: string | number | null,
-  scheduledTime?: ScheduledTime | null,
+  kanriNo: string,
+  scheduledTime?: string | null,
 ): string {
   const now = new Date();
+  const time = parseHHMM(scheduledTime);
 
-  const [hour, minute] = parseHHMM(scheduledTime) ?? [
-    now.getHours(),
-    now.getMinutes(),
-  ];
+  const hours = time?.hours ?? now.getHours();
+  const minutes = time?.minutes ?? now.getMinutes();
+  const dayOffset = isPreviousDayJob(kanriNo, scheduledTime) ? -1 : 0;
 
-  const dayOffset = isPreviousDayJob(
-    kanriNo,
-    scheduledTime,
-  )
-    ? -1
-    : 0;
-
-  const trackerDate = new Date(
+  return new Date(
     Date.UTC(
       now.getFullYear(),
       now.getMonth(),
       now.getDate() + dayOffset,
-      hour - 9,
-      minute,
+      hours - TRACKER_TIMEZONE_OFFSET_HOURS,
+      minutes,
     ),
-  );
-
-  return trackerDate.toISOString();
+  ).toISOString();
 }
 
+/**
+ * Tracker問い合わせ範囲の終了時刻を生成する。
+ *
+ * kanshiTimeが未指定の場合は1時間後とする。
+ */
 export function addKanshiTime(
-  fromStr: string,
+  from: string,
   kanshiTime?: string | null,
 ): string {
-  const date = new Date(fromStr);
-
-  const [hours, minutes] =
-    parseHHMM(kanshiTime) ?? DEFAULT_KANSHI_TIME;
+  const date = new Date(from);
+  const time = parseHHMM(kanshiTime) ?? DEFAULT_KANSHI_TIME;
 
   date.setUTCHours(
-    date.getUTCHours() + hours,
-    date.getUTCMinutes() + minutes,
+    date.getUTCHours() + time.hours,
+    date.getUTCMinutes() + time.minutes,
   );
 
   return date.toISOString();
 }
 
+/**
+ * Tracker APIのURLを生成する。
+ */
 export function buildTrackerUrl(
   jobId: string,
   from?: string,
@@ -136,80 +122,54 @@ export function buildTrackerUrl(
     jobnetwork_name: jobId,
   });
 
-  if (from) params.set("from", from);
-  if (to) params.set("to", to);
+  if (from) {
+    params.set("from", from);
+  }
+
+  if (to) {
+    params.set("to", to);
+  }
 
   return `${TRACKER_API_BASE_URL}?${params.toString()}`;
 }
 
+/**
+ * Tracker APIのレスポンスを
+ * アプリ内部のステータスへ変換する。
+ */
 export function normalizeItem(
+  kanriNo: string,
   item: TrackerApiResponseItem,
 ): OperationStatusState {
-  let status: JobStatus | undefined;
-
-  if (item.status?.length) {
-    for (let i = item.status.length - 1; i >= 0; i--) {
-      const mapped =
-        STATUS_ALIAS_MAP[item.status[i].toLowerCase()];
-
-      if (mapped) {
-        status = mapped;
-        break;
-      }
-    }
-  }
-
   return {
-    status,
-    startTime: item.start_time ?? null,
-    endTime: item.end_time ?? null,
-    expectedStartTime: item.expected_start_time ?? null,
-    expectedEndTime: item.expected_end_time ?? null,
-    comment: item.comment ?? null,
-    substatus: item.substatus?.length
-      ? item.substatus.join(", ")
-      : null,
-    info: item.info ?? null,
+    kanriNo,
+    status: resolveStatus(item.status),
+    startTime: item.start_time,
+    endTime: item.end_time,
   };
 }
 
-export function applyTrackerItem(
-  tracker: OperationStatusState,
-  base: OperationItem,
-): OperationItem {
-  const res = { ...base };
+/**
+ * Trackerのステータス配列から
+ * アプリ内部のステータスを解決する。
+ *
+ * 複数のステータスが返る場合は、
+ * 後ろにあるステータスを優先する。
+ */
+function resolveStatus(statuses: string[]): JobStatus | undefined {
+  for (let index = statuses.length - 1; index >= 0; index -= 1) {
+    const status =
+      STATUS_ALIAS_MAP[
+        statuses[index]
+          .trim()
+          .toLowerCase()
+          .replace(/[\s_-]/g, "")
+      ];
 
-  if (tracker.status !== undefined) {
-    res.status = tracker.status;
+    if (status) {
+      return status;
+    }
   }
 
-  if (tracker.startTime !== undefined) {
-    res.startTime = tracker.startTime;
-  }
-
-  if (tracker.endTime !== undefined) {
-    res.endTime = tracker.endTime;
-  }
-
-  if (tracker.expectedStartTime !== undefined) {
-    res.expectedStartTime = tracker.expectedStartTime;
-  }
-
-  if (tracker.expectedEndTime !== undefined) {
-    res.expectedEndTime = tracker.expectedEndTime;
-  }
-
-  if (tracker.comment !== undefined) {
-    res.comment = tracker.comment;
-  }
-
-  if (tracker.substatus !== undefined) {
-    res.substatus = tracker.substatus;
-  }
-
-  if (tracker.info !== undefined) {
-    res.info = tracker.info;
-  }
-
-  return res;
+  return undefined;
 }

@@ -1,28 +1,47 @@
 ﻿// electron/features/gmail/gmailIpc.ts
 
 import { ipcMain } from "electron";
+import { authService } from "@electron/features/auth/authIpc";
+
+const GMAIL_SIGNATURE_URL =
+  "https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs";
+
+const GMAIL_DRAFT_URL = "https://gmail.googleapis.com/gmail/v1/users/me/drafts";
+
+let registered = false;
+
+interface CreateGmailDraftParams {
+  raw: string;
+}
+
+interface GmailSendAs {
+  isPrimary?: boolean;
+  signature?: string;
+}
+
+interface GmailSendAsResponse {
+  sendAs?: GmailSendAs[];
+}
 
 export function registerGmailIpc(): void {
-  // 重複登録エラーを防ぐため事前解除
-  ipcMain.removeHandler("gmail:getSignature");
-  ipcMain.removeHandler("gmail:createDraft");
+  if (registered) return;
+  registered = true;
 
-  // 署名の取得
-  ipcMain.handle("gmail:getSignature", async (_event, accessToken?: string) => {
-    if (!accessToken) return "";
-
+  ipcMain.handle("gmail:getSignature", async () => {
     try {
-      const res = await fetch(
-        "https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs",
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        },
-      );
-      if (!res.ok) return "";
-      const data = (await res.json()) as {
-        sendAs?: Array<{ isPrimary?: boolean; signature?: string }>;
-      };
-      const primary = data.sendAs?.find((s) => s.isPrimary);
+      const response = await authService.request(GMAIL_SIGNATURE_URL);
+
+      if (!response.ok) {
+        console.warn(
+          `[GmailIPC] Signature API failed with status: ${response.status}`,
+        );
+
+        return "";
+      }
+
+      const data = (await response.json()) as GmailSendAsResponse;
+      const primary = data.sendAs?.find((item) => item.isPrimary);
+
       return primary?.signature ?? "";
     } catch (error) {
       console.error("[GmailIPC] Failed to fetch signature:", error);
@@ -30,40 +49,40 @@ export function registerGmailIpc(): void {
     }
   });
 
-  // 下書きの作成
   ipcMain.handle(
     "gmail:createDraft",
-    async (_event, params: { accessToken: string; raw: string }) => {
-      const { accessToken, raw } = params;
+    async (_event, params: CreateGmailDraftParams) => {
+      const raw = params?.raw;
 
-      if (!accessToken) {
+      if (typeof raw !== "string" || !raw) {
+        throw new Error("Gmail draft raw message is required");
+      }
+
+      const response = await authService.request(GMAIL_DRAFT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: { raw },
+        }),
+      });
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
         throw new Error(
-          "アクセストークンが取得できていません。再ログインしてください。",
+          `Gmail API Error (${response.status}): ${responseText}`,
         );
       }
 
-      const res = await fetch(
-        "https://gmail.googleapis.com/gmail/v1/users/me/drafts",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: {
-              raw: raw,
-            },
-          }),
-        },
-      );
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Gmail API Error (${res.status}): ${errText}`);
+      try {
+        return JSON.parse(responseText);
+      } catch (error) {
+        throw new Error("Gmail API response is not valid JSON", {
+          cause: error,
+        });
       }
-
-      return await res.json();
     },
   );
 }

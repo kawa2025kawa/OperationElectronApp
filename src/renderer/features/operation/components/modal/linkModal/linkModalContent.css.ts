@@ -73,7 +73,7 @@ export const terminalRow = style([
   },
 ]);
 
-export const terminalBadge = style({
+const terminalBadge = style({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",

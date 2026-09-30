@@ -1,6 +1,5 @@
 // src/renderer/components/layout/navbar/Navbar.tsx
 
-import React from "react";
 import { StatusSummary } from "@renderer/components/ui/statusSummary/StatusSummary";
 import { HamburgerButton } from "@renderer/components/ui/button/hamburgerButton/HamburgerButton";
 import { PollingToggleButton } from "@renderer/components/ui/button/pollingToggleButton/PollingToggleButton";
@@ -9,9 +8,8 @@ import { TantouButton } from "@renderer/components/ui/button/tantouButton/Tantou
 import { useNavbarLogic } from "./useNavbarLogic";
 import * as styles from "./navbar.css";
 
-export const Navbar: React.FC = () => {
-  const { summary, navbarTitle, summaryDisplayType, isKokyuhyo } =
-    useNavbarLogic();
+export const Navbar = () => {
+  const { navbarTitle, summaryDisplayType, isKokyuhyo } = useNavbarLogic();
 
   return (
     <nav className={styles.container}>
@@ -22,7 +20,7 @@ export const Navbar: React.FC = () => {
       <div className={styles.centerItem}>
         {summaryDisplayType === "summary" && (
           <div className={styles.centerSummaryWrapper}>
-            <StatusSummary data={summary} />
+            <StatusSummary />
           </div>
         )}
 
@@ -39,5 +37,3 @@ export const Navbar: React.FC = () => {
     </nav>
   );
 };
-
-Navbar;

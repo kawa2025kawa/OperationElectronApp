@@ -1,416 +1,606 @@
-﻿import { BrowserWindow } from "electron";
+﻿// electron/features/operation/statusManager.ts
+
+import { BrowserWindow } from "electron";
+
+import { getActiveFlags } from "@electron/features/operation/activeFlagsManager";
+import { normalizeKanriNo } from "@electron/features/operation/helpers/operationUtils";
+import { calculateJobStatus } from "@electron/features/operation/helpers/statusCalculator";
 import {
   deleteStatusFile,
   loadStatusesFromFile,
-  schedulePersistStatuses,
-  type PersistedStatus,
+  persistStatusesDebounced,
+  persistStatusesImmediately,
 } from "@electron/features/operation/helpers/statusStorage";
-import { calculateJobStatus } from "./helpers/statusCalculator";
-import { getActiveFlags } from "./activeFlagsManager";
+import { getDependencyMasters } from "@electron/features/operation/services/operationMasterService";
 import {
   JOB_STATUS,
   type JobStatus,
-  type OperationItem,
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
-import {
-  isRunningStatus,
-  isTerminalStatus,
-} from "@shared/utils/statusUtils";
-import { resolveInitialStatus } from "./helpers/initialStatusResolver";
-import { loadMasterCache } from "./services/operationMasterService";
+import { normalizeDependencies } from "@shared/utils/dependency/dependencyUtils";
+import type {
+  OperationMaster,
+  TodayIrregularMaster,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 
-export type { PersistedStatus };
+/* =========================
+ * Types
+ * ========================= */
 
-export interface StatusUpdate extends OperationStatusState {
-  kanriNo: string | number;
+export type StatusTarget = OperationMaster | TodayIrregularMaster;
+
+export type ReadyStatusListener = (target: StatusTarget) => void;
+
+type StatusMap = Record<string, OperationStatusState>;
+
+type StatusClearPayload = {
+  kanriNo: string;
+  status: undefined;
+  comment: string;
+};
+
+type StatusNotification = OperationStatusState | StatusClearPayload;
+
+/* =========================
+ * State
+ * ========================= */
+
+const targets = new Map<string, StatusTarget>();
+
+const statuses = new Map<string, OperationStatusState>();
+
+const dependentTargets = new Map<string, Set<string>>();
+
+const readyStatusListeners = new Set<ReadyStatusListener>();
+
+const propagationQueue = new Set<string>();
+
+let isPropagating = false;
+
+/* =========================
+ * Status Rules
+ * ========================= */
+
+const PROTECTED_STATUSES = new Set<JobStatus>([
+  JOB_STATUS.RUNNING,
+  JOB_STATUS.SCRIPT_RUNNING,
+  JOB_STATUS.SUCCESS,
+  JOB_STATUS.ERROR,
+]);
+
+function isProtectedStatus(status?: JobStatus): boolean {
+  return status !== undefined && PROTECTED_STATUSES.has(status);
 }
 
-type StatusChangedHandler = (
-  kanriNo: string | number,
-) => void;
-
-let statusChangedHandler: StatusChangedHandler | null = null;
-
-const apiTargets = new Map<string, OperationItem>();
-const memoryStatuses = new Map<string, PersistedStatus>();
-
-export function setStatusChangedHandler(
-  handler: StatusChangedHandler | null,
-): void {
-  statusChangedHandler = handler;
+function isRunningStatus(status?: JobStatus): boolean {
+  return status === JOB_STATUS.RUNNING || status === JOB_STATUS.SCRIPT_RUNNING;
 }
 
-function isStatusEqual(
-  previous: PersistedStatus,
-  next: PersistedStatus,
-): boolean {
-  return (
-    previous.status === next.status &&
-    previous.comment === next.comment &&
-    previous.startTime === next.startTime &&
-    previous.endTime === next.endTime &&
-    previous.expectedStartTime === next.expectedStartTime &&
-    previous.expectedEndTime === next.expectedEndTime &&
-    previous.substatus === next.substatus &&
-    previous.info === next.info
-  );
-}
+/* =========================
+ * Status Merge
+ * ========================= */
 
-export function sanitizeStatus(
-  source: Partial<OperationStatusState>,
-): PersistedStatus {
+function mergeStatus(
+  current: OperationStatusState | undefined,
+  update: OperationStatusState,
+): OperationStatusState {
   return {
-    status:
-      source.status ??
-      JOB_STATUS.SCHEDULED,
-    comment: source.comment ?? "",
-    startTime: source.startTime ?? null,
-    endTime: source.endTime ?? null,
-    expectedStartTime:
-      source.expectedStartTime ?? null,
-    expectedEndTime:
-      source.expectedEndTime ?? null,
-    substatus: source.substatus ?? null,
-    info: source.info ?? null,
+    ...current,
+    ...update,
+    kanriNo: update.kanriNo,
+    status: update.status ?? current?.status,
+    comment: update.comment ?? current?.comment ?? "",
   };
 }
 
-export function getMergedEntity<T extends OperationItem>(
-  target: T,
-): T {
-  const kanriNo = String(target.kanriNo);
-  const persistedStatus =
-    memoryStatuses.get(kanriNo);
-
-  return persistedStatus
-    ? { ...target, ...persistedStatus }
-    : target;
-}
-
-export function broadcastStatusUpdate(
-  item: OperationItem,
-): void {
-  const payload = { status: item };
-
-  for (const window of BrowserWindow.getAllWindows()) {
-    if (window.isDestroyed()) continue;
-
-    window.webContents.send(
-      "operation:status-updated",
-      payload,
-    );
+function hasStatusChanged(
+  previous: OperationStatusState | undefined,
+  next: OperationStatusState,
+): boolean {
+  if (!previous) {
+    return true;
   }
+
+  return (
+    previous.status !== next.status ||
+    previous.comment !== next.comment ||
+    previous.startTime !== next.startTime ||
+    previous.endTime !== next.endTime ||
+    previous.expectedStartTime !== next.expectedStartTime ||
+    previous.expectedEndTime !== next.expectedEndTime ||
+    previous.substatus !== next.substatus ||
+    previous.info !== next.info
+  );
 }
 
-export function registerTargets(
-  items: OperationItem[],
-): void {
-  apiTargets.clear();
+/* =========================
+ * Default Status
+ * ========================= */
 
-  const targetMap = createTargetMap(items);
-  let changed = false;
+function createScheduledStatus(kanriNo: string): OperationStatusState {
+  return {
+    kanriNo,
+    status: JOB_STATUS.SCHEDULED,
+    comment: "予定時刻待ち",
+    startTime: null,
+    endTime: null,
+  };
+}
 
-  for (const item of items) {
-    const kanriNo = String(item.kanriNo).trim();
+/* =========================
+ * Dependency Index
+ * ========================= */
 
-    if (!kanriNo) continue;
+function registerDependencyIndex(target: StatusTarget): void {
+  const kanriNo = normalizeKanriNo(target.kanriNo);
 
-    apiTargets.set(kanriNo, item);
+  if (!kanriNo) {
+    return;
+  }
 
-    if (memoryStatuses.has(kanriNo)) {
+  const dependencies = normalizeDependencies(target.dependsOn);
+
+  for (const dependency of dependencies) {
+    const dependencyNo = normalizeKanriNo(dependency);
+
+    if (!dependencyNo) {
       continue;
     }
 
-    const initialStatus =
-      resolveInitialStatus(
-        item,
-        targetMap,
-      );
+    const dependents = dependentTargets.get(dependencyNo) ?? new Set<string>();
 
-    memoryStatuses.set(
-      kanriNo,
-      sanitizeStatus({
-        ...item,
-        status: initialStatus,
-      }),
-    );
+    dependents.add(kanriNo);
 
-    changed = true;
-  }
-
-  for (const kanriNo of memoryStatuses.keys()) {
-    if (!apiTargets.has(kanriNo)) {
-      memoryStatuses.delete(kanriNo);
-      changed = true;
-    }
-  }
-
-  if (changed) {
-    schedulePersistStatuses(
-      memoryStatuses,
-    );
+    dependentTargets.set(dependencyNo, dependents);
   }
 }
 
-function createTargetMap(
-  items: OperationItem[],
-): Record<string, OperationItem> {
-  const targetMap: Record<
-    string,
-    OperationItem
-  > = {};
+function rebuildDependencyIndex(): void {
+  dependentTargets.clear();
 
-  for (const item of items) {
-    const kanriNo = String(item.kanriNo).trim();
+  for (const target of targets.values()) {
+    registerDependencyIndex(target);
+  }
+}
 
-    if (kanriNo) {
-      targetMap[kanriNo] = item;
+function enqueueDependents(kanriNo: string): void {
+  const dependents = dependentTargets.get(kanriNo);
+
+  if (!dependents) {
+    return;
+  }
+
+  for (const dependent of dependents) {
+    propagationQueue.add(dependent);
+  }
+}
+
+function enqueueAllRecalculableTargets(): void {
+  for (const [kanriNo, status] of statuses) {
+    if (!targets.has(kanriNo)) {
+      continue;
+    }
+
+    if (isProtectedStatus(status.status)) {
+      continue;
+    }
+
+    propagationQueue.add(kanriNo);
+  }
+}
+
+/* =========================
+ * Dependency Status Snapshot
+ * ========================= */
+
+export function getDependencyStatuses(): {
+  operationStatuses: StatusMap;
+  irregularStatuses: StatusMap;
+  todayStatuses: StatusMap;
+} {
+  const operationStatuses: StatusMap = {};
+
+  const irregularStatuses: StatusMap = {};
+
+  const todayStatuses: StatusMap = {};
+
+  for (const [kanriNo, status] of statuses) {
+    const target = targets.get(kanriNo);
+
+    if (!target) {
+      continue;
+    }
+
+    if ("jobId" in target) {
+      operationStatuses[kanriNo] = status;
+    } else {
+      todayStatuses[kanriNo] = status;
     }
   }
 
-  return targetMap;
+  return {
+    operationStatuses,
+    irregularStatuses,
+    todayStatuses,
+  };
 }
 
-export function updateStatus(
-  update: StatusUpdate,
-): boolean {
-  const kanriNo = String(
-    update.kanriNo,
-  ).trim();
+/* =========================
+ * Renderer Notification
+ * ========================= */
 
-  if (!kanriNo) return false;
+function notifyRenderer(payload: StatusNotification): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (window.isDestroyed()) {
+      continue;
+    }
 
-  const target =
-    apiTargets.get(kanriNo);
+    window.webContents.send("operation:status-updated", payload);
+  }
+}
 
-  const previous =
-    memoryStatuses.get(kanriNo) ??
-    (target
-      ? sanitizeStatus(target)
-      : undefined);
+function notifyStatusUpdated(status: OperationStatusState): void {
+  notifyRenderer(status);
+}
 
-  if (!previous) return false;
+function notifyStatusCleared(kanriNo: string): void {
+  notifyRenderer({
+    kanriNo,
+    status: undefined,
+    comment: "",
+  });
+}
 
-  const next = sanitizeStatus({
-    ...previous,
-    ...update,
+/* =========================
+ * READY Notification
+ * ========================= */
+
+function notifyReady(target: StatusTarget): void {
+  const kanriNo = normalizeKanriNo(target.kanriNo);
+
+  console.log("[StatusManager] READY通知:", {
+    kanriNo,
+    status: statuses.get(kanriNo)?.status,
+    time: new Date().toISOString(),
   });
 
-  if (isStatusEqual(previous, next)) {
+  for (const listener of readyStatusListeners) {
+    try {
+      listener(target);
+    } catch (error) {
+      console.error("[StatusManager] READY listener error:", error);
+    }
+  }
+}
+
+function calculateTargetStatus(target: StatusTarget): OperationStatusState {
+  const kanriNo = normalizeKanriNo(target.kanriNo);
+
+  const result = calculateJobStatus(
+    target,
+    getDependencyMasters(),
+    getDependencyStatuses(),
+    getActiveFlags(),
+  );
+
+  return {
+    kanriNo,
+    status: result.status,
+    comment: result.comment,
+  };
+}
+
+function recalculateTargetStatus(kanriNo: string): void {
+  const target = targets.get(kanriNo);
+
+  if (!target) {
+    return;
+  }
+
+  const current = statuses.get(kanriNo);
+
+  if (isProtectedStatus(current?.status)) {
+    return;
+  }
+
+  const calculatedStatus = calculateTargetStatus(target);
+
+  applyStatus(calculatedStatus);
+}
+
+function processDependencyPropagation(): void {
+  if (isPropagating) {
+    return;
+  }
+
+  isPropagating = true;
+
+  try {
+    while (propagationQueue.size > 0) {
+      const queue = [...propagationQueue];
+
+      propagationQueue.clear();
+
+      for (const kanriNo of queue) {
+        recalculateTargetStatus(kanriNo);
+      }
+    }
+  } finally {
+    isPropagating = false;
+  }
+}
+
+function applyStatus(update: OperationStatusState): boolean {
+  const kanriNo = normalizeKanriNo(update.kanriNo);
+
+  if (!kanriNo) {
     return false;
   }
 
-  const becameReady =
-    previous.status !== JOB_STATUS.READY &&
-    next.status === JOB_STATUS.READY;
+  const previous = statuses.get(kanriNo);
 
-  const becameTerminal =
-    !isTerminalStatus(
-      previous.status,
-    ) &&
-    isTerminalStatus(next.status);
-
-  memoryStatuses.set(
+  const next = mergeStatus(previous, {
+    ...update,
     kanriNo,
-    next,
-  );
+  });
 
-  if (target) {
-    broadcastStatusUpdate(
-      getMergedEntity(target),
-    );
+  if (!hasStatusChanged(previous, next)) {
+    return true;
   }
 
-  schedulePersistStatuses(
-    memoryStatuses,
-  );
+  statuses.set(kanriNo, next);
+
+  persistStatusesDebounced(statuses);
+
+  notifyStatusUpdated(next);
 
   if (
-    becameReady ||
-    becameTerminal
+    next.status === JOB_STATUS.READY &&
+    previous?.status !== JOB_STATUS.READY
   ) {
-    statusChangedHandler?.(kanriNo);
+    const target = targets.get(kanriNo);
+
+    if (target) {
+      notifyReady(target);
+    }
   }
+
+  enqueueDependents(kanriNo);
+
+  processDependencyPropagation();
 
   return true;
 }
 
-export function updateManualStatus(
-  kanriNo: string,
-  status: JobStatus,
-  comment: string,
-): void {
-  updateStatus({
-    kanriNo,
-    status,
-    comment,
-    endTime:
-      new Date().toISOString(),
-  });
-}
+/* =========================
+ * Public Status API
+ * ========================= */
 
-export function resetAllStatusesToScheduled(
-  targets: OperationItem[],
-): OperationItem[] {
-  apiTargets.clear();
-  memoryStatuses.clear();
-
-  const targetMap =
-    createTargetMap(targets);
-
-  const activeFlags =
-    getActiveFlags();
-
-  for (const item of targets) {
-    const kanriNo = String(
-      item.kanriNo,
-    ).trim();
-
-    if (!kanriNo) continue;
-
-    apiTargets.set(
-      kanriNo,
-      item,
-    );
-
-    const {
-      status,
-      comment,
-    } = calculateJobStatus(
-      item,
-      targetMap,
-      activeFlags,
-    );
-
-    memoryStatuses.set(
-      kanriNo,
-      sanitizeStatus({
-        ...item,
-        status,
-        comment,
-      }),
-    );
-  }
-
-  schedulePersistStatuses(
-    memoryStatuses,
-  );
-
-  const updatedTargets =
-    getAllTargets();
-
-  for (const target of updatedTargets) {
-    broadcastStatusUpdate(
-      target,
-    );
-  }
-
-  return updatedTargets;
+export function getStatus(
+  kanriNo: string | number,
+): OperationStatusState | undefined {
+  return statuses.get(normalizeKanriNo(kanriNo));
 }
 
 export function getTargetByKanriNo(
   kanriNo: string | number,
-): OperationItem | undefined {
-  return apiTargets.get(
-    String(kanriNo).trim(),
-  );
+): StatusTarget | undefined {
+  return targets.get(normalizeKanriNo(kanriNo));
 }
 
-export function getAllTargets(): OperationItem[] {
-  return Array.from(
-    apiTargets.values(),
-    getMergedEntity,
-  );
+export function getRegisteredTargets(): StatusTarget[] {
+  return [...targets.values()];
 }
 
-export function getStatus(
+export function updateStatus(update: OperationStatusState): boolean {
+  return applyStatus(update);
+}
+
+export function updateManualStatus(
   kanriNo: string | number,
-): PersistedStatus | undefined {
-  return memoryStatuses.get(
-    String(kanriNo).trim(),
-  );
-}
+  status: JobStatus,
+  comment = "",
+): boolean {
+  const normalizedKanriNo = normalizeKanriNo(kanriNo);
 
-export async function deleteAllStatuses(): Promise<void> {
-  memoryStatuses.clear();
-
-  for (const [
-    kanriNo,
-    target,
-  ] of apiTargets) {
-    memoryStatuses.set(
-      kanriNo,
-      sanitizeStatus(target),
-    );
+  if (!normalizedKanriNo) {
+    return false;
   }
 
-  await deleteStatusFile();
+  return updateStatus({
+    kanriNo: normalizedKanriNo,
+    status,
+    comment,
+  });
 }
 
-export async function initializeStatuses(): Promise<
-  Record<string, PersistedStatus>
-> {
-  memoryStatuses.clear();
+/* =========================
+ * Target Registration
+ * ========================= */
 
-  initializeTargetsFromCache();
-
-  const persistedStatuses =
-    await loadStatusesFromFile();
-
-  restorePersistedStatuses(
-    persistedStatuses,
+export function registerTargets(targetList: StatusTarget[]): void {
+  console.log(
+    "[StatusManager] registerTargets:",
+    targetList.length,
+    targetList.map(({ kanriNo }) => kanriNo),
   );
 
-  return Object.fromEntries(
-    memoryStatuses,
-  );
-}
+  const masters = getDependencyMasters();
 
-function initializeTargetsFromCache(): void {
-  const cache =
-    loadMasterCache();
+  const dependencyStatuses = getDependencyStatuses();
 
-  if (!cache) return;
+  for (const target of targetList) {
+    const kanriNo = normalizeKanriNo(target.kanriNo);
 
-  registerTargets([
-    ...cache.operations,
-    ...cache.todayIrregulars,
-  ]);
-}
-
-function restorePersistedStatuses(
-  data: Record<string, PersistedStatus>,
-): void {
-  for (const [
-    kanriNo,
-    persistedStatus,
-  ] of Object.entries(data)) {
-    if (!kanriNo) continue;
-
-    if (!apiTargets.has(kanriNo)) {
+    if (!kanriNo) {
       continue;
     }
 
-    const status =
-      sanitizeStatus(
-        persistedStatus,
-      );
+    targets.set(kanriNo, target);
 
-    if (
-      isRunningStatus(
-        status.status,
-      )
-    ) {
-      status.status =
-        JOB_STATUS.ERROR;
-      status.comment =
-        "アプリ終了時の異常中断";
+    if (statuses.has(kanriNo)) {
+      continue;
     }
 
-    memoryStatuses.set(
+    const result = calculateJobStatus(target, masters, dependencyStatuses);
+
+    applyStatus({
       kanriNo,
-      status,
-    );
+      status: result.status,
+      comment: result.comment,
+    });
   }
+
+  rebuildDependencyIndex();
+
+  enqueueAllRecalculableTargets();
+
+  processDependencyPropagation();
+
+  console.log("[StatusManager] registered targets:", targets.size);
+
+  persistStatusesDebounced(statuses);
+}
+
+/* =========================
+ * Initialization
+ * ========================= */
+
+export async function initializeStatuses(): Promise<
+  Record<string, OperationStatusState>
+> {
+  const persistedStatuses = await loadStatusesFromFile();
+
+  statuses.clear();
+
+  let recoveredRunningStatus = false;
+
+  for (const [kanriNo, status] of Object.entries(persistedStatuses)) {
+    const normalizedKanriNo = normalizeKanriNo(kanriNo);
+
+    if (!normalizedKanriNo) {
+      continue;
+    }
+
+    if (isRunningStatus(status.status)) {
+      statuses.set(normalizedKanriNo, createScheduledStatus(normalizedKanriNo));
+
+      recoveredRunningStatus = true;
+
+      continue;
+    }
+
+    statuses.set(normalizedKanriNo, {
+      ...status,
+      kanriNo: normalizedKanriNo,
+    });
+  }
+
+  if (recoveredRunningStatus) {
+    persistStatusesDebounced(statuses);
+  }
+
+  return Object.fromEntries(statuses);
+}
+
+/* =========================
+ * Reset
+ * ========================= */
+
+export function resetAllStatusesToScheduled(): Record<
+  string,
+  OperationStatusState
+> {
+  propagationQueue.clear();
+
+  const kanriNos = [...statuses.keys()];
+
+  for (const kanriNo of kanriNos) {
+    applyStatus({
+      kanriNo,
+      status: JOB_STATUS.SCHEDULED,
+      comment: "予定時刻待ち",
+    });
+  }
+
+  persistStatusesImmediately(statuses);
+
+  return Object.fromEntries(statuses);
+}
+
+/* =========================
+ * Delete
+ * ========================= */
+
+export async function deleteAllStatuses(): Promise<void> {
+  const targetKanriNos = [...targets.keys()];
+
+  propagationQueue.clear();
+  statuses.clear();
+
+  persistStatusesImmediately(statuses);
+
+  await deleteStatusFile();
+
+  for (const kanriNo of targetKanriNos) {
+    notifyStatusCleared(kanriNo);
+  }
+}
+
+/* =========================
+ * Persistence
+ * ========================= */
+
+export function persistStatuses(): void {
+  persistStatusesImmediately(statuses);
+}
+
+/* =========================
+ * Clear
+ * ========================= */
+
+export function clearStatuses(): void {
+  statuses.clear();
+  targets.clear();
+  dependentTargets.clear();
+  propagationQueue.clear();
+}
+
+/* =========================
+ * Dependency Refresh
+ * ========================= */
+
+export function refreshDependencyStatuses(): void {
+  propagationQueue.clear();
+
+  enqueueAllRecalculableTargets();
+
+  processDependencyPropagation();
+}
+
+export function refreshScheduledStatuses(): void {
+  propagationQueue.clear();
+
+  for (const [kanriNo, status] of statuses) {
+    if (
+      status.status === JOB_STATUS.SCHEDULED ||
+      status.status === JOB_STATUS.WAITING
+    ) {
+      propagationQueue.add(kanriNo);
+    }
+  }
+
+  processDependencyPropagation();
+}
+
+/* =========================
+ * READY Listener
+ * ========================= */
+
+export function onReadyStatus(listener: ReadyStatusListener): () => void {
+  readyStatusListeners.add(listener);
+
+  return () => {
+    readyStatusListeners.delete(listener);
+  };
 }

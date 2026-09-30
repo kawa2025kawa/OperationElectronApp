@@ -1,19 +1,19 @@
 // src/renderer/components/ui/searchField/SearchField.tsx
 
-import React from "react";
+import type { InputHTMLAttributes, Ref } from "react";
+
 import * as styles from "./searchField.css";
 
-export interface SearchFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  ref?: React.Ref<HTMLInputElement>;
+export interface SearchFieldProps extends InputHTMLAttributes<HTMLInputElement> {
+  ref?: Ref<HTMLInputElement>;
 }
 
-// React 19: forwardRef なしで ref を props として直接受領
-export const SearchField: React.FC<SearchFieldProps> = ({
+export const SearchField = ({
   className,
   placeholder = "検索...",
   ref,
   ...props
-}) => (
+}: SearchFieldProps) => (
   <div className={styles.inner}>
     <input
       {...props}
@@ -24,6 +24,3 @@ export const SearchField: React.FC<SearchFieldProps> = ({
     />
   </div>
 );
-
-SearchField.displayName = "SearchField";
-SearchField;

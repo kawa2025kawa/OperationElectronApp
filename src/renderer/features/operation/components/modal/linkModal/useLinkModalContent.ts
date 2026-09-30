@@ -1,6 +1,6 @@
 ﻿import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { commands } from "@renderer/services/commands";
+import { systemCommands } from "@renderer/services/commands";
 import type { LinkConfig } from "@shared/types/operation/operationTypes";
 
 export function useLinkModalContent(link?: LinkConfig[] | null) {
@@ -11,12 +11,16 @@ export function useLinkModalContent(link?: LinkConfig[] | null) {
 
   const handleOpenUrl = useCallback(async (rawUrl: string) => {
     const trimmedUrl = rawUrl.trim();
+
+    console.log("[Link] openExternal:", JSON.stringify(trimmedUrl));
+
     if (!trimmedUrl) {
       toast.error("URLが存在しません");
       return;
     }
+
     try {
-      await commands.openExternal(trimmedUrl);
+      await systemCommands.openExternal(trimmedUrl);
     } catch (error) {
       console.error("[useLinkModalContent.handleOpenUrl] Failed:", error);
       toast.error("リンクを開けませんでした");

@@ -3,7 +3,7 @@
 /**
  * 1. 各フィールドの「キー」と「日本語ラベル」を一元管理
  */
-export const JUGYOIN_FIELD_LABELS = {
+const JUGYOIN_FIELD_LABELS = {
   id: "ID",
   bumon: "部門",
   bumonKana: "部門カナ",

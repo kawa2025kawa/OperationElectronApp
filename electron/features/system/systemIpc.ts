@@ -33,18 +33,27 @@ function isUpdateInfo(value: unknown): value is UpdateInfo {
   );
 }
 
+function isExternalUrl(value: string): boolean {
+  return /^(https?|mailto|tel):/i.test(value);
+}
+
 export function registerSystemIpc(): void {
   ipcMain.handle("getAppVersion", () => app.getVersion());
 
   ipcMain.handle("showMainWindow", () => {
     const mainWindow = getMainWindow();
-    if (!mainWindow) return null;
+
+    if (!mainWindow) {
+      return null;
+    }
 
     if (mainWindow.isMinimized()) {
       mainWindow.restore();
     }
+
     mainWindow.show();
     mainWindow.focus();
+
     return null;
   });
 
@@ -57,17 +66,23 @@ export function registerSystemIpc(): void {
     "openExternal",
     async (_event, { urlOrPath }: { urlOrPath: string }) => {
       const target = urlOrPath.trim();
-      if (!target) return null;
 
-      if (/^https?:\/\//i.test(target)) {
-        await shell.openExternal(target);
-      } else {
-        const normalized = target.replace(/\//g, "\\");
-        const error = await shell.openPath(normalized);
-        if (error) {
-          throw new Error(`Failed to open path: ${error}`);
-        }
+      if (!target) {
+        return null;
       }
+
+      if (isExternalUrl(target)) {
+        await shell.openExternal(target);
+        return null;
+      }
+
+      const normalized = target.replace(/\//g, "\\");
+      const error = await shell.openPath(normalized);
+
+      if (error) {
+        throw new Error(`Failed to open path: ${error}`);
+      }
+
       return null;
     },
   );
@@ -76,9 +91,13 @@ export function registerSystemIpc(): void {
     "showOpenDialog",
     async (_event, options: OpenDialogOptions) => {
       const mainWindow = getMainWindow();
-      if (!mainWindow) return null;
+
+      if (!mainWindow) {
+        return null;
+      }
 
       const result = await dialog.showOpenDialog(mainWindow, options);
+
       return result.canceled ? null : result.filePaths;
     },
   );

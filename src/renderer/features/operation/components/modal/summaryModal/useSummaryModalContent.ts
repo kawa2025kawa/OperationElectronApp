@@ -1,21 +1,39 @@
-﻿import React, { useMemo } from "react";
+﻿import { createElement, useMemo } from "react";
+
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
-import type { OperationItem } from "@shared/types/operation/operationTypes";
+import type {
+  OperationSummaryRow,
+  TodaySummaryRow,
+} from "@renderer/features/operation/services/operationSummaryService";
 import type { Column } from "@shared/types/table/tableType";
 
-export function useSummaryModalContent(items: OperationItem[] = []) {
-  // サマリー用カラム定義のメモ化
-  const columns = useMemo<Column<OperationItem>[]>(
+export type SummaryRow = OperationSummaryRow | TodaySummaryRow;
+
+export function useSummaryModalContent(items: SummaryRow[] = []) {
+  const columns = useMemo<Column<SummaryRow>[]>(
     () => [
-      { key: "kanriNo", label: "No", width: "15%" },
-      { key: "workName", label: "作業名", width: "55%" },
-      { key: "jobId", label: "Job ID", width: "15%" },
+      {
+        key: "kanriNo",
+        label: "No",
+        width: "15%",
+      },
+      {
+        key: "workName",
+        label: "作業名",
+        width: "55%",
+      },
+      {
+        key: "jobId",
+        label: "Job ID",
+        width: "15%",
+        render: (item) => ("jobId" in item && item.jobId ? item.jobId : "-"),
+      },
       {
         key: "status",
         label: "ステータス",
         width: "15%",
         render: (item) =>
-          React.createElement(StatusBadge, {
+          createElement(StatusBadge, {
             status: item.status ?? undefined,
           }),
       },

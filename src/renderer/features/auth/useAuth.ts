@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
-import { commands } from "@renderer/services/commands";
+import { authCommands } from "@renderer/services/commands";
 import { useAppStore } from "@renderer/store";
 import type { AuthState } from "@shared/types/auth/authTypes";
 
@@ -26,13 +26,15 @@ export const useAuth = () => {
     if (isLoginProcessing) return;
 
     setIsLoginProcessing(true);
+
     setGlobalProcessing({
       message: "ブラウザで認証を行ってください...",
       target: "Google OAuth Login",
     });
 
     try {
-      const loginPromise = commands.login();
+      const loginPromise = authCommands.login();
+
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(
           () =>
@@ -43,24 +45,18 @@ export const useAuth = () => {
 
       const session = await Promise.race([loginPromise, timeoutPromise]);
 
-      if (!session?.accessToken) {
-        throw new Error("アクセストークンの取得に失敗しました");
-      }
-
       setGlobalProcessing({
         message: "アカウント情報を同期中...",
         target: session.email ?? "Google Account",
       });
 
-      await handleLoginSuccess(
-        session.accessToken,
-        session.email,
-        session.familyName,
-      );
+      await handleLoginSuccess(session.email, session.familyName);
     } catch (error) {
       console.error("[Auth] Login failed:", error);
+
       const message =
         error instanceof Error ? error.message : "ログインに失敗しました";
+
       toast.error(message);
     } finally {
       setIsLoginProcessing(false);

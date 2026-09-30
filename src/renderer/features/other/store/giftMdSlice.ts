@@ -1,8 +1,8 @@
-﻿// src/renderer/features/other/store/giftMdSlice.ts
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-import { commands } from "@renderer/services/commands";
+import { systemCommands } from "@renderer/services/commands";
 import type { AppState } from "@renderer/store";
+import { executeScriptJob } from "@renderer/features/operation/services/scriptJobService";
 import { getFileName, hasExtension } from "@shared/utils/fileUtils";
 
 export interface GiftMdFile {
@@ -17,7 +17,6 @@ export interface GiftMdState {
 
 export interface GiftMdSlice {
   giftMd: GiftMdState;
-
   setGiftMdFileFromRaw(rawFiles: File[]): void;
   resetGiftMd(): void;
   executeGiftMdTransfer(): Promise<string>;
@@ -38,8 +37,9 @@ export const createGiftMdSlice: StateCreator<
     if (rawFiles.length === 0) return;
 
     const file = rawFiles[0];
+
     const path =
-      commands.getFilePath(file) ||
+      systemCommands.getFilePath(file) ||
       ("path" in file && typeof file.path === "string" ? file.path : file.name);
 
     if (!path) return;
@@ -50,7 +50,9 @@ export const createGiftMdSlice: StateCreator<
       file.type === "text/plain";
 
     if (!isSupported) {
-      toast.error("対応していないファイル形式です (.txt, .DAT)");
+      toast.error(
+        "繝・く繧ｹ繝医ヵ繧｡繧､繝ｫ(.txt, .DAT)縺ｮ縺ｿ蟇ｾ蠢懊＠縺ｦ縺・∪縺・",
+      );
       return;
     }
 
@@ -71,8 +73,9 @@ export const createGiftMdSlice: StateCreator<
 
   executeGiftMdTransfer: async () => {
     const { selectedFile, isProcessing } = get().giftMd;
+
     if (!selectedFile || isProcessing) {
-      throw new Error("ファイルが選択されていないか、処理中です。");
+      throw new Error("繝輔ぃ繧､繝ｫ繧帝∈謚槭＠縺ｦ縺上□縺輔＞");
     }
 
     set((state) => {
@@ -80,12 +83,16 @@ export const createGiftMdSlice: StateCreator<
     });
 
     try {
-      const res = await get().runScriptJob("E41", [selectedFile.path]);
-      toast.success("ギフトデータMD転送が完了しました");
+      const res = await executeScriptJob(get(), "E41", [selectedFile.path]);
+
+      toast.success("豁｣蟶ｸ縺ｫ霆｢騾√＆繧後∪縺励◆");
+
       return res.message;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      toast.error(`ギフトデータMD転送失敗: ${message}`);
+
+      toast.error(`繧ｮ繝輔ヨMD霆｢騾√お繝ｩ繝ｼ: ${message}`);
+
       throw error;
     } finally {
       set((state) => {

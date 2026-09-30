@@ -19,6 +19,16 @@ import {
 } from "@renderer/features/operation/store/operationSlice";
 
 import {
+  createOperationStatusSlice,
+  type OperationStatusSlice,
+} from "@renderer/features/operation/store/operationStatusSlice";
+
+import {
+  createPollingSlice,
+  type PollingSlice,
+} from "@renderer/features/operation/store/pollingSlice";
+
+import {
   createPdfUploadSlice,
   type PdfUploadSlice,
 } from "@renderer/features/other/store/pdfUploadSlice";
@@ -50,7 +60,7 @@ import {
 import {
   createCenterSlice,
   type CenterSlice,
-} from "../features/operation/store/centerSlice";
+} from "@renderer/features/operation/store/centerSlice";
 
 import { createInitSlice, type InitSlice } from "./slices/initSlice";
 
@@ -63,11 +73,6 @@ import {
 
 import { createOverlaySlice, type OverlaySlice } from "./slices/overlaySlice";
 
-import {
-  createPollingSlice,
-  type PollingSlice,
-} from "../features/operation/store/pollingSlice";
-
 import { createThemeSlice, type ThemeSlice } from "./slices/themeSlice";
 
 // ============================================================================
@@ -76,6 +81,8 @@ import { createThemeSlice, type ThemeSlice } from "./slices/themeSlice";
 
 export type AppState = AuthSlice &
   OperationSlice &
+  OperationStatusSlice &
+  PollingSlice &
   RdpSlice &
   SpreadSheetSlice &
   ThemeSlice &
@@ -86,7 +93,6 @@ export type AppState = AuthSlice &
   PdfUploadSlice &
   GiftMdSlice &
   GmailDraftSlice &
-  PollingSlice &
   CenterSlice;
 
 // ============================================================================
@@ -96,19 +102,29 @@ export type AppState = AuthSlice &
 export const useAppStore = create<AppState>()(
   subscribeWithSelector(
     immer((...args) => ({
+      // ----------------------------------------------------------------------
+      // Feature
+      // ----------------------------------------------------------------------
+
       ...createAuthSlice(...args),
       ...createOperationSlice(...args),
+      ...createOperationStatusSlice(...args),
+      ...createPollingSlice(...args),
       ...createRdpSlice(...args),
       ...createSpreadSheetSlice(...args),
+      ...createPdfUploadSlice(...args),
+      ...createGiftMdSlice(...args),
+      ...createGmailDraftSlice(...args),
+
+      // ----------------------------------------------------------------------
+      // Global
+      // ----------------------------------------------------------------------
+
       ...createThemeSlice(...args),
       ...createNavigationSlice(...args),
       ...createOverlaySlice(...args),
       ...createModalSlice(...args),
       ...createInitSlice(...args),
-      ...createPdfUploadSlice(...args),
-      ...createGiftMdSlice(...args),
-      ...createGmailDraftSlice(...args),
-      ...createPollingSlice(...args),
       ...createCenterSlice(...args),
     })),
   ),

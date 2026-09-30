@@ -1,9 +1,13 @@
 ﻿{
-  "entry": ["electron/main.ts!", "electron/preload.ts!"],
-  "project": [
-    "src/**/*.{ts,tsx}",
-    "electron/**/*.{ts,tsx}",
-    "!src/shared/types/electron.d.ts"
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "electron/main.ts!",
+    "electron/preload.ts!",
+    "src/renderer/main.tsx!",
+    "src/shared/types/electron/index.d.ts!",
+    "electron/features/operation/jobs/tools/scrapeApi.ts!"
   ],
+  "project": ["src/**/*.{ts,tsx}", "electron/**/*.{ts,tsx}"],
+  "ignore": ["src/shared/types/electron/index.d.ts"],
   "ignoreBinaries": ["mstsc"]
 }

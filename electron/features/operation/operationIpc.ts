@@ -1,203 +1,224 @@
-﻿import fs from "node:fs";
-import { dialog, ipcMain } from "electron";
-import { executeScriptJob } from "@electron/features/operation/runners/scriptRunner";
+﻿// electron/features/operation/operationIpc.ts
+
+import { ipcMain } from "electron";
+
+import { setActiveFlags } from "@electron/features/operation/activeFlagsManager";
+import { normalizeKanriNo } from "@electron/features/operation/helpers/operationUtils";
+import { runScriptWithZipRecovery } from "@electron/features/operation/helpers/zipRecoveryHelper";
+import { saveMasterCache } from "@electron/features/operation/services/operationMasterService";
 import {
   startPolling,
   stopPolling,
 } from "@electron/features/operation/services/operationScheduler";
-import { setActiveFlags } from "@electron/features/operation/activeFlagsManager";
+import { fetchTrackerStatusByJobId } from "@electron/features/operation/services/trackerServiceClient";
 import {
   deleteAllStatuses,
   getTargetByKanriNo,
   initializeStatuses,
+  refreshDependencyStatuses,
   registerTargets,
   resetAllStatusesToScheduled,
   updateManualStatus,
+  updateStatus,
 } from "@electron/features/operation/statusManager";
-import { syncTrackerStatus } from "@electron/features/operation/services/trackerServiceClient";
-import {
-  loadMasterCache,
-  saveMasterCache,
-} from "@electron/features/operation/services/operationMasterService";
+
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
-import type {
-  JobResult,
-  OperationItem,
+
+import {
+  JOB_STATUS,
+  type JobStatus,
+  type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
 
-async function runScriptWithZipRecovery(
-  scriptId: string,
-  filePath?: string | string[],
-): Promise<JobResult> {
-  try {
-    return await executeScriptJob(scriptId, filePath);
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+import type {
+  OperationMaster,
+  OperationMasterData,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 
-    const zipMatch = errorMessage.match(/([A-Z]:\\[^\r\n]+\.zip)/i);
+/* =========================
+ * State & Helpers
+ * ========================= */
 
-    if (zipMatch?.[1]) {
-      const zipPath = zipMatch[1];
+let registered = false;
 
-      const response = dialog.showMessageBoxSync({
-        type: "question",
-        buttons: ["削除して再実行", "キャンセル"],
-        defaultId: 0,
-        cancelId: 1,
-        title: "ZIPファイル存在エラー",
-        message:
-          "出力先のZipファイルが既に存在します。削除して再実行しますか？",
-        detail: zipPath,
-      });
-
-      if (response === 0) {
-        if (fs.existsSync(zipPath)) {
-          fs.unlinkSync(zipPath);
-        }
-
-        return await executeScriptJob(scriptId, filePath);
-      }
-    }
-
-    throw error;
-  }
+function isJobStatus(value: unknown): value is JobStatus {
+  return (
+    typeof value === "string" &&
+    Object.values(JOB_STATUS).includes(value as JobStatus)
+  );
 }
 
-export function registerOperationIpc(): void {
-  ipcMain.handle(IPC_CHANNELS.OPERATION.REGISTER_TARGETS, () => {
-    const cache = loadMasterCache();
+function getRequiredString(value: unknown, message: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(message);
+  }
 
-    if (!cache) {
-      return { success: true };
-    }
+  return normalizeKanriNo(value);
+}
 
-    registerTargets([
-      ...cache.operations,
-      ...cache.todayIrregulars,
-    ]);
+function isOperationMaster(target: unknown): target is OperationMaster {
+  if (typeof target !== "object" || target === null) {
+    return false;
+  }
 
-    return { success: true };
-  });
+  const data = target as Record<string, unknown>;
 
-  ipcMain.handle(IPC_CHANNELS.OPERATION.SYNC_MASTER, (_, args) => {
-    const {
-      operations = [],
-      irregulars = [],
-      todayIrregulars = [],
-    } = args ?? {};
+  return typeof data.jobId === "string" && data.jobId.trim().length > 0;
+}
 
-    saveMasterCache({
-      operations,
-      irregulars,
-      todayIrregulars,
-    });
+function isOperationMasterData(value: unknown): value is OperationMasterData {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
 
-    registerTargets([
-      ...operations,
-      ...todayIrregulars,
-    ]);
+  const data = value as Record<string, unknown>;
 
-    return { success: true };
-  });
+  return (
+    Array.isArray(data.operations) &&
+    Array.isArray(data.irregulars) &&
+    Array.isArray(data.todayIrregulars)
+  );
+}
 
-  ipcMain.handle(IPC_CHANNELS.OPERATION.LOAD_MASTER_CACHE, () =>
-    loadMasterCache(),
+function isRecordWithMasterData(value: unknown): value is {
+  masterData: OperationMasterData;
+} {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const args = value as Record<string, unknown>;
+
+  return isOperationMasterData(args.masterData);
+}
+
+/* =========================
+ * Status Fetching
+ * ========================= */
+
+async function fetchSingleStatus(
+  kanriNo: string,
+): Promise<OperationStatusState> {
+  const target = getTargetByKanriNo(kanriNo);
+
+  if (!target || !isOperationMaster(target)) {
+    throw new Error(`Target not found or invalid (kanriNo=${kanriNo})`);
+  }
+
+  const trackerStatus = await fetchTrackerStatusByJobId(
+    target.jobId,
+    target.scheduledTime,
+    target.kanriNo,
   );
 
-  ipcMain.handle(IPC_CHANNELS.OPERATION.RESET_STATUSES, async (_, args) => {
-    const {
-      operations = [],
-      irregulars = [],
-      todayIrregulars = [],
-    } = args ?? {};
-
-    saveMasterCache({
-      operations,
-      irregulars,
-      todayIrregulars,
-    });
-
-    const allTargets: OperationItem[] = [
-      ...operations,
-      ...todayIrregulars,
-    ];
-
-    const updatedTargets = resetAllStatusesToScheduled(allTargets);
-
+  if (!trackerStatus) {
     return {
-      success: true,
-      data: updatedTargets,
+      kanriNo,
+      status: undefined,
+      comment: "Tracker未取得",
     };
+  }
+
+  updateStatus(trackerStatus);
+
+  return trackerStatus;
+}
+
+/* =========================
+ * Handlers
+ * ========================= */
+
+function handleRegisterTargets(args: unknown): void {
+  if (!isRecordWithMasterData(args)) {
+    throw new Error("Invalid operation master data");
+  }
+
+  const { masterData } = args;
+
+  console.log("[OperationIPC] REGISTER_TARGETS:", {
+    operations: masterData.operations.length,
+    irregulars: masterData.irregulars.length,
+    todayIrregulars: masterData.todayIrregulars.length,
   });
 
-  ipcMain.handle(IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS, (_, flags) =>
-    setActiveFlags(flags),
+  saveMasterCache(masterData);
+
+  registerTargets([
+    ...masterData.operations,
+    ...masterData.irregulars,
+    ...masterData.todayIrregulars,
+  ]);
+}
+
+/* =========================
+ * IPC Registration
+ * ========================= */
+
+export function registerOperationIpc(): void {
+  if (registered) {
+    return;
+  }
+
+  registered = true;
+
+  ipcMain.handle(IPC_CHANNELS.OPERATION.RESET_STATUSES, () =>
+    resetAllStatusesToScheduled(),
   );
 
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.DELETE_ALL_STATUSES,
-    deleteAllStatuses,
-  );
+  ipcMain.handle(IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS, (_event, flags) => {
+    setActiveFlags(flags);
 
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.INITIALIZE_STATUS,
-    initializeStatuses,
-  );
-
-  ipcMain.handle(IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS, (_, args) => {
-    if (!args?.kanriNo || !args?.status) {
-      throw new Error("Invalid parameters");
-    }
-
-    updateManualStatus(
-      String(args.kanriNo),
-      args.status,
-      args.comment ?? "",
-    );
+    refreshDependencyStatuses();
   });
 
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.START_POLLING,
-    startPolling,
+  ipcMain.handle(IPC_CHANNELS.OPERATION.DELETE_ALL_STATUSES, () =>
+    deleteAllStatuses(),
   );
 
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.STOP_POLLING,
-    stopPolling,
+  ipcMain.handle(IPC_CHANNELS.OPERATION.INITIALIZE_STATUS, () =>
+    initializeStatuses(),
   );
 
-  ipcMain.handle(IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT, async (_, args) => {
-    const scriptId = String(args?.scriptId ?? "");
+  ipcMain.handle(IPC_CHANNELS.OPERATION.REGISTER_TARGETS, (_event, args) =>
+    handleRegisterTargets(args),
+  );
 
-    if (!scriptId) {
-      throw new Error("scriptId is required");
+  ipcMain.handle(IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS, (_event, args) => {
+    const kanriNo = getRequiredString(args?.kanriNo, "kanriNo is required");
+
+    if (!isJobStatus(args?.status)) {
+      throw new Error("Invalid job status");
     }
 
-    return await runScriptWithZipRecovery(
-      scriptId,
-      args?.filePath,
+    const comment = typeof args?.comment === "string" ? args.comment : "";
+
+    updateManualStatus(kanriNo, args.status, comment);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.OPERATION.START_POLLING, () => startPolling());
+
+  ipcMain.handle(IPC_CHANNELS.OPERATION.STOP_POLLING, () => stopPolling());
+
+  ipcMain.handle(IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT, (_event, args) => {
+    const kanriNo = getRequiredString(
+      args?.scriptId ?? args?.kanriNo,
+      "kanriNo (scriptId) is required",
     );
+
+    const scriptKey =
+      typeof args?.scriptKey === "string" && args.scriptKey
+        ? args.scriptKey
+        : kanriNo;
+
+    return runScriptWithZipRecovery(kanriNo, scriptKey, args?.filePath);
   });
 
   ipcMain.handle(
     IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS,
-    async (_, args): Promise<OperationItem> => {
-      const kanriNo = String(args?.kanriNo ?? "");
+    async (_event, args) => {
+      const kanriNo = getRequiredString(args?.kanriNo, "kanriNo is required");
 
-      if (!kanriNo) {
-        throw new Error("kanriNo is required");
-      }
-
-      const target = getTargetByKanriNo(kanriNo);
-
-      if (!target) {
-        throw new Error(
-          `Target not found (kanriNo=${kanriNo})`,
-        );
-      }
-
-      return await syncTrackerStatus(target);
+      return fetchSingleStatus(kanriNo);
     },
   );
 }

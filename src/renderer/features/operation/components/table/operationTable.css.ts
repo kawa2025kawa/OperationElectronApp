@@ -17,7 +17,6 @@ const rowEdgeRadius = {
   "tr > &:first-child": {
     borderRadius: `${tokens.radius.md} 0 0 ${tokens.radius.md}`,
   },
-
   "tr > &:last-child": {
     borderRadius: `0 ${tokens.radius.md} ${tokens.radius.md} 0`,
   },
@@ -25,69 +24,40 @@ const rowEdgeRadius = {
 
 const commonTable = {
   width: "100%",
-  tableLayout: "fixed",
+  tableLayout: "fixed", // ★コンテンツ長に依らない列幅固定に必須
 } satisfies Parameters<typeof style>[0];
 
 /* -------------------------------------------------------------------------- */
 /* Layout                                                                     */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Table root.
- *
- * Header and body are intentionally separated so that the body can scroll
- * without relying on position: sticky.
- */
 export const container = style({
   display: "flex",
   flexDirection: "column",
-
   width: "100%",
   height: "100%",
-
   overflow: "hidden",
-
   outline: "none",
 });
 
-/**
- * Fixed header area.
- *
- * The shadow belongs to the wrapper rather than individual <th> elements.
- * This keeps the header visually elevated even when body rows pass beneath it.
- */
 export const headerWrapper = style({
   position: "relative",
   zIndex: 10,
-
   flexShrink: 0,
-
   paddingInline: tokens.space.md,
-
   borderRadius: tokens.radius.md,
-
   boxShadow: tokens.shadow.raised.low,
 });
 
-/**
- * Scrollable body area.
- *
- * A small top padding creates visual separation between the header shadow
- * and the first data row.
- */
 export const bodyWrapper = style({
   position: "relative",
   zIndex: 0,
-
   flex: 1,
   minHeight: 0,
-
   overflowX: "hidden",
   overflowY: "auto",
-
   paddingInline: tokens.space.md,
   paddingTop: tokens.space.sm,
-
   scrollbarGutter: "stable",
 });
 
@@ -95,32 +65,16 @@ export const bodyWrapper = style({
 /* Tables                                                                     */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Header table.
- *
- * Collapse is safe here because the header does not need row spacing.
- */
 export const headerTable = style({
   ...commonTable,
-
   borderCollapse: "collapse",
-
   backgroundColor: tokens.color.bg.base,
-
   borderRadius: tokens.radius.md,
-
   overflow: "hidden",
 });
 
-/**
- * Body table.
- *
- * Separate borders and vertical spacing are intentional:
- * each <tr> behaves visually like an independent card.
- */
 export const bodyTable = style({
   ...commonTable,
-
   borderCollapse: "separate",
   borderSpacing: `0 ${tokens.space.md}`,
 });
@@ -133,14 +87,10 @@ export const tableRowBase = style([
   themeTransition,
   {
     position: "relative",
-
     height: "56px",
-
     backgroundColor: rowBgColor,
     color: rowTextColor,
-
     boxShadow: rowShadow,
-
     transition:
       "box-shadow 0.25s ease-out, background-color 0.25s ease-out, color 0.25s ease-out",
   },
@@ -154,26 +104,21 @@ export const tableRowStates = styleVariants({
       [rowShadow]: tokens.shadow.raised.low,
     },
   },
-
   clickable: {
     vars: {
       [rowBgColor]: tokens.color.bg.base,
       [rowTextColor]: tokens.color.text.base,
       [rowShadow]: tokens.shadow.raised.low,
     },
-
     cursor: "pointer",
-
     selectors: {
       "&:hover": {
         vars: {
           [rowTextColor]: tokens.color.text.hover,
           [rowShadow]: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
         },
-
         zIndex: 1,
       },
-
       "&:active": {
         vars: {
           [rowShadow]: tokens.shadow.pressed.low,
@@ -181,7 +126,6 @@ export const tableRowStates = styleVariants({
       },
     },
   },
-
   selected: {
     vars: {
       [rowBgColor]: tokens.color.bg.base,
@@ -189,14 +133,12 @@ export const tableRowStates = styleVariants({
       [rowShadow]: tokens.shadow.pressed.md,
     },
   },
-
   disabled: {
     vars: {
       [rowBgColor]: tokens.color.bg.base,
       [rowTextColor]: tokens.color.text.base,
       [rowShadow]: tokens.shadow.raised.low,
     },
-
     opacity: 0.5,
     pointerEvents: "none",
     filter: "grayscale(0.8)",
@@ -204,74 +146,39 @@ export const tableRowStates = styleVariants({
 });
 
 /* -------------------------------------------------------------------------- */
-/* Header Cells                                                               */
+/* Header & Body Cells                                                        */
 /* -------------------------------------------------------------------------- */
 
 export const thBase = style([
   themeTransition,
   {
     height: "56px",
-
     paddingInline: tokens.space.lg,
-
     backgroundColor: "transparent",
     color: tokens.color.text.base,
-
     fontSize: tokens.font.size.sm,
     fontWeight: tokens.font.weight.bold,
-
     textTransform: "uppercase",
     letterSpacing: "0.05em",
-
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
-
     selectors: rowEdgeRadius,
   },
 ]);
 
-export const thAlignVariants = styleVariants({
-  left: {
-    textAlign: "left",
-  },
-
-  center: {
-    textAlign: "center",
-  },
-
-  right: {
-    textAlign: "right",
-  },
-});
-
-/* -------------------------------------------------------------------------- */
-/* Body Cells                                                                 */
-/* -------------------------------------------------------------------------- */
-
 export const tdBase = style({
   paddingInline: tokens.space.lg,
-
   color: "inherit",
-
   fontSize: tokens.font.size.md,
   fontWeight: tokens.font.weight.medium,
-
   selectors: rowEdgeRadius,
 });
 
-export const tdAlignVariants = styleVariants({
-  left: {
-    textAlign: "left",
-  },
-
-  center: {
-    textAlign: "center",
-  },
-
-  right: {
-    textAlign: "right",
-  },
+export const alignVariants = styleVariants({
+  left: { textAlign: "left" },
+  center: { textAlign: "center" },
+  right: { textAlign: "right" },
 });
 
 /* -------------------------------------------------------------------------- */
@@ -280,24 +187,17 @@ export const tdAlignVariants = styleVariants({
 
 export const cellText = style({
   display: "inline-block",
-
   maxWidth: "100%",
-
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-
   verticalAlign: "middle",
-
   transition: "color 0.25s ease, filter 0.25s ease",
-
   selectors: {
     [`${tableRowStates.selected} &`]: {
       backgroundImage: tokens.gradient.brand,
-
       backgroundClip: "text",
       WebkitBackgroundClip: "text",
-
       color: "transparent",
       WebkitTextFillColor: "transparent",
     },
@@ -306,12 +206,9 @@ export const cellText = style({
 
 export const statusCellWrapper = style({
   display: "flex",
-
   justifyContent: "center",
   alignItems: "center",
-
   width: "100%",
-
   cursor: "context-menu",
 });
 

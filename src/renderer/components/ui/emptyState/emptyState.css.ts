@@ -13,7 +13,7 @@ export const emptyWrapper = style({
 });
 
 export const emptyText = style({
-  fontSize: tokens.font.size.md,
+  fontSize: "80px",
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.base,
   marginBottom: tokens.space.md,

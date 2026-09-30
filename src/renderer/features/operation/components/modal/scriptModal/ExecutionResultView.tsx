@@ -1,11 +1,11 @@
 ﻿// src/renderer/features/operation/components/modal/scriptModal/ExecutionResultView.tsx
 
-import React, { useCallback } from "react";
+import { memo, useCallback } from "react";
 import type {
   JobArtifact,
   JobResult,
 } from "@shared/types/operation/operationTypes";
-import { commands } from "@renderer/services/commands";
+import { systemCommands } from "@renderer/services/commands";
 import * as styles from "./scriptModalContent.css";
 
 interface ExecutionResultViewProps {
@@ -13,7 +13,7 @@ interface ExecutionResultViewProps {
   highlightError: boolean;
 }
 
-export const ExecutionResultView = React.memo(function ExecutionResultView({
+export const ExecutionResultView = memo(function ExecutionResultView({
   result,
   highlightError,
 }: ExecutionResultViewProps) {
@@ -39,14 +39,14 @@ interface ArtifactListProps {
   artifacts: JobArtifact[];
 }
 
-const ArtifactList = React.memo(function ArtifactList({
+const ArtifactList = memo(function ArtifactList({
   artifacts,
 }: ArtifactListProps) {
   if (artifacts.length === 0) return null;
 
   const handleOpenArtifact = useCallback(async (path: string) => {
     try {
-      await commands.openExternal(path);
+      await systemCommands.openExternal(path);
     } catch (error) {
       console.error("Failed to open artifact:", error);
     }

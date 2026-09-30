@@ -1,40 +1,68 @@
-﻿import { toast } from "sonner";
+﻿// src/renderer/features/spreadSheet/store/spreadsheetSlice.ts
+
+import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
-import type {
-  SheetDataResponse,
-  SheetId,
-} from "@shared/types/spreadsheet/sheetTypes";
+import { spreadsheetCommands } from "@renderer/services/commands";
 import {
   ALL_SHEET_IDS,
-  fetchSheetValues,
-} from "@renderer/features/spreadSheet/services/mappers/sheetDefinitions";
+  SHEETS,
+  type SheetDataResponse,
+  type SheetDataState,
+  type SheetErrorState,
+  type SheetFetchingState,
+  type SheetId,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
+import type { InitStatus } from "@shared/types/initializationTypes";
 
-const PROGRESS_MAPPING: Partial<Record<SheetId, keyof AppState["initStatus"]>> =
-  {
-    StoreMasterData: "store",
-    JugyoinMasterData: "jugyoin",
-    KokyuhyoMasterData: "kokyuhyo",
-    KokyuhyoTantouMasterData: "tantou",
-  };
+const DEFAULT_CONCURRENCY = 2;
+
+const SHEET_TO_INIT_STATUS_KEY: Partial<Record<SheetId, keyof InitStatus>> = {
+  [SHEETS.OPERATION.sheetName]: "operation",
+  [SHEETS.IRREGULAR.sheetName]: "irregular",
+  [SHEETS.TODAY_IRREGULAR.sheetName]: "todayIrregular",
+  [SHEETS.STORE.sheetName]: "store",
+  [SHEETS.JUGYOIN.sheetName]: "jugyoin",
+  [SHEETS.KOKYUHYO.sheetName]: "kokyuhyo",
+  [SHEETS.KOKYUHYO_TANTOU.sheetName]: "tantou",
+};
+
+interface FetchSheetResult {
+  success: boolean;
+  unauthorized: boolean;
+  error?: string;
+}
+
+function createSheetState<T>(value: T): Record<SheetId, T> {
+  return Object.fromEntries(
+    ALL_SHEET_IDS.map((sheetId) => [sheetId, value]),
+  ) as Record<SheetId, T>;
+}
 
 export interface SpreadSheetSlice {
-  sheetData: Record<SheetId, SheetDataResponse | null>;
-  isSheetFetching: Record<SheetId, boolean>;
-  sheetErrors: Record<SheetId, string | null>;
+  sheetData: SheetDataState;
+  isSheetFetching: SheetFetchingState;
+  sheetErrors: SheetErrorState;
 
   setIsSheetFetching(sheetId: SheetId, isFetching: boolean): void;
-  updateSheetData(sheetId: SheetId, data: SheetDataResponse): void;
+
+  updateSheetData<TSheetId extends SheetId>(
+    sheetId: TSheetId,
+    data: SheetDataResponse<TSheetId>,
+  ): void;
+
   setSheetError(sheetId: SheetId, error: string | null): void;
 
   fetchSheetData(
     sheetId: SheetId,
-    forcedToken?: string | null,
     isRetry?: boolean,
     forceFetch?: boolean,
   ): Promise<boolean>;
 
-  prefetchSheets(latestToken?: string, concurrency?: number): Promise<void>;
+  prefetchSheets(
+    sheetIds?: readonly SheetId[],
+    concurrency?: number,
+  ): Promise<Record<SheetId, boolean>>;
 }
 
 export const createSpreadSheetSlice: StateCreator<
@@ -42,155 +70,195 @@ export const createSpreadSheetSlice: StateCreator<
   [["zustand/immer", never]],
   [],
   SpreadSheetSlice
-> = (set, get) => ({
-  sheetData: Object.fromEntries(
-    ALL_SHEET_IDS.map((id) => [id, null]),
-  ) as Record<SheetId, SheetDataResponse | null>,
+> = (set, get) => {
+  const updateInitStatusForSheet = (
+    sheetId: SheetId,
+    status: "OK" | "NG",
+  ): void => {
+    const initKey = SHEET_TO_INIT_STATUS_KEY[sheetId];
 
-  isSheetFetching: Object.fromEntries(
-    ALL_SHEET_IDS.map((id) => [id, false]),
-  ) as Record<SheetId, boolean>,
+    if (initKey) {
+      get().setInitStatus({
+        [initKey]: status,
+      });
+    }
+  };
 
-  sheetErrors: Object.fromEntries(
-    ALL_SHEET_IDS.map((id) => [id, null]),
-  ) as Record<SheetId, string | null>,
-
-  setIsSheetFetching: (sheetId, isFetching) => {
+  const setIsSheetFetching = (sheetId: SheetId, isFetching: boolean): void => {
     set((state) => {
       state.isSheetFetching[sheetId] = isFetching;
     });
-  },
+  };
 
-  updateSheetData: (sheetId, data) => {
+  const updateOperationIds = (
+    sheetId: SheetId,
+    data: readonly { kanriNo: string }[],
+  ): void => {
+    const ids = data
+      .map((item) => String(item.kanriNo ?? "").trim())
+      .filter(Boolean);
+
     set((state) => {
-      state.sheetData[sheetId] = data;
+      if (sheetId === SHEETS.OPERATION.sheetName) {
+        state.operationIds = ids;
+        return;
+      }
+
+      if (sheetId === SHEETS.IRREGULAR.sheetName) {
+        state.irregularIds = ids;
+        return;
+      }
+
+      if (sheetId === SHEETS.TODAY_IRREGULAR.sheetName) {
+        state.todayIds = ids;
+      }
+    });
+  };
+
+  const updateSheetData = <TSheetId extends SheetId>(
+    sheetId: TSheetId,
+    data: SheetDataResponse<TSheetId>,
+  ): void => {
+    set((state) => {
+      state.sheetData[sheetId] = data as never;
       state.sheetErrors[sheetId] = null;
     });
-  },
 
-  setSheetError: (sheetId, error) => {
+    if (Array.isArray(data.data)) {
+      updateOperationIds(sheetId, data.data as readonly { kanriNo: string }[]);
+    }
+  };
+
+  const setSheetError = (sheetId: SheetId, error: string | null): void => {
     set((state) => {
       state.sheetErrors[sheetId] = error;
     });
-  },
+  };
 
-  fetchSheetData: async (
-    sheetId,
-    forcedToken,
-    isRetry = false,
+  const fetchSheet = async (sheetId: SheetId): Promise<FetchSheetResult> => {
+    const result = await spreadsheetCommands.fetchSheet(sheetId);
+
+    if (result.unauthorized) {
+      return {
+        success: false,
+        unauthorized: true,
+      };
+    }
+
+    if (!result.success) {
+      return {
+        success: false,
+        unauthorized: false,
+        error: result.error,
+      };
+    }
+
+    updateSheetData(sheetId, {
+      sheetId,
+      data: result.data,
+    });
+
+    return {
+      success: true,
+      unauthorized: false,
+    };
+  };
+
+  const fetchSheetData = async (
+    sheetId: SheetId,
+    _isRetry = false,
     forceFetch = false,
-  ) => {
-    const currentState = get();
+  ): Promise<boolean> => {
+    const state = get();
 
-    if (currentState.isSheetFetching[sheetId]) {
+    if (state.isSheetFetching[sheetId]) {
       return false;
     }
 
-    if (!forceFetch && currentState.sheetData[sheetId] !== null) {
+    if (!forceFetch && state.sheetData[sheetId] !== null) {
+      updateInitStatusForSheet(sheetId, "OK");
       return true;
     }
 
-    const rawToken = forcedToken ?? currentState.accessToken;
-
-    if (!rawToken) {
-      await currentState.logout();
-      return false;
-    }
-
-    // フェッチ開始フラグ更新
-    set((state) => {
-      state.isSheetFetching[sheetId] = true;
-    });
+    setIsSheetFetching(sheetId, true);
 
     try {
-      const result = await fetchSheetValues(sheetId, rawToken);
+      const result = await fetchSheet(sheetId);
 
-      if (result.status === 401) {
-        if (isRetry) {
-          toast.error("認証エラーが発生しました");
-          await currentState.logout();
-          return false;
-        }
+      if (result.unauthorized) {
+        toast.error("認証セッションが無効です。再ログインしてください.");
 
-        if (await currentState.checkAuthStatus()) {
-          const refreshedToken = get().accessToken;
+        updateInitStatusForSheet(sheetId, "NG");
+        await get().logout();
 
-          if (refreshedToken) {
-            return await get().fetchSheetData(
-              sheetId,
-              refreshedToken,
-              true,
-              forceFetch,
-            );
-          }
-        }
-
-        toast.error("セッションの有効期限が切れました");
-        await currentState.logout();
         return false;
       }
 
-      if (!result.data) {
-        const errorMsg =
-          result.status === 503
-            ? "Googleサービスが一時的に利用できません (503)"
-            : result.errorText || `取得エラー (Status: ${result.status})`;
+      if (!result.success) {
+        const message = result.error ?? "データ取得に失敗しました。";
 
-        throw new Error(errorMsg);
+        setSheetError(sheetId, message);
+        updateInitStatusForSheet(sheetId, "NG");
+
+        toast.error(`[${sheetId}] ${message}`);
+
+        return false;
       }
 
-      // 🎯 result.data ?? null で undefined を排除して型適合させる
-      set((state) => {
-        state.sheetData[sheetId] = result.data ?? null;
-        state.sheetErrors[sheetId] = null;
-      });
+      updateInitStatusForSheet(sheetId, "OK");
 
       return true;
-    } catch (err: unknown) {
-      console.error(`[SpreadSheet] Failed to fetch sheet [${sheetId}]:`, err);
-
+    } catch (error: unknown) {
       const message =
-        err instanceof Error ? err.message : "データ取得に失敗しました";
+        error instanceof Error
+          ? error.message
+          : "予期せぬエラーが発生しました。";
 
-      set((state) => {
-        state.sheetErrors[sheetId] = message;
-      });
+      setSheetError(sheetId, message);
+      updateInitStatusForSheet(sheetId, "NG");
 
       toast.error(`[${sheetId}] ${message}`);
+
       return false;
     } finally {
-      set((state) => {
-        state.isSheetFetching[sheetId] = false;
-      });
+      setIsSheetFetching(sheetId, false);
     }
-  },
+  };
 
-  prefetchSheets: async (latestToken, concurrency = 2) => {
-    const ids = [...ALL_SHEET_IDS];
-    const executing = new Set<Promise<void>>();
+  const prefetchSheets = async (
+    sheetIds = ALL_SHEET_IDS,
+    concurrency = DEFAULT_CONCURRENCY,
+  ): Promise<Record<SheetId, boolean>> => {
+    const results = createSheetState(false);
+    const limit = Math.max(1, concurrency);
 
-    for (const id of ids) {
-      const task = (async () => {
-        const ok = await get().fetchSheetData(id, latestToken);
-        const key = PROGRESS_MAPPING[id];
+    for (let index = 0; index < sheetIds.length; index += limit) {
+      const batch = sheetIds.slice(index, index + limit);
 
-        if (key) {
-          get().setInitStatus({
-            [key]: ok ? "OK" : "NG",
-          });
-        }
-      })();
+      const batchResults = await Promise.all(
+        batch.map(async (sheetId) => ({
+          sheetId,
+          success: await fetchSheetData(sheetId),
+        })),
+      );
 
-      executing.add(task);
-
-      const clean = () => executing.delete(task);
-      task.then(clean, clean);
-
-      if (executing.size >= concurrency) {
-        await Promise.race(executing);
+      for (const { sheetId, success } of batchResults) {
+        results[sheetId] = success;
       }
     }
 
-    await Promise.all(executing);
-  },
-});
+    return results;
+  };
+
+  return {
+    sheetData: createSheetState(null) as SheetDataState,
+    isSheetFetching: createSheetState(false) as SheetFetchingState,
+    sheetErrors: createSheetState(null) as SheetErrorState,
+
+    setIsSheetFetching,
+    updateSheetData,
+    setSheetError,
+    fetchSheetData,
+    prefetchSheets,
+  };
+};

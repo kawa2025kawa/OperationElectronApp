@@ -1,24 +1,31 @@
 ﻿// src/renderer/features/other/components/modal/contents/giftMd/useGiftMdModalContent.ts
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { commands } from "@renderer/services/commands";
+
+import { giftMdService } from "@renderer/features/other/services/giftMdService";
+
 import { useAppStore } from "@renderer/store";
 
 export function useGiftMdModalContent() {
-  const { giftFile, isProcessing, setGiftMdFileFromRaw, updateModalConfig } =
-    useAppStore(
-      useShallow((s) => ({
-        giftFile: s.giftMd.selectedFile,
-        isProcessing: s.giftMd.isProcessing,
-        setGiftMdFileFromRaw: s.setGiftMdFileFromRaw,
-        updateModalConfig: s.updateModalConfig,
-      })),
-    );
+  const {
+    giftFile,
+    isProcessing,
+    setGiftMdFileFromRaw,
+    updateModalConfig,
+    closeGlobalModal,
+  } = useAppStore(
+    useShallow((state) => ({
+      giftFile: state.giftMd.selectedFile,
+      isProcessing: state.giftMd.isProcessing,
+      setGiftMdFileFromRaw: state.setGiftMdFileFromRaw,
+      updateModalConfig: state.updateModalConfig,
+      closeGlobalModal: state.closeGlobalModal,
+    })),
+  );
 
   const files = useMemo(() => (giftFile ? [giftFile] : []), [giftFile]);
 
-  // 🎯 転送実行処理
   const handleExecute = useCallback(async () => {
     if (!giftFile) {
       updateModalConfig({
@@ -30,14 +37,14 @@ export function useGiftMdModalContent() {
       return;
     }
 
-    // 1. ローディング表示 ON & 既存メッセージ消去
-    updateModalConfig({ isProcessing: true, message: null });
+    updateModalConfig({
+      isProcessing: true,
+      message: null,
+    });
 
     try {
-      // 2. Main プロセスの giftMdProcess を IPC 経由で呼び出し
-      const message = await commands.processGiftMd(giftFile.path);
+      const message = await giftMdService.process(giftFile.path);
 
-      // 3. 成功メッセージをモーダル上部に表示
       updateModalConfig({
         message: {
           text: message,
@@ -45,7 +52,8 @@ export function useGiftMdModalContent() {
         },
       });
     } catch (error) {
-      console.error("[GiftMdModal] Process error:", error);
+      console.error("[useGiftMdModalContent] Process error:", error);
+
       updateModalConfig({
         message: {
           text:
@@ -56,20 +64,41 @@ export function useGiftMdModalContent() {
         },
       });
     } finally {
-      // 4. ローディング解除
-      updateModalConfig({ isProcessing: false });
+      updateModalConfig({
+        isProcessing: false,
+      });
     }
   }, [giftFile, updateModalConfig]);
 
+  useEffect(() => {
+    updateModalConfig({
+      rightActions: [
+        {
+          id: "cancel",
+          label: "キャンセル",
+          onClick: closeGlobalModal,
+          disabled: isProcessing,
+        },
+        {
+          id: "execute",
+          label: isProcessing ? "処理中..." : "転送実行",
+          onClick: handleExecute,
+          disabled: !giftFile || isProcessing,
+          variant: "default",
+        },
+      ],
+    });
+  }, [
+    giftFile,
+    isProcessing,
+    handleExecute,
+    updateModalConfig,
+    closeGlobalModal,
+  ]);
+
   return {
-    state: {
-      files,
-      hasFile: Boolean(giftFile),
-      isProcessing,
-    },
-    actions: {
-      setGiftMdFileFromRaw,
-      handleExecute,
-    },
+    files,
+    isProcessing,
+    setGiftMdFileFromRaw,
   };
 }

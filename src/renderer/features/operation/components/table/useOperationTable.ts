@@ -1,77 +1,50 @@
-//src\renderer\features\operation\components\table\useOperationTable.ts
+//src/renderer/features/operation/components/table/useOperationTable.ts
 
-import { useCallback, useMemo } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useCallback } from "react";
+
 import { useAppStore } from "@renderer/store";
-import type { Column } from "@shared/types/table/tableType";
-import type { ViewMode } from "@renderer/registry/appRegistry";
+
 import {
   selectCurrentMode,
   selectFilteredIrregularIds,
   selectFilteredOperationIds,
   selectFilteredTodayIds,
+  selectOperationTableData,
+  selectIrregularTableData,
+  selectTodayTableData,
 } from "@renderer/features/operation/store/operationSelectors";
-import type { OperationItem } from "@shared/types/operation/operationTypes";
+
 import { useTableHotkeys } from "./useOperationTableHotkeys";
-
-const OPERATION_COLUMNS: Column<OperationItem>[] = [
-  { key: "scheduledTime", label: "時刻", width: "10%", align: "left" },
-  { key: "kanriNo", label: "No", width: "10%", align: "left" },
-  { key: "workName", label: "作業名", width: "44%", align: "left" },
-  { key: "jobId", label: "Job ID", width: "24%", align: "left" },
-  { key: "status", label: "状態", width: "16%", align: "left" },
-];
-
-const IRREGULAR_COLUMNS: Column<OperationItem>[] = [
-  { key: "scheduledTime", label: "時刻", width: "15%", align: "left" },
-  { key: "kanriNo", label: "No", width: "10%", align: "left" },
-  { key: "cycle1", label: "C1", width: "10%", align: "left" },
-  { key: "cycle2", label: "C2", width: "10%", align: "left" },
-  { key: "workName", label: "作業名", width: "55%", align: "left" },
-];
-
-const TODAY_COLUMNS: Column<OperationItem>[] = [
-  { key: "kanriNo", label: "No", width: "10%", align: "left" },
-  { key: "scheduledTime", label: "時刻", width: "15%", align: "left" },
-  { key: "workName", label: "作業名", width: "40%", align: "left" },
-  { key: "status", label: "状態", width: "20%", align: "left" },
-];
-
-const getColumns = (mode: ViewMode): Column<OperationItem>[] => {
-  switch (mode) {
-    case "irregular":
-      return IRREGULAR_COLUMNS;
-    case "today":
-      return TODAY_COLUMNS;
-    case "operation":
-    default:
-      return OPERATION_COLUMNS;
-  }
-};
 
 export const useOperationTable = () => {
   const currentMode = useAppStore(selectCurrentMode);
   const setSelectedId = useAppStore((state) => state.setSelectedId);
 
-  // 現在のモードに応じた選択IDのみを取得
   const selectedId = useAppStore(
     (state) => state.selectedIds[currentMode] ?? "",
   );
 
-  // モードに対応するID一覧のみをシャロー比較で取得
-  const rowIds = useAppStore(
-    useShallow((state) => {
-      switch (currentMode) {
-        case "irregular":
-          return selectFilteredIrregularIds(state);
-        case "today":
-          return selectFilteredTodayIds(state);
-        case "operation":
-        default:
-          return selectFilteredOperationIds(state);
-      }
-    }),
-  );
+  const operationIds = useAppStore(selectFilteredOperationIds);
+  const irregularIds = useAppStore(selectFilteredIrregularIds);
+  const todayIds = useAppStore(selectFilteredTodayIds);
+
+  const operationRows = useAppStore(selectOperationTableData);
+  const irregularRows = useAppStore(selectIrregularTableData);
+  const todayRows = useAppStore(selectTodayTableData);
+
+  const rowIds =
+    currentMode === "irregular"
+      ? irregularIds
+      : currentMode === "today"
+        ? todayIds
+        : operationIds;
+
+  const rows =
+    currentMode === "irregular"
+      ? irregularRows
+      : currentMode === "today"
+        ? todayRows
+        : operationRows;
 
   const handleRowClick = useCallback(
     (id: string) => {
@@ -80,14 +53,11 @@ export const useOperationTable = () => {
     [currentMode, setSelectedId],
   );
 
-  const columns = useMemo(() => getColumns(currentMode), [currentMode]);
-
   useTableHotkeys(currentMode, rowIds, selectedId, handleRowClick);
 
   return {
     currentMode,
-    rowIds,
-    columns,
+    rows,
     selectedId,
     handleRowClick,
   };

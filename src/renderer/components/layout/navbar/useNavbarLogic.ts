@@ -11,13 +11,12 @@ import {
 import { useAppStore, type AppState } from "@renderer/store";
 
 export const useNavbarLogic = () => {
-  const { currentView, toggleSidebar, currentMode, summary, isInitialLoaded } =
+  const { currentView, toggleSidebar, currentMode, isInitialLoaded } =
     useAppStore(
       useShallow((state: AppState) => ({
         currentView: state.currentView,
         toggleSidebar: state.toggleSidebar,
         currentMode: state.currentMode,
-        summary: state.summary,
         isInitialLoaded: state.isInitialLoaded,
       })),
     );
@@ -39,7 +38,6 @@ export const useNavbarLogic = () => {
   const isKokyuhyo = currentView === APP_VIEW_IDS.KOKYUHYO;
 
   return {
-    summary,
     navbarTitle,
     summaryDisplayType,
     isKokyuhyo,

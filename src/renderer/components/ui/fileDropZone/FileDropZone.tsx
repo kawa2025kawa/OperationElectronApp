@@ -1,8 +1,11 @@
-﻿import React from "react";
+﻿//src\renderer\components\ui\fileDropZone\FileDropZone.tsx
+
+import { memo } from "react";
+import type { MouseEvent } from "react";
 import { useFileDropZone, type FileDropZoneProps } from "./useFileDropZone";
 import * as styles from "./fileDropZone.css";
 
-export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
+export const FileDropZone = memo<FileDropZoneProps>(
   ({
     files = [],
     onFileSelect,
@@ -32,7 +35,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = React.memo(
       disabled,
     });
 
-    const stopAnd = (fn: () => void) => (e: React.MouseEvent) => {
+    const stopAnd = (fn: () => void) => (e: MouseEvent) => {
       e.stopPropagation();
       fn();
     };

@@ -43,8 +43,10 @@ async function getTargetCsvFiles(dir: string): Promise<string[]> {
     .map((e) => path.join(dir, e.name));
 }
 
-function readCsv(filePath: string): ParsedCsv {
-  const content = iconv.decode(fs.readFileSync(filePath), "Shift_JIS");
+// 非同期読み込みへ変換
+async function readCsv(filePath: string): Promise<ParsedCsv> {
+  const buffer = await fs.readFile(filePath);
+  const content = iconv.decode(buffer, "Shift_JIS");
   const lines = content.split(/\r?\n/);
   return {
     header: lines[0] ?? "",
@@ -174,7 +176,7 @@ export async function runJob28(): Promise<string> {
   let processedCount = 0;
 
   for (const filePath of csvFiles) {
-    const parsedCsv = readCsv(filePath);
+    const parsedCsv = await readCsv(filePath);
     const hasProblem = parsedCsv.rows.some((row) => isProblemRow(row, today));
 
     if (!hasProblem) {

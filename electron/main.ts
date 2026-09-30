@@ -3,7 +3,7 @@
 import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { registerIpcHandlers } from "./ipc";
+import { registerIpcHandlers } from "./ipc/ipcHandlerRegistry";
 import { stopPolling } from "@electron/features/operation/services/operationScheduler";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -94,4 +94,3 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
-

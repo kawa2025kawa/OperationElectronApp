@@ -1,6 +1,6 @@
 ﻿// src/renderer/components/layout/footer/components/FooterActionButton.tsx
 
-import React from "react";
+import { memo } from "react";
 import * as styles from "./footerActionButton.css";
 
 interface FooterActionButtonProps {
@@ -9,7 +9,7 @@ interface FooterActionButtonProps {
   onClick: () => void;
 }
 
-export const FooterActionButton: React.FC<FooterActionButtonProps> = React.memo(
+export const FooterActionButton = memo<FooterActionButtonProps>(
   ({ label, isActive = false, onClick }) => {
     return (
       <button
@@ -23,7 +23,3 @@ export const FooterActionButton: React.FC<FooterActionButtonProps> = React.memo(
     );
   },
 );
-
-FooterActionButton.displayName = "FooterActionButton";
-
-FooterActionButton;

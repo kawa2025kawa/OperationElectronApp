@@ -1,5 +1,5 @@
 // src/renderer/main.tsx
-import React from "react";
+import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 
 // ローカルフォントの読み込み (起動時のチラつき防止)
@@ -15,7 +15,7 @@ if (!rootElement) {
 }
 
 ReactDOM.createRoot(rootElement).render(
-  <React.StrictMode>
+  <StrictMode>
     <App />
-  </React.StrictMode>,
+  </StrictMode>,
 );

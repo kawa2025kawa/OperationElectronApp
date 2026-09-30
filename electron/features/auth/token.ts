@@ -1,70 +1,124 @@
 ﻿// electron/features/auth/token.ts
 
-import keytar from "keytar";
+import { app, safeStorage } from "electron";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import path from "node:path";
 
 import type { AuthSession, OAuthToken } from "@shared/types/auth";
 
-// =====================================================
-// Constants
-// =====================================================
+const TOKEN_FILE_NAME = "google-oauth-session.dat";
 
-const SERVICE_NAME = "OperationApp_GoogleOAuth";
-const ACCOUNT_NAME = "session";
+function getTokenFilePath(): string {
+  return path.join(app.getPath("userData"), TOKEN_FILE_NAME);
+}
 
-// =====================================================
-// Token → Session
-// =====================================================
-
-function tokenToSession(token: OAuthToken): AuthSession {
+function tokenToSession(
+  token: OAuthToken,
+  profile?: Pick<AuthSession, "email" | "familyName">,
+): AuthSession {
   return {
     accessToken: token.accessToken,
     refreshToken: token.refreshToken,
     expiresAt:
       token.expiresIn !== null ? Date.now() + token.expiresIn * 1000 : null,
-    email: null,
-    familyName: null,
+    email: profile?.email ?? null,
+    familyName: profile?.familyName ?? null,
   };
 }
 
-// =====================================================
-// Save
-// =====================================================
+export async function saveToken(
+  token: OAuthToken,
+  profile?: Pick<AuthSession, "email" | "familyName">,
+): Promise<AuthSession> {
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error("Electron safeStorage encryption is not available");
+  }
 
-export async function saveToken(token: OAuthToken): Promise<AuthSession> {
-  const session = tokenToSession(token);
+  const session = tokenToSession(token, profile);
 
-  await keytar.setPassword(SERVICE_NAME, ACCOUNT_NAME, JSON.stringify(session));
+  console.log("[GoogleOAuth] Saving session:", {
+    hasAccessToken: Boolean(session.accessToken),
+    hasRefreshToken: Boolean(session.refreshToken),
+    expiresAt: session.expiresAt,
+  });
+
+  const encrypted = safeStorage.encryptString(JSON.stringify(session));
+
+  writeFileSync(getTokenFilePath(), encrypted);
+
+  console.log("[GoogleOAuth] Session saved");
 
   return session;
 }
 
-// =====================================================
-// Load
-// =====================================================
+export async function updateTokenProfile(
+  profile: Pick<AuthSession, "email" | "familyName">,
+): Promise<AuthSession | null> {
+  const session = await loadToken();
+
+  if (!session) {
+    return null;
+  }
+
+  const updatedSession: AuthSession = {
+    ...session,
+    email: profile.email,
+    familyName: profile.familyName,
+  };
+
+  const encrypted = safeStorage.encryptString(JSON.stringify(updatedSession));
+
+  writeFileSync(getTokenFilePath(), encrypted);
+
+  console.log("[GoogleOAuth] Session profile updated");
+
+  return updatedSession;
+}
 
 export async function loadToken(): Promise<AuthSession | null> {
-  const raw = await keytar.getPassword(SERVICE_NAME, ACCOUNT_NAME);
+  const filePath = getTokenFilePath();
 
-  if (!raw) {
+  if (!existsSync(filePath)) {
+    console.log("[GoogleOAuth] No stored session");
+    return null;
+  }
+
+  if (!safeStorage.isEncryptionAvailable()) {
+    console.error(
+      "[GoogleOAuth] Electron safeStorage encryption is not available",
+    );
     return null;
   }
 
   try {
+    const encrypted = readFileSync(filePath);
+    const raw = safeStorage.decryptString(encrypted);
     const parsed = JSON.parse(raw) as Partial<AuthSession>;
 
     if (typeof parsed.accessToken !== "string" || !parsed.accessToken.trim()) {
       throw new Error("Stored session does not contain a valid accessToken");
     }
 
-    return {
+    const session: AuthSession = {
       accessToken: parsed.accessToken,
-      refreshToken: parsed.refreshToken ?? null,
-      expiresAt: parsed.expiresAt ?? null,
-      email: parsed.email ?? null,
-      familyName: parsed.familyName ?? null,
+      refreshToken:
+        typeof parsed.refreshToken === "string" ? parsed.refreshToken : null,
+      expiresAt: typeof parsed.expiresAt === "number" ? parsed.expiresAt : null,
+      email: typeof parsed.email === "string" ? parsed.email : null,
+      familyName:
+        typeof parsed.familyName === "string" ? parsed.familyName : null,
     };
+
+    console.log("[GoogleOAuth] Stored session loaded:", {
+      hasAccessToken: Boolean(session.accessToken),
+      hasRefreshToken: Boolean(session.refreshToken),
+      expiresAt: session.expiresAt,
+      expired: isTokenExpired(session),
+    });
+
+    return session;
   } catch (error) {
-    console.error("[GoogleOAuth] Invalid stored session", error);
+    console.error("[GoogleOAuth] Failed to load stored session:", error);
 
     await clearToken();
 
@@ -72,17 +126,20 @@ export async function loadToken(): Promise<AuthSession | null> {
   }
 }
 
-// =====================================================
-// Clear
-// =====================================================
-
 export async function clearToken(): Promise<void> {
-  await keytar.deletePassword(SERVICE_NAME, ACCOUNT_NAME);
-}
+  const filePath = getTokenFilePath();
 
-// =====================================================
-// Expiration
-// =====================================================
+  if (!existsSync(filePath)) {
+    return;
+  }
+
+  try {
+    unlinkSync(filePath);
+    console.log("[GoogleOAuth] Stored session cleared");
+  } catch (error) {
+    console.error("[GoogleOAuth] Failed to clear stored session:", error);
+  }
+}
 
 export function isTokenExpired(session: AuthSession): boolean {
   return session.expiresAt !== null && Date.now() >= session.expiresAt;

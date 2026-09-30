@@ -1,7 +1,8 @@
-﻿// src/renderer/features/pdfUpload/components/modal/usePdfUploadModalContent.ts
+// src/renderer/features/other/components/modal/contents/pdfUpload/usePdfUploadModalContent.ts
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
+
 import { useAppStore } from "@renderer/store";
 
 export function usePdfUploadModalContent() {
@@ -10,73 +11,112 @@ export function usePdfUploadModalContent() {
     isProcessing,
     addPdfFiles,
     reorderPdfFiles,
-    updatePdfUpload,
     uploadPdfFiles,
     updateModalConfig,
+    closeGlobalModal,
   } = useAppStore(
-    useShallow((s) => ({
-      files: s.pdfUpload.files,
-      isProcessing: s.pdfUpload.isProcessing,
-      addPdfFiles: s.addPdfFiles,
-      reorderPdfFiles: s.reorderPdfFiles,
-      updatePdfUpload: s.updatePdfUpload,
-      uploadPdfFiles: s.uploadPdfFiles,
-      updateModalConfig: s.updateModalConfig,
+    useShallow((state) => ({
+      files: state.pdfUpload.files,
+      isProcessing: state.pdfUpload.isProcessing,
+      addPdfFiles: state.addPdfFiles,
+      reorderPdfFiles: state.reorderPdfFiles,
+      uploadPdfFiles: state.uploadPdfFiles,
+      updateModalConfig: state.updateModalConfig,
+      closeGlobalModal: state.closeGlobalModal,
     })),
   );
 
-  const handleRemovePdfFile = useCallback(
-    (targetIndex: number) => {
-      const nextFiles = files.filter((_, index) => index !== targetIndex);
-      updatePdfUpload({ files: nextFiles });
-      // ファイル削除時に成功/失敗メッセージを消去する
-      updateModalConfig({ message: null });
+  const handleFileReorder = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      reorderPdfFiles(fromIndex, toIndex);
+
+      updateModalConfig({
+        message: null,
+      });
     },
-    [files, updatePdfUpload, updateModalConfig],
+    [reorderPdfFiles, updateModalConfig],
   );
 
-  const handleClearPdfFiles = useCallback(() => {
-    updatePdfUpload({ files: [] });
-    updateModalConfig({ message: null });
-  }, [updatePdfUpload, updateModalConfig]);
-
-  // アップロード実行処理とメッセージ更新
   const handleExecuteUpload = useCallback(async () => {
-    updateModalConfig({ isProcessing: true, message: null });
-    try {
-      await uploadPdfFiles();
-      // 🎯 成功メッセージを表示
+    if (files.length === 0) {
       updateModalConfig({
         message: {
-          text: "ファイルのアップロードが正常に完了しました。",
+          text: "アップロードするPDFファイルを選択してください。",
+          type: "warning",
+        },
+      });
+
+      return;
+    }
+
+    updateModalConfig({
+      isProcessing: true,
+      message: null,
+    });
+
+    try {
+      await uploadPdfFiles();
+
+      updateModalConfig({
+        message: {
+          text: "PDFファイルをアップロードしました。",
           type: "success",
         },
       });
-    } catch {
-      // 🎯 失敗メッセージを表示
+    } catch (error) {
+      console.error(
+        "[usePdfUploadModalContent] Upload error:",
+        error,
+      );
+
       updateModalConfig({
         message: {
-          text: "アップロード処理に失敗しました。再度お試しください。",
+          text:
+            error instanceof Error
+              ? error.message
+              : "PDFアップロード中にエラーが発生しました。",
           type: "error",
         },
       });
     } finally {
-      updateModalConfig({ isProcessing: false });
+      updateModalConfig({
+        isProcessing: false,
+      });
     }
-  }, [uploadPdfFiles, updateModalConfig]);
+  }, [files.length, uploadPdfFiles, updateModalConfig]);
+
+  useEffect(() => {
+    updateModalConfig({
+      leftActions: [
+        {
+          id: "cancel",
+          label: "キャンセル",
+          onClick: closeGlobalModal,
+          disabled: isProcessing,
+        },
+      ],
+      rightActions: [
+        {
+          id: "upload",
+          label: isProcessing ? "処理中..." : "アップロード",
+          onClick: handleExecuteUpload,
+          disabled: files.length === 0 || isProcessing,
+          variant: "default",
+        },
+      ],
+    });
+  }, [
+    files.length,
+    isProcessing,
+    handleExecuteUpload,
+    updateModalConfig,
+    closeGlobalModal,
+  ]);
 
   return {
-    state: {
-      files,
-      isProcessing,
-      isEmpty: files.length === 0,
-    },
-    actions: {
-      addPdfFiles,
-      reorderPdfFiles,
-      handleRemovePdfFile,
-      handleClearPdfFiles,
-      handleExecuteUpload,
-    },
+    files,
+    isProcessing,
+    addPdfFiles,
+    handleFileReorder,
   };
 }

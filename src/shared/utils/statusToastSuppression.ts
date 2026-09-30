@@ -38,11 +38,9 @@ class StatusToastSuppressionManager {
   }
 }
 
-export const statusToastSuppression = new StatusToastSuppressionManager();
+const statusToastSuppression = new StatusToastSuppressionManager();
 
 // 後方互換性API
-export const suppressNextSuccessToast = (kanriNo: string | number) =>
-  statusToastSuppression.suppressNextSuccessToast(kanriNo);
 
 export const consumeSuppressedSuccessToast = (kanriNo: string | number) =>
   statusToastSuppression.consumeSuppressedSuccessToast(kanriNo);

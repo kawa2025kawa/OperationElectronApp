@@ -1,0 +1,68 @@
+﻿import { memo } from "react";
+import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
+import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
+import { useJugyoinModalContent } from "./useJugyoinModalContent";
+import * as styles from "./JugyoinModalContent.css";
+
+export interface JugyoinModalContentProps {
+  data: Jugyoin;
+}
+
+export const JugyoinModalContent: GlobalModalComponent<JugyoinModalContentProps> =
+  memo(({ data }) => {
+    const { state, actions } = useJugyoinModalContent(data);
+    return (
+      <div className={styles.contentContainer}>
+        <div className={styles.profileCard}>
+          <div className={styles.profileGrid}>
+            <div className={styles.profileItem}>
+              役職 : {state.profile.position}
+            </div>
+            <div className={styles.profileItem}>
+              Email : {state.profile.email}
+            </div>
+            <div className={styles.profileItem}>
+              内線 : {state.profile.extension}
+            </div>
+            <div className={styles.profileItem}>
+              PHS : {state.profile.mobileShort}
+            </div>
+            <div className={styles.profileItem}>
+              携帯 : {state.profile.mobile}
+            </div>
+          </div>
+          {state.hasScheduleLink && (
+            <ActionButton onClick={actions.handleOpenSchedule}>
+              Schedulelink
+            </ActionButton>
+          )}
+        </div>
+        {state.schedules.map((item) => (
+          <div key={item.label} className={styles.tableGrid}>
+            <div className={styles.cell.date}>
+              <div className={styles.value}>{item.label}</div>
+              <div className={styles.label}>
+                {item.date.text}
+                <span style={item.date.dayStyle}>{item.date.dayText}</span>
+              </div>
+            </div>
+            <div className={styles.cell.header}>区分</div>
+            <div className={styles.cell.header}>内容</div>
+            <div className={styles.cell.header}>場所/詳細</div>
+            <div className={styles.cell.section}>AM</div>
+            <div className={styles.cell.data}>{item.amStatus}</div>
+            <div className={styles.cell.data}>{item.amDetail}</div>
+            <div className={styles.cell.section}>PM</div>
+            <div className={styles.cell.data}>{item.pmStatus}</div>
+            <div className={styles.cell.data}>{item.pmDetail}</div>
+          </div>
+        ))}
+      </div>
+    );
+  });
+
+JugyoinModalContent.modalSize = {
+  width: "min(95vw, calc(75vh * (21 / 9)))",
+  height: "min(75vh, calc(95vw * (9 / 21)))",
+};

@@ -1,16 +1,25 @@
-﻿// src/shared/utils/dependency/dependencyUtils.ts
+// src/shared/utils/dependency/dependencyUtils.ts
 
 import {
-  JOB_STATUS,
   type ActiveFlags,
   type JobStatus,
-  type JobDependency,
-  type OperationItem,
+  type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
+import type {
+  OperationMaster,
+  IrregularMaster,
+  TodayIrregularMaster,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
+import { isSuccessStatus } from "@shared/utils/statusUtils";
+
+export type MasterItem =
+  | OperationMaster
+  | IrregularMaster
+  | TodayIrregularMaster;
 
 export interface MissingDependency {
   kanriNo: string;
-  status: JobStatus | null | undefined;
+  status: JobStatus | null;
   comment: string;
 }
 
@@ -29,100 +38,209 @@ export interface ValidationResult {
   message?: string;
 }
 
-export const DEFAULT_JOB_EXECUTION_OPTIONS: JobExecutionOptions = {
+export interface DependencyMasters {
+  operationMasters: OperationMaster[];
+  irregularMasters: IrregularMaster[];
+  todayIrregularMasters: TodayIrregularMaster[];
+}
+
+export interface DependencyStatuses {
+  operationStatuses: Record<string, OperationStatusState>;
+  irregularStatuses: Record<string, OperationStatusState>;
+  todayStatuses: Record<string, OperationStatusState>;
+}
+
+const DEFAULT_JOB_EXECUTION_OPTIONS: Readonly<JobExecutionOptions> = {
   ignoreDependencies: false,
   silent: true,
 };
 
-/**
- * dependsOn の値を ID 配列 (string[]) へ正規化
- */
-export function normalizeDependencies(rawDependsOn: unknown): string[] {
-  if (rawDependsOn == null) return [];
-  const sourceArray = Array.isArray(rawDependsOn)
-    ? rawDependsOn
-    : [String(rawDependsOn)];
+const CENTER_DEPENDENCY_KEYS: Readonly<Record<string, keyof ActiveFlags>> = {
+  "1C": "is1CActive",
+  "2C": "is2CActive",
+  "3C": "is3CActive",
+};
 
-  return sourceArray
-    .flatMap((item) => String(item).split(","))
-    .map((id) => id.trim())
-    .filter((id) => id !== "" && id !== "-");
+const EMPTY_CHECK_RESULT: DependencyCheckResult = {
+  ok: true,
+  missingDependencies: [],
+};
+
+function getMasterLists(masters: DependencyMasters): readonly MasterItem[][] {
+  return [
+    masters.operationMasters,
+    masters.irregularMasters,
+    masters.todayIrregularMasters,
+  ];
 }
 
-const buildResult = (
-  ok: boolean,
-  missingDependencies: MissingDependency[] = [],
-): DependencyCheckResult => ({
-  ok,
-  missingDependencies,
-});
+function findMaster(
+  kanriNo: string,
+  masters: DependencyMasters,
+): MasterItem | undefined {
+  const key = kanriNo.trim();
 
-export function checkDependsOn(
-  dependency: JobDependency,
-  entities: Record<string, OperationItem>,
-): DependencyCheckResult {
-  const validDependsOn = normalizeDependencies(dependency?.dependsOn);
-  if (validDependsOn.length === 0) {
-    return buildResult(true);
-  }
+  for (const mastersList of getMasterLists(masters)) {
+    const master = mastersList.find((item) => item.kanriNo.trim() === key);
 
-  const missingDependencies: MissingDependency[] = [];
-  for (const depKanriNo of validDependsOn) {
-    const entity = entities[depKanriNo];
-    const currentStatus = entity?.status;
-
-    if (currentStatus !== JOB_STATUS.SUCCESS) {
-      missingDependencies.push({
-        kanriNo: depKanriNo,
-        status: (entity?.status as JobStatus) ?? null,
-        comment: entity?.comment ?? `前提 No.${depKanriNo} 未完了`,
-      });
+    if (master) {
+      return master;
     }
   }
 
-  return missingDependencies.length === 0
-    ? buildResult(true)
-    : buildResult(false, missingDependencies);
+  return undefined;
+}
+
+function findStatus(
+  kanriNo: string,
+  statuses: DependencyStatuses,
+): OperationStatusState | undefined {
+  const key = kanriNo.trim();
+
+  return (
+    statuses.operationStatuses[key] ??
+    statuses.irregularStatuses[key] ??
+    statuses.todayStatuses[key]
+  );
+}
+
+function checkCenterDependency(
+  dependency: string,
+  activeFlags?: ActiveFlags,
+): MissingDependency | undefined {
+  const activeKey = CENTER_DEPENDENCY_KEYS[dependency];
+
+  if (!activeKey || activeFlags?.[activeKey] === true) {
+    return undefined;
+  }
+
+  return {
+    kanriNo: dependency,
+    status: null,
+    comment: `${dependency} が未アクティブ`,
+  };
+}
+
+function createMissingDependency(
+  dependency: string,
+  master: MasterItem | undefined,
+  status: OperationStatusState | undefined,
+): MissingDependency {
+  return {
+    kanriNo: dependency,
+    status: status?.status ?? null,
+    comment:
+      status?.comment ??
+      (master
+        ? `前提 No.${dependency} 未完了`
+        : `前提 No.${dependency} が存在しません`),
+  };
+}
+
+function checkDependency(
+  dependency: string,
+  masters: DependencyMasters,
+  statuses: DependencyStatuses,
+  activeFlags?: ActiveFlags,
+): MissingDependency | undefined {
+  const centerMissing = checkCenterDependency(dependency, activeFlags);
+
+  if (centerMissing) {
+    return centerMissing;
+  }
+
+  const master = findMaster(dependency, masters);
+  const status = findStatus(dependency, statuses);
+
+  if (isSuccessStatus(status?.status)) {
+    return undefined;
+  }
+
+  return createMissingDependency(dependency, master, status);
+}
+
+function checkDependencies(
+  dependencies: string[],
+  masters: DependencyMasters,
+  statuses: DependencyStatuses,
+  activeFlags?: ActiveFlags,
+): DependencyCheckResult {
+  if (dependencies.length === 0) {
+    return EMPTY_CHECK_RESULT;
+  }
+
+  const missingDependencies = dependencies
+    .map((dependency) =>
+      checkDependency(dependency, masters, statuses, activeFlags),
+    )
+    .filter(
+      (dependency): dependency is MissingDependency => dependency !== undefined,
+    );
+
+  return {
+    ok: missingDependencies.length === 0,
+    missingDependencies,
+  };
+}
+
+export function normalizeDependencies(rawDependsOn: unknown): string[] {
+  if (rawDependsOn == null) {
+    return [];
+  }
+
+  const values = Array.isArray(rawDependsOn) ? rawDependsOn : [rawDependsOn];
+
+  return values
+    .map(String)
+    .flatMap((value) => value.split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
 }
 
 export function checkJobDependencies(
   kanriNo: string,
-  entities: Record<string, OperationItem>,
-  _activeFlags?: ActiveFlags,
-  _operationIds?: string[],
+  masters: DependencyMasters,
+  statuses: DependencyStatuses,
+  activeFlags?: ActiveFlags,
 ): DependencyCheckResult {
-  const targetKanriNo = String(kanriNo).trim();
-  const targetEntity = entities[targetKanriNo];
-  const dependency = targetEntity?.dependency;
-  if (!dependency) return buildResult(true);
+  const target = findMaster(kanriNo, masters);
 
-  return checkDependsOn(dependency, entities);
+  if (!target) {
+    return EMPTY_CHECK_RESULT;
+  }
+
+  return checkDependencies(
+    normalizeDependencies(target.dependsOn),
+    masters,
+    statuses,
+    activeFlags,
+  );
 }
 
 export function validateJobDependencies(
   kanriNo: string,
-  entities: Record<string, OperationItem>,
+  masters: DependencyMasters,
+  statuses: DependencyStatuses,
   options: JobExecutionOptions = DEFAULT_JOB_EXECUTION_OPTIONS,
   activeFlags?: ActiveFlags,
-  operationIds?: string[],
 ): ValidationResult {
-  if (options.ignoreDependencies) return { ok: true };
+  if (options.ignoreDependencies) {
+    return { ok: true };
+  }
 
-  const result = checkJobDependencies(
-    kanriNo,
-    entities,
-    activeFlags,
-    operationIds,
-  );
+  const result = checkJobDependencies(kanriNo, masters, statuses, activeFlags);
 
-  if (result.ok) return { ok: true };
+  if (result.ok) {
+    return { ok: true };
+  }
 
   const message =
     result.missingDependencies
-      .map(({ kanriNo: depKanriNo, comment }) =>
-        comment ? `No.${depKanriNo}: ${comment}` : `No.${depKanriNo}: 未完了`,
-      )
+      .map(({ kanriNo: id, comment }) => `No.${id}: ${comment || "未完了"}`)
       .join("\n") || "前提ジョブが完了していません";
 
-  return { ok: false, message };
+  return {
+    ok: false,
+    message,
+  };
 }

@@ -5,11 +5,23 @@ import {
   type ActiveFlags,
 } from "@shared/types/operation/operationTypes";
 
-let activeFlags: ActiveFlags = { ...DEFAULT_ACTIVE_FLAGS };
+let activeFlags: ActiveFlags = {
+  ...DEFAULT_ACTIVE_FLAGS,
+};
 
 export function setActiveFlags(flags?: Partial<ActiveFlags>): void {
-  if (!flags) return;
-  activeFlags = { ...activeFlags, ...flags };
+  if (!flags) {
+    return;
+  }
+
+  activeFlags = {
+    ...activeFlags,
+    ...flags,
+  };
 }
 
-export const getActiveFlags = (): ActiveFlags => activeFlags;
+export function getActiveFlags(): ActiveFlags {
+  return {
+    ...activeFlags,
+  };
+}
