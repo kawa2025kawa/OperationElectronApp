@@ -1,4 +1,6 @@
-﻿import {
+﻿//electron\features\spreadsheet\services\spreadsheetValidator.ts
+
+import {
   SHEETS,
   type SheetId,
 } from "@shared/types/spreadsheet/spreadsheetTypes";

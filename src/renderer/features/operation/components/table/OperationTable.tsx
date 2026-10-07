@@ -76,16 +76,7 @@ const VISIBLE_COLUMNS: Record<string, string[]> = {
     "monthRule",
     "workName",
   ],
-  today: [
-    "kanriNo",
-    "scheduledTime",
-    "dateRule",
-    "weekdayRule",
-    "weekRule",
-    "monthRule",
-    "workName",
-    "status",
-  ],
+  today: ["kanriNo", "scheduledTime", "workName", "status"],
 };
 
 interface OperationTableRowProps {

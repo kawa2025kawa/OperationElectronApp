@@ -129,3 +129,6 @@ export const useAppStore = create<AppState>()(
     })),
   ),
 );
+if (import.meta.env.DEV) {
+  Object.assign(window, { useAppStore });
+}

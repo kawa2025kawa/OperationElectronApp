@@ -1,92 +1,16 @@
 ﻿// src/renderer/store/slices/modalSlice.ts
 
-import { isValidElement } from "react";
+import type { ReactNode } from "react";
 import type { StateCreator } from "zustand";
+
 import type { AppState } from "@renderer/store";
-import type {
-  ModalConfig,
-  ModalContentType,
-  ModalSize,
-  ModalState,
-} from "@shared/types/ui/modal";
+import type { ModalConfig, ModalState } from "@shared/types/ui/modal";
 
 export interface ModalSlice {
   modal: ModalState;
-  openGlobalModal: (content: ModalContentType, config?: ModalConfig) => void;
+  openGlobalModal: (content: ReactNode, config?: ModalConfig) => void;
   updateModalConfig: (configPartial: Partial<ModalConfig>) => void;
   closeGlobalModal: () => void;
-}
-
-function extractComponentModalSize(
-  content: ModalContentType,
-): ModalSize | undefined {
-  if (!content) return undefined;
-
-  if (typeof content === "function" && "modalSize" in content) {
-    return content.modalSize as ModalSize;
-  }
-
-  if (
-    typeof content === "object" &&
-    content !== null &&
-    !isValidElement(content)
-  ) {
-    if ("modalSize" in content) {
-      return (content as { modalSize?: ModalSize }).modalSize;
-    }
-    if (
-      "type" in content &&
-      typeof content.type === "function" &&
-      "modalSize" in content.type
-    ) {
-      return (content.type as { modalSize?: ModalSize }).modalSize;
-    }
-  }
-
-  if (isValidElement(content)) {
-    const target = content.type as unknown;
-
-    if (typeof target === "function" && "modalSize" in target) {
-      return target.modalSize as ModalSize;
-    }
-
-    if (typeof target === "object" && target !== null) {
-      if ("modalSize" in target) {
-        return (target as { modalSize?: ModalSize }).modalSize;
-      }
-      if (
-        "type" in target &&
-        typeof target.type === "function" &&
-        "modalSize" in target.type
-      ) {
-        return (target.type as { modalSize?: ModalSize }).modalSize;
-      }
-    }
-  }
-
-  return undefined;
-}
-
-function extractComponentModalConfig(
-  content: ModalContentType,
-): ModalConfig | undefined {
-  if (!content) return undefined;
-
-  let target: unknown = content;
-
-  if (isValidElement(content)) {
-    target = content.type;
-  }
-
-  if (
-    (typeof target === "function" ||
-      (typeof target === "object" && target !== null)) &&
-    "modalConfig" in target
-  ) {
-    return (target as { modalConfig?: ModalConfig }).modalConfig;
-  }
-
-  return undefined;
 }
 
 export const createModalSlice: StateCreator<
@@ -102,33 +26,26 @@ export const createModalSlice: StateCreator<
   },
 
   openGlobalModal: (content, config) =>
-    set((state: AppState) => {
-      const componentModalSize = extractComponentModalSize(content);
-      const componentModalConfig = extractComponentModalConfig(content);
-
-      const mergedConfig: ModalConfig = {
-        ...componentModalSize,
-        ...componentModalConfig,
-        ...config,
-      };
-
+    set((state) => {
       state.modal.isOpen = true;
       state.modal.content = content;
-      state.modal.config = mergedConfig;
+      state.modal.config = config ?? {};
     }),
 
   updateModalConfig: (configPartial) =>
-    set((state: AppState) => {
-      if (state.modal.config) {
-        state.modal.config = {
-          ...state.modal.config,
-          ...configPartial,
-        };
+    set((state) => {
+      if (!state.modal.config) {
+        return;
       }
+
+      state.modal.config = {
+        ...state.modal.config,
+        ...configPartial,
+      };
     }),
 
   closeGlobalModal: () =>
-    set((state: AppState) => {
+    set((state) => {
       state.modal.isOpen = false;
       state.modal.content = null;
       state.modal.config = null;

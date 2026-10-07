@@ -2,16 +2,15 @@
 
 import { useCallback, useMemo } from "react";
 
+import type { ViewMode } from "@renderer/registry/appRegistry";
 import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/operationSelectors";
 import { useAppStore } from "@renderer/store";
-import type { ViewMode } from "@renderer/registry/appRegistry";
+import type {
+  OperationViewItem,
+  SelectedOperationItem,
+} from "@shared/types/operation/operationTypes";
 
-import {
-  createActiveActions,
-  type OperationViewItem,
-  type SelectedOperationItem,
-  type ViewAction,
-} from "./operationMenuActions";
+import { createActiveActions, type ViewAction } from "./operationMenuActions";
 import { createInfoRows, type InfoRowData } from "./operationInfoRows";
 
 export type {

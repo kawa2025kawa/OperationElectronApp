@@ -11,8 +11,6 @@ import {
   APP_VIEW_IDS,
   type AppViewDefinition,
 } from "@shared/types/registry/viewDefinition";
-import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
-import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { AuthView } from "@renderer/features/auth/AuthView";
 
 import { useSpreadSheetDomainLogic } from "../hooks/useSpreadSheetDomainLogic";
@@ -87,20 +85,18 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
 
 // --- コンポーネント本体 ---
 export const KokyuhyoView = memo(() => {
-  const {
-    isAuthenticated,
-    data,
-    isFetching,
-    error,
-    handleRetry,
-    loadingMessage,
-    openGlobalModal,
-  } = useSpreadSheetDomainLogic<Kokyuhyo>(SHEETS.KOKYUHYO.sheetName);
+  const { isAuthenticated, data, openGlobalModal } =
+    useSpreadSheetDomainLogic<Kokyuhyo>(SHEETS.KOKYUHYO.sheetName);
 
   const handleRowClick = useCallback(
     (row: Kokyuhyo) => {
       const title = row.name || "";
-      openGlobalModal(() => <KokyuhyoModalContent data={row} />, { title });
+
+      openGlobalModal(<KokyuhyoModalContent data={row} />, {
+        title,
+        width: "90vw",
+        height: "85vh",
+      });
     },
     [openGlobalModal],
   );
@@ -110,20 +106,13 @@ export const KokyuhyoView = memo(() => {
   }
 
   return (
-    <>
-      <LoadingOverlay isOpen={isFetching} message={loadingMessage} />
-      <div className={styles.viewContainer}>
-        <div className={styles.inner}>
-          {error && data.length === 0 && !isFetching ? (
-            <EmptyState message={error} onRetry={handleRetry} />
-          ) : (
-            <div className={styles.tableArea}>
-              <KokyuhyoTable rows={data} onRowClick={handleRowClick} />
-            </div>
-          )}
+    <div className={styles.viewContainer}>
+      <div className={styles.inner}>
+        <div className={styles.tableArea}>
+          <KokyuhyoTable rows={data} onRowClick={handleRowClick} />
         </div>
       </div>
-    </>
+    </div>
   );
 });
 
@@ -146,14 +135,6 @@ export const kokyuhyoViewConfig: AppViewDefinition<Kokyuhyo> = {
   search: {
     placeholder: "名前、名前カナで検索...",
     searchKeys: ["name", "nameKana"],
-  },
-
-  modalConfig: {
-    modalType: "sheet_kokyuhyo",
-    modalSize: {
-      width: "90vw",
-      height: "85vh",
-    },
   },
 
   columns: KOKYUHYO_COLUMNS,

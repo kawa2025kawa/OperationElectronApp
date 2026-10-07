@@ -8,8 +8,6 @@ import {
   APP_VIEW_IDS,
   type AppViewDefinition,
 } from "@shared/types/registry/viewDefinition";
-import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
-import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { AuthView } from "@renderer/features/auth/AuthView";
 
 import { useSpreadSheetDomainLogic } from "../hooks/useSpreadSheetDomainLogic";
@@ -48,20 +46,18 @@ export const SHOP_COLUMNS: readonly Column<Shop>[] = [
 
 // --- コンポーネント本体 ---
 export const ShopView = memo(() => {
-  const {
-    isAuthenticated,
-    data,
-    isFetching,
-    error,
-    handleRetry,
-    loadingMessage,
-    openGlobalModal,
-  } = useSpreadSheetDomainLogic<Shop>(SHEETS.STORE.sheetName);
+  const { isAuthenticated, data, openGlobalModal } =
+    useSpreadSheetDomainLogic<Shop>(SHEETS.STORE.sheetName);
 
   const handleRowClick = useCallback(
     (row: Shop) => {
       const title = row.shopName || "";
-      openGlobalModal(() => <ShopModalContent data={row} />, { title });
+
+      openGlobalModal(<ShopModalContent data={row} />, {
+        title,
+        width: "80vw",
+        height: "80vh",
+      });
     },
     [openGlobalModal],
   );
@@ -71,20 +67,13 @@ export const ShopView = memo(() => {
   }
 
   return (
-    <>
-      <LoadingOverlay isOpen={isFetching} message={loadingMessage} />
-      <div className={styles.viewContainer}>
-        <div className={styles.inner}>
-          {error && data.length === 0 && !isFetching ? (
-            <EmptyState message={error} onRetry={handleRetry} />
-          ) : (
-            <div className={styles.tableArea}>
-              <ShopTable rows={data} onRowClick={handleRowClick} />
-            </div>
-          )}
+    <div className={styles.viewContainer}>
+      <div className={styles.inner}>
+        <div className={styles.tableArea}>
+          <ShopTable rows={data} onRowClick={handleRowClick} />
         </div>
       </div>
-    </>
+    </div>
   );
 });
 
@@ -114,14 +103,6 @@ export const shopViewConfig: AppViewDefinition<Shop> = {
       "phoneNumber",
       "centerName",
     ],
-  },
-
-  modalConfig: {
-    modalType: "sheet_shop",
-    modalSize: {
-      width: "80vw",
-      height: "80vh",
-    },
   },
 
   columns: SHOP_COLUMNS,

@@ -2,7 +2,7 @@
 
 import type { ViewMode } from "@renderer/registry/appRegistry";
 
-import type { SelectedOperationItem } from "./operationMenuActions";
+import type { SelectedOperationItem } from "@shared/types/operation/operationTypes";
 import { toDisplayValue } from "./operationDisplayUtils";
 
 export type InfoRowField =

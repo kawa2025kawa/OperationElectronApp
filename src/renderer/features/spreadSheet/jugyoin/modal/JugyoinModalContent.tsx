@@ -1,4 +1,6 @@
-﻿import { memo } from "react";
+﻿//src\renderer\features\spreadSheet\jugyoin\modal\JugyoinModalContent.tsx
+
+import { memo } from "react";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
@@ -61,8 +63,3 @@ export const JugyoinModalContent: GlobalModalComponent<JugyoinModalContentProps>
       </div>
     );
   });
-
-JugyoinModalContent.modalSize = {
-  width: "min(95vw, calc(75vh * (21 / 9)))",
-  height: "min(75vh, calc(95vw * (9 / 21)))",
-};

@@ -1,4 +1,6 @@
-﻿import type { AppState } from "@renderer/store";
+﻿//src\renderer\features\operation\helpers\asyncProcessor.//
+
+import type { AppState } from "@renderer/store";
 
 const MIN_GLOBAL_PROCESSING_DISPLAY_TIME_MS = 3000;
 

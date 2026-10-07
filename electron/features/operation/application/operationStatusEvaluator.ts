@@ -1,18 +1,21 @@
-// electron/features/operation/services/operationStatusEvaluator.ts
+﻿// electron/features/operation/application/operationStatusEvaluator.ts
 
-import { getActiveFlags } from "@electron/features/operation/activeFlagsManager";
-import { normalizeKanriNo } from "@electron/features/operation/helpers/operationUtils";
-import { getDependencyMasters } from "@electron/features/operation/services/operationMasterService";
+import { getActiveFlags } from "@electron/features/operation/application/activeFlagsManager";
+import {
+  isOperationMasterTarget,
+  normalizeKanriNo,
+} from "@electron/features/operation/domain/operationRules";
 import {
   fetchTrackerStatusByJobId,
   hasJobId,
-} from "@electron/features/operation/services/trackerServiceClient";
+} from "@electron/features/operation/infrastructure/tracker/trackerServiceClient";
 import {
+  getDependencyMasters,
   getDependencyStatuses,
   getStatus,
   updateStatus,
   type StatusTarget,
-} from "@electron/features/operation/statusManager";
+} from "@electron/features/operation/application/statusManager";
 
 import {
   JOB_STATUS,
@@ -27,23 +30,16 @@ import {
 
 import type { OperationMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
 
-function isOperationMaster(target: StatusTarget): target is OperationMaster {
-  return "jobId" in target;
-}
-
 function hasTrackerTarget(target: StatusTarget): target is OperationMaster {
   return (
-    isOperationMaster(target) && Boolean(target.kanriNo) && hasJobId(target)
+    isOperationMasterTarget(target) &&
+    Boolean(target.kanriNo) &&
+    hasJobId(target)
   );
 }
 
 function canSyncTrackerStatus(status?: JobStatus): boolean {
-  return (
-    status !== JOB_STATUS.RUNNING &&
-    status !== JOB_STATUS.SCRIPT_RUNNING &&
-    status !== JOB_STATUS.SUCCESS &&
-    status !== JOB_STATUS.ERROR
-  );
+  return status === JOB_STATUS.READY || status === JOB_STATUS.RUNNING;
 }
 
 function shouldKeepReadyStatus(status?: JobStatus): boolean {
@@ -62,15 +58,10 @@ function checkDependencies(kanriNo: string): DependencyCheckResult {
 function evaluateTrackerStatus(
   trackerStatus: OperationStatusState,
 ): OperationStatusState {
-  if (trackerStatus.status !== JOB_STATUS.SUCCESS) {
-    return trackerStatus;
-  }
+  if (trackerStatus.status !== JOB_STATUS.SUCCESS) return trackerStatus;
 
   const dependencyResult = checkDependencies(trackerStatus.kanriNo);
-
-  if (dependencyResult.ok) {
-    return trackerStatus;
-  }
+  if (dependencyResult.ok) return trackerStatus;
 
   const missingKanriNos = dependencyResult.missingDependencies
     .map(({ kanriNo }) => kanriNo)
@@ -89,6 +80,9 @@ function evaluateTrackerStatus(
 async function fetchTrackerStatus(
   target: OperationMaster,
 ): Promise<OperationStatusState | undefined> {
+  console.log(
+    `[Tracker API問い合わせ開始] ${new Date().toLocaleString("ja-JP")} kanriNo=${target.kanriNo} jobId=${target.jobId} scheduledTime=${target.scheduledTime}`,
+  );
   return fetchTrackerStatusByJobId(
     target.jobId,
     target.scheduledTime,
@@ -103,54 +97,35 @@ function applyTrackerStatus(trackerStatus: OperationStatusState): void {
 export async function syncReadyTrackerStatus(
   target: StatusTarget,
 ): Promise<void> {
-  if (!hasTrackerTarget(target)) {
-    return;
-  }
+  if (!hasTrackerTarget(target)) return;
 
   const kanriNo = normalizeKanriNo(target.kanriNo);
-
-  if (getStatus(kanriNo)?.status !== JOB_STATUS.READY) {
-    return;
-  }
+  if (getStatus(kanriNo)?.status !== JOB_STATUS.READY) return;
 
   const trackerStatus = await fetchTrackerStatus(target);
-
-  if (!trackerStatus) {
-    return;
-  }
-
-  if (shouldKeepReadyStatus(trackerStatus.status)) {
-    return;
-  }
+  if (!trackerStatus || shouldKeepReadyStatus(trackerStatus.status)) return;
 
   applyTrackerStatus(trackerStatus);
 }
 
 function shouldSyncTarget(target: StatusTarget): target is OperationMaster {
-  if (!hasTrackerTarget(target)) {
-    return false;
-  }
-
-  return canSyncTrackerStatus(getStatus(target.kanriNo)?.status);
+  return (
+    hasTrackerTarget(target) &&
+    canSyncTrackerStatus(getStatus(target.kanriNo)?.status)
+  );
 }
 
 export async function syncTrackerStatuses(
   targets: StatusTarget[],
 ): Promise<void> {
   const syncTargets = targets.filter(shouldSyncTarget);
-
-  if (syncTargets.length === 0) {
-    return;
-  }
+  if (syncTargets.length === 0) return;
 
   await Promise.all(
     syncTargets.map(async (target) => {
       try {
         const trackerStatus = await fetchTrackerStatus(target);
-
-        if (trackerStatus) {
-          applyTrackerStatus(trackerStatus);
-        }
+        if (trackerStatus) applyTrackerStatus(trackerStatus);
       } catch (error) {
         const kanriNo = normalizeKanriNo(target.kanriNo);
 
@@ -162,4 +137,3 @@ export async function syncTrackerStatuses(
     }),
   );
 }
-

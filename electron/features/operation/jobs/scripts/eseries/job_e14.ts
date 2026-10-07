@@ -1,6 +1,6 @@
 ﻿// electron/features/operation/jobs/scripts/job_e14.ts
 
-import * as path from "path";
+import path from "node:path";
 import fs from "fs-extra";
 import * as ExcelJS from "exceljs";
 import { format, subMonths } from "date-fns";

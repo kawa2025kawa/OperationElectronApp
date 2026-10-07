@@ -40,8 +40,3 @@ export const LinkModalContent: GlobalModalComponent<LinkModalContentProps> =
       </div>
     );
   });
-
-LinkModalContent.modalSize = {
-  width: "min(85vw, 800px)",
-  height: "min(80vh, 700px)",
-};

@@ -57,10 +57,7 @@ export const useFooterLogic = () => {
   );
 
   // Center Toggle Handler
-  const handleToggleCenter = useCallback(
-    (id: CenterId) => toggleCenter(id),
-    [toggleCenter],
-  );
+  const handleToggleCenter = (id: CenterId) => toggleCenter(id);
 
   const currentViewDef = getAppViewConfig(currentView);
 

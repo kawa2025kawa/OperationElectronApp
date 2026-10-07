@@ -16,8 +16,6 @@ const FILE_ACCEPT = ".xlsx,.csv";
 
 interface ScriptModalContentProps {
   item: MasterRow;
-  kanriNo?: string;
-  scriptKey?: string;
 }
 
 const ScriptModalBody = memo(function ScriptModalBody() {
@@ -31,7 +29,6 @@ const ScriptModalBody = memo(function ScriptModalBody() {
       });
       return;
     }
-
     updateModalConfig({
       rightActions: [
         {
@@ -60,10 +57,42 @@ const ScriptModalBody = memo(function ScriptModalBody() {
 
   return (
     <div className={styles.contentFlexContainer}>
+      {/* 複数スクリプトが存在する場合の選択セレクター */}
+      {state.scriptKeys.length > 1 && !state.isFinished && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            justifyContent: "center",
+          }}
+        >
+          <label style={{ fontSize: "14px", fontWeight: "bold" }}>
+            実行スクリプト:
+          </label>
+          <select
+            value={state.selectedScriptKey}
+            onChange={(e) => actions.handleSelectScriptKey(e.target.value)}
+            disabled={state.isExecuting}
+            style={{
+              padding: "4px 12px",
+              borderRadius: "6px",
+              fontSize: "14px",
+              fontWeight: "bold",
+            }}
+          >
+            {state.scriptKeys.map((key) => (
+              <option key={key} value={key}>
+                {key}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className={styles.messageContainer}>
         <p className={styles.mainMessage}>{state.messageText}</p>
       </div>
-
       <div className={styles.bottomArea}>
         {state.isFinished && state.executionResult ? (
           <ExecutionResultView
@@ -86,17 +115,10 @@ const ScriptModalBody = memo(function ScriptModalBody() {
 });
 
 export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
-  memo(function ScriptModalContent({ item, kanriNo }) {
-    const targetItem = kanriNo ? { ...item, kanriNo } : item;
-
+  memo(function ScriptModalContent({ item }) {
     return (
-      <ScriptModalProvider item={targetItem}>
+      <ScriptModalProvider item={item}>
         <ScriptModalBody />
       </ScriptModalProvider>
     );
   });
-
-ScriptModalContent.modalSize = {
-  width: "min(85vw, calc(75vh * 16 / 9))",
-  height: "min(75vh, calc(85vw * 9 / 16))",
-};

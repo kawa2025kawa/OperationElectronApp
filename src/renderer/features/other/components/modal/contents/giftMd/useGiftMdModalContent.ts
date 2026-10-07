@@ -24,7 +24,7 @@ export function useGiftMdModalContent() {
     })),
   );
 
-  const files = useMemo(() => (giftFile ? [giftFile] : []), [giftFile]);
+  const files = giftFile ? [giftFile] : [];
 
   const handleExecute = useCallback(async () => {
     if (!giftFile) {

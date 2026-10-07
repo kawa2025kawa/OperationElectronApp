@@ -1,8 +1,9 @@
-﻿import { memo, useEffect } from "react";
+﻿// src/renderer/features/spreadSheet/shop/modal/ShopModalContent.tsx
+
+import { memo, useEffect } from "react";
 import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Shop } from "@shared/types/spreadsheet/shop";
-import { useShopModalFooter } from "./useShopModalFooter";
 import { useShopModalContent } from "./useShopModalContent";
 import { TERMINAL_TYPES, TERMINAL_FIELDS } from "./shopModalConfig";
 import * as styles from "./shopModalContent.css";
@@ -13,7 +14,6 @@ export interface ShopModalContentProps {
 
 export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
   memo(({ data }) => {
-    const { excelPath, pdfPath, handleOpen } = useShopModalFooter(data);
     const {
       selectedIndex,
       setSelectedIndex,
@@ -21,11 +21,13 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
       displayItems,
       isTimeRecorderTab,
       leftActions,
-    } = useShopModalContent({ data, excelPath, pdfPath, handleOpen });
+    } = useShopModalContent({ data });
+
     const updateModalConfig = useAppStore((s) => s.updateModalConfig);
 
     useEffect(() => {
       updateModalConfig({ leftActions });
+
       return () => {
         updateModalConfig({ leftActions: [] });
       };
@@ -60,15 +62,19 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
                     ))}
                   </div>
                 </div>
+
                 {TERMINAL_TYPES.map((type) => {
                   const upperType = type.toUpperCase();
+
                   return (
                     <div key={type} className={styles.terminalRow}>
                       <div className={styles.terminalBadge}>{upperType}</div>
+
                       <div className={styles.terminalGrid}>
                         {TERMINAL_FIELDS.map(({ suffix }) => {
                           const fieldKey = `${type}${suffix}` as keyof Shop;
                           const val = data[fieldKey] || "-";
+
                           return (
                             <div key={suffix} className={styles.cellValue}>
                               {val}
@@ -86,6 +92,7 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
               {displayItems.map((item) => (
                 <div key={item.label} className={styles.terminalRow}>
                   <div className={styles.nonTrBadge}>{item.label}</div>
+
                   <div className={styles.flexCell}>
                     <div className={styles.cellValue}>{item.value || "-"}</div>
                   </div>
@@ -97,8 +104,3 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
       </div>
     );
   });
-
-ShopModalContent.modalSize = {
-  width: "min(95vw, calc(75vh * (21 / 9)))",
-  height: "min(75vh, calc(95vw * (9 / 21)))",
-};

@@ -134,8 +134,6 @@ const loginToTempomatic = async (
       "Tempomaticへのログインに失敗しました。認証情報を確認してください。",
     );
   }
-
-  console.log("[Tempomatic] Login succeeded.");
 };
 
 const getCsrfToken = async (
@@ -207,23 +205,16 @@ const uploadSingleDocument = async (
 ): Promise<void> => {
   await validateFile(filePath);
   const fileName = getFileName(filePath);
-
-  console.log(`[Tempomatic] preparing upload: ${fileName}`);
   const csrf = await getCsrfToken(client);
   const fileBuffer = await fs.readFile(filePath);
   const form = createUploadForm(csrf, filePath, expireDate, fileBuffer);
-
   const startedAt = Date.now();
-  console.log(`[Tempomatic] POST start: ${fileName}`);
-
   const body = await client.postMultipart(
     `${BASE_URL}/STRLibDocument.do`,
     form,
   );
 
   const elapsed = Date.now() - startedAt;
-
-  console.log(`[Tempomatic] POST finished: ${fileName} (${elapsed}ms)`);
 
   if (
     body.includes("loginId") ||
@@ -232,8 +223,6 @@ const uploadSingleDocument = async (
     console.error(`[Tempomatic] Upload failed: ${fileName}`);
     throw new Error(`ファイルのアップロード処理に失敗しました: ${fileName}`);
   }
-
-  console.log(`[Tempomatic] Upload completed: ${fileName}`);
 };
 
 const uploadDocumentsSequentially = async (
@@ -247,17 +236,8 @@ const uploadDocumentsSequentially = async (
     if (!filePath) {
       throw new Error(`アップロード対象ファイルが存在しません: index=${index}`);
     }
-
     const fileName = getFileName(filePath);
-    console.log(
-      `[Tempomatic] uploading ${index + 1}/${filePaths.length}: ${fileName}`,
-    );
-
     await uploadSingleDocument(client, filePath, expireDate);
-
-    console.log(
-      `[Tempomatic] uploaded ${index + 1}/${filePaths.length}: ${fileName}`,
-    );
 
     if (index < filePaths.length - 1) {
       console.log(
@@ -285,19 +265,8 @@ export async function uploadPdfDocuments(
     throw new Error("Tempomaticアップロードの有効期限が指定されていません。");
   }
 
-  console.log(
-    "[Tempomatic] upload sequence:",
-    filePaths.map((filePath, index) => ({
-      index: index + 1,
-      fileName: getFileName(filePath),
-      filePath,
-    })),
-  );
-
   const client = new NativeTempomaticClient();
   await loginToTempomatic(client);
   await uploadDocumentsSequentially(client, filePaths, expireDate);
-
-  console.log("[Tempomatic] All documents uploaded successfully.");
   return "正常終了";
 }

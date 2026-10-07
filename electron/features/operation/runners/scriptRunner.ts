@@ -1,37 +1,11 @@
-// electron/features/operation/runners/scriptRunner.ts
+import { cleanErrorMessage } from "@electron/features/operation/utils/errorHelper";
+import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
 
-import { cleanErrorMessage } from "@electron/features/operation/helpers/errorHelper";
-import { normalizeKanriNo } from "@electron/features/operation/helpers/operationUtils";
-
-import { runJobE14 } from "@electron/features/operation/jobs/scripts/eseries/job_e14";
-import { runJobE29 } from "@electron/features/operation/jobs/scripts/eseries/job_e29";
-import { runJobE30 } from "@electron/features/operation/jobs/scripts/eseries/job_e30";
-import { runJobE41 } from "@electron/features/operation/jobs/scripts/eseries/job_e41";
-import { runJobE5 } from "@electron/features/operation/jobs/scripts/eseries/job_e5";
-import { runJobE5Check } from "@electron/features/operation/jobs/scripts/eseries/job_e5_check";
-import { runJobE8 } from "@electron/features/operation/jobs/scripts/eseries/job_e8";
-import { runJobE9 } from "@electron/features/operation/jobs/scripts/eseries/job_e9";
-
-import { runJobN12 } from "@electron/features/operation/jobs/scripts/nseries/job_n12";
-import { runJobN20 } from "@electron/features/operation/jobs/scripts/nseries/job_n20";
-import { runJobN25 } from "@electron/features/operation/jobs/scripts/nseries/job_n25";
-import { runJobN31 } from "@electron/features/operation/jobs/scripts/nseries/job_n31";
-import { runJobN33 } from "@electron/features/operation/jobs/scripts/nseries/job_n33";
-
-import { runJob114 } from "@electron/features/operation/jobs/scripts/numeric/job_114";
-import { runJob16 } from "@electron/features/operation/jobs/scripts/numeric/job_16";
-import { runJob20 } from "@electron/features/operation/jobs/scripts/numeric/job_20";
-import { runJob25 } from "@electron/features/operation/jobs/scripts/numeric/job_25";
-import { runJob28 } from "@electron/features/operation/jobs/scripts/numeric/job_28";
-import { runJob34 } from "@electron/features/operation/jobs/scripts/numeric/job_34";
-import { runJob39 } from "@electron/features/operation/jobs/scripts/numeric/job_39";
-import { runJob56 } from "@electron/features/operation/jobs/scripts/numeric/job_56";
-import { runJob62 } from "@electron/features/operation/jobs/scripts/numeric/job_62";
-import { runJob64 } from "@electron/features/operation/jobs/scripts/numeric/job_64";
-import { runJob66 } from "@electron/features/operation/jobs/scripts/numeric/job_66";
-import { runJob80 } from "@electron/features/operation/jobs/scripts/numeric/job_80";
+// 全ジョブ関数を1行で一括インポート
+import * as jobs from "@electron/features/operation/jobs/scripts";
 
 import { type JobResult } from "@shared/types/operation/operationTypes";
+import { type ScriptKey } from "@shared/config/operationScriptRegistry";
 
 export type ScriptFilePath = string | string[];
 
@@ -45,34 +19,43 @@ type JobRunnerFn = (
   options?: JobOptions,
 ) => Promise<string | JobResult>;
 
-const jobRunners: Record<string, JobRunnerFn> = {
-  "114": runJob114,
-  "16": runJob16,
-  "20": runJob20,
-  "25": runJob25,
-  "28": runJob28,
-  "43": runJob28,
-  "68": runJob28,
-  "34": runJob34,
-  "39": runJob39,
-  "56": runJob56,
-  "62": runJob62,
-  "64": runJob64,
-  "66": runJob66,
-  "80": runJob80,
-  e5: (_, filePath) => runJobE5(filePath),
-  e5_check: () => runJobE5Check(),
-  e8: () => runJobE8(),
-  e9: () => runJobE9(),
-  e14: (_, filePath) => runJobE14(filePath),
-  e29: (_, filePath) => runJobE29(filePath),
-  e30: (_, filePath) => runJobE30(filePath),
-  e41: (_, filePath) => runJobE41(filePath),
-  n12: runJobN12,
-  n20: runJobN20,
-  n25: runJobN25,
-  n31: runJobN31,
-  n33: runJobN33,
+const jobRunners: Partial<Record<ScriptKey, JobRunnerFn>> = {
+  // 数字系
+  "114": jobs.runJob114,
+  "16": jobs.runJob16,
+  "20": jobs.runJob20,
+  "25": jobs.runJob25,
+  "28": jobs.runJob28,
+  "43": jobs.runJob28,
+  "68": jobs.runJob28,
+  "34": jobs.runJob34,
+  "39": jobs.runJob39,
+  "56": jobs.runJob56,
+  "62": jobs.runJob62,
+  "64": jobs.runJob64,
+  "66": jobs.runJob66,
+  "80": jobs.runJob80,
+
+  // Eシリーズ
+  e5: (_, filePath) => jobs.runJobE5(filePath),
+  e5_check: () => jobs.runJobE5Check(),
+  e8: () => jobs.runJobE8(),
+  e9: () => jobs.runJobE9(),
+  e14: (_, filePath) => jobs.runJobE14(filePath),
+  e29: (_, filePath) => jobs.runJobE29(filePath),
+  e30: (_, filePath) => jobs.runJobE30(filePath),
+  e41: (_, filePath) => jobs.runJobE41(filePath),
+
+  // Nシリーズ
+  n12: jobs.runJobN12,
+  n20: jobs.runJobN20,
+  n25: jobs.runJobN25,
+  n31: jobs.runJobN31,
+  n33: jobs.runJobN33,
+
+  // RDPフォールバック系
+  webedi_db: () => jobs.runJobRdp("WEBEDI_DB"),
+  webedi: () => jobs.runJobRdp("WEBEDI"),
 };
 
 export interface ParsedScriptEntry {
@@ -102,9 +85,7 @@ export function parseScriptEntries(input?: string): ParsedScriptEntry[] {
     const key = rawKey.trim().toLowerCase();
     const runnerKey = rawTarget.trim().toLowerCase();
 
-    if (jobRunners[runnerKey]) {
-      entries.push({ key, runnerKey });
-    }
+    entries.push({ key, runnerKey });
   }
 
   return entries;
@@ -116,15 +97,23 @@ export async function executeSingleScriptJob(
   filePath?: ScriptFilePath,
 ): Promise<JobResult> {
   const cleanKanriNo = normalizeKanriNo(kanriNo);
-  const cleanKey = targetKey.trim().toLowerCase();
+  const cleanKey = targetKey.trim().toLowerCase() as ScriptKey;
 
   const fn = jobRunners[cleanKey];
 
   if (!fn) {
-    return {
-      success: false,
-      message: `対象のスクリプトキーが見つかりません: No.${cleanKanriNo} (target="${cleanKey}")`,
-    };
+    try {
+      const message = await jobs.runJobRdp(targetKey.toUpperCase());
+      return {
+        success: true,
+        message,
+      };
+    } catch {
+      return {
+        success: false,
+        message: `対象のスクリプトキーが見つかりません: No.${cleanKanriNo} (target="${cleanKey}")`,
+      };
+    }
   }
 
   try {
@@ -146,4 +135,3 @@ export async function executeSingleScriptJob(
     };
   }
 }
-

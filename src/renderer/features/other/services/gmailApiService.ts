@@ -95,7 +95,6 @@ async function getPrimarySignature(): Promise<string> {
     return await gmailCommands.getGmailSignature();
   } catch (error) {
     console.warn("[gmailApiService] 署名取得に失敗しました", error);
-
     return "";
   }
 }

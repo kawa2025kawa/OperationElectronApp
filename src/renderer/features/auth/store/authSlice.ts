@@ -1,7 +1,6 @@
 ﻿// src/renderer/features/auth/store/authSlice.ts
 
 import type { StateCreator } from "zustand";
-import { ALL_SHEET_IDS } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { authCommands } from "@renderer/services/commands";
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
 import type { AppState } from "@renderer/store";
@@ -114,8 +113,6 @@ export const createAuthSlice: StateCreator<
       set((state) => {
         applyAuthenticatedState(state, profile);
       });
-
-      await get().prefetchSheets(ALL_SHEET_IDS);
     } catch (error) {
       console.error("[Auth] Login success handler failed:", error);
       throw error;

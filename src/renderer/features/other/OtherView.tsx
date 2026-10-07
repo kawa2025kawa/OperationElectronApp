@@ -2,15 +2,17 @@
 
 import { memo } from "react";
 import { clsx } from "clsx";
-
 import { animateFadeIn } from "@renderer/styles/tokens";
-
 import { useOtherViewLogic } from "./useOtherViewLogic";
 import * as styles from "./otherView.css";
 
 export const OtherView = memo(() => {
-  const { handleOpenPdfModal, handleOpenGmailModal, handleOpenGiftMdModal } =
-    useOtherViewLogic();
+  const {
+    handleOpenPdfModal,
+    handleOpenGmailModal,
+    handleOpenGiftMdModal,
+    handleResetStatuses,
+  } = useOtherViewLogic();
 
   return (
     <div className={clsx(styles.container, animateFadeIn)}>
@@ -22,21 +24,28 @@ export const OtherView = memo(() => {
         >
           Tempomatic PDF
         </button>
-
         <button
           className={styles.card}
           onClick={handleOpenGmailModal}
           type="button"
         >
-          Gmail下書き作成
+          Gmail
         </button>
-
         <button
           className={styles.card}
           onClick={handleOpenGiftMdModal}
           type="button"
         >
-          ギフトデータMD転送
+          ギフトMD処理
+        </button>
+
+        {/* ▼ 新規追加: ステータス全リセットボタン */}
+        <button
+          className={styles.card}
+          onClick={handleResetStatuses}
+          type="button"
+        >
+          ステータス全リセット
         </button>
       </div>
     </div>

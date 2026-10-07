@@ -1,6 +1,11 @@
-﻿import { useMemo, useCallback } from "react";
+﻿// src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
+
+import { useMemo, useCallback } from "react";
+import { useShallow } from "zustand/react/shallow";
 import type { Shop } from "@shared/types/spreadsheet/shop";
 import type { ModalAction } from "@shared/types/ui/modal";
+import { useAppStore } from "@renderer/store";
+import { selectShopFilePaths } from "@renderer/features/spreadSheet/store/spreadsheetSelectors";
 import { systemCommands } from "@renderer/services/commands";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
 import {
@@ -10,22 +15,34 @@ import {
 
 interface UseShopModalContentParams {
   data: Shop;
-  excelPath?: string;
-  pdfPath?: string;
-  handleOpen: (path: string) => void;
 }
 
-export const useShopModalContent = ({
-  data,
-  excelPath,
-  pdfPath,
-  handleOpen,
-}: UseShopModalContentParams) => {
+export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
+  const { excelPath, pdfPath } = useAppStore(
+    useShallow((state) => selectShopFilePaths(data.shopCode)(state)),
+  );
+
   const { selectedIndex, setSelectedIndex, groups, displayItems } =
     useSpreadSheetTabData(data, SHOP_MODAL_GROUPS);
 
   const isTimeRecorderTab =
     SHOP_MODAL_GROUPS[selectedIndex]?.title === "タイムレコーダー";
+
+  const handleOpen = useCallback(async (path: string) => {
+    const normalizedPath = path.trim();
+
+    if (!normalizedPath) return;
+
+    try {
+      await systemCommands.openExternal(normalizedPath);
+    } catch (error) {
+      console.error(
+        "[useShopModalContent] Failed to open external path:",
+        normalizedPath,
+        error,
+      );
+    }
+  }, []);
 
   const handleOpenImage = useCallback((value: string | undefined) => {
     if (value && value !== "-") {

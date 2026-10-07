@@ -1,7 +1,7 @@
 ﻿// electron/features/operation/jobs/scripts/job_e5.ts
 
 import fs from "fs-extra";
-import path from "path";
+import path from "node:path";
 import iconv from "iconv-lite";
 import { parseCsvLine } from "../helpers/shared/parseCsvLine";
 

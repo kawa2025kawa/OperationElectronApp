@@ -23,9 +23,4 @@ export const PdfUploadModalContent: GlobalModalComponent = memo(() => {
   );
 });
 
-PdfUploadModalContent.modalSize = {
-  width: "min(90vw, 1000px)",
-  height: "min(85vh, 750px)",
-};
-
 PdfUploadModalContent.displayName = "PdfUploadModalContent";

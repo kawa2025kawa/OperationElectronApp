@@ -1,6 +1,6 @@
 // src/renderer/components/ui/toast/statusToastHandler.ts
 
-import { getAutoScriptKeys } from "@electron/features/operation/config/operationScriptRegistry";
+import { getAutoScriptKeys } from "@shared/config/operationScriptRegistry";
 import { findMasterByKanriNo } from "@renderer/features/operation/helpers/entityUtils";
 import { useAppStore } from "@renderer/store/index";
 import {

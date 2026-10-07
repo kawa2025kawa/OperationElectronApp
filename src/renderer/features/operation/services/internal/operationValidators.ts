@@ -1,9 +1,11 @@
 import type { AppState } from "@renderer/store";
+
 import {
   selectIrregularMasters,
   selectOperationMasters,
   selectTodayIrregularMasters,
 } from "@renderer/features/spreadSheet/store/spreadsheetSelectors";
+
 import type { JobExecutionOptions } from "@shared/utils/dependency/dependencyUtils";
 import { validateJobDependencies } from "@shared/utils/dependency/dependencyUtils";
 
@@ -53,6 +55,6 @@ export function validateExecution(
 
   return {
     ok: false,
-    message: validation.message ?? "蜑肴署譚｡莉ｶ繧呈ｺ縺溘＠縺ｦ縺・∪縺帙ｓ",
+    message: validation.message ?? "前提条件を満たしていません",
   };
 }

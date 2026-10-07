@@ -1,6 +1,8 @@
 ﻿// src/renderer/components/ui/statusSummary/useStatusSummary.ts
 
-import { useCallback, useMemo } from "react";
+// src/renderer/components/ui/statusSummary/useStatusSummary.ts
+
+import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -55,18 +57,16 @@ export const useStatusSummary = ({ openModal }: UseStatusSummaryParams) => {
     })),
   );
 
-  const items = useMemo<StatusItemData[]>(() => {
-    return SUMMARY_DISPLAY_ORDER.map((key) => {
-      const value = summary[key] ?? 0;
+  const items = SUMMARY_DISPLAY_ORDER.map((key) => {
+    const value = summary[key] ?? 0;
 
-      return {
-        key,
-        label: getSummaryLabel(key),
-        displayValue: key === "progress" ? `${value}%` : value,
-        badgeClass: getBadgeClass(key),
-      };
-    });
-  }, [summary]);
+    return {
+      key,
+      label: getSummaryLabel(key),
+      displayValue: key === "progress" ? `${value}%` : value,
+      badgeClass: getBadgeClass(key),
+    };
+  });
 
   const handleClick = useCallback(
     (key: SummaryDisplayKey, label: string) => {

@@ -21,9 +21,4 @@ export const GiftMdModalContent: GlobalModalComponent = memo(() => {
   );
 });
 
-GiftMdModalContent.modalSize = {
-  width: "min(80vw, 850px)",
-  height: "min(75vh, 650px)",
-};
-
 GiftMdModalContent.displayName = "GiftMdModalContent";

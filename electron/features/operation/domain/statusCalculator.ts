@@ -1,4 +1,4 @@
-// electron/features/operation/domain/status/statusCalculator.ts
+﻿// electron/features/operation/domain/status/statusCalculator.ts
 
 import {
   JOB_STATUS,
@@ -16,12 +16,11 @@ import {
   normalizeDependencies,
   type DependencyMasters,
   type DependencyStatuses,
+  type MissingDependency,
 } from "@shared/utils/dependency/dependencyUtils";
 
-import {
-  isPreviousDayJob,
-  parseHHMM,
-} from "@electron/features/operation/helpers/operationUtils";
+import { isPreviousDayJob } from "@electron/features/operation/domain/operationRules";
+import { parseHHMM } from "@electron/features/operation/utils/operationUtils";
 
 export type StatusCalculationTarget = OperationMaster | TodayIrregularMaster;
 
@@ -36,9 +35,9 @@ export function calculateJobStatus(
   statuses: DependencyStatuses,
   activeFlags?: ActiveFlags,
 ): StatusCalculationResult {
-  const dependencies = normalizeDependencies(target.dependsOn);
+  const hasDependencies = normalizeDependencies(target.dependsOn).length > 0;
 
-  if (dependencies.length === 0) {
+  if (!hasDependencies) {
     return calculateWithoutDependencies(target);
   }
 
@@ -75,12 +74,7 @@ function calculateWithDependencies(
   );
 
   if (!dependencyResult.ok) {
-    return {
-      status: JOB_STATUS.WAITING,
-      comment: createDependencyWaitingComment(
-        dependencyResult.missingDependencies,
-      ),
-    };
+    return createDependencyWaitingResult(dependencyResult.missingDependencies);
   }
 
   if (isBeforeScheduledTime(target)) {
@@ -96,10 +90,17 @@ function calculateWithDependencies(
   };
 }
 
+function createDependencyWaitingResult(
+  missingDependencies: readonly MissingDependency[],
+): StatusCalculationResult {
+  return {
+    status: JOB_STATUS.WAITING,
+    comment: createDependencyWaitingComment(missingDependencies),
+  };
+}
+
 function createDependencyWaitingComment(
-  missingDependencies: readonly {
-    kanriNo: string;
-  }[],
+  missingDependencies: readonly MissingDependency[],
 ): string {
   const missingKanriNos = missingDependencies
     .map(({ kanriNo }) => kanriNo)
@@ -132,4 +133,3 @@ function isBeforeScheduledTime(
 
   return now < targetDate;
 }
-

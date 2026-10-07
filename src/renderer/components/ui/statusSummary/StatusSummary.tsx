@@ -1,32 +1,30 @@
 // src/renderer/components/ui/statusSummary/StatusSummary.tsx
 
-import { memo, useCallback } from "react";
-import { useAppStore } from "@renderer/store";
+import { memo } from "react";
+
 import { SummaryModalContent } from "@renderer/features/operation/components/modal/summaryModal/SummaryModalContent";
 import type {
   OperationSummaryRow,
   TodaySummaryRow,
 } from "@renderer/features/operation/services/operationSummaryService";
+import { useAppStore } from "@renderer/store";
+
 import { useStatusSummary } from "./useStatusSummary";
 import * as styles from "./statusSummary.css";
 
 export const StatusSummary = memo(() => {
   const openGlobalModal = useAppStore((state) => state.openGlobalModal);
 
-  const handleOpenModal = useCallback(
-    (
-      summaryItems: Array<OperationSummaryRow | TodaySummaryRow>,
-      titleLabel: string,
-    ) => {
-      const Content = () => <SummaryModalContent items={summaryItems} />;
-      Object.assign(Content, SummaryModalContent);
-
-      openGlobalModal(Content, {
-        title: titleLabel,
-      });
-    },
-    [openGlobalModal],
-  );
+  const handleOpenModal = (
+    summaryItems: Array<OperationSummaryRow | TodaySummaryRow>,
+    titleLabel: string,
+  ) => {
+    openGlobalModal(<SummaryModalContent items={summaryItems} />, {
+      title: titleLabel,
+      width: "min(90vw, 1000px)",
+      height: "min(75vh, 600px)",
+    });
+  };
 
   const { items, handleClick } = useStatusSummary({
     openModal: handleOpenModal,

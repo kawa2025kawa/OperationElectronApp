@@ -1,15 +1,16 @@
-// electron/features/operation/helpers/trackerHelper.ts
+// electron\features\operation\infrastructure\tracker\trackerHelper.ts
 
 import {
   JOB_STATUS,
   type JobStatus,
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
+import { isPreviousDayJob } from "@electron/features/operation/domain/operationRules";
+
 import {
-  isPreviousDayJob,
   parseHHMM,
   type ParsedTime,
-} from "@electron/features/operation/helpers/operationUtils";
+} from "@electron/features/operation/utils/operationUtils";
 import type { OperationMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 export { parseHHMM, type ParsedTime };
@@ -153,23 +154,18 @@ export function normalizeItem(
  * Trackerのステータス配列から
  * アプリ内部のステータスを解決する。
  *
- * 複数のステータスが返る場合は、
- * 後ろにあるステータスを優先する。
+ * 配列の最初のステータスのみを参照して評価する。
  */
 function resolveStatus(statuses: string[]): JobStatus | undefined {
-  for (let index = statuses.length - 1; index >= 0; index -= 1) {
-    const status =
-      STATUS_ALIAS_MAP[
-        statuses[index]
-          .trim()
-          .toLowerCase()
-          .replace(/[\s_-]/g, "")
-      ];
-
-    if (status) {
-      return status;
-    }
+  const firstStatus = statuses[0];
+  if (!firstStatus) {
+    return undefined;
   }
 
-  return undefined;
+  const key = firstStatus
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]/g, "");
+
+  return STATUS_ALIAS_MAP[key];
 }

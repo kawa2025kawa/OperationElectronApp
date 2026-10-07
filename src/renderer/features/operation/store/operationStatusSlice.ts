@@ -1,4 +1,4 @@
-// src/renderer/features/operation/store/operationStatusSlice.ts
+﻿// src/renderer/features/operation/store/operationStatusSlice.ts
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
@@ -269,9 +269,12 @@ export const createOperationStatusSlice: StateCreator<
    * ========================= */
 
   applyOperationStatusUpdates: (updates) => {
-    if (updates.length === 0) {
-      return;
-    }
+    if (updates.length === 0) return;
+
+    console.log(
+      "[UI] operation status updates",
+      updates.filter((item) => item.kanriNo === "E23"),
+    );
 
     set((state) => applyStatusUpdates(state, updates));
   },

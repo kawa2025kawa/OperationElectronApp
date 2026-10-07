@@ -1,6 +1,6 @@
 ﻿//src\renderer\features\operation\components\modal\summaryModal\SummaryModalContent.tsx
 
-import { memo, useCallback } from "react";
+import { memo } from "react";
 import { clsx } from "clsx";
 
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
@@ -47,9 +47,9 @@ const TableRowInner = <T extends object>({
 }: TableRowProps<T>) => {
   const rowState = isSelected ? "selected" : onRowClick ? "clickable" : "idle";
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     onRowClick?.(item);
-  }, [item, onRowClick]);
+  };
 
   return (
     <tr
@@ -163,8 +163,3 @@ export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps>
       </div>
     );
   });
-
-SummaryModalContent.modalSize = {
-  width: "min(90vw, 1000px)",
-  height: "min(75vh, 600px)",
-};

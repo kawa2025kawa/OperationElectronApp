@@ -29,16 +29,13 @@ export const StatusContextMenu = memo<StatusContextMenuProps>(({ kanriNo }) => {
     (state) => state.updateOperationStatus,
   );
 
-  const handleSelectStatus = useCallback(
-    (status: JobStatus) => {
-      updateOperationStatus({
-        kanriNo,
-        status,
-        comment: "",
-      });
-    },
-    [kanriNo, updateOperationStatus],
-  );
+  const handleSelectStatus = (status: JobStatus) => {
+    updateOperationStatus({
+      kanriNo,
+      status,
+      comment: "",
+    });
+  };
 
   return (
     <ContextMenu.Portal>

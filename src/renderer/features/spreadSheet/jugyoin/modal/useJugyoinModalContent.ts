@@ -1,4 +1,4 @@
-﻿import { useCallback, useMemo } from "react";
+﻿import { useCallback } from "react";
 import { addDays, format, getDay } from "date-fns";
 import { ja } from "date-fns/locale/ja";
 import { systemCommands } from "@renderer/services/commands";
@@ -22,11 +22,10 @@ const formatDateWithDay = (date: Date) => {
 };
 
 export function useJugyoinModalContent(data: Jugyoin) {
-  const scheduleLink = useMemo(() => {
-    return data?.scheduleLink && data.scheduleLink !== "-"
+  const scheduleLink =
+    data?.scheduleLink && data.scheduleLink !== "-"
       ? data.scheduleLink
       : undefined;
-  }, [data?.scheduleLink]);
 
   const handleOpenSchedule = useCallback(() => {
     if (scheduleLink) {
@@ -34,54 +33,32 @@ export function useJugyoinModalContent(data: Jugyoin) {
     }
   }, [scheduleLink]);
 
-  const profile = useMemo(
-    () => ({
-      position: data?.position || "-",
-      email: data?.email || "-",
-      extension: data?.naisen || "-",
-      mobileShort: data?.tanshuku || "-",
-      mobile: data?.contactMobile || "-",
-    }),
-    [
-      data?.position,
-      data?.email,
-      data?.naisen,
-      data?.tanshuku,
-      data?.contactMobile,
-    ],
-  );
+  const profile = {
+    position: data?.position || "-",
+    email: data?.email || "-",
+    extension: data?.naisen || "-",
+    mobileShort: data?.tanshuku || "-",
+    mobile: data?.contactMobile || "-",
+  };
 
-  const schedules = useMemo(() => {
-    const now = new Date();
-
-    return [
-      {
-        label: "本日",
-        date: formatDateWithDay(now),
-        amStatus: data?.todayAmStatus || "-",
-        amDetail: data?.todayAmDetail || "-",
-        pmStatus: data?.todayPmStatus || "-",
-        pmDetail: data?.todayPmDetail || "-",
-      },
-      {
-        label: "明日",
-        date: formatDateWithDay(addDays(now, 1)),
-        amStatus: data?.tomorrowAmStatus || "-",
-        amDetail: data?.tomorrowAmDetail || "-",
-        pmStatus: data?.tomorrowPmStatus || "-",
-        pmDetail: data?.tomorrowPmDetail || "-",
-      },
-    ];
-  }, [
-    data?.todayAmStatus,
-    data?.todayAmDetail,
-    data?.todayPmStatus,
-    data?.todayPmDetail,
-    data?.tomorrowAmStatus,
-    data?.tomorrowAmDetail,
-    data?.tomorrowPmStatus,
-    data?.tomorrowPmDetail,
-  ]);
+  const schedules = [
+    {
+      label: "本日",
+      date: formatDateWithDay(new Date()),
+      amStatus: data?.todayAmStatus || "-",
+      amDetail: data?.todayAmDetail || "-",
+      pmStatus: data?.todayPmStatus || "-",
+      pmDetail: data?.todayPmDetail || "-",
+    },
+    {
+      label: "明日",
+      date: formatDateWithDay(addDays(new Date(), 1)),
+      amStatus: data?.tomorrowAmStatus || "-",
+      amDetail: data?.tomorrowAmDetail || "-",
+      pmStatus: data?.tomorrowPmStatus || "-",
+      pmDetail: data?.tomorrowPmDetail || "-",
+    },
+  ];
 
   return {
     state: {

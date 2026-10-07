@@ -4,7 +4,7 @@ import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerIpcHandlers } from "./ipc/ipcHandlerRegistry";
-import { stopPolling } from "@electron/features/operation/services/operationScheduler";
+import { stopPolling } from "@electron/features/operation/application/operationScheduler";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

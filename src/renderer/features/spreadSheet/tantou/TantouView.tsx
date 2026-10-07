@@ -8,8 +8,6 @@ import {
   APP_VIEW_IDS,
   type AppViewDefinition,
 } from "@shared/types/registry/viewDefinition";
-import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
-import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { AuthView } from "@renderer/features/auth/AuthView";
 
 import { useSpreadSheetDomainLogic } from "../hooks/useSpreadSheetDomainLogic";
@@ -33,20 +31,15 @@ export const TANTOU_COLUMNS: readonly Column<Tantou>[] = [
 
 // --- コンポーネント本体 ---
 export const TantouView = memo(() => {
-  const {
-    isAuthenticated,
-    data,
-    isFetching,
-    error,
-    handleRetry,
-    loadingMessage,
-    openGlobalModal,
-  } = useSpreadSheetDomainLogic<Tantou>(SHEETS.KOKYUHYO_TANTOU.sheetName);
+  const { isAuthenticated, data, openGlobalModal } =
+    useSpreadSheetDomainLogic<Tantou>(SHEETS.KOKYUHYO_TANTOU.sheetName);
 
   const handleRowClick = useCallback(
     (row: Tantou) => {
-      openGlobalModal(() => <TantouModalContent data={row} />, {
+      openGlobalModal(<TantouModalContent data={row} />, {
         title: "担当詳細",
+        width: "70vw",
+        height: "70vh",
       });
     },
     [openGlobalModal],
@@ -57,20 +50,13 @@ export const TantouView = memo(() => {
   }
 
   return (
-    <>
-      <LoadingOverlay isOpen={isFetching} message={loadingMessage} />
-      <div className={styles.viewContainer}>
-        <div className={styles.inner}>
-          {error && data.length === 0 && !isFetching ? (
-            <EmptyState message={error} onRetry={handleRetry} />
-          ) : (
-            <div className={styles.tableArea}>
-              <TantouTable rows={data} onRowClick={handleRowClick} />
-            </div>
-          )}
+    <div className={styles.viewContainer}>
+      <div className={styles.inner}>
+        <div className={styles.tableArea}>
+          <TantouTable rows={data} onRowClick={handleRowClick} />
         </div>
       </div>
-    </>
+    </div>
   );
 });
 
@@ -102,14 +88,6 @@ export const tantouViewConfig: AppViewDefinition<Tantou> = {
       "todayFloor3",
       "todayTensou",
     ],
-  },
-
-  modalConfig: {
-    modalType: "sheet_tantou",
-    modalSize: {
-      width: "70vw",
-      height: "70vh",
-    },
   },
 
   columns: TANTOU_COLUMNS,

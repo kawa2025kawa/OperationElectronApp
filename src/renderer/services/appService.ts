@@ -5,11 +5,7 @@ import { operationCommands } from "@renderer/services/commands";
 import { updateService } from "@renderer/services/updateService";
 import { useAppStore } from "@renderer/store";
 
-import {
-  ALL_SHEET_IDS,
-  SHEETS,
-  type OperationMasterData,
-} from "@shared/types/spreadsheet/spreadsheetTypes";
+import type { MasterData } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 /* =========================
  * Types
@@ -44,7 +40,6 @@ interface KanriNoSource {
 async function restorePersistedStatuses(): Promise<void> {
   try {
     const savedStatuses = await operationCommands.initializeStatus();
-
     const updates = Object.values(savedStatuses);
 
     if (updates.length === 0) {
@@ -64,35 +59,6 @@ async function restorePersistedStatuses(): Promise<void> {
  * Operation Master
  * ========================= */
 
-function getOperationMasterData(): OperationMasterData {
-  const { sheetData } = useAppStore.getState();
-
-  return {
-    operations: sheetData[SHEETS.OPERATION.sheetName]?.data ?? [],
-
-    irregulars: sheetData[SHEETS.IRREGULAR.sheetName]?.data ?? [],
-
-    todayIrregulars: sheetData[SHEETS.TODAY_IRREGULAR.sheetName]?.data ?? [],
-  };
-}
-
-function logOperationMasterData(masterData: OperationMasterData): void {
-  console.log(
-    "[AppService] sheetData operation masters:",
-    masterData.operations.length,
-  );
-
-  console.log(
-    "[AppService] sheetData irregular masters:",
-    masterData.irregulars.length,
-  );
-
-  console.log(
-    "[AppService] sheetData today irregular masters:",
-    masterData.todayIrregulars.length,
-  );
-}
-
 function logDuplicateKanriNos(sources: TargetSource[]): void {
   const countsByKanriNo = new Map<string, KanriNoSource[]>();
 
@@ -105,7 +71,6 @@ function logDuplicateKanriNos(sources: TargetSource[]): void {
       }
 
       const entries = countsByKanriNo.get(kanriNo) ?? [];
-
       const existing = entries.find((entry) => entry.source === source);
 
       if (existing) {
@@ -142,8 +107,12 @@ function logDuplicateKanriNos(sources: TargetSource[]): void {
   console.warn("[AppService] duplicate kanriNo:", duplicates);
 }
 
-function createTargetSources(masterData: OperationMasterData): TargetSource[] {
-  return [
+/**
+ * Spreadsheetから取得したMasterを
+ * Main側へ登録する。
+ */
+async function registerOperationTargets(masterData: MasterData): Promise<void> {
+  const targetSources: TargetSource[] = [
     {
       source: "operation",
       targets: masterData.operations,
@@ -157,18 +126,8 @@ function createTargetSources(masterData: OperationMasterData): TargetSource[] {
       targets: masterData.todayIrregulars,
     },
   ];
-}
 
-/**
- * Spreadsheetから取得したMasterを
- * Main側へ登録する。
- */
-async function registerOperationTargets(): Promise<void> {
-  const masterData = getOperationMasterData();
-
-  logOperationMasterData(masterData);
-
-  logDuplicateKanriNos(createTargetSources(masterData));
+  logDuplicateKanriNos(targetSources);
 
   await operationCommands.registerTargets(masterData);
 
@@ -205,12 +164,16 @@ async function loadOperationData(): Promise<void> {
    *
    * 両方完了してからMaster登録を行う。
    */
-  await Promise.all([
-    store.prefetchSheets(ALL_SHEET_IDS),
+  const [masterData] = await Promise.all([
+    store.fetchMasterData(),
     restorePersistedStatuses(),
   ]);
 
-  await registerOperationTargets();
+  if (!masterData) {
+    return;
+  }
+
+  await registerOperationTargets(masterData);
 }
 
 /* =========================

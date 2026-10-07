@@ -104,23 +104,6 @@ function findStatus(
   );
 }
 
-function checkCenterDependency(
-  dependency: string,
-  activeFlags?: ActiveFlags,
-): MissingDependency | undefined {
-  const activeKey = CENTER_DEPENDENCY_KEYS[dependency];
-
-  if (!activeKey || activeFlags?.[activeKey] === true) {
-    return undefined;
-  }
-
-  return {
-    kanriNo: dependency,
-    status: null,
-    comment: `${dependency} が未アクティブ`,
-  };
-}
-
 function createMissingDependency(
   dependency: string,
   master: MasterItem | undefined,
@@ -143,10 +126,18 @@ function checkDependency(
   statuses: DependencyStatuses,
   activeFlags?: ActiveFlags,
 ): MissingDependency | undefined {
-  const centerMissing = checkCenterDependency(dependency, activeFlags);
+  const activeKey = CENTER_DEPENDENCY_KEYS[dependency];
 
-  if (centerMissing) {
-    return centerMissing;
+  if (activeKey) {
+    if (activeFlags?.[activeKey] === true) {
+      return undefined;
+    }
+
+    return {
+      kanriNo: dependency,
+      status: null,
+      comment: `${dependency} が未アクティブ`,
+    };
   }
 
   const master = findMaster(dependency, masters);
@@ -209,12 +200,9 @@ export function checkJobDependencies(
     return EMPTY_CHECK_RESULT;
   }
 
-  return checkDependencies(
-    normalizeDependencies(target.dependsOn),
-    masters,
-    statuses,
-    activeFlags,
-  );
+  const dependencies = normalizeDependencies(target.dependsOn);
+
+  return checkDependencies(dependencies, masters, statuses, activeFlags);
 }
 
 export function validateJobDependencies(

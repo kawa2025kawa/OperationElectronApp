@@ -5,11 +5,11 @@ import {
   createElement,
   useCallback,
   useContext,
-  useMemo,
   useState,
 } from "react";
 import type { ReactNode } from "react";
 
+import { getManualScriptKeys } from "@shared/config/operationScriptRegistry";
 import type { MasterRow } from "@renderer/features/operation/helpers/entityUtils";
 import { executeScriptJob } from "@renderer/features/operation/services/scriptJobService";
 import { systemCommands } from "@renderer/services/commands";
@@ -25,14 +25,8 @@ export type ExecutionState = "idle" | "completed" | "error";
 
 const FILE_SELECTION_JOB_IDS = new Set(["E5", "E14", "E29", "E30", "E41"]);
 
-function normalizeKanriNo(kanriNo?: string): string {
-  return String(kanriNo ?? "")
-    .trim()
-    .toUpperCase();
-}
-
-function requiresFileSelection(kanriNo: string): boolean {
-  return FILE_SELECTION_JOB_IDS.has(kanriNo);
+function requiresFileSelection(scriptKey: string): boolean {
+  return FILE_SELECTION_JOB_IDS.has(scriptKey.toUpperCase());
 }
 
 function extractFilePath(file: File): string {
@@ -55,7 +49,7 @@ function convertFilesToItems(files: File[]): ScriptFileItem[] {
 }
 
 function isDiffExecutionResult(result: JobResult | null): boolean {
-  return result?.message.includes("差分あり") ?? false;
+  return result?.message.includes("差分") ?? false;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -73,44 +67,70 @@ function useScriptModalContentValue(item?: MasterRow | null) {
   );
   const [isExecuting, setIsExecuting] = useState(false);
 
-  const kanriNo = normalizeKanriNo(item?.kanriNo);
+  /**
+   * 対象マスタの管理番号
+   *
+   * 例:
+   * N27
+   */
+  const rawKanriNo = String(item?.kanriNo ?? "");
+
+  /**
+   * 対象マスタに紐づく実行Script一覧
+   *
+   * 例:
+   * N27
+   *  ├─ WEBEDI
+   *  └─ WEBEDI_DB
+   */
+  const scriptKeys = rawKanriNo ? getManualScriptKeys(rawKanriNo) : [];
+
+  /**
+   * 現在選択されている実行Script
+   *
+   * 例:
+   * WEBEDI_DB
+   */
+  const [selectedScriptKey, setSelectedScriptKey] = useState<string>(
+    scriptKeys[0] ?? rawKanriNo,
+  );
+
+  const activeKey = selectedScriptKey || rawKanriNo;
+
   const isFinished = executionState !== "idle";
   const isError = executionState === "error";
-  const isFileSelectionRequired = requiresFileSelection(kanriNo);
+
+  const isFileSelectionRequired = requiresFileSelection(activeKey);
   const isDropZoneVisible = !isFinished && isFileSelectionRequired;
 
   const isExecutable =
     !isFinished &&
     !isExecuting &&
-    Boolean(kanriNo) &&
+    Boolean(activeKey) &&
     (!isFileSelectionRequired || selectedFiles.length > 0);
 
   const isDiffResult = isDiffExecutionResult(executionResult);
   const isHighlightError = isError || isDiffResult;
 
-  const messageText = useMemo(() => {
-    if (isError) {
-      return "エラーが発生しました";
-    }
+  let messageText: string;
 
-    if (executionState === "completed") {
-      return isDiffResult ? "差分を検出しました" : "正常に完了しました";
-    }
-
-    if (isDropZoneVisible) {
-      return "ファイルをドロップしてください";
-    }
-
-    return item?.workName
-      ? `${item.workName} を実行します`
-      : "実行ボタンを押してください";
-  }, [
-    executionState,
-    isDiffResult,
-    isDropZoneVisible,
-    isError,
-    item?.workName,
-  ]);
+  if (isError) {
+    messageText = "処理が失敗しました";
+  } else if (executionState === "completed") {
+    messageText = isDiffResult ? "差分が発生しました" : "正常に完了しました";
+  } else if (isDropZoneVisible) {
+    messageText = "対象ファイルをドロップしてください";
+  } else {
+    messageText = item?.workName
+      ? `${item.workName} (${activeKey})`
+      : `スクリプト実行 (${activeKey})`;
+  }
+  const handleSelectScriptKey = useCallback((key: string) => {
+    setSelectedScriptKey(key);
+    setSelectedFiles([]);
+    setExecutionState("idle");
+    setExecutionResult(null);
+  }, []);
 
   const handleFileSelect = useCallback((files: File[]) => {
     const items = convertFilesToItems(files);
@@ -131,7 +151,7 @@ function useScriptModalContentValue(item?: MasterRow | null) {
   }, []);
 
   const handleExecute = useCallback(async () => {
-    if (!kanriNo || isExecuting) {
+    if (!rawKanriNo || !activeKey || isExecuting) {
       return;
     }
 
@@ -145,33 +165,52 @@ function useScriptModalContentValue(item?: MasterRow | null) {
 
     setGlobalProcessing({
       message: "スクリプト実行中...",
-      target: item?.workName || kanriNo,
+      target: item?.workName || activeKey,
     });
 
     try {
+      /**
+       * rawKanriNo = 対象マスタ
+       * activeKey  = 実行するScript
+       *
+       * 例:
+       *   N27
+       *   WEBEDI_DB
+       *
+       * この2つを分離して渡す。
+       */
       const result = await executeScriptJob(
         useAppStore.getState(),
-        kanriNo,
+        rawKanriNo,
+        activeKey,
         filePaths.length > 0 ? filePaths : undefined,
       );
 
       setExecutionResult(result);
-      setExecutionState("completed");
+
+      if (result.success === false) {
+        setExecutionState("error");
+      } else {
+        setExecutionState("completed");
+      }
+
       setSelectedFiles([]);
     } catch (error) {
       setExecutionResult({
         message: getErrorMessage(error),
       });
+
       setExecutionState("error");
     } finally {
       setIsExecuting(false);
       setGlobalProcessing(null);
     }
   }, [
+    rawKanriNo,
+    activeKey,
     isExecuting,
     isFileSelectionRequired,
     item?.workName,
-    kanriNo,
     selectedFiles,
     setGlobalProcessing,
   ]);
@@ -191,8 +230,12 @@ function useScriptModalContentValue(item?: MasterRow | null) {
       isExecutable,
       isExecuteDisabled: !isExecutable,
       isExecuting,
+      scriptKeys,
+      selectedScriptKey: activeKey,
     },
+
     actions: {
+      handleSelectScriptKey,
       handleFileSelect,
       handleRemoveFile,
       handleExecute,

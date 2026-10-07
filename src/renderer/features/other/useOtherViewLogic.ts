@@ -1,34 +1,67 @@
-﻿import { useCallback } from "react";
+﻿// src/renderer/features/other/useOtherViewLogic.ts
+
+import { createElement } from "react";
+
 import { useAppStore } from "@renderer/store";
 
-import { PdfUploadModalContent } from "./components/modal/contents/pdfUpload/PdfUploadModalContent";
 import { GiftMdModalContent } from "./components/modal/contents/giftMd/GiftMdModalContent";
 import { GmailDraftContent } from "./components/modal/contents/gmailDraft/GmailDraftContent";
+import { PdfUploadModalContent } from "./components/modal/contents/pdfUpload/PdfUploadModalContent";
+
+const MODAL_SIZE = {
+  width: "min(95vw, calc(75vh * (21 / 9)))",
+  height: "min(75vh, calc(95vw * (9 / 21)))",
+};
 
 export function useOtherViewLogic() {
   const openGlobalModal = useAppStore((state) => state.openGlobalModal);
 
-  const handleOpenPdfModal = useCallback(() => {
-    openGlobalModal(PdfUploadModalContent, {
+  const handleOpenPdfModal = () => {
+    openGlobalModal(createElement(PdfUploadModalContent), {
       title: "Tempomatic PDF",
+      ...MODAL_SIZE,
     });
-  }, [openGlobalModal]);
+  };
 
-  const handleOpenGmailModal = useCallback(() => {
-    openGlobalModal(GmailDraftContent, {
-      title: "Gmail下書き作成",
+  const handleOpenGmailModal = () => {
+    openGlobalModal(createElement(GmailDraftContent), {
+      title: "Gmail",
+      ...MODAL_SIZE,
     });
-  }, [openGlobalModal]);
+  };
 
-  const handleOpenGiftMdModal = useCallback(() => {
-    openGlobalModal(GiftMdModalContent, {
-      title: "ギフトデータMD転送",
+  const handleOpenGiftMdModal = () => {
+    openGlobalModal(createElement(GiftMdModalContent), {
+      title: "ギフトMD処理",
+      ...MODAL_SIZE,
     });
-  }, [openGlobalModal]);
+  };
+
+  const handleResetStatuses = () => {
+    openGlobalModal("すべてのステータスを初期化（未実行）に戻しますか？", {
+      title: "ステータスの全リセット",
+      confirmText: "リセット実行",
+      cancelText: "キャンセル",
+      onConfirm: async () => {
+        const store = useAppStore.getState();
+
+        store.updateModalConfig({ isProcessing: true });
+
+        try {
+          await store.resetAllOperationStatuses();
+          store.closeGlobalModal();
+        } catch (error) {
+          console.error("Failed to reset operation statuses:", error);
+          store.updateModalConfig({ isProcessing: false });
+        }
+      },
+    });
+  };
 
   return {
     handleOpenPdfModal,
     handleOpenGmailModal,
     handleOpenGiftMdModal,
+    handleResetStatuses,
   };
 }

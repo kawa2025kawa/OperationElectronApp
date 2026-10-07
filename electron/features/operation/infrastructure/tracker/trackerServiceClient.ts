@@ -1,4 +1,4 @@
-﻿// electron/features/operation/services/trackerServiceClient.ts
+﻿// electron\features\operation\infrastructure\tracker\trackerServiceClient.ts
 
 import {
   addKanshiTime,
@@ -8,7 +8,7 @@ import {
   normalizeItem,
   type TrackerApiResponse,
   type TrackerApiResponseItem,
-} from "@electron/features/operation/helpers/trackerHelper";
+} from "@electron/features/operation/infrastructure/tracker/trackerHelper";
 
 import type { OperationStatusState } from "@shared/types/operation/operationTypes";
 
@@ -30,7 +30,7 @@ async function fetchTrackerData(
 
     if (!response.ok) {
       console.error(
-        "[TrackerServiceClient] API request failed:",
+        `[${new Date().toISOString()}] [TrackerServiceClient] API request failed:`,
         response.status,
         response.statusText,
       );
@@ -40,12 +40,33 @@ async function fetchTrackerData(
 
     const data = (await response.json()) as TrackerApiResponse;
 
+    // ログ出力時間の取得 (ISO形式: 例 2026-10-06T09:22:44.123Z)
+    // 日本時間表記にしたい場合は new Date().toLocaleString("ja-JP") をお使いください
+    const timestamp = new Date().toISOString();
+
+    console.log(`[${timestamp}] [TrackerServiceClient] API Raw Response Data:`);
+    // オブジェクトの深い階層まで省略せずに全て出力
+    console.dir(data, { depth: null });
+
+    // status 配列のみを抽出して出力
+    console.log(
+      `[${timestamp}] [TrackerServiceClient] Statuses:`,
+      data.data.map((item) => item.status),
+    );
+
     return Array.isArray(data.data) ? data.data : [];
   } catch (error) {
+    const timestamp = new Date().toISOString();
     if (error instanceof DOMException && error.name === "AbortError") {
-      console.error("[TrackerServiceClient] API request timed out:", url);
+      console.error(
+        `[${timestamp}] [TrackerServiceClient] API request timed out:`,
+        url,
+      );
     } else {
-      console.error("[TrackerServiceClient] API request failed:", error);
+      console.error(
+        `[${timestamp}] [TrackerServiceClient] API request failed:`,
+        error,
+      );
     }
 
     return [];
@@ -53,7 +74,6 @@ async function fetchTrackerData(
     clearTimeout(timeoutId);
   }
 }
-
 export function hasJobId(target: OperationMaster): boolean {
   return Boolean(getJobId(target));
 }

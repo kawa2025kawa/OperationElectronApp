@@ -1,16 +1,19 @@
-﻿// src/shared/types/spreadsheet/spreadsheetTypes.ts
-
-import type { Jugyoin } from "./jugyoin";
+﻿import type { Jugyoin } from "./jugyoin";
 import type { Kokyuhyo } from "./kokyuhyo";
 import type { Shop } from "./shop";
 import type { Tantou } from "./tantou";
 
-const SPREADSHEET_ID = {
+/* =========================
+ * Spreadsheet ID
+ * ========================= */
+
+export const SPREADSHEET_ID = {
   MASTER: "1VdlHfI2Z3eker8vvqTNEeO0rI5kqV-d_6UlRZOHNV2Q",
-  STORE: "1VYh6hj7_j17edeAIpAntvFQIcFMojosuUtj_PXDbXc0",
-  KOKYUHYO: "19CYXIor7Zz3i0KfNY1t5gDKWRU62o2Sq1Tp5iBgaocc",
-  JUGYOIN: "1DdhzdvH-Z33sK6Zfk8_ZHBqVBmB0MxD9su0NVbge8gI",
 } as const;
+
+/* =========================
+ * Sheet Definitions
+ * ========================= */
 
 export const SHEETS = {
   STORE: {
@@ -89,19 +92,6 @@ export interface RdpMaster {
   password: string;
 }
 
-export interface OperationMasterCache {
-  fetchedDate: string;
-  operations: OperationMaster[];
-  irregulars: IrregularMaster[];
-  todayIrregulars: TodayIrregularMaster[];
-}
-
-export interface OperationMasterData {
-  operations: OperationMaster[];
-  irregulars: IrregularMaster[];
-  todayIrregulars: TodayIrregularMaster[];
-}
-
 /* =========================
  * Sheet Mapping
  * ========================= */
@@ -115,7 +105,6 @@ type SheetRowMap = {
   [SHEETS.KOKYUHYO.sheetName]: Kokyuhyo;
   [SHEETS.JUGYOIN.sheetName]: Jugyoin;
   [SHEETS.KOKYUHYO_TANTOU.sheetName]: Tantou;
-
   [SHEETS.OPERATION.sheetName]: OperationMaster;
   [SHEETS.IRREGULAR.sheetName]: IrregularMaster;
   [SHEETS.TODAY_IRREGULAR.sheetName]: TodayIrregularMaster;
@@ -126,14 +115,26 @@ export type SheetRow<TSheetId extends SheetId> = SheetRowMap[TSheetId];
 
 export type SheetData<TSheetId extends SheetId> = SheetRow<TSheetId>[];
 
+export interface MasterData {
+  stores: SheetData<typeof SHEETS.STORE.sheetName>;
+  kokyuhyos: SheetData<typeof SHEETS.KOKYUHYO.sheetName>;
+  jugyoin: SheetData<typeof SHEETS.JUGYOIN.sheetName>;
+  kokyuhyoTantous: SheetData<typeof SHEETS.KOKYUHYO_TANTOU.sheetName>;
+  operations: SheetData<typeof SHEETS.OPERATION.sheetName>;
+  irregulars: SheetData<typeof SHEETS.IRREGULAR.sheetName>;
+  todayIrregulars: SheetData<typeof SHEETS.TODAY_IRREGULAR.sheetName>;
+  rdps: SheetData<typeof SHEETS.RDP.sheetName>;
+}
+
+export interface MasterDataCache {
+  fetchedAt: string;
+  data: MasterData;
+}
+
 export type SpreadSheetEntity = SheetRow<SheetId>;
 
-export const ALL_SHEET_IDS = Object.values(SHEETS).map(
-  ({ sheetName }) => sheetName,
-) as SheetId[];
-
 /* =========================
- * Sheet State
+ * Renderer Sheet State
  * ========================= */
 
 export interface SheetDataResponse<TSheetId extends SheetId> {
@@ -143,12 +144,4 @@ export interface SheetDataResponse<TSheetId extends SheetId> {
 
 export type SheetDataState = {
   [TSheetId in SheetId]: SheetDataResponse<TSheetId> | null;
-};
-
-export type SheetFetchingState = {
-  [TSheetId in SheetId]: boolean;
-};
-
-export type SheetErrorState = {
-  [TSheetId in SheetId]: string | null;
 };

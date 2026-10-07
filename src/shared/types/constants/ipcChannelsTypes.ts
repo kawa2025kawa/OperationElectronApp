@@ -20,7 +20,7 @@ export const IPC_CHANNELS = {
   },
 
   SPREADSHEET: {
-    FETCH_SHEET: "spreadsheet:fetchSheet",
+    MASTER: "spreadsheet:master",
   },
 } as const;
 

@@ -1,6 +1,5 @@
 // src/renderer/components/layout/sidebar/useSidebarLogic.ts
 
-import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";
@@ -32,13 +31,10 @@ export const useSidebarLogic = () => {
     })),
   );
 
-  const handleItemClick = useCallback(
-    (view: AppViewId) => {
-      setSidebarOpen(false);
-      setCurrentView(view);
-    },
-    [setSidebarOpen, setCurrentView],
-  );
+  const handleItemClick = (view: AppViewId) => {
+    setSidebarOpen(false);
+    setCurrentView(view);
+  };
 
   return {
     currentView,

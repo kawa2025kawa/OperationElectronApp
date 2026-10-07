@@ -1,7 +1,7 @@
 ﻿// electron/features/operation/jobs/scripts/job_e5_check.ts
 
 import fs from "fs-extra";
-import path from "path";
+import path from "node:path";
 import iconv from "iconv-lite";
 import { isSameDay } from "date-fns";
 import type { JobResult } from "@shared/types/operation/operationTypes";

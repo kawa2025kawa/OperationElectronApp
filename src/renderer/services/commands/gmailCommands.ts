@@ -6,7 +6,7 @@ export interface CreateGmailDraftParams {
 
 export const gmailCommands = {
   getGmailSignature() {
-    return window.electronAPI.invoke<string>("gmail:getSignature");
+    return window.electronAPI.invoke("gmail:getSignature");
   },
 
   createGmailDraft(params: CreateGmailDraftParams) {

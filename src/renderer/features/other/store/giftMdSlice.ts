@@ -1,8 +1,11 @@
+// src/renderer/features/other/store/giftMdSlice.ts
+
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
+
+import { executeScriptJob } from "@renderer/features/operation/services/scriptJobService";
 import { systemCommands } from "@renderer/services/commands";
 import type { AppState } from "@renderer/store";
-import { executeScriptJob } from "@renderer/features/operation/services/scriptJobService";
 import { getFileName, hasExtension } from "@shared/utils/fileUtils";
 
 export interface GiftMdFile {
@@ -50,9 +53,7 @@ export const createGiftMdSlice: StateCreator<
       file.type === "text/plain";
 
     if (!isSupported) {
-      toast.error(
-        "繝・く繧ｹ繝医ヵ繧｡繧､繝ｫ(.txt, .DAT)縺ｮ縺ｿ蟇ｾ蠢懊＠縺ｦ縺・∪縺・",
-      );
+      toast.error("テキストファイル(.txt, .DAT)のみ対応しています");
       return;
     }
 
@@ -75,7 +76,7 @@ export const createGiftMdSlice: StateCreator<
     const { selectedFile, isProcessing } = get().giftMd;
 
     if (!selectedFile || isProcessing) {
-      throw new Error("繝輔ぃ繧､繝ｫ繧帝∈謚槭＠縺ｦ縺上□縺輔＞");
+      throw new Error("ファイルを選択してください");
     }
 
     set((state) => {
@@ -83,15 +84,17 @@ export const createGiftMdSlice: StateCreator<
     });
 
     try {
-      const res = await executeScriptJob(get(), "E41", [selectedFile.path]);
+      const res = await executeScriptJob(get(), "E41", "E41", [
+        selectedFile.path,
+      ]);
 
-      toast.success("豁｣蟶ｸ縺ｫ霆｢騾√＆繧後∪縺励◆");
+      toast.success("正常に転送されました");
 
       return res.message;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
 
-      toast.error(`繧ｮ繝輔ヨMD霆｢騾√お繝ｩ繝ｼ: ${message}`);
+      toast.error(`ギフトMD転送エラー: ${message}`);
 
       throw error;
     } finally {

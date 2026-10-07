@@ -2,11 +2,7 @@
 
 import type { ComponentType, ReactNode } from "react";
 import type { Column } from "@shared/types/table/tableType";
-import type { ModalConfig, ModalSize } from "@shared/types/ui/modal";
-
-/* ============================================================================
- * View & Mode Constants & Types
- * ========================================================================== */
+import type { ModalConfig } from "@shared/types/ui/modal";
 
 export const APP_VIEW_IDS = {
   OPERATION: "operation",
@@ -24,10 +20,6 @@ export type AppViewId = (typeof APP_VIEW_IDS)[keyof typeof APP_VIEW_IDS];
 const VIEW_MODES = ["operation", "irregular", "today"] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
 
-/* ============================================================================
- * Action & Definition Interfaces
- * ========================================================================== */
-
 export interface ActionStoreContext {
   openGlobalModal: (content: ReactNode, config?: ModalConfig) => void;
   closeGlobalModal: () => void;
@@ -38,7 +30,6 @@ export interface ViewActionDefinition<TItem = unknown> {
   label: string;
   type: "modal" | "external" | "custom";
   modalType?: string;
-  modalSize?: ModalSize;
   isActive: (item: TItem) => boolean;
   execute: (item: TItem, store: ActionStoreContext) => Promise<void> | void;
 }
@@ -48,21 +39,20 @@ export interface AppViewDefinition<TItem = unknown> {
   title: string;
   component?: ComponentType<Record<string, unknown>> | null;
   isProtected?: boolean;
+
   sidebarMenu?: {
     show: boolean;
     order: number;
   };
+
   sheetId?: string;
+
   search?: {
     placeholder: string;
     searchKeys: readonly string[];
     skipFilter?: boolean;
   };
-  modalConfig?: {
-    modalType: string;
-    modalSize: ModalSize;
-    component?: ComponentType<Record<string, unknown>>;
-  };
+
   columns?: readonly Column<TItem>[];
   actions?: readonly ViewActionDefinition<TItem>[];
 }

@@ -48,8 +48,3 @@ export const TantouModalContent: GlobalModalComponent<TantouModalContentProps> =
       </div>
     );
   });
-
-TantouModalContent.modalSize = {
-  width: "min(90vw, 800px)",
-  height: "min(75vh, 650px)",
-};

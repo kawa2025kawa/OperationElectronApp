@@ -1,86 +1,10 @@
-﻿import { useCallback } from "react";
-import type { MouseEvent } from "react";
-import { useAppStore } from "@renderer/store";
-import { showToast } from "@renderer/utils/toastUtils";
-import { useShallow } from "zustand/react/shallow";
+﻿//src\renderer\components\ui\button\pollingToggleButton\PollingToggleButton.tsx
+
+import { usePollingToggleButton } from "./usePollingToggleButton";
 import * as styles from "./pollingToggleButton.css";
 
 export const PollingToggleButton = () => {
-  const {
-    isPolling,
-    startPolling,
-    stopPolling,
-    resetAllOperationStatuses,
-    openGlobalModal,
-    updateModalConfig,
-    closeGlobalModal,
-  } = useAppStore(
-    useShallow((state) => ({
-      isPolling: state.isPolling,
-      startPolling: state.startPolling,
-      stopPolling: state.stopPolling,
-      resetAllOperationStatuses: state.resetAllOperationStatuses,
-      openGlobalModal: state.openGlobalModal,
-      updateModalConfig: state.updateModalConfig,
-      closeGlobalModal: state.closeGlobalModal,
-    })),
-  );
-
-  const handleClick = useCallback(() => {
-    const timeStr = new Date().toLocaleTimeString("ja-JP", { hour12: false });
-    if (isPolling) {
-      console.log(
-        `[PollingButton] 🔴 監視停止ボタンがクリックされました (${timeStr})`,
-      );
-      stopPolling();
-    } else {
-      console.log(
-        `[PollingButton] 🟢 監視開始ボタンがクリックされました (${timeStr})`,
-      );
-      startPolling();
-    }
-  }, [isPolling, startPolling, stopPolling]);
-
-  const handleContextMenu = useCallback(
-    (e: MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      if (isPolling) return;
-
-      openGlobalModal("すべてのステータスを初期化（未実行）に戻しますか？", {
-        title: "ステータスの全リセット",
-        confirmText: "リセット実行",
-        cancelText: "キャンセル",
-        onConfirm: async () => {
-          updateModalConfig({ isProcessing: true });
-
-          try {
-            await resetAllOperationStatuses();
-
-            showToast("ステータスを初期化しました", "success");
-            closeGlobalModal();
-          } catch (error) {
-            console.error("Failed to reset operation statuses:", error);
-            const message =
-              error instanceof Error ? error.message : String(error);
-            showToast(`ステータスリセットエラー: ${message}`, "error");
-          } finally {
-            updateModalConfig({ isProcessing: false });
-          }
-        },
-      });
-    },
-    [
-      isPolling,
-      openGlobalModal,
-      updateModalConfig,
-      closeGlobalModal,
-      resetAllOperationStatuses,
-    ],
-  );
-
-  const title = isPolling
-    ? "システム稼働中（クリックで停止）"
-    : "左クリック: 監視開始 / 右クリック: 全データステータスリセット";
+  const { isPolling, title, handleClick } = usePollingToggleButton();
 
   return (
     <button
@@ -92,7 +16,6 @@ export const PollingToggleButton = () => {
       aria-label={isPolling ? "システム監視中" : "システム監視停止中"}
       title={title}
       onClick={handleClick}
-      onContextMenu={handleContextMenu}
     >
       <div className={styles.content}>
         <div className={styles.indicatorContainer}>

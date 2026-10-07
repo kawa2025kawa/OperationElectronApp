@@ -1,4 +1,4 @@
-﻿//src\renderer\features\spreadSheet\store\spreadsheetSelectors.ts
+﻿// src/renderer/features/spreadSheet/store/spreadsheetSelectors.ts
 
 import type { AppState } from "@renderer/store";
 import {
@@ -6,7 +6,6 @@ import {
   type IrregularMaster,
   type OperationMaster,
   type RdpMaster,
-  type SheetId,
   type TodayIrregularMaster,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { Shop } from "@shared/types/spreadsheet/shop";
@@ -24,6 +23,7 @@ const EMPTY_JUGYOIN_MASTERS: Jugyoin[] = [];
 const EMPTY_KOKYUHYO_MASTERS: Kokyuhyo[] = [];
 const EMPTY_TANTOU_MASTERS: Tantou[] = [];
 const EMPTY_SHEET_ROWS: never[] = [];
+
 const EMPTY_SHOP_FILE_PATHS = {
   excelPath: "",
   pdfPath: "",
@@ -86,24 +86,9 @@ export const selectTantouMasters = (state: AppState): Tantou[] =>
   (state.sheetData[SHEETS.KOKYUHYO_TANTOU.sheetName]?.data ??
     EMPTY_TANTOU_MASTERS) as Tantou[];
 
-export const selectSheetHasData =
-  (sheetId: SheetId) =>
-  (state: AppState): boolean =>
-    state.sheetData[sheetId] !== null;
-
-export const selectSheetFetching =
-  (sheetId: SheetId) =>
-  (state: AppState): boolean =>
-    Boolean(state.isSheetFetching[sheetId]);
-
-export const selectSheetError =
-  (sheetId: SheetId) =>
-  (state: AppState): string | null =>
-    state.sheetErrors[sheetId] ?? null;
-
 export const selectFilteredSheetRows =
   <T>(
-    sheetId: SheetId | null,
+    sheetId: keyof AppState["sheetData"] | null,
     searchKeys: readonly string[] = [],
     skipFilter = false,
   ) =>
@@ -147,13 +132,17 @@ export const selectFilteredSheetRows =
     });
   };
 
-// 店舗コード正規化関数（必要に応じて共通ユーティリティ化）
+// 店舗コード正規化関数
 function normalizeShopCode(value: unknown): string {
-  if (value == null) return "";
+  if (value == null) {
+    return "";
+  }
 
   const code = String(value).trim();
 
-  if (!code) return "";
+  if (!code) {
+    return "";
+  }
 
   return /^\d+$/.test(code)
     ? String(Number.parseInt(code, 10))
@@ -161,7 +150,9 @@ function normalizeShopCode(value: unknown): string {
 }
 
 function getFilePath(value: unknown): string {
-  if (typeof value !== "string") return "";
+  if (typeof value !== "string") {
+    return "";
+  }
 
   const path = value.trim();
 

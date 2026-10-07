@@ -1,26 +1,23 @@
 ﻿// src/renderer/features/spreadSheet/jugyoin/JugyoinView.tsx
 
-import { memo, useCallback } from "react";
-import { format, addDays } from "date-fns";
+import { addDays, format } from "date-fns";
 import { ja } from "date-fns/locale/ja";
+import { memo, useCallback } from "react";
 
-import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
-import type { Column } from "@shared/types/table/tableType";
-import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { AuthView } from "@renderer/features/auth/AuthView";
 import {
   APP_VIEW_IDS,
   type AppViewDefinition,
 } from "@shared/types/registry/viewDefinition";
-import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
-import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
-import { AuthView } from "@renderer/features/auth/AuthView";
+import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
+import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
+import type { Column } from "@shared/types/table/tableType";
 
 import { useSpreadSheetDomainLogic } from "../hooks/useSpreadSheetDomainLogic";
-import { JugyoinTable } from "./table/JugyoinTable";
 import { JugyoinModalContent } from "./modal/JugyoinModalContent";
 import * as styles from "./JugyoinView.css";
+import { JugyoinTable } from "./table/JugyoinTable";
 
-// --- 日付計算ヘルパー ---
 const getOffsetDate = (offsetDays: number): Date =>
   addDays(new Date(), offsetDays);
 
@@ -32,7 +29,6 @@ const DATE_LABELS = {
   tomorrow: `明日 (${formatDateForHeader(getOffsetDate(1))})`,
 } as const;
 
-// --- テーブルカラム定義 ---
 export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   { key: "bumon", label: "部門", width: "15%" },
   { key: "name", label: "氏名", width: "15%" },
@@ -86,22 +82,17 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
 ] as const;
 
-// --- コンポーネント本体 ---
 export const JugyoinView = memo(() => {
-  const {
-    isAuthenticated,
-    data,
-    isFetching,
-    error,
-    handleRetry,
-    loadingMessage,
-    openGlobalModal,
-  } = useSpreadSheetDomainLogic<Jugyoin>(SHEETS.JUGYOIN.sheetName);
+  const { isAuthenticated, data, openGlobalModal } =
+    useSpreadSheetDomainLogic<Jugyoin>(SHEETS.JUGYOIN.sheetName);
 
   const handleRowClick = useCallback(
     (row: Jugyoin) => {
-      const title = row.name || "";
-      openGlobalModal(() => <JugyoinModalContent data={row} />, { title });
+      openGlobalModal(<JugyoinModalContent data={row} />, {
+        title: row.name || "",
+        width: "min(95vw, calc(75vh * (21 / 9)))",
+        height: "min(75vh, calc(95vw * (9 / 21)))",
+      });
     },
     [openGlobalModal],
   );
@@ -111,26 +102,18 @@ export const JugyoinView = memo(() => {
   }
 
   return (
-    <>
-      <LoadingOverlay isOpen={isFetching} message={loadingMessage} />
-      <div className={styles.viewContainer}>
-        <div className={styles.inner}>
-          {error && data.length === 0 && !isFetching ? (
-            <EmptyState message={error} onRetry={handleRetry} />
-          ) : (
-            <div className={styles.tableArea}>
-              <JugyoinTable rows={data} onRowClick={handleRowClick} />
-            </div>
-          )}
+    <div className={styles.viewContainer}>
+      <div className={styles.inner}>
+        <div className={styles.tableArea}>
+          <JugyoinTable rows={data} onRowClick={handleRowClick} />
         </div>
       </div>
-    </>
+    </div>
   );
 });
 
 JugyoinView.displayName = "JugyoinView";
 
-// --- ビュー設定定義 ---
 export const jugyoinViewConfig: AppViewDefinition<Jugyoin> = {
   id: APP_VIEW_IDS.JUGYOIN,
   title: "従業員情報",
@@ -147,14 +130,6 @@ export const jugyoinViewConfig: AppViewDefinition<Jugyoin> = {
   search: {
     placeholder: "部門、名前で検索...",
     searchKeys: ["bumon", "bumonKana", "name", "nameKana"],
-  },
-
-  modalConfig: {
-    modalType: "sheet_jugyoin",
-    modalSize: {
-      width: "90vw",
-      height: "85vh",
-    },
   },
 
   columns: JUGYOIN_COLUMNS,

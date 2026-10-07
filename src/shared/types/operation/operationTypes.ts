@@ -1,5 +1,11 @@
 // src/shared/types/operation/operationTypes.ts
 
+import type {
+  IrregularMaster,
+  OperationMaster,
+  TodayIrregularMaster,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
+
 /* =========================
  * Center
  * ========================= */
@@ -103,12 +109,6 @@ export interface LinkConfig {
  * Operation Status
  * ========================= */
 
-/**
- * アプリ内部で扱う正規化済みのOperation Status。
- *
- * 外部APIやIPCのRawデータはこの型へ変換してから
- * Store・Service・UIで利用する。
- */
 export interface OperationStatusState {
   kanriNo: string;
   status?: JobStatus;
@@ -120,3 +120,14 @@ export interface OperationStatusState {
   substatus?: string | null;
   info?: string | null;
 }
+
+/* =========================
+ * Operation View
+ * ========================= */
+
+export type OperationViewItem =
+  | OperationMaster
+  | IrregularMaster
+  | TodayIrregularMaster;
+
+export type SelectedOperationItem = OperationViewItem & OperationStatusState;

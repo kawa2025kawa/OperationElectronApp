@@ -1,6 +1,6 @@
-﻿//src\renderer\components\ui\button\tantouButton\TantouButton.tsx
+﻿// src/renderer/components/ui/button/tantouButton/TantouButton.tsx
 
-import { memo, useCallback } from "react";
+import { memo } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
@@ -17,15 +17,17 @@ export const TantouButton = memo(() => {
     })),
   );
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     const firstRow = tantouData[0];
 
-    if (!firstRow) return;
+    if (!firstRow) {
+      return;
+    }
 
-    openGlobalModal(() => <TantouModalContent data={firstRow} />, {
+    openGlobalModal(<TantouModalContent data={firstRow} />, {
       title: "担当表",
     });
-  }, [tantouData, openGlobalModal]);
+  };
 
   const isDisabled = tantouData.length === 0;
 

@@ -126,9 +126,4 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
   );
 });
 
-GmailDraftContent.modalSize = {
-  width: "min(95vw, calc(75vh * (21 / 9)))",
-  height: "min(75vh, calc(95vw * (9 / 21)))",
-};
-
 GmailDraftContent.displayName = "GmailDraftContent";

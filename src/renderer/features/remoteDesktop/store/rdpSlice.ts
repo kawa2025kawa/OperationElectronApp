@@ -2,8 +2,9 @@
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
+
+import { rdpCommands } from "@renderer/services/commands";
 import type { AppState } from "@renderer/store";
-import { rdpService } from "@renderer/features/remoteDesktop/services/rdpService";
 import type { RdpMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 export interface RdpSlice {
@@ -12,6 +13,9 @@ export interface RdpSlice {
   fetchRdpTargets: () => Promise<void>;
   runRdp: (name: string) => Promise<void>;
 }
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
 
 export const createRdpSlice: StateCreator<AppState, [], [], RdpSlice> = (
   set,
@@ -29,13 +33,10 @@ export const createRdpSlice: StateCreator<AppState, [], [], RdpSlice> = (
     set({ isRdpLoading: true });
 
     try {
-      const targets = await rdpService.fetchTargets();
-
+      const targets = await rdpCommands.getRdpMasters();
       set({ rdpTargets: targets });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-
-      toast.error(`RDP取得エラー: ${message}`);
+      toast.error(`RDP取得エラー: ${getErrorMessage(error)}`);
     } finally {
       set({ isRdpLoading: false });
       get().setGlobalProcessing(null);
@@ -43,19 +44,10 @@ export const createRdpSlice: StateCreator<AppState, [], [], RdpSlice> = (
   },
 
   runRdp: async (name: string) => {
-    const exists = get().rdpTargets.some((item) => item.name === name);
-
-    if (!exists) {
-      toast.error(`RDPターゲットが見つかりません: ${name}`);
-      return;
-    }
-
     try {
-      await rdpService.startSession(name);
+      await rdpCommands.startRdpSession(name);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-
-      toast.error(`RDP起動エラー: ${message}`);
+      toast.error(`RDP起動エラー: ${getErrorMessage(error)}`);
     }
   },
 });

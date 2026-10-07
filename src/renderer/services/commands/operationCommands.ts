@@ -1,4 +1,4 @@
-// src/renderer/services/commands/operationCommands.ts
+﻿// src/renderer/services/commands/operationCommands.ts
 
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 
@@ -9,7 +9,7 @@ import {
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
 
-import type { OperationMasterData } from "@shared/types/spreadsheet/spreadsheetTypes";
+import type { MasterData } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 /* =========================
  * Types
@@ -266,9 +266,10 @@ export const operationCommands = {
    * Script
    * ========================= */
 
-  executeScript(scriptId: string, filePath?: ScriptFilePath) {
+  executeScript(kanriNo: string, scriptKey: string, filePath?: ScriptFilePath) {
     return window.electronAPI.invoke(IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT, {
-      scriptId,
+      kanriNo,
+      scriptKey,
       filePath,
     });
   },
@@ -277,7 +278,7 @@ export const operationCommands = {
    * Target Registration
    * ========================= */
 
-  registerTargets(masterData: OperationMasterData): Promise<void> {
+  registerTargets(masterData: MasterData): Promise<void> {
     return window.electronAPI.invoke(IPC_CHANNELS.OPERATION.REGISTER_TARGETS, {
       masterData,
     });

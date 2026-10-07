@@ -3,10 +3,7 @@
 import { useShallow } from "zustand/react/shallow";
 
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
-import {
-  APP_VIEW_IDS,
-  type AppViewDefinition,
-} from "@shared/types/registry/viewDefinition";
+import { APP_VIEW_IDS } from "@shared/types/registry/viewDefinition";
 
 import { useAppStore, type AppState } from "@renderer/store";
 

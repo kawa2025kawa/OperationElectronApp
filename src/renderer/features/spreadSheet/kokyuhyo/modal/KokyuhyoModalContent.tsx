@@ -48,8 +48,8 @@ export const KokyuhyoModalContent: GlobalModalComponent<KokyuhyoModalContentProp
               </div>
             </div>
             <div className={styles.cell.header}>区分</div>
-            <div className={styles.cell.header}>内容</div>
-            <div className={styles.cell.header}>場所/詳細</div>
+            <div className={styles.cell.header}>場所</div>
+            <div className={styles.cell.header}>詳細</div>
             <div className={styles.cell.section}>AM</div>
             <div className={styles.cell.data}>{item.amStatus}</div>
             <div className={styles.cell.data}>{item.amDetail}</div>
@@ -61,8 +61,3 @@ export const KokyuhyoModalContent: GlobalModalComponent<KokyuhyoModalContentProp
       </div>
     );
   });
-
-KokyuhyoModalContent.modalSize = {
-  width: "min(95vw, calc(75vh * (21 / 9)))",
-  height: "min(75vh, calc(95vw * (9 / 21)))",
-};

@@ -1,4 +1,4 @@
-// src/shared/types/electron.d.ts
+// src\shared\types\electron\index.d.ts
 
 import type { IpcChannelMap } from "./ipc";
 
