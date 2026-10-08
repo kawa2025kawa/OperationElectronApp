@@ -4,6 +4,7 @@ import {
   JOB_STATUS,
   type ActiveFlags,
   type JobStatus,
+  type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
 
 import type {
@@ -42,6 +43,21 @@ export function calculateJobStatus(
   }
 
   return calculateWithDependencies(target, masters, statuses, activeFlags);
+}
+
+export function calculateOperationStatus(
+  target: StatusCalculationTarget,
+  masters: DependencyMasters,
+  statuses: DependencyStatuses,
+  activeFlags?: ActiveFlags,
+): OperationStatusState {
+  const result = calculateJobStatus(target, masters, statuses, activeFlags);
+
+  return {
+    kanriNo: target.kanriNo,
+    status: result.status,
+    comment: result.comment,
+  };
 }
 
 function calculateWithoutDependencies(

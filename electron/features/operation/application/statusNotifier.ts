@@ -1,14 +1,20 @@
 ﻿// electron/features/operation/application/statusNotifier.ts
 
 import { BrowserWindow } from "electron";
-import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
 import type { OperationStatusState } from "@shared/types/operation/operationTypes";
 import type {
   OperationMaster,
   TodayIrregularMaster,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
 
-export type StatusTarget = OperationMaster | TodayIrregularMaster;
+export type StatusTarget =
+  | (OperationMaster & {
+      targetType: "operation";
+    })
+  | (TodayIrregularMaster & {
+      targetType: "today";
+    });
+
 export type ReadyStatusListener = (target: StatusTarget) => void;
 
 type StatusClearPayload = {
@@ -26,6 +32,7 @@ function notifyRenderer(payload: StatusNotification): void {
     if (window.isDestroyed()) {
       continue;
     }
+
     window.webContents.send("operation:status-updated", payload);
   }
 }
@@ -43,7 +50,6 @@ export function notifyStatusCleared(kanriNo: string): void {
 }
 
 export function notifyReady(target: StatusTarget): void {
-  const kanriNo = normalizeKanriNo(target.kanriNo);
   for (const listener of readyStatusListeners) {
     try {
       listener(target);
@@ -55,6 +61,7 @@ export function notifyReady(target: StatusTarget): void {
 
 export function onReadyStatus(listener: ReadyStatusListener): () => void {
   readyStatusListeners.add(listener);
+
   return () => {
     readyStatusListeners.delete(listener);
   };

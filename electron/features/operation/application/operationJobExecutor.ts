@@ -76,6 +76,9 @@ export async function executeReadyJob(item: OperationViewItem): Promise<void> {
       }
     }
   } catch (error) {
-    applyScriptExecutionError(kanriNo, error);
+    console.error(
+      `[JobExecutor] ジョブ実行に失敗しました (kanriNo=${kanriNo}):`,
+      error,
+    );
   }
 }

@@ -35,7 +35,7 @@ const getPreviousYearMonth = (): string => {
 const shelfLabelTemplate: EmailTemplate = {
   to: "mw-data@tkcc-jp.com",
   cc: "ml-sec-digisui-all@belc.co.jp",
-  subject: "ベルク シェルフラベルデータ発注依頼",
+  subject: "【ベルク】プライスカード申し込み",
   generateBody: ({ lastName, nextTuesdayStr, links }) => {
     let linkText = "";
 

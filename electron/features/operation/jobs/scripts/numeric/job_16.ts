@@ -32,16 +32,17 @@ export async function runJob16(): Promise<string> {
   const { dir, reason } = selectTargetDirectory();
   const outputLines: string[] = [];
 
-  const addLine = (message: string = "") => {
+  const addLine = (message = "") => {
     outputLines.push(message);
   };
 
-  addLine(`==================================================`);
-  addLine(` [Job16] SANSAN エラーファイル存在チェック (日付: ${today})`);
-  addLine(`==================================================`);
-  addLine(`▶ 監視ディレクトリ: ${dir}`);
-  addLine(`   └ 判定条件: ${reason}`);
-  addLine(`▶ 接頭辞条件    : ${targetPrefix}*.txt`);
+  addLine(`・日付: ${today}`);
+  addLine(`・監視ディレクトリ:`);
+  addLine(`  └ ${dir}`);
+  addLine(`・判定条件:`);
+  addLine(`  └ ${reason}`);
+  addLine(`・接頭辞条件:`);
+  addLine(`  └ ${targetPrefix}*.txt`);
   addLine();
 
   if (!(await fs.pathExists(dir))) {
@@ -56,27 +57,28 @@ export async function runJob16(): Promise<string> {
   );
 
   if (targetFiles.length > 0) {
-    addLine(`❌ [エラーファイル検出] 計 ${targetFiles.length} 件`);
+    addLine(`❌ エラーファイル検出`);
+    addLine(`・検出件数: ${targetFiles.length}件`);
+    addLine();
 
     for (const fileName of targetFiles) {
       const filePath = path.join(dir, fileName);
       const stat = await fs.stat(filePath);
       const formattedDate = format(stat.mtime, "yyyy/MM/dd HH:mm:ss");
 
-      addLine(`   ├ ファイル  : ${fileName}`);
-      addLine(`   └ 更新日時  : ${formattedDate}`);
+      addLine(`・ファイル:`);
+      addLine(`  └ ${fileName}`);
+      addLine(`・更新日時:`);
+      addLine(`  └ ${formattedDate}`);
     }
 
-    addLine(`--------------------------------------------------`);
     throw new Error(
       `SANSANエラーファイルが存在します (${targetFiles.length}件)\n\n${outputLines.join("\n")}`,
     );
   }
 
-  addLine(`▶ 検出結果: 対象エラーファイルなし (正常)`);
-  addLine(`--------------------------------------------------`);
-  addLine(` [Job16] 正常終了`);
-  addLine(`==================================================`);
+  addLine(`▶ 検出結果:`);
+  addLine(`  └ 対象エラーファイルなし（正常）`);
 
   return outputLines.join("\n");
 }

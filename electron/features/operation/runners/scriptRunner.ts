@@ -1,3 +1,5 @@
+//electron\features\operation\runners\scriptRunner.ts
+
 import { cleanErrorMessage } from "@electron/features/operation/utils/errorHelper";
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
 

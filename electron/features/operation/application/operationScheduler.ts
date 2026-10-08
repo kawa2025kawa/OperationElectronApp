@@ -1,11 +1,10 @@
-﻿// electron/features/operation/services/operationScheduler.ts
+﻿//electron\features\operation\application\operationScheduler.ts
 
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
 import {
   getRegisteredTargets,
   getStatus,
   onReadyStatus,
-  refreshScheduledStatuses,
   type StatusTarget,
 } from "@electron/features/operation/application/statusManager";
 import { JOB_STATUS } from "@shared/types/operation/operationTypes";
@@ -13,7 +12,7 @@ import { JOB_STATUS } from "@shared/types/operation/operationTypes";
 import { executeReadyJob } from "./operationJobExecutor";
 import {
   syncReadyTrackerStatus,
-  syncTrackerStatuses,
+  syncStatuses,
 } from "./operationStatusEvaluator";
 
 const POLLING_INTERVAL_MS = 60_000;
@@ -34,7 +33,9 @@ function isReady(kanriNo: string): boolean {
 function enqueueReadyTarget(target: StatusTarget): void {
   const kanriNo = normalizeKanriNo(target.kanriNo);
 
-  if (!kanriNo || !isReady(kanriNo) || queuedKanriNos.has(kanriNo)) return;
+  if (!kanriNo || !isReady(kanriNo) || queuedKanriNos.has(kanriNo)) {
+    return;
+  }
 
   queuedKanriNos.add(kanriNo);
   readyQueue.push(target);
@@ -43,34 +44,44 @@ function enqueueReadyTarget(target: StatusTarget): void {
 }
 
 function enqueueCurrentReadyTargets(targets: StatusTarget[]): void {
-  for (const target of targets) enqueueReadyTarget(target);
+  for (const target of targets) {
+    enqueueReadyTarget(target);
+  }
 }
 
 async function processReadyTarget(target: StatusTarget): Promise<void> {
   const kanriNo = normalizeKanriNo(target.kanriNo);
 
-  if (!kanriNo || !isReady(kanriNo)) return;
+  if (!kanriNo || !isReady(kanriNo)) {
+    return;
+  }
 
   await syncReadyTrackerStatus(target);
-  if (!isReady(kanriNo)) return;
+
+  if (!isReady(kanriNo)) {
+    return;
+  }
 
   await executeReadyJob(target);
 }
 
 async function processReadyQueue(): Promise<void> {
-  if (isProcessingReadyQueue) return;
+  if (isProcessingReadyQueue) {
+    return;
+  }
 
   isProcessingReadyQueue = true;
 
   try {
     while (readyQueue.length > 0) {
-      const target = readyQueue.shift();
-      if (!target) continue;
-
+      const target = readyQueue.shift()!;
       const kanriNo = normalizeKanriNo(target.kanriNo);
+
       queuedKanriNos.delete(kanriNo);
 
-      if (!kanriNo) continue;
+      if (!kanriNo) {
+        continue;
+      }
 
       try {
         await processReadyTarget(target);
@@ -87,16 +98,20 @@ async function processReadyQueue(): Promise<void> {
 }
 
 async function runPollingCycle(): Promise<void> {
-  if (isPolling) return;
+  if (isPolling) {
+    return;
+  }
 
   isPolling = true;
 
   try {
     const targets = getRegisteredTargets();
-    if (targets.length === 0) return;
 
-    await syncTrackerStatuses(targets);
-    refreshScheduledStatuses();
+    if (targets.length === 0) {
+      return;
+    }
+
+    await syncStatuses(targets);
     enqueueCurrentReadyTargets(targets);
   } catch (error) {
     console.error("[Scheduler] ポーリングサイクルエラー:", error);
@@ -106,12 +121,11 @@ async function runPollingCycle(): Promise<void> {
 }
 
 export function startPolling(): void {
-  if (pollingTimer !== null) return;
+  if (pollingTimer !== null) {
+    return;
+  }
 
   unsubscribeReadyStatus = onReadyStatus(enqueueReadyTarget);
-
-  // Scheduler起動前にREADYへ到達していた対象も回収する。
-  enqueueCurrentReadyTargets(getRegisteredTargets());
 
   void runPollingCycle();
 
@@ -119,7 +133,9 @@ export function startPolling(): void {
 }
 
 export function stopPolling(): void {
-  if (pollingTimer === null) return;
+  if (pollingTimer === null) {
+    return;
+  }
 
   clearInterval(pollingTimer);
   pollingTimer = null;
