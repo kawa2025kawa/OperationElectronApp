@@ -1,6 +1,8 @@
-﻿import { toast } from "sonner";
+﻿// src/renderer/features/other/store/pdfUploadSlice.ts
+
+import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-import { systemCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import type { AppState } from "@renderer/store";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
 import {
@@ -72,7 +74,7 @@ export const createPdfUploadSlice: StateCreator<
     }),
 
   // ==========================================================
-  // Merge Files (パス文字列配列から追加)
+  // Merge Files
   // ==========================================================
 
   mergePdfFiles: (incomingPaths) => {
@@ -96,7 +98,7 @@ export const createPdfUploadSlice: StateCreator<
   },
 
   // ==========================================================
-  // Add Raw Files (File[] オブジェクトから追加・フィルタリング)
+  // Add Raw Files
   // ==========================================================
 
   addPdfFiles: (rawFiles) => {
@@ -107,7 +109,7 @@ export const createPdfUploadSlice: StateCreator<
       )
       .map(
         (f) =>
-          systemCommands.getFilePath(f) ||
+          window.electronAPI.getFilePath(f) ||
           ("path" in f && typeof f.path === "string" ? f.path : f.name),
       )
       .filter(Boolean);
@@ -180,7 +182,10 @@ export const createPdfUploadSlice: StateCreator<
         "店舗maticPDFアップロード",
         async () => {
           const filePaths = files.map((file) => file.path);
-          await systemCommands.tempomaticUploadDocument(filePaths, expireDate);
+          await trpc.tempomatic.uploadDocument.mutate({
+            filePaths,
+            expireDate,
+          });
         },
       );
 

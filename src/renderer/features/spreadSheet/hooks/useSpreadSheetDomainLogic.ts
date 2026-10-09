@@ -1,5 +1,5 @@
-﻿//src\renderer\features\spreadSheet\hooks\useSpreadSheetDomainLogic.ts
-import { useShallow } from "zustand/react/shallow";
+//src\renderer\features\spreadSheet\hooks\useSpreadSheetDomainLogic.ts
+import { useShallow } from "zustand/shallow";
 
 import { useAppStore, type AppState } from "@renderer/store";
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";

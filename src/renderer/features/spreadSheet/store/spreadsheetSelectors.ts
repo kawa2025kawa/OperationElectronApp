@@ -1,4 +1,4 @@
-﻿// src/renderer/features/spreadSheet/store/spreadsheetSelectors.ts
+// src/renderer/features/spreadSheet/store/spreadsheetSelectors.ts
 
 import type { AppState } from "@renderer/store";
 import {
@@ -132,7 +132,6 @@ export const selectFilteredSheetRows =
     });
   };
 
-// 店舗コード正規化関数
 function normalizeShopCode(value: unknown): string {
   if (value == null) {
     return "";
@@ -188,3 +187,4 @@ export const selectShopFilePaths = (shopCode: unknown) => (state: AppState) => {
     pdfPath: getFilePath(shop.pdfFilePath),
   };
 };
+

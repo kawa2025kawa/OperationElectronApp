@@ -1,15 +1,16 @@
-﻿// electron/features/system/systemIpc.ts
+﻿// electron/trpc/routers/systemRouter.ts
 
 import {
   app,
   BrowserWindow,
   dialog,
-  ipcMain,
   shell,
   type OpenDialogOptions,
 } from "electron";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { z } from "zod";
+import { publicProcedure, router } from "@electron/trpc/trpc";
 import type { UpdateInfo } from "@shared/types/system";
 
 const UPDATE_DIRECTORY =
@@ -37,39 +38,31 @@ function isExternalUrl(value: string): boolean {
   return /^(https?|mailto|tel):/i.test(value);
 }
 
-export function registerSystemIpc(): void {
-  ipcMain.handle("getAppVersion", () => app.getVersion());
+export const systemRouter = router({
+  getAppVersion: publicProcedure.query(() => {
+    return app.getVersion();
+  }),
 
-  ipcMain.handle("showMainWindow", () => {
+  showMainWindow: publicProcedure.mutation(() => {
     const mainWindow = getMainWindow();
+    if (!mainWindow) return null;
 
-    if (!mainWindow) {
-      return null;
-    }
-
-    if (mainWindow.isMinimized()) {
-      mainWindow.restore();
-    }
-
+    if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.show();
     mainWindow.focus();
-
     return null;
-  });
+  }),
 
-  ipcMain.handle("quitApp", () => {
+  quitApp: publicProcedure.mutation(() => {
     app.quit();
     return null;
-  });
+  }),
 
-  ipcMain.handle(
-    "openExternal",
-    async (_event, { urlOrPath }: { urlOrPath: string }) => {
-      const target = urlOrPath.trim();
-
-      if (!target) {
-        return null;
-      }
+  openExternal: publicProcedure
+    .input(z.object({ urlOrPath: z.string() }))
+    .mutation(async ({ input }) => {
+      const target = input.urlOrPath.trim();
+      if (!target) return null;
 
       if (isExternalUrl(target)) {
         await shell.openExternal(target);
@@ -78,31 +71,24 @@ export function registerSystemIpc(): void {
 
       const normalized = target.replace(/\//g, "\\");
       const error = await shell.openPath(normalized);
-
       if (error) {
         throw new Error(`Failed to open path: ${error}`);
       }
-
       return null;
-    },
-  );
+    }),
 
-  ipcMain.handle(
-    "showOpenDialog",
-    async (_event, options: OpenDialogOptions) => {
+  showOpenDialog: publicProcedure
+    .input(z.any().optional())
+    .mutation(async ({ input }) => {
       const mainWindow = getMainWindow();
+      if (!mainWindow) return null;
 
-      if (!mainWindow) {
-        return null;
-      }
-
+      const options = (input ?? {}) as OpenDialogOptions;
       const result = await dialog.showOpenDialog(mainWindow, options);
-
       return result.canceled ? null : result.filePaths;
-    },
-  );
+    }),
 
-  ipcMain.handle("readUpdateInfo", async (): Promise<UpdateInfo | null> => {
+  readUpdateInfo: publicProcedure.query(async () => {
     try {
       const content = await fs.readFile(UPDATE_INFO_PATH, "utf-8");
       const data: unknown = JSON.parse(content);
@@ -111,11 +97,10 @@ export function registerSystemIpc(): void {
         console.warn("[Update] Invalid update info format");
         return null;
       }
-
       return data;
     } catch (error) {
       console.warn("[Update] Update info unavailable:", error);
       return null;
     }
-  });
-}
+  }),
+});

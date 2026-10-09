@@ -1,9 +1,9 @@
-﻿//src\renderer\features\spreadSheet\kokyuhyo\modal\useKokyuhyoModalContent.ts
+﻿// src/renderer/features/spreadSheet/kokyuhyo/modal/useKokyuhyoModalContent.ts
 
 import { useCallback } from "react";
 import { addDays, format, getDay } from "date-fns";
 import { ja } from "date-fns/locale/ja";
-import { systemCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
 
 const formatDateWithDay = (date: Date) => {
@@ -31,7 +31,7 @@ export function useKokyuhyoModalContent(data: Kokyuhyo) {
 
   const handleOpenSchedule = useCallback(() => {
     if (scheduleLink) {
-      void systemCommands.openExternal(scheduleLink);
+      void trpc.system.openExternal.mutate({ urlOrPath: scheduleLink });
     }
   }, [scheduleLink]);
 

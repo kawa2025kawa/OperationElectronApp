@@ -3,7 +3,9 @@
 import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createIPCHandler } from "electron-trpc/main";
 import { registerIpcHandlers } from "./ipc/ipcHandlerRegistry";
+import { appRouter } from "./trpc/router";
 import { stopPolling } from "@electron/features/operation/application/operationScheduler";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,7 +15,6 @@ let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): void {
   const preloadPath = path.join(__dirname, "preload.cjs");
-
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 800,
@@ -25,13 +26,18 @@ function createWindow(): void {
     },
   });
 
+  // electron-trpc IPC ハンドラーのバインド
+  createIPCHandler({
+    router: appRouter,
+    windows: [mainWindow],
+  });
+
   void loadRenderer().catch((error) => {
     console.error("[Electron] renderer load failed", error);
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
-
     return {
       action: "deny",
     };
@@ -51,19 +57,15 @@ async function loadRenderer(): Promise<void> {
 
   if (devUrl) {
     await mainWindow.loadURL(devUrl);
-
-    // 🎯 npm run dev（開発時）のみ、別ウィンドウで DevTools を自動起動
     mainWindow.webContents.openDevTools({ mode: "detach" });
     return;
   }
 
-  // ビルド済みの本番環境で万が一開発フラグで起動された場合の判定
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools({ mode: "detach" });
   }
 
   const rendererPath = path.join(__dirname, "../dist/index.html");
-
   await mainWindow.loadFile(rendererPath);
 }
 
@@ -71,7 +73,6 @@ app
   .whenReady()
   .then(() => {
     registerIpcHandlers();
-
     createWindow();
 
     app.on("activate", () => {

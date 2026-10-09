@@ -1,6 +1,6 @@
-//src\renderer\features\operation\OperationView.tsx
 import { memo } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { UnifiedTable } from "@renderer/features/operation/components/table/OperationTable";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
@@ -42,7 +42,9 @@ const ModeSwitcher = memo(
   ),
 );
 
-const InfoRow = memo(({ label, value, type }: InfoRowData) => (
+interface InfoRowProps extends InfoRowData {}
+
+const InfoRow = memo(({ label, value, type }: InfoRowProps) => (
   <div className={styles.row} data-remarks={type === "remarks"}>
     <span>{label}</span>
 
@@ -101,7 +103,9 @@ export const OperationView = memo(() => {
                       <DropdownMenu.Item
                         key={action.key}
                         className={styles.menuItem}
-                        onSelect={() => executeAction(action.key)}
+                        onSelect={() => {
+                          void executeAction(action.key);
+                        }}
                       >
                         {action.label}
                       </DropdownMenu.Item>

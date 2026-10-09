@@ -1,12 +1,24 @@
 ﻿// electron/preload.ts
 
 import { contextBridge, ipcRenderer, webUtils } from "electron";
+import { exposeElectronTRPC } from "electron-trpc/main";
+import type { IpcChannelMap } from "@shared/types/electron/ipc";
+
+// electron-trpc のブリッジを露出
+process.once("loaded", () => {
+  exposeElectronTRPC();
+});
 
 type IpcListener = (...args: unknown[]) => void;
 
 const electronAPI = {
-  invoke: <T = unknown>(channel: string, ...args: unknown[]): Promise<T> => {
-    return ipcRenderer.invoke(channel, ...args) as Promise<T>;
+  invoke: <K extends keyof IpcChannelMap>(
+    channel: K,
+    ...args: IpcChannelMap[K]["args"]
+  ): Promise<IpcChannelMap[K]["return"]> => {
+    return ipcRenderer.invoke(String(channel), ...args) as Promise<
+      IpcChannelMap[K]["return"]
+    >;
   },
 
   on: (channel: string, callback: IpcListener): (() => void) => {
@@ -16,6 +28,7 @@ const electronAPI = {
     ) => {
       callback(...args);
     };
+
     ipcRenderer.on(channel, listener);
 
     return () => {

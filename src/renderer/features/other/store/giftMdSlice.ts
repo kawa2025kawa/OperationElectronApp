@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 
 import { executeScriptJob } from "@renderer/features/operation/services/scriptJobService";
-import { systemCommands } from "@renderer/services/commands";
 import type { AppState } from "@renderer/store";
 import { getFileName, hasExtension } from "@shared/utils/fileUtils";
 
@@ -42,7 +41,7 @@ export const createGiftMdSlice: StateCreator<
     const file = rawFiles[0];
 
     const path =
-      systemCommands.getFilePath(file) ||
+      window.electronAPI.getFilePath(file) ||
       ("path" in file && typeof file.path === "string" ? file.path : file.name);
 
     if (!path) return;

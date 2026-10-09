@@ -9,11 +9,6 @@ import type { MasterData } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { UpdateInfo } from "@shared/types/system";
 
 export interface IpcChannelMap {
-  [channel: string]: {
-    args: unknown[];
-    return: unknown;
-  };
-
   "googleAuth:login": {
     args: [];
     return: AuthProfile;
@@ -32,6 +27,11 @@ export interface IpcChannelMap {
   "gmail:getSignature": {
     args: [];
     return: string;
+  };
+
+  "gmail:createDraft": {
+    args: [params: { raw: string }];
+    return: unknown;
   };
 
   openExternal: {
@@ -105,6 +105,7 @@ export interface IpcChannelMap {
     args: [];
     return: MasterData;
   };
+
   "rdp:getMasters": {
     args: [];
     return: MasterData["rdps"];
@@ -123,5 +124,30 @@ export interface IpcChannelMap {
   readUpdateInfo: {
     args: [];
     return: UpdateInfo | null;
+  };
+
+  "tempomatic:uploadDocument": {
+    args: [{ filePaths: string[]; expireDate: string }];
+    return: string;
+  };
+
+  showMainWindow: {
+    args: [];
+    return: null;
+  };
+
+  showOpenDialog: {
+    args: [options: Record<string, unknown>];
+    return: string[] | null;
+  };
+
+  getAppVersion: {
+    args: [];
+    return: string;
+  };
+
+  quitApp: {
+    args: [];
+    return: null;
   };
 }

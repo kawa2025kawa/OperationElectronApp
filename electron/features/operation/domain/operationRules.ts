@@ -29,13 +29,6 @@ export const PREVIOUS_DAY_KANRI_NOS: ReadonlySet<string> = new Set([
   "7",
 ]);
 
-/**
- * 指定されたジョブが前日処理か判定する。
- *
- * 判定条件:
- * 1. 管理番号が PREVIOUS_DAY_KANRI_NOS に含まれる
- * 2. scheduledTime に「前日」が含まれる
- */
 export function isPreviousDayJob(
   kanriNo: string | number,
   scheduledTime?: string | null,

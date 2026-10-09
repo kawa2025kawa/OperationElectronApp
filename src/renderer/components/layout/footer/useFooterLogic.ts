@@ -1,8 +1,8 @@
 // src/renderer/components/layout/footer/useFooterLogic.ts
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { ChangeEvent } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useShallow } from "zustand/shallow";
 
 import { useAppStore } from "@renderer/store";
 import type { CenterId } from "@shared/types/operation/operationTypes";
@@ -31,8 +31,9 @@ export const useFooterLogic = () => {
     })),
   );
 
-  // Search State
+  // Search State with React 19 Transition
   const [inputValue, setInputValue] = useState(searchTerm);
+  const [, startTransition] = useTransition();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -51,7 +52,11 @@ export const useFooterLogic = () => {
       setInputValue(value);
 
       if (timerRef.current !== null) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setSearchTerm(value), 300);
+      timerRef.current = setTimeout(() => {
+        startTransition(() => {
+          setSearchTerm(value);
+        });
+      }, 200);
     },
     [setSearchTerm],
   );

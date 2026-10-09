@@ -1,6 +1,6 @@
 // src/renderer/features/other/services/gmailApiService.ts
 
-import { gmailCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import { useAppStore } from "@renderer/store";
 
 export interface CreateDraftParams {
@@ -78,7 +78,7 @@ async function createDraft(params: CreateDraftParams): Promise<void> {
   });
 
   try {
-    await gmailCommands.createGmailDraft({
+    await trpc.gmail.createDraft.mutate({
       raw,
     });
   } catch (error) {
@@ -92,7 +92,7 @@ async function createDraft(params: CreateDraftParams): Promise<void> {
 
 async function getPrimarySignature(): Promise<string> {
   try {
-    return await gmailCommands.getGmailSignature();
+    return await trpc.gmail.getSignature.query();
   } catch (error) {
     console.warn("[gmailApiService] 署名取得に失敗しました", error);
     return "";

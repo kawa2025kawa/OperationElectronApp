@@ -1,45 +1,19 @@
-﻿// src/renderer/services/appService.ts
+// src/renderer/services/appService.ts
 
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
-import { operationCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import { updateService } from "@renderer/services/updateService";
 import { useAppStore } from "@renderer/store";
 
 import type { MasterData } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 /* =========================
- * Types
- * ========================= */
-
-type TargetSourceName = "operation" | "irregular" | "todayIrregular";
-
-interface Target {
-  kanriNo: string | number;
-}
-
-interface TargetSource {
-  source: TargetSourceName;
-  targets: Target[];
-}
-
-interface KanriNoSource {
-  source: TargetSourceName;
-  count: number;
-}
-
-/* =========================
  * Status Restore
  * ========================= */
 
-/**
- * Main側に保存されているStatusをRenderer Storeへ復元する。
- *
- * Statusの取得・正規化はoperationCommands側で行う。
- * このServiceではOperationStatusStateだけを扱う。
- */
 async function restorePersistedStatuses(): Promise<void> {
   try {
-    const savedStatuses = await operationCommands.initializeStatus();
+    const savedStatuses = await trpc.operation.initializeStatus.mutate();
     const updates = Object.values(savedStatuses);
 
     if (updates.length === 0) {
@@ -59,79 +33,13 @@ async function restorePersistedStatuses(): Promise<void> {
  * Operation Master
  * ========================= */
 
-function logDuplicateKanriNos(sources: TargetSource[]): void {
-  const countsByKanriNo = new Map<string, KanriNoSource[]>();
-
-  for (const { source, targets } of sources) {
-    for (const target of targets) {
-      const kanriNo = String(target.kanriNo).trim();
-
-      if (!kanriNo) {
-        continue;
-      }
-
-      const entries = countsByKanriNo.get(kanriNo) ?? [];
-      const existing = entries.find((entry) => entry.source === source);
-
-      if (existing) {
-        existing.count += 1;
-      } else {
-        entries.push({
-          source,
-          count: 1,
-        });
-      }
-
-      countsByKanriNo.set(kanriNo, entries);
-    }
-  }
-
-  const duplicates = [...countsByKanriNo.entries()]
-    .filter(([, entries]) => {
-      const totalCount = entries.reduce(
-        (total, entry) => total + entry.count,
-        0,
-      );
-
-      return totalCount > 1 || entries.some((entry) => entry.count > 1);
-    })
-    .map(([kanriNo, entries]) => ({
-      kanriNo,
-      entries,
-    }));
-
-  if (duplicates.length === 0) {
-    return;
-  }
-
-  console.warn("[AppService] duplicate kanriNo:", duplicates);
-}
-
-/**
- * Spreadsheetから取得したMasterを
- * Main側へ登録する。
- */
 async function registerOperationTargets(masterData: MasterData): Promise<void> {
-  const targetSources: TargetSource[] = [
-    {
-      source: "operation",
-      targets: masterData.operations,
-    },
-    {
-      source: "irregular",
-      targets: masterData.irregulars,
-    },
-    {
-      source: "todayIrregular",
-      targets: masterData.todayIrregulars,
-    },
-  ];
+  await trpc.operation.registerTargets.mutate({ masterData });
 
-  logDuplicateKanriNos(targetSources);
+  // ポーリングを開始する処理
+  await trpc.operation.startPolling.mutate();
 
-  await operationCommands.registerTargets(masterData);
-
-  useAppStore.getState().refreshStatusSummary();
+  await useAppStore.getState().fetchStatusSummary();
 }
 
 /* =========================
@@ -158,21 +66,17 @@ function markAllTasksAsNg(): void {
 async function loadOperationData(): Promise<void> {
   const store = useAppStore.getState();
 
-  /*
-   * Spreadsheet取得と
-   * Main側Status復元は独立しているため並列実行する。
-   *
-   * 両方完了してからMaster登録を行う。
-   */
-  const [masterData] = await Promise.all([
-    store.fetchMasterData(),
-    restorePersistedStatuses(),
-  ]);
+  // 1. マスターデータを先に取得
+  const masterData = await store.fetchMasterData();
 
   if (!masterData) {
     return;
   }
 
+  // 2. ステータスを復元
+  await restorePersistedStatuses();
+
+  // 3. ターゲット登録とポーリング開始
   await registerOperationTargets(masterData);
 }
 
@@ -219,3 +123,4 @@ async function initializeAppData(): Promise<void> {
 export const appService = {
   initializeAppData,
 };
+

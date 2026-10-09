@@ -25,18 +25,22 @@ import {
   persistStatusesImmediately,
 } from "@electron/features/operation/infrastructure/storage/statusStorage";
 
+import {
+  EMPTY_STATUS_SUMMARY,
+  type StatusSummary,
+} from "@shared/types/statusSummary/statusSummaryTypes";
+
 import { DependencyPropagator } from "./dependencyPropagator";
 import {
   notifyReady,
   notifyStatusCleared,
   notifyStatusUpdated,
   onReadyStatus,
-  type ReadyStatusListener,
   type StatusTarget,
 } from "./statusNotifier";
 import { statusStore } from "./statusStore";
 
-export type { StatusTarget, ReadyStatusListener };
+export type { StatusTarget };
 export { onReadyStatus };
 
 type StatusMap = Record<string, OperationStatusState>;
@@ -169,28 +173,12 @@ export function getDependencyStatuses(): {
   irregularStatuses: StatusMap;
   todayStatuses: StatusMap;
 } {
-  const operationStatuses: StatusMap = {};
-  const irregularStatuses: StatusMap = {};
-  const todayStatuses: StatusMap = {};
-
-  for (const [kanriNo, status] of statusStore.statuses) {
-    const target = statusStore.targets.get(kanriNo);
-
-    if (!target) {
-      continue;
-    }
-
-    if (target.targetType === "operation") {
-      operationStatuses[kanriNo] = status;
-    } else {
-      todayStatuses[kanriNo] = status;
-    }
-  }
+  const statuses: StatusMap = Object.fromEntries(statusStore.statuses);
 
   return {
-    operationStatuses,
-    irregularStatuses,
-    todayStatuses,
+    operationStatuses: statuses,
+    irregularStatuses: statuses,
+    todayStatuses: statuses,
   };
 }
 
@@ -324,17 +312,31 @@ export async function deleteAllStatuses(): Promise<void> {
   }
 }
 
-export function persistStatuses(): void {
-  persistStatusesImmediately(statusStore.statuses);
-}
-
-export function clearStatuses(): void {
-  statusStore.clear();
-  propagator.clearAll();
-}
-
 export function refreshDependencyStatuses(): void {
   propagator.clearQueue();
   propagator.enqueueCenterFlagDependents(statusStore.targets);
   processPropagation();
+}
+
+export function getStatusSummary(): StatusSummary {
+  const summary: StatusSummary = {
+    ...EMPTY_STATUS_SUMMARY,
+    total: statusStore.targets.size,
+  };
+
+  for (const [kanriNo] of statusStore.targets) {
+    const statusState = statusStore.statuses.get(kanriNo);
+    const status = statusState?.status;
+
+    if (!status || !(status in summary)) {
+      continue;
+    }
+
+    summary[status] += 1;
+  }
+
+  summary.progress =
+    summary.total > 0 ? Math.round((summary.success / summary.total) * 100) : 0;
+
+  return summary;
 }

@@ -3,6 +3,7 @@
 import {
   createContext,
   createElement,
+  use,
   useCallback,
   useContext,
   useState,
@@ -12,16 +13,15 @@ import type { ReactNode } from "react";
 import { getManualScriptKeys } from "@shared/config/operationScriptRegistry";
 import type { MasterRow } from "@renderer/features/operation/helpers/entityUtils";
 import { executeScriptJob } from "@renderer/features/operation/services/scriptJobService";
-import { systemCommands } from "@renderer/services/commands";
 import { useAppStore } from "@renderer/store";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
-export interface ScriptFileItem {
+interface ScriptFileItem {
   name: string;
   path: string;
 }
 
-export type ExecutionState = "idle" | "completed" | "error";
+type ExecutionState = "idle" | "completed" | "error";
 
 const FILE_SELECTION_JOB_IDS = new Set(["E5", "E14", "E29", "E30", "E41"]);
 
@@ -34,7 +34,7 @@ function extractFilePath(file: File): string {
     return file.path;
   }
 
-  return systemCommands.getFilePath(file) || file.name;
+  return window.electronAPI.getFilePath(file) || file.name;
 }
 
 function convertFilesToItems(files: File[]): ScriptFileItem[] {
@@ -67,30 +67,9 @@ function useScriptModalContentValue(item?: MasterRow | null) {
   );
   const [isExecuting, setIsExecuting] = useState(false);
 
-  /**
-   * 対象マスタの管理番号
-   *
-   * 例:
-   * N27
-   */
   const rawKanriNo = String(item?.kanriNo ?? "");
-
-  /**
-   * 対象マスタに紐づく実行Script一覧
-   *
-   * 例:
-   * N27
-   *  ├─ WEBEDI
-   *  └─ WEBEDI_DB
-   */
   const scriptKeys = rawKanriNo ? getManualScriptKeys(rawKanriNo) : [];
 
-  /**
-   * 現在選択されている実行Script
-   *
-   * 例:
-   * WEBEDI_DB
-   */
   const [selectedScriptKey, setSelectedScriptKey] = useState<string>(
     scriptKeys[0] ?? rawKanriNo,
   );
@@ -125,6 +104,7 @@ function useScriptModalContentValue(item?: MasterRow | null) {
       ? `${item.workName} (${activeKey})`
       : `スクリプト実行 (${activeKey})`;
   }
+
   const handleSelectScriptKey = useCallback((key: string) => {
     setSelectedScriptKey(key);
     setSelectedFiles([]);
@@ -169,16 +149,6 @@ function useScriptModalContentValue(item?: MasterRow | null) {
     });
 
     try {
-      /**
-       * rawKanriNo = 対象マスタ
-       * activeKey  = 実行するScript
-       *
-       * 例:
-       *   N27
-       *   WEBEDI_DB
-       *
-       * この2つを分離して渡す。
-       */
       const result = await executeScriptJob(
         useAppStore.getState(),
         rawKanriNo,
@@ -263,7 +233,7 @@ export function ScriptModalProvider({
 }
 
 export function useScriptModalContent(): ScriptModalContextType {
-  const context = useContext(ScriptModalContext);
+  const context = use(ScriptModalContext);
 
   if (!context) {
     throw new Error(

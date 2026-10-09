@@ -2,7 +2,7 @@
 
 import type { StateCreator } from "zustand";
 
-import { operationCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import type { AppState } from "@renderer/store";
 
 export interface PollingSlice {
@@ -33,7 +33,7 @@ export const createPollingSlice: StateCreator<
     }
 
     try {
-      await operationCommands.startPolling();
+      await trpc.operation.startPolling.mutate();
       set({ isPolling: true });
     } catch (error: unknown) {
       console.error("[PollingSlice] startPolling failed:", error);
@@ -46,7 +46,7 @@ export const createPollingSlice: StateCreator<
     }
 
     try {
-      await operationCommands.stopPolling();
+      await trpc.operation.stopPolling.mutate();
       set({ isPolling: false });
     } catch (error: unknown) {
       console.error("[PollingSlice] stopPolling failed:", error);

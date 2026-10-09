@@ -1,4 +1,6 @@
-﻿import type { Jugyoin } from "./jugyoin";
+﻿//src\shared\types\spreadsheet\spreadsheetTypes.ts
+
+import type { Jugyoin } from "./jugyoin";
 import type { Kokyuhyo } from "./kokyuhyo";
 import type { Shop } from "./shop";
 import type { Tantou } from "./tantou";

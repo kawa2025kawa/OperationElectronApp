@@ -3,7 +3,7 @@
 // src/renderer/components/ui/statusSummary/useStatusSummary.ts
 
 import { useCallback } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useShallow } from "zustand/shallow";
 
 import {
   filterSummaryItems,
@@ -21,14 +21,7 @@ import type { SummaryDisplayKey } from "@shared/types/statusSummary/statusSummar
 import * as styles from "./statusSummary.css";
 import { getSummaryLabel, SUMMARY_DISPLAY_ORDER } from "./statusSummaryConfig";
 
-export type SummaryRow = OperationSummaryRow | TodaySummaryRow;
-
-export interface StatusItemData {
-  key: SummaryDisplayKey;
-  label: string;
-  displayValue: string | number;
-  badgeClass: string;
-}
+type SummaryRow = OperationSummaryRow | TodaySummaryRow;
 
 export interface UseStatusSummaryParams {
   openModal: (items: SummaryRow[], title: string) => void;

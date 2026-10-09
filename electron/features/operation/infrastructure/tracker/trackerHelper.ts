@@ -7,13 +7,8 @@ import {
 } from "@shared/types/operation/operationTypes";
 import { isPreviousDayJob } from "@electron/features/operation/domain/operationRules";
 
-import {
-  parseHHMM,
-  type ParsedTime,
-} from "@electron/features/operation/utils/operationUtils";
+import { parseHHMM } from "@electron/features/operation/utils/operationUtils";
 import type { OperationMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
-
-export { parseHHMM, type ParsedTime };
 
 const TRACKER_API_KEY = "71e7f0bcc0f995c1d2d322cbdde23543a5be8f91";
 const TRACKER_API_BASE_URL = "http://192.88.1.152/api/v2/trackers";

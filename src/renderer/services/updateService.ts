@@ -1,6 +1,6 @@
 ﻿// src/renderer/services/updateService.ts
 
-import { systemCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import { useAppStore } from "@renderer/store";
 import { showToast } from "@renderer/utils/toastUtils";
 
@@ -51,7 +51,7 @@ function isNewerVersion(
 
 async function check(): Promise<boolean> {
   try {
-    const updateInfo = await systemCommands.readUpdateInfo();
+    const updateInfo = await trpc.system.readUpdateInfo.query();
 
     if (!updateInfo || !isNewerVersion(updateInfo.version, CURRENT_VERSION)) {
       setStatus("OK");
@@ -71,7 +71,9 @@ async function check(): Promise<boolean> {
       return true;
     }
 
-    await systemCommands.openExternal(DEFAULT_UPDATE_EXE_PATH);
+    await trpc.system.openExternal.mutate({
+      urlOrPath: DEFAULT_UPDATE_EXE_PATH,
+    });
 
     setStatus("OK");
     return true;

@@ -25,7 +25,7 @@ import { parseHHMM } from "@electron/features/operation/utils/operationUtils";
 
 export type StatusCalculationTarget = OperationMaster | TodayIrregularMaster;
 
-export interface StatusCalculationResult {
+interface StatusCalculationResult {
   status: JobStatus;
   comment: string;
 }

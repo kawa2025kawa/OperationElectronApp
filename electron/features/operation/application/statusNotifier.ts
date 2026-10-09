@@ -1,6 +1,7 @@
 ﻿// electron/features/operation/application/statusNotifier.ts
 
 import { BrowserWindow } from "electron";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { OperationStatusState } from "@shared/types/operation/operationTypes";
 import type {
   OperationMaster,
@@ -33,7 +34,7 @@ function notifyRenderer(payload: StatusNotification): void {
       continue;
     }
 
-    window.webContents.send("operation:status-updated", payload);
+    window.webContents.send(IPC_CHANNELS.OPERATION.STATUS_UPDATED, payload);
   }
 }
 

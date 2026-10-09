@@ -1,4 +1,6 @@
-﻿import { authService } from "@electron/features/auth/authIpc";
+﻿// electron/features/spreadsheet/infrastructure/spreadsheetClient.ts
+
+import { authService } from "@electron/features/auth/authService";
 import {
   normalizeSheetData,
   type FetchSheetResult,
@@ -20,7 +22,6 @@ export async function fetchSheet<TSheetId extends SheetId>(
   sheetId: TSheetId,
 ): Promise<SheetDataResult<TSheetId>> {
   const sheet = getSheetConfig(sheetId);
-
   if (!sheet) {
     return {
       success: false,
@@ -54,20 +55,18 @@ export async function fetchSheet<TSheetId extends SheetId>(
         range: sheet.sheetName,
         errorText: responseText,
       });
-
       return {
         success: false,
         unauthorized: false,
         data: [],
         error:
           response.status === 503
-            ? "Google API エラー (503)"
-            : responseText || `取得エラー (Status: ${response.status})`,
+            ? "Google API サービス利用不可 (503)"
+            : responseText || `APIエラー (Status: ${response.status})`,
       };
     }
 
     let json: { values?: string[][] };
-
     try {
       json = JSON.parse(responseText) as { values?: string[][] };
     } catch {
@@ -86,12 +85,10 @@ export async function fetchSheet<TSheetId extends SheetId>(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-
     console.error("[SpreadsheetClient] Request failed", {
       sheetId,
       message,
     });
-
     return {
       success: false,
       unauthorized: false,

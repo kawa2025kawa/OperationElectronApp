@@ -5,7 +5,7 @@ import type { JobStatus } from "@shared/types/operation/operationTypes";
 
 export type ToastType = "info" | "success" | "error" | "warning";
 
-export interface ToastMessage {
+interface ToastMessage {
   id: string;
   message: string;
   type: ToastType;

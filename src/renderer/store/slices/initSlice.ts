@@ -5,8 +5,9 @@ import type { StateCreator } from "zustand";
 import { handleStatusToastNotification } from "@renderer/components/ui/toast/statusToastHandler";
 import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { appService } from "@renderer/services/appService";
-import { operationCommands, systemCommands } from "@renderer/services/commands";
 import type { AppState } from "@renderer/store";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import type { OperationStatusState } from "@shared/types/operation/operationTypes";
 
 import {
   INITIAL_INIT_STATUS,
@@ -137,38 +138,49 @@ export const createInitSlice: StateCreator<
    * ========================= */
 
   const setupThemeListener = (): (() => void) => {
-    return systemCommands.onThemeChanged((theme) => {
-      get().setTheme?.(theme);
-    });
+    return window.electronAPI.on(
+      IPC_CHANNELS.SYSTEM.THEME_CHANGED,
+      (theme: unknown) => {
+        if (theme === "dark" || theme === "light") {
+          get().setTheme?.(theme);
+        }
+      },
+    );
   };
 
-  /**
-   * Mainから通知されたStatusを
-   * Renderer Storeへ反映する唯一の入口。
-   *
-   * operationCommands側で既に
-   * OperationStatusStateへ正規化済み。
-   */
   const setupOperationStatusListener = (): (() => void) => {
-    return operationCommands.onOperationStatusUpdated((updates) => {
-      if (updates.length === 0) {
-        return;
-      }
+    return window.electronAPI.on(
+      IPC_CHANNELS.OPERATION.STATUS_UPDATED,
+      (value: unknown) => {
+        if (!value) {
+          return;
+        }
 
-      for (const update of updates) {
-        handleStatusToastNotification(update);
-      }
+        // 単一オブジェクトで届いた場合は配列にラップして正規化
+        const updates: OperationStatusState[] = Array.isArray(value)
+          ? (value as OperationStatusState[])
+          : [value as OperationStatusState];
 
-      get().applyOperationStatusUpdates(updates);
-    });
+        if (updates.length === 0) {
+          return;
+        }
+
+        for (const update of updates) {
+          handleStatusToastNotification(update);
+        }
+
+        get().applyOperationStatusUpdates(updates);
+      },
+    );
   };
-
   const setupPollingListener = (): (() => void) => {
-    return operationCommands.onPollingCycleComplete(() => {
-      get().updateLastPollTime?.();
-
-      usePollingToastStore.getState().markPollingCycleCompleted();
-    });
+    return window.electronAPI.on(
+      IPC_CHANNELS.OPERATION.POLLING_CYCLE_COMPLETE,
+      () => {
+        get().updateLastPollTime?.();
+        usePollingToastStore.getState().markPollingCycleCompleted();
+      },
+    );
   };
 
   /* =========================
@@ -272,9 +284,7 @@ export const createInitSlice: StateCreator<
       cleanupIpcListeners?.();
 
       const unbindTheme = setupThemeListener();
-
       const unbindStatus = setupOperationStatusListener();
-
       const unbindPolling = setupPollingListener();
 
       cleanupIpcListeners = () => {
@@ -305,24 +315,14 @@ export const createInitSlice: StateCreator<
 
       set((state) => {
         state.isInitializing = true;
-
         state.isInitialLoaded = false;
-
         state.showAppLoader = true;
-
         state.initStatus = {
           ...DATA_LOADING_STATUS,
         };
       });
 
       try {
-        /*
-         * IPC Listenerを先に登録する。
-         *
-         * その後のappService.initializeApp()
-         * 中に発生するStatusイベントも
-         * 取りこぼさない。
-         */
         get().setupIpcListeners();
 
         await appService.initializeAppData();

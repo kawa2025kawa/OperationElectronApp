@@ -1,7 +1,7 @@
 // src/renderer/features/other/components/modal/contents/gmailDraft/useGmailModalLogic.ts
 
 import { useCallback, useEffect, type ChangeEvent } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useShallow } from "zustand/shallow";
 
 import { gmailDraftService } from "@renderer/features/other/services/gmailDraftService";
 import { getNextTuesdayString } from "@renderer/features/other/utils/gmailModalUtils";

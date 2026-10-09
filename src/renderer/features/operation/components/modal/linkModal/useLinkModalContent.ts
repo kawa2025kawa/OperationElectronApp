@@ -1,8 +1,8 @@
-﻿//src\renderer\features\operation\components\modal\linkModal\useLinkModalContent.ts
+﻿// src/renderer/features/operation/components/modal/linkModal/useLinkModalContent.ts
 
 import { useCallback } from "react";
 import { toast } from "sonner";
-import { systemCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import type { LinkConfig } from "@shared/types/operation/operationTypes";
 
 export function useLinkModalContent(link?: LinkConfig[] | null) {
@@ -11,7 +11,7 @@ export function useLinkModalContent(link?: LinkConfig[] | null) {
     if (!url) return;
 
     try {
-      await systemCommands.openExternal(url);
+      await trpc.system.openExternal.mutate({ urlOrPath: url });
     } catch (error) {
       console.error("[useLinkModalContent.handleOpenUrl] Failed:", error);
       toast.error("URLを開けませんでした");

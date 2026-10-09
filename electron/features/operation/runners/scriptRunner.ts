@@ -60,7 +60,7 @@ const jobRunners: Partial<Record<ScriptKey, JobRunnerFn>> = {
   webedi: () => jobs.runJobRdp("WEBEDI"),
 };
 
-export interface ParsedScriptEntry {
+interface ParsedScriptEntry {
   key: string;
   runnerKey: string;
 }

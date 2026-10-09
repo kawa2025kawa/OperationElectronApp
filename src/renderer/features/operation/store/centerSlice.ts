@@ -1,8 +1,8 @@
-//src/renderer/features/operation/store/centerSlice.ts
+// src/renderer/features/operation/store/centerSlice.ts
 
 import type { StateCreator } from "zustand";
+import { trpc } from "@renderer/lib/trpc";
 import type { AppState } from "@renderer/store";
-import { operationCommands } from "@renderer/services/commands";
 import type {
   ActiveFlags,
   CenterId,
@@ -30,7 +30,7 @@ export const createCenterSlice: StateCreator<
 
     const { is1CActive, is2CActive, is3CActive } = get();
 
-    void operationCommands.setActiveFlags({
+    void trpc.operation.setActiveFlags.mutate({
       is1CActive,
       is2CActive,
       is3CActive,

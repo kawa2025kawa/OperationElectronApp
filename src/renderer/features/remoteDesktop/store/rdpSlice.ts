@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 
-import { rdpCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import type { AppState } from "@renderer/store";
 import type { RdpMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
 
@@ -33,7 +33,7 @@ export const createRdpSlice: StateCreator<AppState, [], [], RdpSlice> = (
     set({ isRdpLoading: true });
 
     try {
-      const targets = await rdpCommands.getRdpMasters();
+      const targets = await trpc.rdp.getMasters.query();
       set({ rdpTargets: targets });
     } catch (error: unknown) {
       toast.error(`RDP取得エラー: ${getErrorMessage(error)}`);
@@ -45,7 +45,7 @@ export const createRdpSlice: StateCreator<AppState, [], [], RdpSlice> = (
 
   runRdp: async (name: string) => {
     try {
-      await rdpCommands.startRdpSession(name);
+      await trpc.rdp.startSession.mutate({ name });
     } catch (error: unknown) {
       toast.error(`RDP起動エラー: ${getErrorMessage(error)}`);
     }

@@ -4,7 +4,7 @@ import {
   findMasterByKanriNo,
   type MasterRow,
 } from "@renderer/features/operation/helpers/entityUtils";
-import { operationCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import type { AppState } from "@renderer/store";
 
 import { JOB_STATUS } from "@shared/types/operation/operationTypes";
@@ -42,5 +42,9 @@ export async function applyOperationError(
   kanriNo: string,
   message: string,
 ): Promise<void> {
-  await operationCommands.updateJobStatus(kanriNo, JOB_STATUS.ERROR, message);
+  await trpc.operation.updateJobStatus.mutate({
+    kanriNo,
+    status: JOB_STATUS.ERROR,
+    comment: message,
+  });
 }

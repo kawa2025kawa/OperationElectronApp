@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
-import { operationCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import type { AppState } from "@renderer/store";
 
 import { JOB_STATUS } from "@shared/types/operation/operationTypes";
@@ -53,7 +53,9 @@ export async function executeJcJob(
     }
 
     try {
-      const result = await operationCommands.fetchSingleJobStatus(kanriNo);
+      const result = await trpc.operation.fetchSingleStatus.mutate({
+        kanriNo,
+      });
 
       if (!result) {
         throw new Error(`No.${kanriNo} のステータスを取得できませんでした`);
@@ -65,7 +67,11 @@ export async function executeJcJob(
         result.comment ??
         (status === JOB_STATUS.RUNNING ? "JC 実行中..." : "JC 状態更新");
 
-      await operationCommands.updateJobStatus(kanriNo, status, comment);
+      await trpc.operation.updateJobStatus.mutate({
+        kanriNo,
+        status,
+        comment,
+      });
 
       if (!resolvedOptions.silent) {
         toast.info(`No.${kanriNo} JC 状態を更新しました`);

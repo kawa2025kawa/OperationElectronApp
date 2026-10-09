@@ -1,7 +1,7 @@
-﻿// src/renderer/features/other/components/modal/contents/giftMd/useGiftMdModalContent.ts
+// src/renderer/features/other/components/modal/contents/giftMd/useGiftMdModalContent.ts
 
 import { useCallback, useEffect, useMemo } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useShallow } from "zustand/shallow";
 
 import { giftMdService } from "@renderer/features/other/services/giftMdService";
 

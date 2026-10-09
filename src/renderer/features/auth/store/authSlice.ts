@@ -1,7 +1,7 @@
 ﻿// src/renderer/features/auth/store/authSlice.ts
 
 import type { StateCreator } from "zustand";
-import { authCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
 import type { AppState } from "@renderer/store";
 import type { AuthProfile, AuthSlice } from "@shared/types/auth/authTypes";
@@ -68,7 +68,7 @@ export const createAuthSlice: StateCreator<
     });
 
     try {
-      const profile = await authCommands.loadAuthSession(forceRefresh);
+      const profile = await trpc.auth.loadSession.query({ forceRefresh });
 
       if (!profile) {
         set((state) => {
@@ -123,7 +123,7 @@ export const createAuthSlice: StateCreator<
     console.trace("[Auth] logout called");
 
     try {
-      await authCommands.logout();
+      await trpc.auth.logout.mutate();
     } catch (error) {
       console.error("[Auth] Logout command failed:", error);
     } finally {

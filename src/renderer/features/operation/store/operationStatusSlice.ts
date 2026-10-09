@@ -1,29 +1,21 @@
-﻿// src/renderer/features/operation/store/operationStatusSlice.ts
+// src/renderer/features/operation/store/operationStatusSlice.ts
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 
-import { operationCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import type { AppState } from "@renderer/store";
 
 import {
   JOB_STATUS,
-  type JobStatus,
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
-
-import {
-  EMPTY_STATUS_SUMMARY,
-  type StatusSummary,
-} from "@shared/types/statusSummary/statusSummaryTypes";
 
 /* =========================
  * Types
  * ========================= */
 
 type StatusMap = Record<string, OperationStatusState>;
-
-type StatusMapKey = "operationStatuses" | "irregularStatuses" | "todayStatuses";
 
 type OperationStatusUpdate = Pick<
   OperationStatusState,
@@ -34,22 +26,6 @@ type OperationStatusUpdate = Pick<
  * Status Helpers
  * ========================= */
 
-/**
- * Status更新を既存値へマージする。
- *
- * undefined:
- *   既存値を維持
- *
- * null:
- *   明示的にクリア
- *
- * status:
- *   未指定の場合は既存値、
- *   既存値もなければscheduled。
- *
- * Renderer StoreはStatusの業務判断を行わず、
- * Mainから受け取ったStatusをUI用に保持する。
- */
 function mergeStatus(
   current: OperationStatusState | undefined,
   update: OperationStatusState,
@@ -84,100 +60,18 @@ function isSameStatus(
 }
 
 /* =========================
- * Status Map
+ * State Update (Single Map Unified)
  * ========================= */
 
-function getStatusMapKey(state: AppState, kanriNo: string): StatusMapKey {
-  if (state.todayIds.includes(kanriNo)) {
-    return "todayStatuses";
-  }
-
-  if (state.irregularIds.includes(kanriNo)) {
-    return "irregularStatuses";
-  }
-
-  return "operationStatuses";
-}
-
-function cloneStatusMaps(state: AppState): Record<StatusMapKey, StatusMap> {
-  return {
-    operationStatuses: {
-      ...state.operationStatuses,
-    },
-
-    irregularStatuses: {
-      ...state.irregularStatuses,
-    },
-
-    todayStatuses: {
-      ...state.todayStatuses,
-    },
-  };
-}
-
-/* =========================
- * Summary
- * ========================= */
-
-/**
- * Renderer上のStatusからUI用Summaryを算出する。
- *
- * Main側のStatus判定ロジックは持たない。
- */
-function calculateSummary(
-  state: Pick<
-    AppState,
-    "operationIds" | "todayIds" | "operationStatuses" | "todayStatuses"
-  >,
-): StatusSummary {
-  const summary: StatusSummary = {
-    ...EMPTY_STATUS_SUMMARY,
-
-    total: state.operationIds.length + state.todayIds.length,
-  };
-
-  const targetIds = new Set<string>([...state.operationIds, ...state.todayIds]);
-
-  for (const kanriNo of targetIds) {
-    const status =
-      state.operationStatuses[kanriNo]?.status ??
-      state.todayStatuses[kanriNo]?.status;
-
-    if (!status || !(status in summary)) {
-      continue;
-    }
-
-    summary[status] += 1;
-  }
-
-  summary.progress =
-    summary.total > 0 ? Math.round((summary.success / summary.total) * 100) : 0;
-
-  return summary;
-}
-
-/* =========================
- * State Update
- * ========================= */
-
-/**
- * Mainから受信した正規化済みOperationStatusStateを
- * Renderer Storeへ反映する。
- *
- * Statusの正本はMain側。
- * Renderer StoreはUIミラーとして保持する。
- */
 function applyStatusUpdates(
   state: AppState,
   updates: readonly OperationStatusState[],
-): AppState | Partial<AppState> {
+): Partial<AppState> {
   if (updates.length === 0) {
     return state;
   }
 
-  const statusMaps = cloneStatusMaps(state);
-
-  let changed = false;
+  let nextStatuses: StatusMap | null = null;
 
   for (const update of updates) {
     const kanriNo = update.kanriNo.trim();
@@ -186,10 +80,8 @@ function applyStatusUpdates(
       continue;
     }
 
-    const mapKey = getStatusMapKey(state, kanriNo);
-
-    const current = statusMaps[mapKey][kanriNo];
-
+    const currentMap = nextStatuses ?? state.operationStatuses;
+    const current = currentMap[kanriNo];
     const next = mergeStatus(current, {
       ...update,
       kanriNo,
@@ -199,55 +91,40 @@ function applyStatusUpdates(
       continue;
     }
 
-    statusMaps[mapKey][kanriNo] = next;
+    if (!nextStatuses) {
+      nextStatuses = { ...state.operationStatuses };
+    }
 
-    changed = true;
+    nextStatuses[kanriNo] = next;
   }
 
-  if (!changed) {
+  if (!nextStatuses) {
     return state;
   }
 
   return {
-    operationStatuses: statusMaps.operationStatuses,
-
-    irregularStatuses: statusMaps.irregularStatuses,
-
-    todayStatuses: statusMaps.todayStatuses,
-
-    summary: calculateSummary({
-      operationIds: state.operationIds,
-
-      todayIds: state.todayIds,
-
-      operationStatuses: statusMaps.operationStatuses,
-
-      todayStatuses: statusMaps.todayStatuses,
-    }),
+    operationStatuses: nextStatuses,
+    irregularStatuses: nextStatuses,
+    todayStatuses: nextStatuses,
   };
 }
 
 /* =========================
- * Public Slice
+ * Public Slice Interface
  * ========================= */
 
 export interface OperationStatusSlice {
   operationStatuses: StatusMap;
   irregularStatuses: StatusMap;
   todayStatuses: StatusMap;
-  summary: StatusSummary;
 
   applyOperationStatusUpdates(updates: OperationStatusState[]): void;
-
   updateOperationStatus(update: OperationStatusUpdate): void;
-
-  refreshStatusSummary(): void;
-
   resetAllOperationStatuses(): Promise<void>;
 }
 
 /* =========================
- * Slice
+ * Slice Creator
  * ========================= */
 
 export const createOperationStatusSlice: StateCreator<
@@ -260,10 +137,6 @@ export const createOperationStatusSlice: StateCreator<
   irregularStatuses: {},
   todayStatuses: {},
 
-  summary: {
-    ...EMPTY_STATUS_SUMMARY,
-  },
-
   /* =========================
    * IPC Status Sync
    * ========================= */
@@ -271,12 +144,8 @@ export const createOperationStatusSlice: StateCreator<
   applyOperationStatusUpdates: (updates) => {
     if (updates.length === 0) return;
 
-    console.log(
-      "[UI] operation status updates",
-      updates.filter((item) => item.kanriNo === "E23"),
-    );
-
     set((state) => applyStatusUpdates(state, updates));
+    void get().fetchStatusSummary();
   },
 
   /* =========================
@@ -290,29 +159,15 @@ export const createOperationStatusSlice: StateCreator<
       return;
     }
 
-    /*
-     * Status変更はMain側を正本とする。
-     *
-     * Rendererでは楽観更新せず、
-     * Mainから返される
-     * operation:status-updated
-     * を通してStoreを更新する。
-     */
-    void operationCommands
-      .updateJobStatus(kanriNo, update.status, update.comment ?? "")
-      .catch((error) => {
+    void trpc.operation.updateJobStatus
+      .mutate({
+        kanriNo,
+        status: update.status,
+        comment: update.comment ?? "",
+      })
+      .catch((error: unknown) => {
         console.error("[Store] updateOperationStatus Error:", error);
       });
-  },
-
-  /* =========================
-   * Summary
-   * ========================= */
-
-  refreshStatusSummary: () => {
-    set((state) => ({
-      summary: calculateSummary(state),
-    }));
   },
 
   /* =========================
@@ -321,18 +176,11 @@ export const createOperationStatusSlice: StateCreator<
 
   resetAllOperationStatuses: async () => {
     try {
-      /*
-       * Resetの実体はMain側で行う。
-       *
-       * Mainから返された正規化済みStatusを
-       * Renderer Storeへ反映する。
-       */
-      const resetStatuses = await operationCommands.resetOperationStatuses();
-
+      const resetStatuses = await trpc.operation.resetStatuses.mutate();
       const updates = Object.values(resetStatuses);
 
       if (updates.length === 0) {
-        get().refreshStatusSummary();
+        await get().fetchStatusSummary();
       } else {
         get().applyOperationStatusUpdates(updates);
       }
@@ -340,10 +188,9 @@ export const createOperationStatusSlice: StateCreator<
       toast.success("ステータスを初期化しました");
     } catch (error) {
       console.error("[Store] resetAllOperationStatuses Error:", error);
-
       toast.error("ステータスの初期化に失敗しました");
-
       throw error;
     }
   },
 });
+

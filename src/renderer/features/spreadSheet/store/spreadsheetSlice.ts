@@ -1,9 +1,9 @@
-﻿// src/renderer/features/spreadSheet/store/spreadsheetSlice.ts
+// src/renderer/features/spreadSheet/store/spreadsheetSlice.ts
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 
-import { spreadsheetCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import type { AppState } from "@renderer/store";
 
 import type { InitStatus } from "@shared/types/initializationTypes";
@@ -149,50 +149,61 @@ export const createSpreadSheetSlice: StateCreator<
    * ========================= */
 
   const applyMasterData = (masterData: MasterData): void => {
-    updateSheetData(SHEETS.STORE.sheetName, {
-      sheetId: SHEETS.STORE.sheetName,
-      data: masterData.stores,
-    });
+    const extractIds = (data: readonly { kanriNo?: string }[]) =>
+      data
+        .map((item) => String(item.kanriNo ?? "").trim())
+        .filter(Boolean);
 
-    updateSheetData(SHEETS.KOKYUHYO.sheetName, {
-      sheetId: SHEETS.KOKYUHYO.sheetName,
-      data: masterData.kokyuhyos,
-    });
+    set((state) => {
+      state.sheetData[SHEETS.STORE.sheetName] = {
+        sheetId: SHEETS.STORE.sheetName,
+        data: masterData.stores,
+      } as never;
 
-    updateSheetData(SHEETS.JUGYOIN.sheetName, {
-      sheetId: SHEETS.JUGYOIN.sheetName,
-      data: masterData.jugyoin,
-    });
+      state.sheetData[SHEETS.KOKYUHYO.sheetName] = {
+        sheetId: SHEETS.KOKYUHYO.sheetName,
+        data: masterData.kokyuhyos,
+      } as never;
 
-    updateSheetData(SHEETS.KOKYUHYO_TANTOU.sheetName, {
-      sheetId: SHEETS.KOKYUHYO_TANTOU.sheetName,
-      data: masterData.kokyuhyoTantous,
-    });
+      state.sheetData[SHEETS.JUGYOIN.sheetName] = {
+        sheetId: SHEETS.JUGYOIN.sheetName,
+        data: masterData.jugyoin,
+      } as never;
 
-    updateSheetData(SHEETS.OPERATION.sheetName, {
-      sheetId: SHEETS.OPERATION.sheetName,
-      data: masterData.operations,
-    });
+      state.sheetData[SHEETS.KOKYUHYO_TANTOU.sheetName] = {
+        sheetId: SHEETS.KOKYUHYO_TANTOU.sheetName,
+        data: masterData.kokyuhyoTantous,
+      } as never;
 
-    updateSheetData(SHEETS.IRREGULAR.sheetName, {
-      sheetId: SHEETS.IRREGULAR.sheetName,
-      data: masterData.irregulars,
-    });
+      state.sheetData[SHEETS.OPERATION.sheetName] = {
+        sheetId: SHEETS.OPERATION.sheetName,
+        data: masterData.operations,
+      } as never;
 
-    updateSheetData(SHEETS.TODAY_IRREGULAR.sheetName, {
-      sheetId: SHEETS.TODAY_IRREGULAR.sheetName,
-      data: masterData.todayIrregulars,
-    });
+      state.sheetData[SHEETS.IRREGULAR.sheetName] = {
+        sheetId: SHEETS.IRREGULAR.sheetName,
+        data: masterData.irregulars,
+      } as never;
 
-    updateSheetData(SHEETS.RDP.sheetName, {
-      sheetId: SHEETS.RDP.sheetName,
-      data: masterData.rdps,
+      state.sheetData[SHEETS.TODAY_IRREGULAR.sheetName] = {
+        sheetId: SHEETS.TODAY_IRREGULAR.sheetName,
+        data: masterData.todayIrregulars,
+      } as never;
+
+      state.sheetData[SHEETS.RDP.sheetName] = {
+        sheetId: SHEETS.RDP.sheetName,
+        data: masterData.rdps,
+      } as never;
+
+      state.operationIds = extractIds(masterData.operations);
+      state.irregularIds = extractIds(masterData.irregulars);
+      state.todayIds = extractIds(masterData.todayIrregulars);
     });
   };
 
   const fetchMasterData = async (): Promise<MasterData | null> => {
     try {
-      const masterData = await spreadsheetCommands.fetchMaster();
+      const masterData = await trpc.spreadsheet.getMasterData.query();
 
       applyMasterData(masterData);
       updateInitStatusForAllSheets("OK");

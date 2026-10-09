@@ -2,27 +2,28 @@
 
 import { shell } from "electron";
 import type { AuthSession, GoogleUserInfo } from "@shared/types/auth";
-import { getGoogleCredentials } from "@electron/features/auth/credentials";
-import { startListener } from "@electron/features/auth/listener";
-
 import {
+  clearToken,
   createPkce,
   exchangeToken,
   generateAuthUrl,
   generateState,
-  refreshToken,
-} from "../auth/oauth";
-import {
-  clearToken,
+  getGoogleCredentials,
   isTokenExpired,
   loadToken,
+  refreshToken,
   saveToken,
+  startListener,
   updateTokenProfile,
-} from "../auth/token";
+} from "@electron/features/auth/authHelpers";
 
 const DEFAULT_PORT = 8888;
 const REDIRECT_HOST = "127.0.0.1";
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
+
+export interface GoogleApiRequestOptions extends RequestInit {
+  retryOnUnauthorized?: boolean;
+}
 
 export interface GoogleApiRequestOptions extends RequestInit {
   retryOnUnauthorized?: boolean;

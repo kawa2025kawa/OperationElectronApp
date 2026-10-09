@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
-import { authCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import { useAppStore } from "@renderer/store";
 import type { AuthState } from "@shared/types/auth/authTypes";
 
@@ -33,7 +33,7 @@ export const useAuth = () => {
     });
 
     try {
-      const loginPromise = authCommands.login();
+      const loginPromise = trpc.auth.login.mutate();
 
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(

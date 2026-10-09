@@ -53,14 +53,3 @@ export function formatLogDateTime(date: Date | number = new Date()): string {
 export function getTodayYmd(date: Date = new Date()): string {
   return format(date, "yyyyMMdd");
 }
-
-/*
- * 移行期の互換性維持が必要な場合は、domain/operationRules から
- * 再エクスポートしておくことも可能です。
- *
- * export {
- *   normalizeKanriNo,
- *   isPreviousDayJob,
- *   PREVIOUS_DAY_KANRI_NOS,
- * } from "../domain/operationRules";
- */

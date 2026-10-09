@@ -1,12 +1,12 @@
-﻿// src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
+// src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
 
 import { useMemo, useCallback } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useShallow } from "zustand/shallow";
 import type { Shop } from "@shared/types/spreadsheet/shop";
 import type { ModalAction } from "@shared/types/ui/modal";
 import { useAppStore } from "@renderer/store";
 import { selectShopFilePaths } from "@renderer/features/spreadSheet/store/spreadsheetSelectors";
-import { systemCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
 import {
   SHOP_MODAL_GROUPS,
@@ -34,7 +34,7 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     if (!normalizedPath) return;
 
     try {
-      await systemCommands.openExternal(normalizedPath);
+      await trpc.system.openExternal.mutate({ urlOrPath: normalizedPath });
     } catch (error) {
       console.error(
         "[useShopModalContent] Failed to open external path:",
@@ -46,7 +46,7 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
 
   const handleOpenImage = useCallback((value: string | undefined) => {
     if (value && value !== "-") {
-      void systemCommands.openExternal(value);
+      void trpc.system.openExternal.mutate({ urlOrPath: value });
     }
   }, []);
 

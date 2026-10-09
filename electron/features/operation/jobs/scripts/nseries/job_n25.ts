@@ -1,62 +1,63 @@
-﻿// electron/features/operation/jobs/scripts/nseries/job_n25.ts
-
-import { chromium } from "playwright";
+﻿import { chromium } from "playwright";
 
 const LOGIN_URL = "http://192.88.1.192/belcta/login.php";
+
 const USER_ID = "98810028";
 const PASSWORD = "1560";
 
+const TIMEOUT = 30_000;
+
 /**
- * ログイン後にヘッダーから業務日付 (YYYY/MM/DD) を取得する
+ * 業務日付を取得する
+ *
+ * 戻り値:
+ *   業務日付：2026/10/08
  */
 export async function runJobN25(): Promise<string> {
-  const outputLines: string[] = [];
-  const addLine = (message: string = "") => outputLines.push(message);
+  const browser = await chromium.launch({
+    headless: true,
+  });
 
-  addLine(`==================================================`);
-  addLine(` [JobN25] 業務日付取得`);
-  addLine(`==================================================`);
-  addLine(`▶ ログインURL: ${LOGIN_URL}`);
-
-  const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
 
   try {
-    await page.goto(LOGIN_URL, { waitUntil: "networkidle" });
+    // ログイン画面を表示
+    await page.goto(LOGIN_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: TIMEOUT,
+    });
 
-    await page.fill("#uid", USER_ID);
-    await page.fill("#password", PASSWORD);
-    await page.keyboard.press("Enter");
+    // ID・パスワード入力
+    await page.locator("#uid").fill(USER_ID);
+    await page.locator("#password").fill(PASSWORD);
 
-    await page.waitForLoadState("networkidle");
+    // サイト本来のログイン処理を実行
+    await page.locator("#sub2").click({
+      timeout: TIMEOUT,
+    });
 
-    const headerText = await page.textContent(".heder_date_honsya");
+    // ログイン後のヘッダーを待機
+    const header = page.locator(".heder_date_honsya");
+
+    await header.waitFor({
+      state: "visible",
+      timeout: TIMEOUT,
+    });
+
+    // ヘッダーから業務日付を取得
+    const headerText = await header.textContent();
+
     if (!headerText) {
-      throw new Error(
-        "ヘッダー要素 (.heder_date_honsya) が見つかりませんでした。",
-      );
+      throw new Error("業務日付を取得できませんでした。");
     }
 
     const match = headerText.match(/\d{4}\/\d{2}\/\d{2}/);
+
     if (!match) {
-      throw new Error(
-        `業務日付のテキストパターンが見つかりませんでした: ${headerText}`,
-      );
+      throw new Error("業務日付の形式が見つかりませんでした。");
     }
 
-    const workDate = match[0];
-
-    addLine(`▶ 取得業務日付: ${workDate}`);
-    addLine(`--------------------------------------------------`);
-    addLine(` [JobN25] 正常終了`);
-    addLine(`==================================================`);
-
-    return outputLines.join("\n");
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    addLine(`❌ 業務日付の取得に失敗しました: ${errorMessage}`);
-    addLine(`--------------------------------------------------`);
-    throw new Error(`${errorMessage}\n\n${outputLines.join("\n")}`);
+    return `業務日付：${match[0]}`;
   } finally {
     await browser.close();
   }

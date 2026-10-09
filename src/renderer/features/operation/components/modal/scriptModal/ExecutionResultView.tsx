@@ -5,7 +5,7 @@ import type {
   JobArtifact,
   JobResult,
 } from "@shared/types/operation/operationTypes";
-import { systemCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import * as styles from "./scriptModalContent.css";
 
 interface ExecutionResultViewProps {
@@ -46,7 +46,7 @@ const ArtifactList = memo(function ArtifactList({
 
   const handleOpenArtifact = useCallback(async (path: string) => {
     try {
-      await systemCommands.openExternal(path);
+      await trpc.system.openExternal.mutate({ urlOrPath: path });
     } catch (error) {
       console.error("Failed to open artifact:", error);
     }
@@ -62,7 +62,6 @@ const ArtifactList = memo(function ArtifactList({
       }}
     >
       {artifacts.map((artifact, index) => {
-        // 🎯 path が存在しない場合は開く処理が行えないため安全にスキップ・処理
         if (!artifact.path) return null;
 
         return (

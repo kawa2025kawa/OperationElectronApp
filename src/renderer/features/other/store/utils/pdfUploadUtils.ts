@@ -1,8 +1,13 @@
-﻿import { getFileName, hasExtension } from "@shared/utils/fileUtils";
+// src/renderer/features/other/store/utils/pdfUploadUtils.ts
+
+import { getFileName, hasExtension } from "@shared/utils/fileUtils";
 import type { ValidatedPdf, PdfUploadState } from "../pdfUploadSlice";
 
 const DEFAULT_EXPIRE_OFFSET_DAYS = 7;
 
+/**
+ * デフォルト有効期限日付 (YYYY/MM/DD) を算定するユーティリティ
+ */
 export const calculateExpireDate = (
   offsetDays = DEFAULT_EXPIRE_OFFSET_DAYS,
 ): string => {
@@ -11,6 +16,9 @@ export const calculateExpireDate = (
   return date.toISOString().slice(0, 10).replace(/-/g, "/");
 };
 
+/**
+ * 入力ファイルパスから PDF を抽出・変換するユーティリティ
+ */
 export const validateAndFormatPdfs = (
   incomingPaths: string[],
 ): ValidatedPdf[] =>
@@ -21,6 +29,9 @@ export const validateAndFormatPdfs = (
       path: filePath,
     }));
 
+/**
+ * 初期 PDF アップロード状態の生成
+ */
 export const createInitialPdfUploadState = (): PdfUploadState => ({
   step: "dnd",
   resultState: "idle",
@@ -31,6 +42,9 @@ export const createInitialPdfUploadState = (): PdfUploadState => ({
   expireDate: calculateExpireDate(),
 });
 
+/**
+ * 重複のないパス配列を計算・生成するユーティリティ
+ */
 export const createUniquePaths = (
   currentPaths: string[],
   incomingPaths: string[],
@@ -46,3 +60,4 @@ export const logUploadOrder = (label: string, files: ValidatedPdf[]): void => {
     })),
   );
 };
+

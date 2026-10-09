@@ -1,6 +1,6 @@
 // src/renderer/components/layout/sidebar/useSidebarLogic.ts
 
-import { useShallow } from "zustand/react/shallow";
+import { useShallow } from "zustand/shallow";
 
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";
 import { useAppStore } from "@renderer/store";

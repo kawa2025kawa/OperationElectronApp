@@ -24,6 +24,11 @@ import {
 } from "@renderer/features/operation/store/operationStatusSlice";
 
 import {
+  createStatusSummarySlice,
+  type StatusSummarySlice,
+} from "@renderer/features/operation/store/statusSummarySlice";
+
+import {
   createPollingSlice,
   type PollingSlice,
 } from "@renderer/features/operation/store/pollingSlice";
@@ -81,6 +86,7 @@ import { createThemeSlice, type ThemeSlice } from "./slices/themeSlice";
 
 export type AppState = AuthSlice &
   OperationSlice &
+  StatusSummarySlice &
   OperationStatusSlice &
   PollingSlice &
   RdpSlice &
@@ -108,6 +114,7 @@ export const useAppStore = create<AppState>()(
 
       ...createAuthSlice(...args),
       ...createOperationSlice(...args),
+      ...createStatusSummarySlice(...args),
       ...createOperationStatusSlice(...args),
       ...createPollingSlice(...args),
       ...createRdpSlice(...args),

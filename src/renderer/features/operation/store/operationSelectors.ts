@@ -26,9 +26,7 @@ import type {
  * ========================= */
 
 type OperationMasterRow = OperationMaster & OperationStatusState;
-
 type IrregularMasterRow = IrregularMaster & OperationStatusState;
-
 type TodayIrregularMasterRow = TodayIrregularMaster & OperationStatusState;
 
 export type OperationTableRow =
@@ -36,7 +34,7 @@ export type OperationTableRow =
   | IrregularMasterRow
   | TodayIrregularMasterRow;
 
-export interface ActiveItemStatusFlags {
+interface ActiveItemStatusFlags {
   item: OperationTableRow | undefined;
   status: JobStatus;
   isExecuting: boolean;
@@ -55,7 +53,7 @@ type StatusMap = Record<string, OperationStatusState>;
 export const selectCurrentMode = (state: AppState) => state.currentMode;
 
 /* =========================
- * Status
+ * Status Lookup
  * ========================= */
 
 const getStatus = (state: AppState, kanriNo: string): OperationStatusState => {
@@ -71,7 +69,7 @@ const getStatus = (state: AppState, kanriNo: string): OperationStatusState => {
 };
 
 /* =========================
- * Row
+ * Row Helper
  * ========================= */
 
 const createRow = <
@@ -89,7 +87,7 @@ const createRow = <
 };
 
 /* =========================
- * Search
+ * Search Filtering
  * ========================= */
 
 const containsSearchTerm = (value: unknown, term: string): boolean => {
@@ -154,7 +152,7 @@ const filterTableItems = <T extends OperationTableRow>(
 };
 
 /* =========================
- * Table Selector
+ * Table Selectors
  * ========================= */
 
 type MasterItem = OperationMaster | IrregularMaster | TodayIrregularMaster;
@@ -219,7 +217,7 @@ export const selectTodayTableData = createTableSelector<
 >(selectTodayIrregularMasters);
 
 /* =========================
- * Filtered IDs
+ * Filtered IDs Selectors
  * ========================= */
 
 function createIdSelector<T extends OperationTableRow>(
@@ -253,7 +251,7 @@ export const selectFilteredIrregularIds = createIdSelector(
 export const selectFilteredTodayIds = createIdSelector(selectTodayTableData);
 
 /* =========================
- * Selected Item
+ * Active Item Selection & Status Flags
  * ========================= */
 
 const getMastersByMode = (state: AppState): MasterItem[] => {
@@ -269,126 +267,71 @@ const getMastersByMode = (state: AppState): MasterItem[] => {
   }
 };
 
-const findSelectedMaster = (
-  state: AppState,
-  selectedId: string,
-): OperationTableRow | undefined => {
-  const master = getMastersByMode(state).find(
-    (item) => String(item.kanriNo).trim() === selectedId,
-  );
+function createActiveItemStatusFlagsSelector() {
+  let previousMode: string | null = null;
+  let previousSelectedId: string | null = null;
+  let previousMasters: MasterItem[] | null = null;
+  let previousMasterItem: MasterItem | null | undefined = null;
+  let previousItemStatus: OperationStatusState | null = null;
 
-  return master ? createRow(state, master) : undefined;
-};
+  let cachedFlags: ActiveItemStatusFlags | null = null;
 
-let previousActiveMode: AppState["currentMode"] | null = null;
+  return (state: AppState): ActiveItemStatusFlags => {
+    const currentMode = state.currentMode;
+    const selectedId = String(state.selectedIds[currentMode] ?? "").trim();
+    const masters = getMastersByMode(state);
 
-let previousActiveSelectedId: string | null = null;
+    const masterItem = selectedId
+      ? masters.find((item) => String(item.kanriNo).trim() === selectedId)
+      : undefined;
 
-let previousActiveMasters: MasterItem[] | null = null;
+    const kanriNo = masterItem ? String(masterItem.kanriNo).trim() : "";
+    const itemStatus = kanriNo ? getStatus(state, kanriNo) : null;
 
-let previousActiveOperationStatuses: StatusMap | null = null;
+    const isCacheValid =
+      previousMode === currentMode &&
+      previousSelectedId === selectedId &&
+      previousMasters === masters &&
+      previousMasterItem === masterItem &&
+      previousItemStatus === itemStatus;
 
-let previousActiveIrregularStatuses: StatusMap | null = null;
+    if (isCacheValid && cachedFlags) {
+      return cachedFlags;
+    }
 
-let previousActiveTodayStatuses: StatusMap | null = null;
+    const item: OperationTableRow | undefined = masterItem
+      ? { ...masterItem, ...(itemStatus ?? {}) }
+      : undefined;
 
-let cachedActiveItem: OperationTableRow | undefined;
+    const status = item?.status ?? JOB_STATUS.SCHEDULED;
+    const isExecuting =
+      status === JOB_STATUS.RUNNING || status === JOB_STATUS.SCRIPT_RUNNING;
+
+    cachedFlags = {
+      item,
+      status,
+      isExecuting,
+      isError: status === JOB_STATUS.ERROR,
+      isSuccess: status === JOB_STATUS.SUCCESS,
+      isWaiting: status === JOB_STATUS.WAITING,
+      isReady: status === JOB_STATUS.READY,
+    };
+
+    previousMode = currentMode;
+    previousSelectedId = selectedId;
+    previousMasters = masters;
+    previousMasterItem = masterItem;
+    previousItemStatus = itemStatus;
+
+    return cachedFlags;
+  };
+}
+
+export const selectActiveItemStatusFlags =
+  createActiveItemStatusFlagsSelector();
 
 export const selectActiveSelectedItem = (
   state: AppState,
 ): OperationTableRow | undefined => {
-  const selectedId = String(state.selectedIds[state.currentMode] ?? "").trim();
-
-  if (!selectedId) {
-    previousActiveMode = state.currentMode;
-    previousActiveSelectedId = null;
-    previousActiveMasters = null;
-    previousActiveOperationStatuses = null;
-    previousActiveIrregularStatuses = null;
-    previousActiveTodayStatuses = null;
-    cachedActiveItem = undefined;
-
-    return undefined;
-  }
-
-  const masters = getMastersByMode(state);
-
-  const operationStatuses = state.operationStatuses;
-
-  const irregularStatuses = state.irregularStatuses;
-
-  const todayStatuses = state.todayStatuses;
-
-  const isCacheValid =
-    previousActiveMode === state.currentMode &&
-    previousActiveSelectedId === selectedId &&
-    previousActiveMasters === masters &&
-    previousActiveOperationStatuses === operationStatuses &&
-    previousActiveIrregularStatuses === irregularStatuses &&
-    previousActiveTodayStatuses === todayStatuses;
-
-  if (isCacheValid) {
-    return cachedActiveItem;
-  }
-
-  cachedActiveItem = findSelectedMaster(state, selectedId);
-
-  previousActiveMode = state.currentMode;
-  previousActiveSelectedId = selectedId;
-  previousActiveMasters = masters;
-  previousActiveOperationStatuses = operationStatuses;
-  previousActiveIrregularStatuses = irregularStatuses;
-  previousActiveTodayStatuses = todayStatuses;
-
-  return cachedActiveItem;
-};
-
-/* =========================
- * Active Item Status Flags
- * ========================= */
-
-let previousActiveFlagsItem: OperationTableRow | undefined;
-
-let previousActiveFlagsStatus: JobStatus = JOB_STATUS.SCHEDULED;
-
-let cachedActiveFlags: ActiveItemStatusFlags = {
-  item: undefined,
-  status: JOB_STATUS.SCHEDULED,
-  isExecuting: false,
-  isError: false,
-  isSuccess: false,
-  isWaiting: false,
-  isReady: false,
-};
-
-export const selectActiveItemStatusFlags = (
-  state: AppState,
-): ActiveItemStatusFlags => {
-  const item = selectActiveSelectedItem(state);
-  const status = item?.status ?? JOB_STATUS.SCHEDULED;
-
-  if (
-    previousActiveFlagsItem === item &&
-    previousActiveFlagsStatus === status
-  ) {
-    return cachedActiveFlags;
-  }
-
-  previousActiveFlagsItem = item;
-  previousActiveFlagsStatus = status;
-
-  const isExecuting =
-    status === JOB_STATUS.RUNNING || status === JOB_STATUS.SCRIPT_RUNNING;
-
-  cachedActiveFlags = {
-    item,
-    status,
-    isExecuting,
-    isError: status === JOB_STATUS.ERROR,
-    isSuccess: status === JOB_STATUS.SUCCESS,
-    isWaiting: status === JOB_STATUS.WAITING,
-    isReady: status === JOB_STATUS.READY,
-  };
-
-  return cachedActiveFlags;
+  return selectActiveItemStatusFlags(state).item;
 };

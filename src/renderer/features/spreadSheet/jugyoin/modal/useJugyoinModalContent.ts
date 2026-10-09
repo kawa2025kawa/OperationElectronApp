@@ -1,7 +1,9 @@
-﻿import { useCallback } from "react";
+﻿// src/renderer/features/spreadSheet/jugyoin/modal/useJugyoinModalContent.ts
+
+import { useCallback } from "react";
 import { addDays, format, getDay } from "date-fns";
 import { ja } from "date-fns/locale/ja";
-import { systemCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
 
 const formatDateWithDay = (date: Date) => {
@@ -29,7 +31,7 @@ export function useJugyoinModalContent(data: Jugyoin) {
 
   const handleOpenSchedule = useCallback(() => {
     if (scheduleLink) {
-      void systemCommands.openExternal(scheduleLink);
+      void trpc.system.openExternal.mutate({ urlOrPath: scheduleLink });
     }
   }, [scheduleLink]);
 

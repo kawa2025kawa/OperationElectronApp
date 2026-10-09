@@ -192,16 +192,24 @@ export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
   const activeFlags = getActiveFlags();
   const dependencyMasters = getDependencyMasters();
 
+  // 1. Tracker 対象を並列取得
   const trackerResults = await Promise.all(
-    trackerTargets.map((target) => evaluateTrackerTarget(target)),
+    trackerTargets.map(async (target) => ({
+      target,
+      status: await evaluateTrackerTarget(target),
+    })),
   );
 
-  for (const status of trackerResults) {
+  // 2. Tracker からステータスが取得できた場合はそれを適用、取得できない場合（SCHEDULED等）はローカル判定を実行
+  for (const { target, status } of trackerResults) {
     if (status) {
       applyTrackerStatus(status, activeFlags, dependencyMasters);
+    } else {
+      applyLocalStatus(target, activeFlags, dependencyMasters);
     }
   }
 
+  // 3. 最初から Tracker 対象外のタスクもローカル判定を実行
   for (const target of localTargets) {
     applyLocalStatus(target, activeFlags, dependencyMasters);
   }

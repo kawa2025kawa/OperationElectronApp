@@ -1,7 +1,9 @@
-﻿import { toast } from "sonner";
+﻿// src/renderer/features/operation/services/scriptJobService.ts
+
+import { toast } from "sonner";
 
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
-import { operationCommands } from "@renderer/services/commands";
+import { trpc } from "@renderer/lib/trpc";
 import type { AppState } from "@renderer/store";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 import type { JobExecutionOptions } from "@shared/utils/dependency/dependencyUtils";
@@ -64,11 +66,11 @@ export async function executeScriptJob(
       }
 
       try {
-        return await operationCommands.executeScript(
-          cleanKanriNo,
-          cleanScriptKey,
+        return await trpc.operation.executeScript.mutate({
+          kanriNo: cleanKanriNo,
+          scriptKey: cleanScriptKey,
           filePath,
-        );
+        });
       } catch (error) {
         const message = getErrorMessage(error);
 

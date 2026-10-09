@@ -1,7 +1,7 @@
 // src/renderer/features/other/components/modal/contents/pdfUpload/usePdfUploadModalContent.ts
 
 import { useCallback, useEffect } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useShallow } from "zustand/shallow";
 
 import { useAppStore } from "@renderer/store";
 

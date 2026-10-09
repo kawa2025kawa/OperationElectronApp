@@ -1,0 +1,15 @@
+# リファクタリング方針メモ
+
+## フロントエンド計算ロジックのバックエンド移行およびZustand一元管理化
+- **目的**: フロントエンド（`src/renderer`）に点在していた計算ロジック（ステータス評価、状態フラグ計算、集計、検索フィルタリング処理等）をバックエンド（`electron`）および共有ストア層へ集約し、フロント側はZustandストア内の計算済み状態を参照・表示するのみとする。
+- **基本方針**:
+  1. ステータス評価・ActiveFlags算出・サマリー集計（StatusSummary）等のドメイン・ビジネスロジックはバックエンドで一元計算し、Zustandストアに同期・保持する。
+  2. フロントエンドの UI コンポーネントおよび selectors (`operationSelectors.ts`, `operationSummaryService.ts` 等) は計算ロジックを持たず、Zustandストアから計算結果を取得するのみに単純化する。
+  3. バックアップルール（`元のファイル名_bk.拡張子`）および UTF-8 BOMなし保存を徹底する。
+
+## 【Phase 5】マスタ一括更新のバッチ化とパス検索の高速化
+- **目的**: `spreadsheetSlice.ts` での8連発State更新を単一バッチ更新に集約し、`getValueByPath.ts` での文字列分割コストを削減する。
+- **方針**:
+  1. `spreadsheetSlice.ts`: `applyMasterData` 内の更新を単一の `set((state) => ...)` でバッチ処理化。
+  2. `getValueByPath.ts`: `path.split('.')` の結果をキャッシュしてテーブル再描画パフォーマンスを向上。
+
