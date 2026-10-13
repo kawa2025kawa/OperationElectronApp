@@ -1,24 +1,26 @@
-// src/renderer/features/other/components/modal/contents/giftMd/useGiftMdModalContent.ts
-
-import { useCallback, useEffect, useMemo } from "react";
+﻿import { useCallback, useEffect } from "react";
 import { useShallow } from "zustand/shallow";
-
-import { giftMdService } from "@renderer/features/other/services/giftMdService";
-
+import { trpc } from "@renderer/lib/trpc";
 import { useAppStore } from "@renderer/store";
 
 export function useGiftMdModalContent() {
   const {
     giftFile,
     isProcessing,
+    infoMessage,
     setGiftMdFileFromRaw,
+    setGiftMdProcessing,
+    setGiftMdMessage,
     updateModalConfig,
     closeGlobalModal,
   } = useAppStore(
     useShallow((state) => ({
       giftFile: state.giftMd.selectedFile,
       isProcessing: state.giftMd.isProcessing,
+      infoMessage: state.giftMd.infoMessage,
       setGiftMdFileFromRaw: state.setGiftMdFileFromRaw,
+      setGiftMdProcessing: state.setGiftMdProcessing,
+      setGiftMdMessage: state.setGiftMdMessage,
       updateModalConfig: state.updateModalConfig,
       closeGlobalModal: state.closeGlobalModal,
     })),
@@ -28,50 +30,42 @@ export function useGiftMdModalContent() {
 
   const handleExecute = useCallback(async () => {
     if (!giftFile) {
-      updateModalConfig({
-        message: {
-          text: "エラーログファイルを選択してください。",
-          type: "warning",
-        },
+      setGiftMdMessage({
+        text: "処理対象のファイルを選択してください。",
+        type: "warning",
       });
       return;
     }
 
-    updateModalConfig({
-      isProcessing: true,
-      message: null,
+    setGiftMdProcessing(true);
+    setGiftMdMessage({
+      text: "ギフトデータの処理を実行しています...",
+      type: "info",
     });
 
     try {
-      const message = await giftMdService.process(giftFile.path);
-
-      updateModalConfig({
-        message: {
-          text: message,
-          type: "success",
-        },
+      const message = await trpc.other.processGiftMd.mutate(giftFile.path);
+      setGiftMdMessage({
+        text: message || "ギフトデータの処理が正常に完了しました。",
+        type: "success",
       });
     } catch (error) {
       console.error("[useGiftMdModalContent] Process error:", error);
-
-      updateModalConfig({
-        message: {
-          text:
-            error instanceof Error
-              ? error.message
-              : "処理中にエラーが発生しました。",
-          type: "error",
-        },
+      setGiftMdMessage({
+        text:
+          error instanceof Error
+            ? error.message
+            : "ギフトデータの処理中にエラーが発生しました。",
+        type: "error",
       });
     } finally {
-      updateModalConfig({
-        isProcessing: false,
-      });
+      setGiftMdProcessing(false);
     }
-  }, [giftFile, updateModalConfig]);
+  }, [giftFile, setGiftMdProcessing, setGiftMdMessage]);
 
   useEffect(() => {
     updateModalConfig({
+      message: infoMessage,
       rightActions: [
         {
           id: "cancel",
@@ -81,7 +75,7 @@ export function useGiftMdModalContent() {
         },
         {
           id: "execute",
-          label: isProcessing ? "処理中..." : "転送実行",
+          label: isProcessing ? "処理中..." : "実行",
           onClick: handleExecute,
           disabled: !giftFile || isProcessing,
           variant: "default",
@@ -89,6 +83,7 @@ export function useGiftMdModalContent() {
       ],
     });
   }, [
+    infoMessage,
     giftFile,
     isProcessing,
     handleExecute,

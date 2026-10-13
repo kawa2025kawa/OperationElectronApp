@@ -1,14 +1,13 @@
-// electron\features\operation\infrastructure\tracker\trackerHelper.ts
+// electron/features/operation/infrastructure/tracker/trackerHelper.ts
 
 import {
   JOB_STATUS,
   type JobStatus,
   type OperationStatusState,
+  type OperationMaster,
 } from "@shared/types/operation/operationTypes";
 import { isPreviousDayJob } from "@electron/features/operation/domain/operationRules";
-
 import { parseHHMM } from "@electron/features/operation/utils/operationUtils";
-import type { OperationMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 const TRACKER_API_KEY = "71e7f0bcc0f995c1d2d322cbdde23543a5be8f91";
 const TRACKER_API_BASE_URL = "http://192.88.1.152/api/v2/trackers";
@@ -22,21 +21,15 @@ const DEFAULT_KANSHI_TIME = {
 
 const STATUS_ALIAS_MAP: Readonly<Record<string, JobStatus>> = {
   scheduled: JOB_STATUS.SCHEDULED,
-
   running: JOB_STATUS.RUNNING,
   run: JOB_STATUS.RUNNING,
-
   scriptrunning: JOB_STATUS.SCRIPT_RUNNING,
-
   success: JOB_STATUS.SUCCESS,
   done: JOB_STATUS.SUCCESS,
   warning: JOB_STATUS.SUCCESS,
-
   ready: JOB_STATUS.READY,
-
   waiting: JOB_STATUS.WAITING,
   wait: JOB_STATUS.WAITING,
-
   error: JOB_STATUS.ERROR,
   failed: JOB_STATUS.ERROR,
 };
@@ -52,16 +45,29 @@ export interface TrackerApiResponse {
 }
 
 /**
- * OperationMasterからTrackerのJob IDを取得する。
+ * Tracker API で利用可能な Job ID か判定する。
+ * 空文字、空白のみ、"-" は未設定として扱う。
  */
-export function getJobId(target: OperationMaster): string | undefined {
-  return target.jobId?.trim() || undefined;
+export function isValidTrackerJobId(
+  jobId: string | null | undefined,
+): jobId is string {
+  const normalizedJobId = jobId?.trim();
+
+  return Boolean(normalizedJobId && normalizedJobId !== "-");
 }
 
 /**
- * Tracker APIへ問い合わせる開始時刻を生成する。
- *
- * アプリ側のJST時刻をUTCへ変換する。
+ * OperationMaster から Tracker の Job ID を取得する。
+ */
+export function getJobId(target: OperationMaster): string | undefined {
+  const jobId = target.jobId?.trim();
+
+  return isValidTrackerJobId(jobId) ? jobId : undefined;
+}
+
+/**
+ * Tracker API へ問い合わせる開始時刻を生成する。
+ * アプリ側の JST 時刻を UTC へ変換する。
  */
 export function getTargetTime(
   kanriNo: string,
@@ -86,9 +92,8 @@ export function getTargetTime(
 }
 
 /**
- * Tracker問い合わせ範囲の終了時刻を生成する。
- *
- * kanshiTimeが未指定の場合は1時間後とする。
+ * Tracker 問い合わせ範囲の終了時刻を生成する。
+ * kanshiTime が未指定の場合は1時間後とする。
  */
 export function addKanshiTime(
   from: string,
@@ -106,16 +111,20 @@ export function addKanshiTime(
 }
 
 /**
- * Tracker APIのURLを生成する。
+ * Tracker API の URL を生成する。
  */
 export function buildTrackerUrl(
   jobId: string,
   from?: string,
   to?: string,
 ): string {
+  if (!isValidTrackerJobId(jobId)) {
+    throw new Error("Tracker API の Job ID が未設定または不正です。");
+  }
+
   const params = new URLSearchParams({
     api_key: TRACKER_API_KEY,
-    jobnetwork_name: jobId,
+    jobnetwork_name: jobId.trim(),
   });
 
   if (from) {
@@ -130,8 +139,7 @@ export function buildTrackerUrl(
 }
 
 /**
- * Tracker APIのレスポンスを
- * アプリ内部のステータスへ変換する。
+ * Tracker API のレスポンスをアプリ内部のステータスへ変換する。
  */
 export function normalizeItem(
   kanriNo: string,
@@ -146,13 +154,12 @@ export function normalizeItem(
 }
 
 /**
- * Trackerのステータス配列から
- * アプリ内部のステータスを解決する。
- *
- * 配列の最初のステータスのみを参照して評価する。
+ * Tracker のステータス配列からアプリ内部のステータスを解決する。
+ * 配列の先頭のステータスのみを参照する。
  */
 function resolveStatus(statuses: string[]): JobStatus | undefined {
   const firstStatus = statuses[0];
+
   if (!firstStatus) {
     return undefined;
   }

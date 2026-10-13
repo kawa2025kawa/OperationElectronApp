@@ -1,65 +1,68 @@
-// src/renderer/features/other/store/giftMdSlice.ts
+//src\renderer\features\other\store\giftMdSlice.ts
 
-import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-
-import { executeScriptJob } from "@renderer/features/operation/services/scriptJobService";
 import type { AppState } from "@renderer/store";
-import { getFileName, hasExtension } from "@shared/utils/fileUtils";
+import { getFileName } from "@shared/utils/fileUtils";
 
 export interface GiftMdFile {
   name: string;
   path: string;
 }
 
+export interface GiftMessage {
+  text: string;
+  type: "info" | "success" | "error" | "warning";
+}
+
 export interface GiftMdState {
   selectedFile: GiftMdFile | null;
   isProcessing: boolean;
+  infoMessage: GiftMessage;
 }
 
 export interface GiftMdSlice {
   giftMd: GiftMdState;
   setGiftMdFileFromRaw(rawFiles: File[]): void;
   resetGiftMd(): void;
-  executeGiftMdTransfer(): Promise<string>;
+  setGiftMdProcessing(isProcessing: boolean): void;
+  setGiftMdMessage(message: GiftMessage): void;
 }
+
+const DEFAULT_INFO_MESSAGE: GiftMessage = {
+  text: "処理対象のギフトデータファイル (.txt, .DAT) をドラッグ＆ドロップしてください。",
+  type: "info",
+};
 
 export const createGiftMdSlice: StateCreator<
   AppState,
   [["zustand/immer", never]],
   [],
   GiftMdSlice
-> = (set, get) => ({
+> = (set) => ({
   giftMd: {
     selectedFile: null,
     isProcessing: false,
+    infoMessage: DEFAULT_INFO_MESSAGE,
   },
 
   setGiftMdFileFromRaw: (rawFiles) => {
     if (rawFiles.length === 0) return;
-
     const file = rawFiles[0];
-
     const path =
       window.electronAPI.getFilePath(file) ||
       ("path" in file && typeof file.path === "string" ? file.path : file.name);
-
     if (!path) return;
 
-    const isSupported =
-      hasExtension(path, "txt") ||
-      hasExtension(path, "dat") ||
-      file.type === "text/plain";
-
-    if (!isSupported) {
-      toast.error("テキストファイル(.txt, .DAT)のみ対応しています");
-      return;
-    }
+    const fileName = file.name || getFileName(path) || path;
 
     set((state) => {
       state.giftMd.selectedFile = {
-        name: file.name || getFileName(path) || path,
+        name: fileName,
         path,
+      };
+      state.giftMd.infoMessage = {
+        text: `選択中のファイル: ${fileName}`,
+        type: "info",
       };
     });
   },
@@ -68,38 +71,19 @@ export const createGiftMdSlice: StateCreator<
     set((state) => {
       state.giftMd.selectedFile = null;
       state.giftMd.isProcessing = false;
+      state.giftMd.infoMessage = DEFAULT_INFO_MESSAGE;
     });
   },
 
-  executeGiftMdTransfer: async () => {
-    const { selectedFile, isProcessing } = get().giftMd;
-
-    if (!selectedFile || isProcessing) {
-      throw new Error("ファイルを選択してください");
-    }
-
+  setGiftMdProcessing: (isProcessing) => {
     set((state) => {
-      state.giftMd.isProcessing = true;
+      state.giftMd.isProcessing = isProcessing;
     });
+  },
 
-    try {
-      const res = await executeScriptJob(get(), "E41", "E41", [
-        selectedFile.path,
-      ]);
-
-      toast.success("正常に転送されました");
-
-      return res.message;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-
-      toast.error(`ギフトMD転送エラー: ${message}`);
-
-      throw error;
-    } finally {
-      set((state) => {
-        state.giftMd.isProcessing = false;
-      });
-    }
+  setGiftMdMessage: (message) => {
+    set((state) => {
+      state.giftMd.infoMessage = message;
+    });
   },
 });

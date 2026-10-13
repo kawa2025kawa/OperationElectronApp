@@ -1,3 +1,5 @@
+// src/shared/types/electron/ipc.ts
+
 import type { AuthProfile } from "@shared/types/auth/authTypes";
 import type {
   ActiveFlags,
@@ -5,7 +7,8 @@ import type {
   JobStatus,
   OperationStatusState,
 } from "@shared/types/operation/operationTypes";
-import type { MasterData } from "@shared/types/spreadsheet/spreadsheetTypes";
+import type { RdpMaster } from "@shared/types/rdp/rdpTypes";
+import type { SpreadsheetMasterData } from "@shared/types/masterData/spreadsheetMasterDataTypes";
 import type { UpdateInfo } from "@shared/types/system";
 
 export interface IpcChannelMap {
@@ -40,7 +43,7 @@ export interface IpcChannelMap {
   };
 
   "operation:registerTargets": {
-    args: [{ masterData: MasterData }];
+    args: [];
     return: void;
   };
 
@@ -103,12 +106,12 @@ export interface IpcChannelMap {
 
   "spreadsheet:master": {
     args: [];
-    return: MasterData;
+    return: SpreadsheetMasterData;
   };
 
   "rdp:getMasters": {
     args: [];
-    return: MasterData["rdps"];
+    return: RdpMaster[];
   };
 
   "rdp:startSession": {

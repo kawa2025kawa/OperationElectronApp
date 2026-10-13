@@ -1,50 +1,26 @@
 ﻿// src/renderer/features/operation/services/internal/operationExecutionUtils.ts
 
-import {
-  findMasterByKanriNo,
-  type MasterRow,
-} from "@renderer/features/operation/helpers/entityUtils";
-import { trpc } from "@renderer/lib/trpc";
-import type { AppState } from "@renderer/store";
+import type { OperationViewItem } from "@shared/types/operation/operationTypes";
 
-import { JOB_STATUS } from "@shared/types/operation/operationTypes";
-import type { JobExecutionOptions } from "@shared/utils/dependency/dependencyUtils";
-
-const DEFAULT_JOB_EXECUTION_OPTIONS: JobExecutionOptions = {
-  ignoreDependencies: false,
-  silent: true,
-};
-
+/**
+ * エラーオブジェクトから安全にメッセージ文字列を抽出
+ */
 export function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function resolveJobExecutionOptions(
-  options?: JobExecutionOptions,
-): JobExecutionOptions {
-  return {
-    ...DEFAULT_JOB_EXECUTION_OPTIONS,
-    ...options,
-  };
-}
+/**
+ * テーブル行一覧から指定管理Noのデータ行を検索（存在しない場合は例外）
+ */
+export function requireOperationRow(
+  rows: OperationViewItem[],
+  kanriNo: string,
+): OperationViewItem {
+  const found = rows.find((row) => row.kanriNo === kanriNo);
 
-export function requireMaster(state: AppState, kanriNo: string): MasterRow {
-  const master = findMasterByKanriNo(state, kanriNo);
-
-  if (!master) {
-    throw new Error(`対象マスタが存在しません: ${kanriNo}`);
+  if (!found) {
+    throw new Error(`対象データが存在しません: ${kanriNo}`);
   }
 
-  return master;
-}
-
-export async function applyOperationError(
-  kanriNo: string,
-  message: string,
-): Promise<void> {
-  await trpc.operation.updateJobStatus.mutate({
-    kanriNo,
-    status: JOB_STATUS.ERROR,
-    comment: message,
-  });
+  return found;
 }

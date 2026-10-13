@@ -1,7 +1,7 @@
 ﻿// electron/features/rdp/rdpResolver.ts
 
-import { getMasterData } from "@electron/features/spreadsheet/application/masterDataManager";
-import type { RdpMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { getJsonMasterData } from "@electron/features/masterData/application/jsonMasterDataManager";
+import type { RdpMaster } from "@shared/types/rdp/rdpTypes";
 
 export async function findRdpTarget(name: string): Promise<RdpMaster> {
   const cleanName = name.trim().toUpperCase();
@@ -10,7 +10,7 @@ export async function findRdpTarget(name: string): Promise<RdpMaster> {
     throw new Error("RDP接続先が指定されていません");
   }
 
-  const masterData = await getMasterData();
+  const masterData = await getJsonMasterData();
 
   const target = masterData.rdps.find(
     (item) => item.name?.trim().toUpperCase() === cleanName,
@@ -28,7 +28,6 @@ export async function findRdpTarget(name: string): Promise<RdpMaster> {
 }
 
 export async function getRdpTargets(): Promise<RdpMaster[]> {
-  const masterData = await getMasterData();
-
+  const masterData = await getJsonMasterData();
   return masterData.rdps;
 }

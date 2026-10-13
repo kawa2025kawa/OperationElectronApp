@@ -1,13 +1,12 @@
 // src/renderer/components/ui/statusSummary/StatusSummary.tsx
 
+// src/renderer/components/ui/statusSummary/StatusSummary.tsx
+
 import { memo } from "react";
 
 import { SummaryModalContent } from "@renderer/features/operation/components/modal/summaryModal/SummaryModalContent";
-import type {
-  OperationSummaryRow,
-  TodaySummaryRow,
-} from "@renderer/features/operation/services/operationSummaryService";
 import { useAppStore } from "@renderer/store";
+import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes";
 
 import { useStatusSummary } from "./useStatusSummary";
 import * as styles from "./statusSummary.css";
@@ -16,7 +15,7 @@ export const StatusSummary = memo(() => {
   const openGlobalModal = useAppStore((state) => state.openGlobalModal);
 
   const handleOpenModal = (
-    summaryItems: Array<OperationSummaryRow | TodaySummaryRow>,
+    summaryItems: SummaryDetailRow[],
     titleLabel: string,
   ) => {
     openGlobalModal(<SummaryModalContent items={summaryItems} />, {
@@ -48,3 +47,5 @@ export const StatusSummary = memo(() => {
     </div>
   );
 });
+
+StatusSummary.displayName = "StatusSummary";

@@ -1,21 +1,18 @@
 ﻿import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
 
-import type { ViewMode } from "@renderer/registry/appRegistry";
-import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/operationSelectors";
-import { getManualUrl } from "@renderer/features/operation/helpers/entityUtils";
 import { executeJcJob } from "@renderer/features/operation/services/jcJobService";
+import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/operationSelectors";
 import { trpc } from "@renderer/lib/trpc";
-import { getManualScriptKeys } from "@shared/config/operationScriptRegistry";
+import type { ViewMode } from "@renderer/registry/appRegistry";
 import { useAppStore, type AppState } from "@renderer/store";
 import type {
   JobStatus,
   LinkConfig,
   OperationViewItem,
-  SelectedOperationItem,
 } from "@shared/types/operation/operationTypes";
-import type { OperationMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
 
+import { useOperationTable } from "./components/table/useOperationTable";
 import { toDisplayValue } from "./operationDisplayUtils";
 import { openLinkModal, openScriptModal } from "./operationModal";
 
@@ -26,7 +23,7 @@ import { openLinkModal, openScriptModal } from "./operationModal";
 export interface ViewAction {
   key: string;
   label: string;
-  execute: (item: SelectedOperationItem) => void | Promise<void>;
+  execute: (item: OperationViewItem) => void | Promise<void>;
 }
 
 type InfoRowField =
@@ -36,7 +33,8 @@ type InfoRowField =
   | "status"
   | "startTime"
   | "endTime"
-  | "comment";
+  | "comment"
+  | "cycle";
 
 type InfoRowType = "text" | "status" | "remarks";
 
@@ -51,6 +49,7 @@ export interface InfoRowData extends InfoRowDefinition {
 }
 
 type OpenGlobalModal = AppState["openGlobalModal"];
+type ManualUrlKey = "manualUrl" | "autoManualUrl";
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -60,22 +59,21 @@ export const MODES: ViewMode[] = ["operation", "irregular", "today"];
 
 const INFO_ROW_DEFINITIONS: Record<ViewMode, InfoRowDefinition[]> = {
   operation: [
-    { field: "kanriNo", label: "管理番号", type: "text" },
+    { field: "kanriNo", label: "管理No", type: "text" },
     { field: "workName", label: "作業名", type: "text" },
     { field: "status", label: "ステータス", type: "status" },
-    { field: "startTime", label: "開始日時", type: "text" },
-    { field: "endTime", label: "終了日時", type: "text" },
+    { field: "startTime", label: "開始時刻", type: "text" },
+    { field: "endTime", label: "終了時刻", type: "text" },
     { field: "comment", label: "コメント", type: "remarks" },
   ],
   irregular: [
-    { field: "kanriNo", label: "管理番号", type: "text" },
-    { field: "scheduleTime", label: "開始時刻", type: "text" },
+    { field: "kanriNo", label: "管理No", type: "text" },
+    { field: "scheduleTime", label: "予定時刻", type: "text" },
     { field: "workName", label: "作業名", type: "text" },
-    { field: "status", label: "ステータス", type: "status" },
-    { field: "comment", label: "備考", type: "remarks" },
+    { field: "cycle", label: "日付ルール", type: "text" },
   ],
   today: [
-    { field: "kanriNo", label: "管理番号", type: "text" },
+    { field: "kanriNo", label: "管理No", type: "text" },
     { field: "workName", label: "作業名", type: "text" },
     { field: "status", label: "ステータス", type: "status" },
     { field: "comment", label: "コメント", type: "remarks" },
@@ -83,44 +81,94 @@ const INFO_ROW_DEFINITIONS: Record<ViewMode, InfoRowDefinition[]> = {
 };
 
 // -----------------------------------------------------------------------------
-// Menu Actions
+// Operation Helpers
 // -----------------------------------------------------------------------------
 
-const isOperationMaster = (item: OperationViewItem): item is OperationMaster =>
-  "jobId" in item;
+function isOperationMaster(item: OperationViewItem): boolean {
+  return "jobId" in item && Boolean(item.jobId);
+}
 
 function getLinkConfigs(item: OperationViewItem): LinkConfig[] {
-  if (!("link" in item) || !item.link) {
+  if (item.link !== true || !Array.isArray(item.links)) {
     return [];
   }
 
-  return item.link.split(",").map((entry, index) => {
-    const separator = entry.indexOf(":");
-
-    return separator === -1
-      ? { key: `link${index + 1}`, url: entry }
-      : {
-          key: entry.slice(0, separator),
-          url: entry.slice(separator + 1),
-        };
-  });
+  return item.links
+    .filter(
+      (entry) =>
+        typeof entry?.label === "string" &&
+        entry.label.trim().length > 0 &&
+        typeof entry?.path === "string" &&
+        entry.path.trim().length > 0,
+    )
+    .map((entry) => ({
+      key: entry.label.trim(),
+      url: entry.path.trim(),
+    }));
 }
 
-function hasManualEnabled(item: OperationViewItem): boolean {
-  if (isOperationMaster(item)) {
-    return item.manualUrl === "true" || item.AutoManualUrl === "true";
+function hasManualScript(item: OperationViewItem): boolean {
+  if (item.Script !== true || !Array.isArray(item.ScriptKeys)) {
+    return false;
   }
 
-  return "manualUrl" in item && item.manualUrl === "true";
+  return item.ScriptKeys.some(
+    (entry) =>
+      entry.executionType === "manual" &&
+      typeof entry.key === "string" &&
+      entry.key.trim().length > 0,
+  );
 }
 
+// -----------------------------------------------------------------------------
+// Manual / AutoManual
+// -----------------------------------------------------------------------------
+
+/**
+ * 値が空かどうかではなく、JSON オブジェクト自身にキーがあるかを判定する。
+ * manualUrl / autoManualUrl の値が空文字でも、キーが存在すればボタンを表示する。
+ */
+function hasOwnKey(item: OperationViewItem, key: ManualUrlKey): boolean {
+  return Object.prototype.hasOwnProperty.call(item, key);
+}
+
+/**
+ * キーに対応する起動先を取得する。
+ * 表示判定は hasOwnKey で行うため、この関数の戻り値で表示可否を判断しない。
+ */
+function getManualTarget(item: OperationViewItem, key: ManualUrlKey): string {
+  if (key === "manualUrl") {
+    return typeof item.manualUrl === "string" ? item.manualUrl : "";
+  }
+
+  return typeof item.autoManualUrl === "string" ? item.autoManualUrl : "";
+}
+
+function createManualAction(
+  key: string,
+  label: string,
+  target: string,
+): ViewAction {
+  return {
+    key,
+    label,
+    execute: async () => {
+      await trpc.system.openManual.mutate({ target });
+    },
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Action Creation
+// -----------------------------------------------------------------------------
+
 function createActiveActions(
-  item: SelectedOperationItem,
+  item: OperationViewItem,
   openGlobalModal: OpenGlobalModal,
 ): ViewAction[] {
   const actions: ViewAction[] = [];
 
-  if (isOperationMaster(item) && item.jobId) {
+  if (isOperationMaster(item)) {
     actions.push({
       key: "jc",
       label: "JC",
@@ -128,7 +176,7 @@ function createActiveActions(
     });
   }
 
-  if (getManualScriptKeys(item.kanriNo).length > 0) {
+  if (hasManualScript(item)) {
     actions.push({
       key: "script",
       label: "Script",
@@ -146,16 +194,26 @@ function createActiveActions(
     });
   }
 
-  if (hasManualEnabled(item)) {
-    actions.push({
-      key: "manual",
-      label: "Manual",
-      execute: async () => {
-        await trpc.system.openExternal.mutate({
-          urlOrPath: getManualUrl(item.kanriNo),
-        });
-      },
-    });
+  // manualUrl キーが存在するときだけ Manual を表示する。
+  if (hasOwnKey(item, "manualUrl")) {
+    actions.push(
+      createManualAction(
+        "manual",
+        "Manual",
+        getManualTarget(item, "manualUrl"),
+      ),
+    );
+  }
+
+  // autoManualUrl キーが存在するときだけ AutoManual を表示する。
+  if (hasOwnKey(item, "autoManualUrl")) {
+    actions.push(
+      createManualAction(
+        "autoManual",
+        "AutoManual",
+        getManualTarget(item, "autoManualUrl"),
+      ),
+    );
   }
 
   return actions;
@@ -167,30 +225,39 @@ function createActiveActions(
 
 function getInfoRowValue(
   field: InfoRowField,
-  item: SelectedOperationItem,
+  item: OperationViewItem,
   status: JobStatus | undefined,
 ): unknown {
   switch (field) {
     case "kanriNo":
       return item.kanriNo;
+
     case "workName":
       return item.workName;
+
     case "scheduleTime":
       return item.scheduledTime;
+
     case "status":
-      return status;
+      return status ?? ("status" in item ? item.status : undefined);
+
     case "startTime":
-      return item.startTime;
+      return "startTime" in item ? item.startTime : undefined;
+
     case "endTime":
-      return item.endTime;
+      return "endTime" in item ? item.endTime : undefined;
+
     case "comment":
-      return item.comment;
+      return "comment" in item ? item.comment : undefined;
+
+    case "cycle":
+      return "cycle" in item ? item.cycle : undefined;
   }
 }
 
 function createInfoRows(
   mode: ViewMode,
-  item: SelectedOperationItem | undefined,
+  item: OperationViewItem | undefined,
   status: JobStatus | undefined,
 ): InfoRowData[] {
   return INFO_ROW_DEFINITIONS[mode].map((definition) => ({
@@ -205,17 +272,22 @@ function createInfoRows(
 // Hook
 // -----------------------------------------------------------------------------
 
-export function useOperationViewLogic() {
-  const { currentMode, setMode, openGlobalModal } = useAppStore(
+export function useOperationViewLogic(rowsInput?: OperationViewItem[]) {
+  const { currentMode, setMode, openGlobalModal, selectedId } = useAppStore(
     useShallow((state) => ({
       currentMode: state.currentMode,
       setMode: state.setMode,
       openGlobalModal: state.openGlobalModal,
+      selectedId: state.selectedIds[state.currentMode] ?? "",
     })),
   );
 
-  const { item: selectedItem, status } = useAppStore(
-    selectActiveItemStatusFlags,
+  const tableData = useOperationTable();
+  const rows = rowsInput ?? tableData.rows;
+
+  const { item: selectedItem, status } = useMemo(
+    () => selectActiveItemStatusFlags(rows, selectedId),
+    [rows, selectedId],
   );
 
   const activeActions = useMemo(
@@ -230,7 +302,7 @@ export function useOperationViewLogic() {
         return;
       }
 
-      const action = activeActions.find((item) => item.key === key);
+      const action = activeActions.find((candidate) => candidate.key === key);
 
       if (action) {
         await action.execute(selectedItem);
@@ -248,7 +320,7 @@ export function useOperationViewLogic() {
     currentMode,
     activeActions,
     infoRows,
-    isMenuVisible: Boolean(selectedItem && activeActions.length),
+    isMenuVisible: Boolean(selectedItem && activeActions.length > 0),
     setMode,
     executeAction,
   };

@@ -32,7 +32,6 @@ const DATA_LOADING_STATUS: InitStatus = {
   update: "LOADING",
   operation: "LOADING",
   irregular: "LOADING",
-  todayIrregular: "LOADING",
   auth: "LOADING",
   store: "LOADING",
   jugyoin: "LOADING",

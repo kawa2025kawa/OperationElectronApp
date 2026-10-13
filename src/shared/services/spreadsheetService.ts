@@ -2,9 +2,6 @@
 
 import {
   SHEETS,
-  type IrregularMaster,
-  type OperationMaster,
-  type RdpMaster,
   type SheetData,
   type SheetId,
   type SheetRow,
@@ -41,26 +38,6 @@ export function normalizeSheetData<TSheetId extends SheetId>(
       return normalizeGenericRows<
         SheetRow<typeof SHEETS.KOKYUHYO_TANTOU.sheetName>
       >(parseSheetRows(rows)) as SheetData<TSheetId>;
-
-    case SHEETS.OPERATION.sheetName:
-      return parseSheetRows<OperationMaster>(rows).map(
-        normalizeOperationMaster,
-      ) as SheetData<TSheetId>;
-
-    case SHEETS.IRREGULAR.sheetName:
-      return parseSheetRows<IrregularMaster>(rows).map(
-        normalizeIrregularMaster,
-      ) as SheetData<TSheetId>;
-
-    case SHEETS.TODAY_IRREGULAR.sheetName:
-      return parseSheetRows<IrregularMaster>(rows).map(
-        normalizeIrregularMaster,
-      ) as SheetData<TSheetId>;
-
-    case SHEETS.RDP.sheetName:
-      return parseSheetRows<RdpMaster>(rows).map(
-        normalizeRdpMaster,
-      ) as SheetData<TSheetId>;
 
     default:
       return [];
@@ -103,58 +80,6 @@ function normalizeGenericRows<T extends object>(rows: T[]): T[] {
 
     return normalized as T;
   });
-}
-
-function normalizeOperationMaster(row: OperationMaster): OperationMaster {
-  return {
-    kanriNo: normalizeRequired(row.kanriNo),
-    scheduledTime: normalizeRequired(row.scheduledTime),
-    workName: normalizeRequired(row.workName),
-    jobId: normalizeOptional(row.jobId),
-    dependsOn: normalizeOptional(row.dependsOn),
-    manualUrl: normalizeOptional(row.manualUrl),
-    AutoManualUrl: normalizeOptional(row.AutoManualUrl),
-    link: normalizeOptional(row.link),
-    other1: normalizeOptional(row.other1),
-    other2: normalizeOptional(row.other2),
-  };
-}
-
-function normalizeIrregularMaster(row: IrregularMaster): IrregularMaster {
-  return {
-    kanriNo: normalizeRequired(row.kanriNo),
-    scheduledTime: normalizeRequired(row.scheduledTime),
-    dateRule: normalizeOptional(row.dateRule),
-    weekdayRule: normalizeOptional(row.weekdayRule),
-    weekRule: normalizeOptional(row.weekRule),
-    monthRule: normalizeOptional(row.monthRule),
-    workName: normalizeRequired(row.workName),
-    dependsOn: normalizeOptional(row.dependsOn),
-    manualUrl: normalizeOptional(row.manualUrl),
-    AutoManualUrl: normalizeOptional(row.AutoManualUrl),
-    link: normalizeOptional(row.link),
-    other1: normalizeOptional(row.other1),
-    other2: normalizeOptional(row.other2),
-  };
-}
-
-function normalizeRdpMaster(row: RdpMaster): RdpMaster {
-  return {
-    name: normalizeString(row.name),
-    ipAddress: normalizeString(row.ipAddress),
-    userName: normalizeString(row.userName),
-    password: normalizeString(row.password),
-  };
-}
-
-function normalizeRequired(value: string): string {
-  return value.trim();
-}
-
-function normalizeOptional(value: string): string {
-  const normalized = value.trim();
-
-  return normalized === "-" || normalized === "ー" ? "" : normalized;
 }
 
 function normalizeString(value: string): string {

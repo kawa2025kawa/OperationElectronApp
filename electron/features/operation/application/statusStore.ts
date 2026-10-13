@@ -1,12 +1,12 @@
 ﻿// electron/features/operation/application/statusStore.ts
 
 import type { OperationStatusState } from "@shared/types/operation/operationTypes";
+import type { JsonMasterData } from "@shared/types/masterData/jsonMasterDataTypes";
 import type { DependencyMasters } from "@shared/utils/dependency/dependencyUtils";
-import type { MasterData } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { StatusTarget } from "./statusNotifier";
 
 /**
- * アプリケーションのインメモリ状態（ターゲット情報、ステータス、マスタデータ）を保持するストア
+ * アプリケーションのインメモリ状態（ターゲット情報、ステータス、依存マスタ）を保持するストア
  */
 export class StatusStore {
   public readonly targets = new Map<string, StatusTarget>();
@@ -19,9 +19,9 @@ export class StatusStore {
   };
 
   /**
-   * スプレッドシート等から取得したマスタデータをストアに適用する
+   * JSON マスタデータから依存関係の計算に必要なデータを適用する
    */
-  public setDependencyMasters(masterData: MasterData): void {
+  public setDependencyMasters(masterData: JsonMasterData): void {
     this.dependencyMasters = {
       operationMasters: masterData.operations,
       irregularMasters: masterData.irregulars,

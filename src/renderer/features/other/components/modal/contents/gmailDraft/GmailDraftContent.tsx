@@ -1,12 +1,11 @@
 // src/renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent.tsx
 
+// src/renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent.tsx
 import { memo } from "react";
-
 import { AuthView } from "@renderer/features/auth/AuthView";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-
 import * as styles from "./gmailDraftContent.css";
-import { EMAIL_TEMPLATE_OPTIONS } from "../../../../templates/gmailTemplates";
+import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftTypes";
 import { useGmailModalLogic } from "./useGmailModalLogic";
 
 export const GmailDraftContent: GlobalModalComponent = memo(() => {
@@ -28,9 +27,8 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
     <div className={styles.formContainer}>
       <div className={styles.fieldGroup}>
         <label className={styles.label} htmlFor="gmail-template">
-          テンプレート選択
+          テンプレート
         </label>
-
         <select
           id="gmail-template"
           className={styles.selectInput}
@@ -38,8 +36,7 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
           onChange={handleTemplateChange}
           disabled={isSaving}
         >
-          <option value="">手動作成（テンプレートなし）</option>
-
+          <option value="">手動作成</option>
           {EMAIL_TEMPLATE_OPTIONS.map((option) => (
             <option key={option.key} value={option.key}>
               {option.label}
@@ -47,12 +44,10 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
           ))}
         </select>
       </div>
-
       <div className={styles.fieldGroup}>
         <label className={styles.label} htmlFor="gmail-from">
-          差出人 (From)
+          送信元 (From)
         </label>
-
         <input
           id="gmail-from"
           type="text"
@@ -61,12 +56,10 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
           disabled
         />
       </div>
-
       <div className={styles.fieldGroup}>
         <label className={styles.label} htmlFor="gmail-to">
           宛先 (To)
         </label>
-
         <textarea
           id="gmail-to"
           className={styles.addressTextarea}
@@ -77,12 +70,10 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
           disabled={isSaving}
         />
       </div>
-
       <div className={styles.fieldGroup}>
         <label className={styles.label} htmlFor="gmail-cc">
           CC
         </label>
-
         <textarea
           id="gmail-cc"
           className={styles.addressTextarea}
@@ -93,12 +84,10 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
           disabled={isSaving}
         />
       </div>
-
       <div className={styles.fieldGroup}>
         <label className={styles.label} htmlFor="gmail-subject">
           件名 (Subject)
         </label>
-
         <input
           id="gmail-subject"
           type="text"
@@ -108,12 +97,10 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
           disabled={isSaving}
         />
       </div>
-
       <div className={styles.bodyFieldGroup}>
         <label className={styles.label} htmlFor="gmail-body">
           本文 (Body)
         </label>
-
         <textarea
           id="gmail-body"
           className={styles.bodyTextarea}

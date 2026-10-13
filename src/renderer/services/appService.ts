@@ -1,11 +1,9 @@
-// src/renderer/services/appService.ts
+﻿// src/renderer/services/appService.ts
 
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
 import { trpc } from "@renderer/lib/trpc";
 import { updateService } from "@renderer/services/updateService";
 import { useAppStore } from "@renderer/store";
-
-import type { MasterData } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 /* =========================
  * Status Restore
@@ -30,16 +28,27 @@ async function restorePersistedStatuses(): Promise<void> {
 }
 
 /* =========================
- * Operation Master
+ * Operation Initialization
  * ========================= */
 
-async function registerOperationTargets(masterData: MasterData): Promise<void> {
-  await trpc.operation.registerTargets.mutate({ masterData });
+async function loadOperationData(): Promise<void> {
+  const store = useAppStore.getState();
 
-  // ポーリングを開始する処理
-  await trpc.operation.startPolling.mutate();
+  // 1. スプレッドシートのマスタデータを取得
+  const masterData = await store.fetchMasterData();
 
-  await useAppStore.getState().fetchStatusSummary();
+  if (!masterData) {
+    return;
+  }
+
+  // 2. JSON マスタから作業ターゲットを登録
+  await trpc.operation.registerTargets.mutate();
+
+  // 3. 永続化されたステータスを復元
+  await restorePersistedStatuses();
+
+  // 4. サマリー集計
+  await store.fetchStatusSummary();
 }
 
 /* =========================
@@ -51,33 +60,11 @@ function markAllTasksAsNg(): void {
     update: "NG",
     operation: "NG",
     irregular: "NG",
-    todayIrregular: "NG",
     store: "NG",
     jugyoin: "NG",
     kokyuhyo: "NG",
     tantou: "NG",
   });
-}
-
-/* =========================
- * Operation Initialization
- * ========================= */
-
-async function loadOperationData(): Promise<void> {
-  const store = useAppStore.getState();
-
-  // 1. マスターデータを先に取得
-  const masterData = await store.fetchMasterData();
-
-  if (!masterData) {
-    return;
-  }
-
-  // 2. ステータスを復元
-  await restorePersistedStatuses();
-
-  // 3. ターゲット登録とポーリング開始
-  await registerOperationTargets(masterData);
 }
 
 /* =========================
@@ -123,4 +110,3 @@ async function initializeAppData(): Promise<void> {
 export const appService = {
   initializeAppData,
 };
-

@@ -25,10 +25,6 @@ export interface GoogleApiRequestOptions extends RequestInit {
   retryOnUnauthorized?: boolean;
 }
 
-export interface GoogleApiRequestOptions extends RequestInit {
-  retryOnUnauthorized?: boolean;
-}
-
 export class GoogleOAuthService {
   private refreshPromise: Promise<AuthSession | null> | null = null;
 

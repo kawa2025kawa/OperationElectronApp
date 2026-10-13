@@ -1,15 +1,12 @@
-// src/renderer/features/spreadSheet/store/spreadsheetSlice.ts
+﻿// src/renderer/features/spreadSheet/store/spreadsheetSlice.ts
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-
 import { trpc } from "@renderer/lib/trpc";
 import type { AppState } from "@renderer/store";
-
-import type { InitStatus } from "@shared/types/initializationTypes";
+import type { SpreadsheetMasterData } from "@shared/types/masterData/spreadsheetMasterDataTypes";
 import {
   SHEETS,
-  type MasterData,
   type SheetDataResponse,
   type SheetDataState,
   type SheetId,
@@ -23,18 +20,6 @@ const SHEET_IDS = Object.values(SHEETS).map(
   ({ sheetName }) => sheetName,
 ) as SheetId[];
 
-const SHEET_TO_INIT_STATUS_KEY: Partial<Record<SheetId, keyof InitStatus>> = {
-  [SHEETS.OPERATION.sheetName]: "operation",
-  [SHEETS.IRREGULAR.sheetName]: "irregular",
-  [SHEETS.TODAY_IRREGULAR.sheetName]: "todayIrregular",
-  [SHEETS.STORE.sheetName]: "store",
-  [SHEETS.JUGYOIN.sheetName]: "jugyoin",
-  [SHEETS.KOKYUHYO.sheetName]: "kokyuhyo",
-  [SHEETS.KOKYUHYO_TANTOU.sheetName]: "tantou",
-};
-
-type InitStatusValue = "OK" | "NG";
-
 /* =========================
  * Helpers
  * ========================= */
@@ -45,23 +30,17 @@ function createSheetState<T>(value: T): Record<SheetId, T> {
   ) as Record<SheetId, T>;
 }
 
-function getInitStatusKey(sheetId: SheetId): keyof InitStatus | undefined {
-  return SHEET_TO_INIT_STATUS_KEY[sheetId];
-}
-
 /* =========================
  * Slice
  * ========================= */
 
 export interface SpreadSheetSlice {
   sheetData: SheetDataState;
-
   updateSheetData<TSheetId extends SheetId>(
     sheetId: TSheetId,
     data: SheetDataResponse<TSheetId>,
   ): void;
-
-  fetchMasterData(): Promise<MasterData | null>;
+  fetchMasterData(): Promise<SpreadsheetMasterData | null>;
 }
 
 export const createSpreadSheetSlice: StateCreator<
@@ -70,63 +49,6 @@ export const createSpreadSheetSlice: StateCreator<
   [],
   SpreadSheetSlice
 > = (set, get) => {
-  /* =========================
-   * Initialization Status
-   * ========================= */
-
-  const updateInitStatusForSheet = (
-    sheetId: SheetId,
-    status: InitStatusValue,
-  ): void => {
-    const initKey = getInitStatusKey(sheetId);
-
-    if (!initKey) {
-      return;
-    }
-
-    get().setInitStatus({
-      [initKey]: status,
-    });
-  };
-
-  const updateInitStatusForAllSheets = (status: InitStatusValue): void => {
-    for (const sheetId of SHEET_IDS) {
-      updateInitStatusForSheet(sheetId, status);
-    }
-  };
-
-  /* =========================
-   * Operation IDs
-   * ========================= */
-
-  const updateOperationIds = (
-    sheetId: SheetId,
-    data: readonly { kanriNo: string }[],
-  ): void => {
-    const ids = data
-      .map((item) => String(item.kanriNo ?? "").trim())
-      .filter(Boolean);
-
-    set((state) => {
-      switch (sheetId) {
-        case SHEETS.OPERATION.sheetName:
-          state.operationIds = ids;
-          break;
-
-        case SHEETS.IRREGULAR.sheetName:
-          state.irregularIds = ids;
-          break;
-
-        case SHEETS.TODAY_IRREGULAR.sheetName:
-          state.todayIds = ids;
-          break;
-
-        default:
-          break;
-      }
-    });
-  };
-
   /* =========================
    * Sheet Data
    * ========================= */
@@ -138,22 +60,13 @@ export const createSpreadSheetSlice: StateCreator<
     set((state) => {
       state.sheetData[sheetId] = data as never;
     });
-
-    if (Array.isArray(data.data)) {
-      updateOperationIds(sheetId, data.data as readonly { kanriNo: string }[]);
-    }
   };
 
   /* =========================
-   * Master Data
+   * Spreadsheet Master Data
    * ========================= */
 
-  const applyMasterData = (masterData: MasterData): void => {
-    const extractIds = (data: readonly { kanriNo?: string }[]) =>
-      data
-        .map((item) => String(item.kanriNo ?? "").trim())
-        .filter(Boolean);
-
+  const applyMasterData = (masterData: SpreadsheetMasterData): void => {
     set((state) => {
       state.sheetData[SHEETS.STORE.sheetName] = {
         sheetId: SHEETS.STORE.sheetName,
@@ -174,50 +87,46 @@ export const createSpreadSheetSlice: StateCreator<
         sheetId: SHEETS.KOKYUHYO_TANTOU.sheetName,
         data: masterData.kokyuhyoTantous,
       } as never;
-
-      state.sheetData[SHEETS.OPERATION.sheetName] = {
-        sheetId: SHEETS.OPERATION.sheetName,
-        data: masterData.operations,
-      } as never;
-
-      state.sheetData[SHEETS.IRREGULAR.sheetName] = {
-        sheetId: SHEETS.IRREGULAR.sheetName,
-        data: masterData.irregulars,
-      } as never;
-
-      state.sheetData[SHEETS.TODAY_IRREGULAR.sheetName] = {
-        sheetId: SHEETS.TODAY_IRREGULAR.sheetName,
-        data: masterData.todayIrregulars,
-      } as never;
-
-      state.sheetData[SHEETS.RDP.sheetName] = {
-        sheetId: SHEETS.RDP.sheetName,
-        data: masterData.rdps,
-      } as never;
-
-      state.operationIds = extractIds(masterData.operations);
-      state.irregularIds = extractIds(masterData.irregulars);
-      state.todayIds = extractIds(masterData.todayIrregulars);
     });
   };
 
-  const fetchMasterData = async (): Promise<MasterData | null> => {
+  const fetchMasterData = async (): Promise<SpreadsheetMasterData | null> => {
     try {
       const masterData = await trpc.spreadsheet.getMasterData.query();
 
+      // Spreadsheet由来のデータのみをZustandへ反映する
       applyMasterData(masterData);
-      updateInitStatusForAllSheets("OK");
+
+      get().setInitStatus({
+        operation: "OK",
+        irregular: "OK",
+        store: "OK",
+        jugyoin: "OK",
+        kokyuhyo: "OK",
+        tantou: "OK",
+        update: "OK",
+      });
 
       return masterData;
     } catch (error: unknown) {
+      console.error("[SpreadSheetSlice] fetchMasterData エラー詳細:", error);
+
       const message =
         error instanceof Error
           ? error.message
-          : "マスターデータの取得に失敗しました。";
+          : "マスターデータの取得に失敗しました";
 
-      updateInitStatusForAllSheets("NG");
+      get().setInitStatus({
+        operation: "NG",
+        irregular: "NG",
+        store: "NG",
+        jugyoin: "NG",
+        kokyuhyo: "NG",
+        tantou: "NG",
+        update: "NG",
+      });
+
       toast.error(message);
-
       return null;
     }
   };
@@ -228,7 +137,6 @@ export const createSpreadSheetSlice: StateCreator<
 
   return {
     sheetData: createSheetState(null) as SheetDataState,
-
     updateSheetData,
     fetchMasterData,
   };

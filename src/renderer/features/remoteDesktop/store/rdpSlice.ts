@@ -5,7 +5,7 @@ import type { StateCreator } from "zustand";
 
 import { trpc } from "@renderer/lib/trpc";
 import type { AppState } from "@renderer/store";
-import type { RdpMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
+import type { RdpMaster } from "@shared/types/rdp/rdpTypes";
 
 export interface RdpSlice {
   rdpTargets: RdpMaster[];

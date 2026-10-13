@@ -1,4 +1,4 @@
-﻿//electron\features\operation\application\operationStatusEvaluator.//
+﻿// electron/features/operation/application/operationStatusEvaluator.ts
 
 import { getActiveFlags } from "@electron/features/operation/application/activeFlagsManager";
 import {
@@ -11,10 +11,8 @@ import {
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
 import { calculateOperationStatus } from "@electron/features/operation/domain/statusCalculator";
 import { isProtectedStatus } from "@electron/features/operation/domain/statusRules";
-import {
-  fetchTrackerStatusByJobId,
-  hasJobId,
-} from "@electron/features/operation/infrastructure/tracker/trackerServiceClient";
+import { fetchTrackerStatusByJobId } from "@electron/features/operation/infrastructure/tracker/trackerServiceClient";
+import { getJobId } from "@electron/features/operation/infrastructure/tracker/trackerHelper";
 import {
   JOB_STATUS,
   type ActiveFlags,
@@ -32,7 +30,7 @@ function hasTrackerTarget(target: StatusTarget): target is OperationTarget {
   return (
     target.targetType === "operation" &&
     Boolean(target.kanriNo) &&
-    hasJobId(target)
+    Boolean(getJobId(target))
   );
 }
 
@@ -93,11 +91,13 @@ function evaluateTrackerStatus(
 async function fetchTrackerStatus(
   target: OperationTarget,
 ): Promise<OperationStatusState | undefined> {
-  return fetchTrackerStatusByJobId(
-    target.jobId,
-    target.scheduledTime,
-    target.kanriNo,
-  );
+  const jobId = target.jobId?.trim();
+
+  if (!jobId) {
+    return undefined;
+  }
+
+  return fetchTrackerStatusByJobId(jobId, target.scheduledTime, target.kanriNo);
 }
 
 function applyTrackerStatus(
@@ -200,7 +200,7 @@ export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
     })),
   );
 
-  // 2. Tracker からステータスが取得できた場合はそれを適用、取得できない場合（SCHEDULED等）はローカル判定を実行
+  // 2. Tracker から取得できない場合はローカル判定
   for (const { target, status } of trackerResults) {
     if (status) {
       applyTrackerStatus(status, activeFlags, dependencyMasters);
@@ -209,7 +209,7 @@ export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
     }
   }
 
-  // 3. 最初から Tracker 対象外のタスクもローカル判定を実行
+  // 3. Tracker 対象外もローカル判定
   for (const target of localTargets) {
     applyLocalStatus(target, activeFlags, dependencyMasters);
   }

@@ -1,13 +1,9 @@
-//electron\features\operation\runners\scriptRunner.ts
+// electron/features/operation/runners/scriptRunner.ts
 
-import { cleanErrorMessage } from "@electron/features/operation/utils/errorHelper";
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
-
-// 全ジョブ関数を1行で一括インポート
+import { cleanErrorMessage } from "@electron/features/operation/utils/errorHelper";
 import * as jobs from "@electron/features/operation/jobs/scripts";
-
-import { type JobResult } from "@shared/types/operation/operationTypes";
-import { type ScriptKey } from "@shared/config/operationScriptRegistry";
+import type { JobResult } from "@shared/types/operation/operationTypes";
 
 export type ScriptFilePath = string | string[];
 
@@ -21,7 +17,14 @@ type JobRunnerFn = (
   options?: JobOptions,
 ) => Promise<string | JobResult>;
 
-const jobRunners: Partial<Record<ScriptKey, JobRunnerFn>> = {
+interface ParsedScriptEntry {
+  key: string;
+  runnerKey: string;
+}
+
+const EMPTY_SCRIPT_VALUES = new Set(["", "-", "ー"]);
+
+const JOB_RUNNERS: Readonly<Record<string, JobRunnerFn>> = {
   // 数字系
   "114": jobs.runJob114,
   "16": jobs.runJob16,
@@ -40,7 +43,7 @@ const jobRunners: Partial<Record<ScriptKey, JobRunnerFn>> = {
 
   // Eシリーズ
   e5: (_, filePath) => jobs.runJobE5(filePath),
-  e5_check: () => jobs.runJobE5Check(),
+  e55: () => jobs.runJobE55(),
   e8: () => jobs.runJobE8(),
   e9: () => jobs.runJobE9(),
   e14: (_, filePath) => jobs.runJobE14(filePath),
@@ -60,37 +63,63 @@ const jobRunners: Partial<Record<ScriptKey, JobRunnerFn>> = {
   webedi: () => jobs.runJobRdp("WEBEDI"),
 };
 
-interface ParsedScriptEntry {
-  key: string;
-  runnerKey: string;
+function normalizeScriptKey(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function normalizeScriptTarget(value: string): string {
+  return value.trim();
+}
+
+function toJobResult(result: string | JobResult): JobResult {
+  if (typeof result === "string") {
+    return {
+      success: true,
+      message: result || "処理完了",
+    };
+  }
+
+  return {
+    success: result.success !== false,
+    message: result.message || "処理完了",
+  };
+}
+
+function createFailureResult(error: unknown): JobResult {
+  return {
+    success: false,
+    message: `エラー: ${cleanErrorMessage(error)}`,
+  };
 }
 
 export function parseScriptEntries(input?: string): ParsedScriptEntry[] {
-  if (!input || input === "-" || input === "ー") {
+  if (!input || EMPTY_SCRIPT_VALUES.has(input.trim())) {
     return [];
   }
 
-  const items = input.split(/[,;\n\r]+/);
-  const entries: ParsedScriptEntry[] = [];
+  return input
+    .split(/[,;\n\r]+/)
+    .map((item): ParsedScriptEntry | null => {
+      const trimmed = item.trim();
 
-  for (const item of items) {
-    const trimmed = item.trim();
+      if (!trimmed) {
+        return null;
+      }
 
-    if (!trimmed) {
-      continue;
-    }
+      const separatorIndex = trimmed.indexOf(":");
 
-    const [rawKey, rawTarget] = trimmed.includes(":")
-      ? trimmed.split(":")
-      : [trimmed, trimmed];
+      const rawKey =
+        separatorIndex >= 0 ? trimmed.slice(0, separatorIndex) : trimmed;
 
-    const key = rawKey.trim().toLowerCase();
-    const runnerKey = rawTarget.trim().toLowerCase();
+      const rawTarget =
+        separatorIndex >= 0 ? trimmed.slice(separatorIndex + 1) : trimmed;
 
-    entries.push({ key, runnerKey });
-  }
-
-  return entries;
+      return {
+        key: normalizeScriptKey(rawKey),
+        runnerKey: normalizeScriptKey(rawTarget),
+      };
+    })
+    .filter((entry): entry is ParsedScriptEntry => entry !== null);
 }
 
 export async function executeSingleScriptJob(
@@ -99,41 +128,31 @@ export async function executeSingleScriptJob(
   filePath?: ScriptFilePath,
 ): Promise<JobResult> {
   const cleanKanriNo = normalizeKanriNo(kanriNo);
-  const cleanKey = targetKey.trim().toLowerCase() as ScriptKey;
+  const cleanKey = normalizeScriptKey(targetKey);
+  const runner = JOB_RUNNERS[cleanKey];
 
-  const fn = jobRunners[cleanKey];
+  try {
+    if (runner) {
+      const result = await runner(cleanKanriNo, filePath);
+      return toJobResult(result);
+    }
 
-  if (!fn) {
-    try {
-      const message = await jobs.runJobRdp(targetKey.toUpperCase());
-      return {
-        success: true,
-        message,
-      };
-    } catch {
+    const message = await jobs.runJobRdp(
+      normalizeScriptTarget(targetKey).toUpperCase(),
+    );
+
+    return {
+      success: true,
+      message,
+    };
+  } catch (error: unknown) {
+    if (!runner) {
       return {
         success: false,
         message: `対象のスクリプトキーが見つかりません: No.${cleanKanriNo} (target="${cleanKey}")`,
       };
     }
-  }
 
-  try {
-    const rawResult = await fn(cleanKanriNo, filePath);
-
-    const msg = typeof rawResult === "string" ? rawResult : rawResult.message;
-
-    const isSuccess =
-      typeof rawResult === "string" ? true : rawResult.success !== false;
-
-    return {
-      success: isSuccess,
-      message: msg || "処理完了",
-    };
-  } catch (error: unknown) {
-    return {
-      success: false,
-      message: `エラー: ${cleanErrorMessage(error)}`,
-    };
+    return createFailureResult(error);
   }
 }

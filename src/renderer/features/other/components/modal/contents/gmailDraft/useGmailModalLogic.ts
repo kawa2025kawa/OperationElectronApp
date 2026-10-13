@@ -1,11 +1,7 @@
-// src/renderer/features/other/components/modal/contents/gmailDraft/useGmailModalLogic.ts
-
 import { useCallback, useEffect, type ChangeEvent } from "react";
 import { useShallow } from "zustand/shallow";
-
-import { gmailDraftService } from "@renderer/features/other/services/gmailDraftService";
-import { getNextTuesdayString } from "@renderer/features/other/utils/gmailModalUtils";
-import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/templates/gmailTemplates";
+import { trpc } from "@renderer/lib/trpc";
+import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftTypes";
 import type {
   EmailTemplateKey,
   GmailDraftFormValues,
@@ -20,9 +16,11 @@ export function useGmailModalLogic() {
     templateKey,
     formValues,
     isProcessing,
+    infoMessage,
     updateGmailDraftForm,
     setGmailDraft,
     setGmailDraftProcessing,
+    setGmailDraftMessage,
     updateModalConfig,
     closeGlobalModal,
   } = useAppStore(
@@ -30,15 +28,14 @@ export function useGmailModalLogic() {
       isAuthenticated: state.isAuthenticated,
       familyName: state.familyName,
       userEmail: state.userEmail,
-
       templateKey: state.gmailDraft.templateKey,
       formValues: state.gmailDraft.formValues,
       isProcessing: state.gmailDraft.isProcessing,
-
+      infoMessage: state.gmailDraft.infoMessage,
       updateGmailDraftForm: state.updateGmailDraftForm,
       setGmailDraft: state.setGmailDraft,
       setGmailDraftProcessing: state.setGmailDraftProcessing,
-
+      setGmailDraftMessage: state.setGmailDraftMessage,
       updateModalConfig: state.updateModalConfig,
       closeGlobalModal: state.closeGlobalModal,
     })),
@@ -50,123 +47,94 @@ export function useGmailModalLogic() {
         updateGmailDraftForm({
           [field]: event.target.value,
         });
-
-        updateModalConfig({
-          message: null,
-        });
       },
-    [updateGmailDraftForm, updateModalConfig],
+    [updateGmailDraftForm],
   );
 
   const handleTemplateChange = useCallback(
     async (event: ChangeEvent<HTMLSelectElement>) => {
       const value = event.target.value;
-
-      updateModalConfig({
-        message: null,
-      });
-
       if (!value) {
         setGmailDraft({
           templateKey: null,
-          formValues: {
-            to: "",
-            cc: "",
-            subject: "",
-            body: "",
-          },
+          formValues: { to: "", cc: "", subject: "", body: "" },
         });
-
+        setGmailDraftMessage({
+          text: "Gmail下書き作成用の宛先・件名・本文を入力してください。",
+          type: "info",
+        });
         return;
       }
 
       const option = EMAIL_TEMPLATE_OPTIONS.find((item) => item.key === value);
-
-      if (!option) {
-        return;
-      }
+      if (!option) return;
 
       const key: EmailTemplateKey = option.key;
-
       try {
-        const draft =
-          await gmailDraftService.createDraftFromTemplateWithSignature(key, {
-            lastName: familyName ?? "",
-            nextTuesdayStr: getNextTuesdayString(),
-          });
-
+        const draft = await trpc.gmail.generateDraftTemplate.query({
+          templateKey: key,
+          familyName: familyName ?? "",
+        });
         setGmailDraft({
           templateKey: key,
           formValues: draft,
         });
+        setGmailDraftMessage({
+          text: `テンプレート (${option.label}) を読み込みました。`,
+          type: "info",
+        });
       } catch (error) {
         console.error("[useGmailModalLogic] Failed to create template:", error);
-
-        updateModalConfig({
-          message: {
-            text:
-              error instanceof Error
-                ? error.message
-                : "テンプレートの生成に失敗しました。",
-            type: "error",
-          },
+        setGmailDraftMessage({
+          text:
+            error instanceof Error
+              ? error.message
+              : "テンプレートの生成に失敗しました。",
+          type: "error",
         });
       }
     },
-    [familyName, setGmailDraft, updateModalConfig],
+    [familyName, setGmailDraft, setGmailDraftMessage],
   );
 
   const handleExecute = useCallback(async () => {
     if (!formValues.to.trim()) {
-      updateModalConfig({
-        message: {
-          text: "宛先 (To) を入力してください。",
-          type: "warning",
-        },
+      setGmailDraftMessage({
+        text: "送信先 (To) を入力してください。",
+        type: "warning",
       });
-
       return;
     }
 
     setGmailDraftProcessing(true);
-
-    updateModalConfig({
-      isProcessing: true,
-      message: null,
+    setGmailDraftMessage({
+      text: "Gmail下書きを作成しています...",
+      type: "info",
     });
 
     try {
-      await gmailDraftService.createDraft(formValues);
-
-      updateModalConfig({
-        message: {
-          text: "Gmailの下書きを正常に作成しました。",
-          type: "success",
-        },
+      await trpc.gmail.createDraft.mutate(formValues);
+      setGmailDraftMessage({
+        text: "Gmailの下書きを正常に作成しました。",
+        type: "success",
       });
     } catch (error) {
       console.error("[useGmailModalLogic] Failed to create draft:", error);
-
-      updateModalConfig({
-        message: {
-          text:
-            error instanceof Error
-              ? error.message
-              : "下書き作成に失敗しました。",
-          type: "error",
-        },
+      setGmailDraftMessage({
+        text:
+          error instanceof Error
+            ? error.message
+            : "下書き作成中にエラーが発生しました。",
+        type: "error",
       });
     } finally {
       setGmailDraftProcessing(false);
-
-      updateModalConfig({
-        isProcessing: false,
-      });
     }
-  }, [formValues, setGmailDraftProcessing, updateModalConfig]);
+  }, [formValues, setGmailDraftProcessing, setGmailDraftMessage]);
 
   useEffect(() => {
     updateModalConfig({
+      message: infoMessage,
       rightActions: isAuthenticated
         ? [
             {
@@ -177,7 +145,7 @@ export function useGmailModalLogic() {
             },
             {
               id: "create-draft",
-              label: isProcessing ? "処理中..." : "下書き作成",
+              label: isProcessing ? "作成中..." : "下書き作成",
               onClick: handleExecute,
               disabled: !formValues.to.trim() || isProcessing,
               variant: "default",
@@ -187,6 +155,7 @@ export function useGmailModalLogic() {
     });
   }, [
     isAuthenticated,
+    infoMessage,
     formValues.to,
     isProcessing,
     handleExecute,

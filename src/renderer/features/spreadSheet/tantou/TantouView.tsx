@@ -1,8 +1,5 @@
-﻿// src/renderer/features/spreadSheet/tantou/TantouView.tsx
-
-import { memo, useCallback } from "react";
+﻿import { memo, useCallback } from "react";
 import type { Tantou } from "@shared/types/spreadsheet/tantou";
-import type { Column } from "@shared/types/table/tableType";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 import {
   APP_VIEW_IDS,
@@ -11,23 +8,9 @@ import {
 import { AuthView } from "@renderer/features/auth/AuthView";
 
 import { useSpreadSheetDomainLogic } from "../hooks/useSpreadSheetDomainLogic";
-import { TantouTable } from "./table/TantouTable";
+import { TANTOU_COLUMNS, TantouTable } from "./table/TantouTable";
 import { TantouModalContent } from "./modal/TantouModalContent";
 import * as styles from "./TantouView.css";
-
-// --- テーブルカラム定義 ---
-export const TANTOU_COLUMNS: readonly Column<Tantou>[] = [
-  { key: "todayHayaban", label: "早番", width: "10.5%" },
-  { key: "todayShikai", label: "司会", width: "10.5%" },
-  { key: "todayUketsuke", label: "受付", width: "10.5%" },
-  { key: "todayDenwa", label: "電話", width: "10.5%" },
-  { key: "todayNimotsu", label: "荷物", width: "10.5%" },
-  { key: "todayFloor2", label: "2F", width: "8.5%" },
-  { key: "todayFloor3", label: "3F", width: "8.5%" },
-  { key: "todayTensou", label: "転送", width: "10.5%" },
-  { key: "todayAmAttendanceRate", label: "AM出勤率", width: "10%" },
-  { key: "todayPmAttendanceRate", label: "PM出勤率", width: "10%" },
-] as const;
 
 // --- コンポーネント本体 ---
 export const TantouView = memo(() => {
@@ -38,8 +21,8 @@ export const TantouView = memo(() => {
     (row: Tantou) => {
       openGlobalModal(<TantouModalContent data={row} />, {
         title: "担当詳細",
-        width: "70vw",
-        height: "70vh",
+        width: "min(90vw, 800px)",
+        height: "min(80vh, 600px)",
       });
     },
     [openGlobalModal],

@@ -4,7 +4,6 @@ import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createIPCHandler } from "electron-trpc/main";
-import { registerIpcHandlers } from "./ipc/ipcHandlerRegistry";
 import { appRouter } from "./trpc/router";
 import { stopPolling } from "@electron/features/operation/application/operationScheduler";
 
@@ -26,7 +25,7 @@ function createWindow(): void {
     },
   });
 
-  // electron-trpc IPC ハンドラーのバインド
+  // electron-trpc IPC ハンドラー登録[cite: 4]
   createIPCHandler({
     router: appRouter,
     windows: [mainWindow],
@@ -38,9 +37,7 @@ function createWindow(): void {
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
-    return {
-      action: "deny",
-    };
+    return { action: "deny" };
   });
 
   mainWindow.on("closed", () => {
@@ -49,22 +46,16 @@ function createWindow(): void {
 }
 
 async function loadRenderer(): Promise<void> {
-  if (!mainWindow) {
-    return;
-  }
-
+  if (!mainWindow) return;
   const devUrl = process.env.VITE_DEV_SERVER_URL;
-
   if (devUrl) {
     await mainWindow.loadURL(devUrl);
     mainWindow.webContents.openDevTools({ mode: "detach" });
     return;
   }
-
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools({ mode: "detach" });
   }
-
   const rendererPath = path.join(__dirname, "../dist/index.html");
   await mainWindow.loadFile(rendererPath);
 }
@@ -72,9 +63,7 @@ async function loadRenderer(): Promise<void> {
 app
   .whenReady()
   .then(() => {
-    registerIpcHandlers();
     createWindow();
-
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();

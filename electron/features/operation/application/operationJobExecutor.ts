@@ -1,4 +1,4 @@
-﻿// electron/features/operation/services/operationJobExecutor.ts
+﻿// electron/features/operation/application/operationJobExecutor.ts
 
 import {
   applyScriptExecutionError,
@@ -13,7 +13,6 @@ import {
   type JobResult,
   type OperationViewItem,
 } from "@shared/types/operation/operationTypes";
-import { getAutoScriptKeys } from "@shared/config/operationScriptRegistry";
 import { executeSingleScriptJob } from "@electron/features/operation/runners/scriptRunner";
 
 function isExecutableStatus(status?: string): boolean {
@@ -55,7 +54,15 @@ export async function executeReadyJob(item: OperationViewItem): Promise<void> {
     return;
   }
 
-  const scriptKeys = getAutoScriptKeys(kanriNo);
+  if (!("Script" in item) || item.Script !== true) {
+    return;
+  }
+
+  const scriptKeys = Array.isArray(item.ScriptKeys)
+    ? item.ScriptKeys.filter((entry) => entry.executionType === "auto")
+        .map((entry) => entry.key)
+        .filter((key) => key.trim() !== "")
+    : [];
 
   if (scriptKeys.length === 0) {
     return;

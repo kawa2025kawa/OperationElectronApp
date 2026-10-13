@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite --mode development",
     "build": "tsc -b && vite build",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p src/renderer",
+    "typecheck": "tsc -p electron --noEmit && tsc -p src/renderer --noEmit",
     "lint": "eslint .",
     "package": "npm run build && electron-builder --publish never",
     "release": "node scripts/bump-version.js && npm run package && node scripts/release.js"

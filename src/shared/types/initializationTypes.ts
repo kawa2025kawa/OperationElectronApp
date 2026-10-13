@@ -1,4 +1,4 @@
-﻿//src\shared\types\initializationTypes.ts
+﻿// src/shared/types/initializationTypes.ts
 
 type InitStatusValue =
   | "LOADING"
@@ -12,7 +12,6 @@ export interface InitStatus {
   update: InitStatusValue;
   operation: InitStatusValue;
   irregular: InitStatusValue;
-  todayIrregular: InitStatusValue;
   auth: InitStatusValue;
   store: InitStatusValue;
   jugyoin: InitStatusValue;
@@ -24,7 +23,6 @@ export const INITIAL_INIT_STATUS: Readonly<InitStatus> = {
   update: "PENDING",
   operation: "PENDING",
   irregular: "PENDING",
-  todayIrregular: "PENDING",
   auth: "PENDING",
   store: "PENDING",
   jugyoin: "PENDING",

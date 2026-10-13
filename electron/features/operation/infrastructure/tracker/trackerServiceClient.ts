@@ -1,4 +1,4 @@
-﻿// electron\features\operation\infrastructure\tracker\trackerServiceClient.ts
+﻿// electron/features/operation/infrastructure/tracker/trackerServiceClient.ts
 
 import {
   addKanshiTime,
@@ -10,29 +10,86 @@ import {
   type TrackerApiResponseItem,
 } from "@electron/features/operation/infrastructure/tracker/trackerHelper";
 
-import type { OperationStatusState } from "@shared/types/operation/operationTypes";
-
-import type { OperationMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
+import {
+  type OperationMaster,
+  type OperationStatusState,
+} from "@shared/types/operation/operationTypes";
 
 const FETCH_TIMEOUT_MS = 30_000;
+
+let requestSequence = 0;
+
+function getSafeUrl(url: string): string {
+  try {
+    const parsedUrl = new URL(url);
+
+    if (parsedUrl.searchParams.has("api_key")) {
+      parsedUrl.searchParams.set("api_key", "********");
+    }
+
+    return parsedUrl.toString();
+  } catch {
+    return url.replace(/([?&]api_key=)[^&]*/i, "$1********");
+  }
+}
 
 async function fetchTrackerData(
   url: string,
 ): Promise<TrackerApiResponseItem[]> {
-  const controller = new AbortController();
+  const requestId = ++requestSequence;
+  const timestamp = new Date().toISOString();
+  const safeUrl = getSafeUrl(url);
 
+  console.log(
+    `[${timestamp}] [TrackerServiceClient] Request #${requestId} START`,
+    {
+      method: "GET",
+      url: safeUrl,
+      timeoutMs: FETCH_TIMEOUT_MS,
+    },
+  );
+
+  const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  const startedAt = Date.now();
 
   try {
     const response = await fetch(url, {
+      method: "GET",
       signal: controller.signal,
     });
 
+    const elapsedMs = Date.now() - startedAt;
+
+    console.log(
+      `[${new Date().toISOString()}] [TrackerServiceClient] Request #${requestId} RESPONSE`,
+      {
+        url: safeUrl,
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        elapsedMs,
+      },
+    );
+
     if (!response.ok) {
+      let responseBody: string;
+
+      try {
+        responseBody = await response.text();
+      } catch (error) {
+        responseBody = `レスポンス本文の取得失敗: ${String(error)}`;
+      }
+
       console.error(
-        `[${new Date().toISOString()}] [TrackerServiceClient] API request failed:`,
-        response.status,
-        response.statusText,
+        `[${new Date().toISOString()}] [TrackerServiceClient] Request #${requestId} HTTP ERROR`,
+        {
+          url: safeUrl,
+          status: response.status,
+          statusText: response.statusText,
+          responseBody: responseBody.slice(0, 5000),
+        },
       );
 
       return [];
@@ -40,32 +97,59 @@ async function fetchTrackerData(
 
     const data = (await response.json()) as TrackerApiResponse;
 
-    // ログ出力時間の取得 (ISO形式: 例 2026-10-06T09:22:44.123Z)
-    // 日本時間表記にしたい場合は new Date().toLocaleString("ja-JP") をお使いください
-    const timestamp = new Date().toISOString();
-
-    console.log(`[${timestamp}] [TrackerServiceClient] API Raw Response Data:`);
-    // オブジェクトの深い階層まで省略せずに全て出力
+    console.log(
+      `[${new Date().toISOString()}] [TrackerServiceClient] Request #${requestId} RESPONSE DATA`,
+    );
     console.dir(data, { depth: null });
 
-    // status 配列のみを抽出して出力
+    if (!Array.isArray(data.data)) {
+      console.error(
+        `[${new Date().toISOString()}] [TrackerServiceClient] Request #${requestId} INVALID RESPONSE`,
+        {
+          url: safeUrl,
+          responseType: typeof data,
+          dataType: typeof data.data,
+        },
+      );
+
+      return [];
+    }
+
     console.log(
-      `[${timestamp}] [TrackerServiceClient] Statuses:`,
+      `[${new Date().toISOString()}] [TrackerServiceClient] Request #${requestId} STATUSES`,
       data.data.map((item) => item.status),
     );
 
-    return Array.isArray(data.data) ? data.data : [];
+    console.log(
+      `[${new Date().toISOString()}] [TrackerServiceClient] Request #${requestId} SUCCESS`,
+      {
+        url: safeUrl,
+        itemCount: data.data.length,
+        elapsedMs,
+      },
+    );
+
+    return data.data;
   } catch (error) {
-    const timestamp = new Date().toISOString();
-    if (error instanceof DOMException && error.name === "AbortError") {
+    const elapsedMs = Date.now() - startedAt;
+
+    if (error instanceof Error && error.name === "AbortError") {
       console.error(
-        `[${timestamp}] [TrackerServiceClient] API request timed out:`,
-        url,
+        `[${new Date().toISOString()}] [TrackerServiceClient] Request #${requestId} TIMEOUT`,
+        {
+          url: safeUrl,
+          timeoutMs: FETCH_TIMEOUT_MS,
+          elapsedMs,
+        },
       );
     } else {
       console.error(
-        `[${timestamp}] [TrackerServiceClient] API request failed:`,
-        error,
+        `[${new Date().toISOString()}] [TrackerServiceClient] Request #${requestId} NETWORK ERROR`,
+        {
+          url: safeUrl,
+          elapsedMs,
+          error,
+        },
       );
     }
 
@@ -74,6 +158,7 @@ async function fetchTrackerData(
     clearTimeout(timeoutId);
   }
 }
+
 export function hasJobId(target: OperationMaster): boolean {
   return Boolean(getJobId(target));
 }
@@ -84,16 +169,39 @@ async function findTrackerItem(
   kanriNo: string,
 ): Promise<TrackerApiResponseItem | undefined> {
   const from = getTargetTime(kanriNo, scheduledTime);
-
   const to = addKanshiTime(from);
 
-  const rangeItems = await fetchTrackerData(buildTrackerUrl(jobId, from, to));
+  const rangeUrl = buildTrackerUrl(jobId, from, to);
+
+  console.log(
+    `[${new Date().toISOString()}] [TrackerServiceClient] Range query`,
+    {
+      kanriNo,
+      jobId,
+      from,
+      to,
+      url: getSafeUrl(rangeUrl),
+    },
+  );
+
+  const rangeItems = await fetchTrackerData(rangeUrl);
 
   if (rangeItems.length > 0) {
     return rangeItems[0];
   }
 
-  const fallbackItems = await fetchTrackerData(buildTrackerUrl(jobId));
+  const fallbackUrl = buildTrackerUrl(jobId);
+
+  console.warn(
+    `[${new Date().toISOString()}] [TrackerServiceClient] Range query returned no items; trying fallback`,
+    {
+      kanriNo,
+      jobId,
+      url: getSafeUrl(fallbackUrl),
+    },
+  );
+
+  const fallbackItems = await fetchTrackerData(fallbackUrl);
 
   return fallbackItems[0];
 }

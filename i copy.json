@@ -1,0 +1,1070 @@
+﻿[
+  {
+    "kanriNo": "1",
+    "workName": "JOB全体確認",
+
+    "manualUrl": "1"
+  },
+  {
+    "kanriNo": "2",
+    "scheduledTime": "19:10",
+    "workName": "棚陳列情報マスタ取込",
+    "jobId": "NMA8510",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "3",
+    "scheduledTime": "20:05",
+    "workName": "マスタメンテ（店舗、取引先マスタ）更新",
+    "jobId": "NMA8101",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "4",
+    "scheduledTime": "21:00",
+    "workName": "EOBマスタ日次更新処理",
+    "jobId": "NMA8300",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "5",
+    "scheduledTime": "22:00",
+    "workName": "ネットスーパー向けマスタIF",
+    "jobId": "BENIF7000_ネットスーパー向けマスタＩＦ",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "6",
+    "scheduledTime": "22:00",
+    "workName": "仕入売変処理",
+    "jobId": "NSI8010",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "7",
+    "scheduledTime": "21:00",
+    "workName": "日次エクスポート",
+    "jobId": "BENMSEXP_日次エクスポート",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "8",
+    "scheduledTime": "1:00",
+    "workName": "日次後バックアップ",
+    "jobId": "NCM8090",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "9",
+    "scheduledTime": "3:00",
+    "workName": "電子棚札シェルフPOP",
+    "jobId": "BENIF6000_電子棚札シェルフPOP",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "10",
+    "scheduledTime": "5:00",
+    "workName": "店舗POP用スポット売価F作成",
+    "jobId": "BENIF8000_店舗POP用スポット売価F作成",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "12",
+    "scheduledTime": "5:00",
+    "workName": "EOB納品実績取込",
+    "jobId": "ZSI8030",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "13",
+    "scheduledTime": "6:00",
+    "workName": "EOBからの送り込み修正結果反映",
+    "jobId": "BENMA0100_EOBからの送り込修正結果反映",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "14",
+    "scheduledTime": "6:00",
+    "workName": "自動発注06時00分",
+    "jobId": "自動発注06時00分",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "114",
+    "scheduledTime": "6:00",
+    "workName": "自動発注06時00分件数確認",
+    "dependsOn": "14",
+
+    "manualUrl": "114",
+    "link": true,
+    "links": [
+      {
+        "label": "Log",
+        "path": "\\\\192.88.100.1\\diskD\\execute\\log"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "114",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "114",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "15",
+    "scheduledTime": "6:30",
+    "workName": "POSデータ取込",
+    "jobId": "NUR8010",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "16",
+    "scheduledTime": "6:30",
+    "workName": "ファーマーズステーションエラー有無チェック",
+
+    "manualUrl": "16",
+    "link": true,
+    "links": [
+      {
+        "label": "8:30以前保存フォルダ",
+        "path": "\\\\192.88.1.3\\syn_tran"
+      },
+      {
+        "label": "8:30以降保存フォルダ",
+        "path": "\\\\192.88.1.3\\syn_tran\\ファーマーズエラー"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "16",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "16",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "17",
+    "scheduledTime": "7:00",
+    "workName": "EOB売上実績データ取込",
+    "jobId": "NUR8050",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "18",
+    "scheduledTime": "7:30",
+    "workName": "販売期限日算出",
+    "jobId": "NMA8520",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "19",
+    "scheduledTime": "8:00",
+    "workName": "自動発注取込",
+    "jobId": "ZHA8110",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "20",
+    "scheduledTime": "8:50",
+    "workName": "ZHA8110受信ファイルのサイズ確認",
+    "dependsOn": "19",
+
+    "manualUrl": "20",
+    "link": true,
+    "links": [
+      {
+        "label": "保存フォルダ",
+        "path": "\\\\172.25.101.51\\if\\AUTOORD\\RCV\\SV"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "20",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "20",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "21",
+    "scheduledTime": "8:00",
+    "workName": "需要予測発注データのEOB取込",
+    "jobId": "NHA8050",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "22",
+    "scheduledTime": "8:00",
+    "workName": "送り込日次抽出_朝",
+    "jobId": "BENIF2000_送り込日次抽出_朝",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "23",
+    "scheduledTime": "8:30",
+    "workName": "クレジットデータ取込",
+    "jobId": "NUR8030",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "24",
+    "scheduledTime": "8:50",
+    "workName": "本部送り込み発注データ取込（EOB)",
+    "jobId": "ZHA8101",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "25",
+    "scheduledTime": "8:53",
+    "workName": "ZHA8101受信ファイル存在確認",
+    "dependsOn": "24",
+
+    "manualUrl": "25",
+    "link": true,
+    "links": [
+      {
+        "label": "保存フォルダ",
+        "path": "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "25",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "25",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "27",
+    "scheduledTime": "9:00",
+    "workName": "本部送り込み発注データ取込",
+    "jobId": "ZHA8100",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "28",
+    "scheduledTime": "9:01",
+    "workName": "EOBサーバーの発注エラーチェック1",
+
+    "manualUrl": "28",
+    "link": true,
+    "links": [
+      {
+        "label": "保存フォルダ",
+        "path": "\\\\172.25.101.51\\if\\LOG\\DCMEOB1"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "28",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "28",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "29",
+    "scheduledTime": "9:12",
+    "workName": "No.1発注】EOBオフライン状態確認",
+
+    "manualUrl": "29"
+  },
+  {
+    "kanriNo": "30",
+    "scheduledTime": "9:22",
+    "workName": "【No.1発注】店舗PC受信データ振分",
+    "jobId": "ZHA8010",
+    "dependsOn": "29",
+
+    "manualUrl": "30",
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "30",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ],
+    "modalType": "pdfUpload"
+  },
+  {
+    "kanriNo": "31",
+    "scheduledTime": "9:30",
+    "workName": "EOB天気データ取込",
+    "jobId": "ZMA8100",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "34",
+    "scheduledTime": "10:33",
+    "workName": "ファーマーズステーション売上取り込み LOG確認",
+
+    "manualUrl": "34",
+    "link": true,
+    "links": [
+      {
+        "label": "Log",
+        "path": "\\\\192.88.1.220\\log\\SANSAN_TXT_LOAD.log"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "34",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "34",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "35",
+    "scheduledTime": "10:30",
+    "workName": "随時商品メンテ取込",
+    "jobId": "随時商品メンテ取込",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "N06",
+    "scheduledTime": "10:30",
+    "workName": "自動売変値下げ・値上げ伝票確認",
+
+    "manualUrl": "N06"
+  },
+  {
+    "kanriNo": "N35",
+    "scheduledTime": "10:30",
+    "workName": "電話転送変更",
+
+    "manualUrl": "N35"
+  },
+  {
+    "kanriNo": "36",
+    "scheduledTime": "10:52",
+    "workName": "【No.2発注】EOBオフライン状態確認",
+
+    "manualUrl": "36"
+  },
+  {
+    "kanriNo": "37",
+    "scheduledTime": "11:02",
+    "workName": "【No.2発注】店舗PC受信データ振分",
+    "jobId": "ZHA8020",
+    "dependsOn": "36",
+
+    "manualUrl": "37",
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "37",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ],
+    "modalType": "pdfUpload"
+  },
+  {
+    "kanriNo": "38",
+    "scheduledTime": "11:50",
+    "workName": "特売随時更新データ抽出",
+    "jobId": "BENIF2100_特売随時更新データ抽出",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "39",
+    "scheduledTime": "11:53",
+    "workName": "BENIF2100送り込み抽出ファイル存在確認",
+    "dependsOn": "38",
+
+    "manualUrl": "39",
+    "link": true,
+    "links": [
+      {
+        "label": "保存フォルダ",
+        "path": "\\\\172.25.101.51\\if\\MASTER\\RCV"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "39",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "39",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "40",
+    "scheduledTime": "12:00",
+    "workName": "JOB全体確認",
+
+    "manualUrl": "40"
+  },
+  {
+    "kanriNo": "41",
+    "scheduledTime": "12:00",
+    "workName": "EOB向マスタ日中連携",
+    "jobId": "NMA8400",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "43",
+    "scheduledTime": "12:02",
+    "workName": "EOBサーバの発注エラーチェック2",
+
+    "manualUrl": "43",
+    "link": true,
+    "links": [
+      {
+        "label": "保存フォルダ",
+        "path": "\\\\172.25.101.51\\if\\LOG\\DCMEOB1"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "28",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "28",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "44",
+    "scheduledTime": "12:52",
+    "workName": "【No.3発注】EOBオフライン状態確認",
+
+    "manualUrl": "44"
+  },
+  {
+    "kanriNo": "45",
+    "scheduledTime": "13:02",
+    "workName": "【No.3発注】店舗PC受信データ振分",
+    "jobId": "ZHA8030",
+    "dependsOn": "44",
+
+    "manualUrl": "45",
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "45",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ],
+    "modalType": "pdfUpload"
+  },
+  {
+    "kanriNo": "N37",
+    "scheduledTime": "13:30",
+    "workName": "事前確定",
+    "dependsOn": "45",
+
+    "manualUrl": "N37"
+  },
+  {
+    "kanriNo": "46",
+    "scheduledTime": "13:50",
+    "workName": "随時商品メンテ取込",
+    "jobId": "随時商品メンテ取込",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "N04",
+    "scheduledTime": "14:00",
+    "workName": "伝票原本メールバック封入",
+
+    "manualUrl": "N04"
+  },
+  {
+    "kanriNo": "N05",
+    "scheduledTime": "14:00",
+    "workName": "本日計上伝票、枚数＆金額確認転送",
+
+    "manualUrl": "N05"
+  },
+  {
+    "kanriNo": "47",
+    "scheduledTime": "14:12",
+    "workName": "【No.4発注】EOBオフライン状態確認",
+
+    "manualUrl": "47"
+  },
+  {
+    "kanriNo": "48",
+    "scheduledTime": "14:22",
+    "workName": "【No.4発注】店舗PC受信データ振分",
+    "jobId": "ZHA8040",
+    "dependsOn": "47",
+
+    "manualUrl": "48",
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "48",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ],
+    "modalType": "pdfUpload"
+  },
+  {
+    "kanriNo": "N11",
+    "scheduledTime": "15:00",
+    "workName": "WMS日次確定",
+
+    "manualUrl": "N11",
+    "link": true,
+    "links": [
+      {
+        "label": "URL",
+        "path": "http://192.88.1.192/belcta/login.php"
+      }
+    ]
+  },
+  {
+    "kanriNo": "N12",
+    "workName": "FTRファイル存在確認",
+    "dependsOn": "N11",
+
+    "manualUrl": "N12",
+    "link": true,
+    "links": [
+      {
+        "label": "保存フォルダ",
+        "path": "\\\\172.25.101.51\\if\\WMSSLIP\\RCV"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "n12",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "49",
+    "scheduledTime": "15:00",
+    "workName": "【仕入①】センター経由確定データ取込",
+    "jobId": "DSI8020",
+    "dependsOn": "48,N12",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "50",
+    "scheduledTime": "15:30",
+    "workName": "自動発注15時00分",
+    "jobId": "自動発注15時00分",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "51",
+    "scheduledTime": "15:30",
+    "workName": "発注実績送信",
+    "jobId": "ZHA8130",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "52",
+    "scheduledTime": "15:30",
+    "workName": "随時商品メンテ取込",
+    "jobId": "随時商品メンテ取込",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "53",
+    "scheduledTime": "16:00",
+    "workName": "センター納品確定データ結合\n＆集配信SVからMD転送",
+    "jobId": "ZSI8020",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "54",
+    "scheduledTime": "16:02",
+    "workName": "【No.5発注】店舗PC受信データ振分",
+    "jobId": "ZHA8050",
+    "dependsOn": "52",
+
+    "manualUrl": "54",
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "54",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ],
+    "modalType": "pdfUpload"
+  },
+  {
+    "kanriNo": "55",
+    "workName": "センター納品予定データ送信",
+    "jobId": "DHA8120",
+    "dependsOn": "54",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "N18",
+    "workName": "本部計上金額チェック",
+    "dependsOn": "49",
+
+    "manualUrl": "N18"
+  },
+  {
+    "kanriNo": "60",
+    "scheduledTime": "16:30",
+    "workName": "マスタメンテLOCK実施",
+
+    "manualUrl": "60",
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "60",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "61",
+    "workName": "マスタメンテデータ抽出",
+    "dependsOn": "60",
+
+    "manualUrl": "61"
+  },
+  {
+    "kanriNo": "62",
+    "workName": "抽出ファイル存在確認",
+    "dependsOn": "61",
+
+    "manualUrl": "62",
+    "link": true,
+    "links": [
+      {
+        "label": "保存フォルダ",
+        "path": "\\\\172.25.101.51\\if\\MASTER\\RCV"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "62",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "63",
+    "workName": "MD-商品・特売マスタ更新",
+    "jobId": "NMA8000",
+    "dependsOn": "62",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "64",
+    "workName": "NMA8000エラーログ確認",
+    "dependsOn": "63",
+
+    "manualUrl": "64",
+    "link": true,
+    "links": [
+      {
+        "label": "抽出保存フォルダ",
+        "path": "\\\\172.25.101.51\\if\\MASTER\\RCV"
+      },
+      {
+        "label": "リンク",
+        "path": "\\\\172.25.101.51\\if\\LOG\\DCMMD"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "64",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "65",
+    "workName": "新MM集配信マスタ更新",
+    "jobId": "NMA8100",
+    "dependsOn": "64",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "66",
+    "workName": "マスタメンテシステム LOCK解除",
+    "dependsOn": "65",
+
+    "manualUrl": "66",
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "66",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "67",
+    "workName": "外部連携マスタ日次出力",
+    "jobId": "NMA8200",
+    "dependsOn": "55,65,66",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "58",
+    "scheduledTime": "16:30",
+    "workName": "WEB-納品確定編集送信",
+    "jobId": "DSI8060",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "57",
+    "scheduledTime": "16:30",
+    "workName": "請求データ取込",
+    "jobId": "NKA8030",
+
+    "link": true,
+    "links": [
+      {
+        "label": "保存フォルダ",
+        "path": "\\\\172.25.101.51\\if\\WEB-SV\\RCV\\SV"
+      }
+    ]
+  },
+  {
+    "kanriNo": "56",
+    "scheduledTime": "16:20",
+    "workName": "請求データファイル確認",
+    "dependsOn": "57",
+
+    "manualUrl": "56",
+    "link": true,
+    "links": [
+      {
+        "label": "WEBEDI",
+        "path": "\\\\172.25.101.51\\if\\WEB-SV\\RCV"
+      },
+      {
+        "label": "SCSK",
+        "path": "\\\\172.25.101.51\\if\\SCSKPC\\RCV\\SV"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "56",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "56",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "59",
+    "scheduledTime": "16:30",
+    "workName": "POP用棚割りデータ件数確認",
+    "jobId": "BENMA0200_POP用棚割りデータロード",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "69",
+    "scheduledTime": "16:50",
+    "workName": "【仕入②】伝票入力PC取込",
+    "jobId": "DSI8050",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "70",
+    "scheduledTime": "17:00",
+    "workName": "NSI8120",
+    "jobId": "NSI8120",
+    "dependsOn": "69",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "75",
+    "workName": "仕入日次IF出力",
+    "jobId": "NSI8020",
+    "dependsOn": "49,69,70,55,67",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "76",
+    "workName": "外部システム向けマスタIF",
+    "jobId": "BENIF0001_外部システム向けマスタＩＦ",
+    "dependsOn": "49,55,65,1C,2C,3C",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "N21",
+    "scheduledTime": "17:00",
+    "workName": "請求データエラー確認",
+    "dependsOn": "57",
+
+    "manualUrl": "N21"
+  },
+  {
+    "kanriNo": "N32",
+    "scheduledTime": "17:00",
+    "workName": "井ノ瀬運送PC確認",
+
+    "manualUrl": "N32"
+  },
+  {
+    "kanriNo": "N27",
+    "workName": "WebLogic再起動",
+    "dependsOn": "75,76",
+
+    "manualUrl": "N27",
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "webedi_db",
+        "executionType": "manual",
+        "enabled": true
+      },
+      {
+        "key": "webedi",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "N28",
+    "workName": "リベートサーバ バックアップ",
+    "dependsOn": "75",
+
+    "manualUrl": "N28",
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "webedi",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "73",
+    "scheduledTime": "17:10",
+    "workName": "自動発注17時00分",
+    "jobId": "自動発注17時00分",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "72",
+    "scheduledTime": "17:10",
+    "workName": "発注停止データ送信",
+    "jobId": "発注停止データ送信",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "77",
+    "workName": "自動発注関連マスタ生成",
+    "jobId": "JIDOH_N_001",
+    "dependsOn": "65,73",
+
+    "manualUrl": "77"
+  },
+  {
+    "kanriNo": "N33",
+    "scheduledTime": "17:30",
+    "workName": "VINX向けPOS配信データ 格納済み確認",
+    "dependsOn": "67",
+
+    "manualUrl": "N33",
+    "link": true,
+    "links": [
+      {
+        "label": "保存フォルダ",
+        "path": "ftp://fep:fe-Ftp@172.31.1.4/chkcount/"
+      },
+      {
+        "label": "URL",
+        "path": "http://172.31.1.4:28080/mc/login"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "n33",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "n33",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "N25",
+    "workName": "WMS日付確認",
+    "dependsOn": "76",
+
+    "manualUrl": "N25",
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "n25",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "n25",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "68",
+    "workName": "EOBサーバの発注エラーチェック3",
+    "dependsOn": "67",
+
+    "manualUrl": "68",
+    "link": true,
+    "links": [
+      {
+        "label": "保存フォルダ",
+        "path": "\\\\172.25.101.51\\if\\LOG\\DCMEOB1"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "28",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "28",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "N31",
+    "workName": "WEB-EDI動作確認",
+    "dependsOn": "N27",
+
+    "manualUrl": "N31",
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "n31",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "n31",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "79",
+    "scheduledTime": "17:50",
+    "workName": "送り込み日次抽出_前日事前",
+    "jobId": "BENIF2200_送り込み日次抽出_前日事前",
+    "kanshiTime": "01:00"
+  },
+  {
+    "kanriNo": "80",
+    "scheduledTime": "17:53",
+    "workName": "BENIF2200抽出ファイル存在確認",
+    "dependsOn": "79",
+
+    "manualUrl": "80",
+    "link": true,
+    "links": [
+      {
+        "label": "保存フォルダ",
+        "path": "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV"
+      }
+    ],
+    "Script": true,
+    "ScriptKeys": [
+      {
+        "key": "80",
+        "executionType": "auto",
+        "enabled": true
+      },
+      {
+        "key": "80",
+        "executionType": "manual",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "kanriNo": "81",
+    "scheduledTime": "18:00",
+    "workName": "JOB全体確認",
+    "dependsOn": "ALL",
+
+    "manualUrl": "81"
+  }
+]

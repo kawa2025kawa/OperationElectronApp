@@ -1,17 +1,7 @@
-﻿// src/renderer/features/operation/components/modal/scriptModal/hooks/useScriptModalContent.ts
+﻿// src/renderer/features/operation/components/modal/scriptModal/useScriptModalContent.ts
 
-import {
-  createContext,
-  createElement,
-  use,
-  useCallback,
-  useContext,
-  useState,
-} from "react";
-import type { ReactNode } from "react";
-
-import { getManualScriptKeys } from "@shared/config/operationScriptRegistry";
-import type { MasterRow } from "@renderer/features/operation/helpers/entityUtils";
+import { useCallback, useState } from "react";
+import type { OperationViewItem } from "@shared/types/operation/operationTypes";
 import { executeScriptJob } from "@renderer/features/operation/services/scriptJobService";
 import { useAppStore } from "@renderer/store";
 import type { JobResult } from "@shared/types/operation/operationTypes";
@@ -23,6 +13,11 @@ interface ScriptFileItem {
 
 type ExecutionState = "idle" | "completed" | "error";
 
+export interface InfoBoxMessage {
+  text: string;
+  type: "info" | "success" | "error";
+}
+
 const FILE_SELECTION_JOB_IDS = new Set(["E5", "E14", "E29", "E30", "E41"]);
 
 function requiresFileSelection(scriptKey: string): boolean {
@@ -33,7 +28,6 @@ function extractFilePath(file: File): string {
   if ("path" in file && typeof file.path === "string") {
     return file.path;
   }
-
   return window.electronAPI.getFilePath(file) || file.name;
 }
 
@@ -56,7 +50,24 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function useScriptModalContentValue(item?: MasterRow | null) {
+function getManualScriptKeys(item?: OperationViewItem | null): string[] {
+  if (!item || !("Script" in item) || item.Script !== true) {
+    return [];
+  }
+
+  if (!("ScriptKeys" in item) || !Array.isArray(item.ScriptKeys)) {
+    return [];
+  }
+
+  return item.ScriptKeys.filter(
+    (entry) =>
+      entry.executionType === "manual" &&
+      typeof entry.key === "string" &&
+      entry.key.trim() !== "",
+  ).map((entry) => entry.key.trim());
+}
+
+export function useScriptModalContent(item?: OperationViewItem | null) {
   const closeGlobalModal = useAppStore((state) => state.closeGlobalModal);
   const setGlobalProcessing = useAppStore((state) => state.setGlobalProcessing);
 
@@ -68,7 +79,7 @@ function useScriptModalContentValue(item?: MasterRow | null) {
   const [isExecuting, setIsExecuting] = useState(false);
 
   const rawKanriNo = String(item?.kanriNo ?? "");
-  const scriptKeys = rawKanriNo ? getManualScriptKeys(rawKanriNo) : [];
+  const scriptKeys = getManualScriptKeys(item);
 
   const [selectedScriptKey, setSelectedScriptKey] = useState<string>(
     scriptKeys[0] ?? rawKanriNo,
@@ -89,20 +100,24 @@ function useScriptModalContentValue(item?: MasterRow | null) {
     (!isFileSelectionRequired || selectedFiles.length > 0);
 
   const isDiffResult = isDiffExecutionResult(executionResult);
-  const isHighlightError = isError || isDiffResult;
 
-  let messageText: string;
+  // --- Infobox表示用メッセージ設定 ---
+  let infoMessage: InfoBoxMessage;
 
   if (isError) {
-    messageText = "処理が失敗しました";
+    infoMessage = { text: "処理中にエラーが発生しました", type: "error" };
   } else if (executionState === "completed") {
-    messageText = isDiffResult ? "差分が発生しました" : "正常に完了しました";
-  } else if (isDropZoneVisible) {
-    messageText = "対象ファイルをドロップしてください";
+    infoMessage = {
+      text: isDiffResult ? "差分が発生しました" : "正常に完了しました",
+      type: isDiffResult ? "error" : "success",
+    };
   } else {
-    messageText = item?.workName
-      ? `${item.workName} (${activeKey})`
-      : `スクリプト実行 (${activeKey})`;
+    infoMessage = {
+      text: item?.workName
+        ? `${item.workName} (${activeKey})`
+        : `スクリプト実行 (${activeKey})`,
+      type: "info",
+    };
   }
 
   const handleSelectScriptKey = useCallback((key: string) => {
@@ -114,10 +129,7 @@ function useScriptModalContentValue(item?: MasterRow | null) {
 
   const handleFileSelect = useCallback((files: File[]) => {
     const items = convertFilesToItems(files);
-
-    if (items.length === 0) {
-      return;
-    }
+    if (items.length === 0) return;
 
     setSelectedFiles((currentFiles) => [...currentFiles, ...items]);
     setExecutionState("idle");
@@ -131,18 +143,12 @@ function useScriptModalContentValue(item?: MasterRow | null) {
   }, []);
 
   const handleExecute = useCallback(async () => {
-    if (!rawKanriNo || !activeKey || isExecuting) {
-      return;
-    }
+    if (!rawKanriNo || !activeKey || isExecuting) return;
 
     const filePaths = selectedFiles.map(({ path }) => path).filter(Boolean);
-
-    if (isFileSelectionRequired && filePaths.length === 0) {
-      return;
-    }
+    if (isFileSelectionRequired && filePaths.length === 0) return;
 
     setIsExecuting(true);
-
     setGlobalProcessing({
       message: "スクリプト実行中...",
       target: item?.workName || activeKey,
@@ -157,19 +163,12 @@ function useScriptModalContentValue(item?: MasterRow | null) {
       );
 
       setExecutionResult(result);
-
-      if (result.success === false) {
-        setExecutionState("error");
-      } else {
-        setExecutionState("completed");
-      }
-
+      setExecutionState(result.success === false ? "error" : "completed");
       setSelectedFiles([]);
     } catch (error) {
       setExecutionResult({
         message: getErrorMessage(error),
       });
-
       setExecutionState("error");
     } finally {
       setIsExecuting(false);
@@ -191,19 +190,17 @@ function useScriptModalContentValue(item?: MasterRow | null) {
 
   return {
     state: {
-      messageText,
+      infoMessage,
       selectedFiles,
       executionResult,
       isFinished,
       isDropZoneVisible,
-      isHighlightError,
       isExecutable,
       isExecuteDisabled: !isExecutable,
       isExecuting,
       scriptKeys,
       selectedScriptKey: activeKey,
     },
-
     actions: {
       handleSelectScriptKey,
       handleFileSelect,
@@ -212,34 +209,4 @@ function useScriptModalContentValue(item?: MasterRow | null) {
       handleClose,
     },
   };
-}
-
-type ScriptModalContextType = ReturnType<typeof useScriptModalContentValue>;
-
-const ScriptModalContext = createContext<ScriptModalContextType | null>(null);
-
-export interface ScriptModalProviderProps {
-  item: MasterRow;
-  children: ReactNode;
-}
-
-export function ScriptModalProvider({
-  item,
-  children,
-}: ScriptModalProviderProps) {
-  const value = useScriptModalContentValue(item);
-
-  return createElement(ScriptModalContext.Provider, { value }, children);
-}
-
-export function useScriptModalContent(): ScriptModalContextType {
-  const context = use(ScriptModalContext);
-
-  if (!context) {
-    throw new Error(
-      "useScriptModalContent must be used within ScriptModalProvider",
-    );
-  }
-
-  return context;
 }

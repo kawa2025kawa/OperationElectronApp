@@ -1,9 +1,7 @@
 ﻿// src/renderer/features/other/useOtherViewLogic.ts
 
 import { createElement } from "react";
-
 import { useAppStore } from "@renderer/store";
-
 import { GiftMdModalContent } from "./components/modal/contents/giftMd/GiftMdModalContent";
 import { GmailDraftContent } from "./components/modal/contents/gmailDraft/GmailDraftContent";
 import { PdfUploadModalContent } from "./components/modal/contents/pdfUpload/PdfUploadModalContent";
@@ -44,7 +42,6 @@ export function useOtherViewLogic() {
       cancelText: "キャンセル",
       onConfirm: async () => {
         const store = useAppStore.getState();
-
         store.updateModalConfig({ isProcessing: true });
 
         try {

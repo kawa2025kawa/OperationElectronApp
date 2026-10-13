@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect } from "react";
 import { useShallow } from "zustand/shallow";
-
 import { useAppStore } from "@renderer/store";
 
 export function usePdfUploadModalContent() {
   const {
     files,
     isProcessing,
+    infoMessage, // Storeからメッセージ状態を取得
     addPdfFiles,
     reorderPdfFiles,
     uploadPdfFiles,
@@ -18,6 +18,7 @@ export function usePdfUploadModalContent() {
     useShallow((state) => ({
       files: state.pdfUpload.files,
       isProcessing: state.pdfUpload.isProcessing,
+      infoMessage: state.pdfUpload.infoMessage,
       addPdfFiles: state.addPdfFiles,
       reorderPdfFiles: state.reorderPdfFiles,
       uploadPdfFiles: state.uploadPdfFiles,
@@ -29,68 +30,27 @@ export function usePdfUploadModalContent() {
   const handleFileReorder = useCallback(
     (fromIndex: number, toIndex: number) => {
       reorderPdfFiles(fromIndex, toIndex);
-
-      updateModalConfig({
-        message: null,
-      });
     },
-    [reorderPdfFiles, updateModalConfig],
+    [reorderPdfFiles],
   );
 
   const handleExecuteUpload = useCallback(async () => {
-    if (files.length === 0) {
-      updateModalConfig({
-        message: {
-          text: "アップロードするPDFファイルを選択してください。",
-          type: "warning",
-        },
-      });
-
-      return;
-    }
-
-    updateModalConfig({
-      isProcessing: true,
-      message: null,
-    });
-
+    if (files.length === 0) return;
     try {
       await uploadPdfFiles();
-
-      updateModalConfig({
-        message: {
-          text: "PDFファイルをアップロードしました。",
-          type: "success",
-        },
-      });
     } catch (error) {
-      console.error(
-        "[usePdfUploadModalContent] Upload error:",
-        error,
-      );
-
-      updateModalConfig({
-        message: {
-          text:
-            error instanceof Error
-              ? error.message
-              : "PDFアップロード中にエラーが発生しました。",
-          type: "error",
-        },
-      });
-    } finally {
-      updateModalConfig({
-        isProcessing: false,
-      });
+      // エラーメッセージの制御はすべて Store 内で行われるため握りつぶす
     }
-  }, [files.length, uploadPdfFiles, updateModalConfig]);
+  }, [files.length, uploadPdfFiles]);
 
+  // モーダル全体の設定を Zustand と同期
   useEffect(() => {
     updateModalConfig({
+      message: infoMessage, // ★ 常に何かしらのメッセージが入るため枠が消えない
       leftActions: [
         {
           id: "cancel",
-          label: "キャンセル",
+          label: "閉じる",
           onClick: closeGlobalModal,
           disabled: isProcessing,
         },
@@ -106,11 +66,12 @@ export function usePdfUploadModalContent() {
       ],
     });
   }, [
+    infoMessage,
     files.length,
     isProcessing,
     handleExecuteUpload,
-    updateModalConfig,
     closeGlobalModal,
+    updateModalConfig,
   ]);
 
   return {

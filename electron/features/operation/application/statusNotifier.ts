@@ -6,7 +6,7 @@ import type { OperationStatusState } from "@shared/types/operation/operationType
 import type {
   OperationMaster,
   TodayIrregularMaster,
-} from "@shared/types/spreadsheet/spreadsheetTypes";
+} from "@shared/types/operation/operationTypes";
 
 export type StatusTarget =
   | (OperationMaster & {

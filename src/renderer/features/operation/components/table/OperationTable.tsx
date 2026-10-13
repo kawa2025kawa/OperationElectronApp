@@ -9,7 +9,7 @@ import type { JobStatus } from "@shared/types/operation/operationTypes";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { StatusContextMenu } from "@renderer/features/operation/components/contextMenu/StatusContextMenu";
-import type { OperationTableRow } from "@renderer/features/operation/store/operationSelectors";
+import type { OperationViewItem } from "@shared/types/operation/operationTypes";
 
 import { useOperationTable } from "./useOperationTable";
 import * as styles from "./operationTable.css";
@@ -29,23 +29,8 @@ const COLUMN_CONFIG: Record<string, ColumnMeta> = {
     label: "予定時刻",
     width: "120px",
   },
-  dateRule: {
-    label: "日付",
-    width: "100px",
-    align: "center",
-  },
-  weekdayRule: {
-    label: "曜日",
-    width: "100px",
-    align: "center",
-  },
-  weekRule: {
-    label: "週",
-    width: "100px",
-    align: "center",
-  },
-  monthRule: {
-    label: "月",
+  cycle: {
+    label: "cycle",
     width: "100px",
     align: "center",
   },
@@ -67,20 +52,12 @@ const COLUMN_CONFIG: Record<string, ColumnMeta> = {
 /** モードごとに表示する列の順序を定義 */
 const VISIBLE_COLUMNS: Record<string, string[]> = {
   operation: ["kanriNo", "scheduledTime", "workName", "jobId", "status"],
-  irregular: [
-    "kanriNo",
-    "scheduledTime",
-    "dateRule",
-    "weekdayRule",
-    "weekRule",
-    "monthRule",
-    "workName",
-  ],
+  irregular: ["kanriNo", "scheduledTime", "cycle", "workName"],
   today: ["kanriNo", "scheduledTime", "workName", "status"],
 };
 
 interface OperationTableRowProps {
-  row: OperationTableRow;
+  row: OperationViewItem;
   columns: string[];
   isSelected: boolean;
   onRowClick: (kanriNo: string) => void;

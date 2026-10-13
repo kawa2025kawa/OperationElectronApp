@@ -1,4 +1,4 @@
-// src/renderer/features/operation/store/operationStatusSlice.ts
+﻿// src/renderer/features/operation/store/operationStatusSlice.ts
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
@@ -102,10 +102,9 @@ function applyStatusUpdates(
     return state;
   }
 
+  // 単一の operationStatuses のみ更新
   return {
     operationStatuses: nextStatuses,
-    irregularStatuses: nextStatuses,
-    todayStatuses: nextStatuses,
   };
 }
 
@@ -115,8 +114,6 @@ function applyStatusUpdates(
 
 export interface OperationStatusSlice {
   operationStatuses: StatusMap;
-  irregularStatuses: StatusMap;
-  todayStatuses: StatusMap;
 
   applyOperationStatusUpdates(updates: OperationStatusState[]): void;
   updateOperationStatus(update: OperationStatusUpdate): void;
@@ -134,8 +131,6 @@ export const createOperationStatusSlice: StateCreator<
   OperationStatusSlice
 > = (set, get) => ({
   operationStatuses: {},
-  irregularStatuses: {},
-  todayStatuses: {},
 
   /* =========================
    * IPC Status Sync
@@ -193,4 +188,3 @@ export const createOperationStatusSlice: StateCreator<
     }
   },
 });
-

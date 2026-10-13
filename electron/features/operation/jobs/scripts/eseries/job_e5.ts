@@ -17,6 +17,7 @@ function resolveInputFilePath(inputFilePath?: string | string[]): string {
     : inputFilePath
       ? [inputFilePath]
       : [];
+
   if (filePaths.length !== 1 || !filePaths[0]) {
     throw new Error(
       `処理対象のファイルは${INPUT_FILE_NAME}の1ファイルのみ指定してください。`,
@@ -24,11 +25,20 @@ function resolveInputFilePath(inputFilePath?: string | string[]): string {
   }
 
   const filePath = filePaths[0];
+
+  // CSV以外のファイルが渡された場合はエラーとして弾く
+  if (path.extname(filePath).toLowerCase() !== ".csv") {
+    throw new Error(
+      `CSVファイル (.csv) のみ処理可能です。指定されたファイル: ${path.basename(filePath)}`,
+    );
+  }
+
   if (path.basename(filePath) !== INPUT_FILE_NAME) {
     throw new Error(
       `処理対象ファイルは${INPUT_FILE_NAME}のみです。指定されたファイル: ${path.basename(filePath)}`,
     );
   }
+
   return filePath;
 }
 

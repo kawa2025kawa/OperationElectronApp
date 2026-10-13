@@ -1,4 +1,4 @@
-//src\renderer\features\operation\components\table\useOperationTableHotkeys.ts
+// src/renderer/features/operation/components/table/useOperationTableHotkeys.ts
 
 import { useEffect } from "react";
 
@@ -31,11 +31,11 @@ export const useTableHotkeys = (
 
       const currentIndex = selectedId ? rowIds.indexOf(selectedId) : -1;
 
+      // 下移動 (ArrowDown / j)
       if (e.key === "ArrowDown" || e.key === "j") {
         e.preventDefault();
 
         const nextIndex = Math.min(currentIndex + 1, rowIds.length - 1);
-
         const nextId = rowIds[nextIndex];
 
         if (nextId) {
@@ -45,6 +45,7 @@ export const useTableHotkeys = (
         return;
       }
 
+      // 上移動 (ArrowUp / k)
       if (e.key === "ArrowUp" || e.key === "k") {
         e.preventDefault();
 
@@ -58,6 +59,7 @@ export const useTableHotkeys = (
         return;
       }
 
+      // 完了トグル (Enter) - Operation / TODAY モードのみ許可
       if (e.key === "Enter") {
         e.preventDefault();
 
@@ -65,7 +67,8 @@ export const useTableHotkeys = (
           document.activeElement.blur();
         }
 
-        if (!selectedId) return;
+        // Irregular モードではステータス変更を行わない
+        if (!selectedId || currentMode === "irregular") return;
 
         useAppStore.getState().updateOperationStatus({
           kanriNo: selectedId,

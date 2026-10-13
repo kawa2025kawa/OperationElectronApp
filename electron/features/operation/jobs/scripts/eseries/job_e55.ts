@@ -1,4 +1,4 @@
-﻿// electron/features/operation/jobs/scripts/job_e5_check.ts
+﻿// electron\features\operation\jobs\scripts\eseries\job_e55.ts
 
 import fs from "fs-extra";
 import path from "node:path";
@@ -70,7 +70,7 @@ function formatNumber(valStr: string): string {
   return Number.isNaN(num) ? valStr : num.toLocaleString("en-US");
 }
 
-export async function runJobE5Check(): Promise<JobResult> {
+export async function runJobE55(): Promise<JobResult> {
   const datPath = path.join(OUTPUT_DIR, TARGET_FILE);
 
   if (!(await fs.pathExists(datPath))) {

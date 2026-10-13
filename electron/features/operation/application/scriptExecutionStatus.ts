@@ -1,4 +1,4 @@
-﻿//electron\features\operation\application\scriptExecutionStatus.ts
+﻿// electron/features/operation/application/scriptExecutionStatus.ts
 
 import { updateStatus } from "@electron/features/operation/application/statusManager";
 import {

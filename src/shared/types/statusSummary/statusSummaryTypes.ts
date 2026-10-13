@@ -3,6 +3,7 @@
 import {
   JOB_STATUS,
   JOB_STATUS_VALUES,
+  type JobStatus,
 } from "@shared/types/operation/operationTypes";
 
 /* =========================
@@ -31,3 +32,15 @@ export const EMPTY_STATUS_SUMMARY: StatusSummary = {
   [JOB_STATUS.WAITING]: 0,
   [JOB_STATUS.ERROR]: 0,
 };
+
+/* =========================
+ * Summary Detail Row
+ * ========================= */
+
+export interface SummaryDetailRow {
+  kanriNo: string;
+  workName: string;
+  jobId?: string;
+  status?: JobStatus;
+  comment?: string;
+}

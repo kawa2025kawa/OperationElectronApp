@@ -1,11 +1,8 @@
-// src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
+﻿// src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
 
 import { useMemo, useCallback } from "react";
-import { useShallow } from "zustand/shallow";
 import type { Shop } from "@shared/types/spreadsheet/shop";
 import type { ModalAction } from "@shared/types/ui/modal";
-import { useAppStore } from "@renderer/store";
-import { selectShopFilePaths } from "@renderer/features/spreadSheet/store/spreadsheetSelectors";
 import { trpc } from "@renderer/lib/trpc";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
 import {
@@ -17,10 +14,16 @@ interface UseShopModalContentParams {
   data: Shop;
 }
 
+function getValidFilePath(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const path = value.trim();
+  return path && path !== "-" ? path : "";
+}
+
 export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
-  const { excelPath, pdfPath } = useAppStore(
-    useShallow((state) => selectShopFilePaths(data.shopCode)(state)),
-  );
+  // 渡された data から直接取得し、Zustandの全件再検索と不要サブスクリプションを排除
+  const excelPath = getValidFilePath(data.excelFilePath);
+  const pdfPath = getValidFilePath(data.pdfFilePath);
 
   const { selectedIndex, setSelectedIndex, groups, displayItems } =
     useSpreadSheetTabData(data, SHOP_MODAL_GROUPS);
@@ -30,7 +33,6 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
 
   const handleOpen = useCallback(async (path: string) => {
     const normalizedPath = path.trim();
-
     if (!normalizedPath) return;
 
     try {

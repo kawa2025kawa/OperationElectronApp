@@ -1,8 +1,22 @@
-﻿import { memo, useCallback } from "react";
+﻿import { memo } from "react";
 import type { Tantou } from "@shared/types/spreadsheet/tantou";
+import type { Column } from "@shared/types/table/tableType";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
-import { TANTOU_COLUMNS } from "../TantouView";
 import * as styles from "./TantouTable.css";
+
+// --- テーブルカラム定義 (こちらに移動して循環参照を回避) ---
+export const TANTOU_COLUMNS: readonly Column<Tantou>[] = [
+  { key: "todayHayaban", label: "早番", width: "10.5%" },
+  { key: "todayShikai", label: "司会", width: "10.5%" },
+  { key: "todayUketsuke", label: "受付", width: "10.5%" },
+  { key: "todayDenwa", label: "電話", width: "10.5%" },
+  { key: "todayNimotsu", label: "荷物", width: "10.5%" },
+  { key: "todayFloor2", label: "2F", width: "8.5%" },
+  { key: "todayFloor3", label: "3F", width: "8.5%" },
+  { key: "todayTensou", label: "転送", width: "10.5%" },
+  { key: "todayAmAttendanceRate", label: "AM出勤率", width: "10%" },
+  { key: "todayPmAttendanceRate", label: "PM出勤率", width: "10%" },
+] as const;
 
 const TableColGroup = () => (
   <colgroup>
@@ -18,42 +32,36 @@ interface TantouTableRowProps {
   onRowClick?: (item: Tantou) => void;
 }
 
-const TantouTableRowInner = ({
-  row,
-  isSelected,
-  onRowClick,
-}: TantouTableRowProps) => {
-  const state = isSelected ? "selected" : onRowClick ? "clickable" : "idle";
+const TantouTableRow = memo(
+  ({ row, isSelected, onRowClick }: TantouTableRowProps) => {
+    const state = isSelected ? "selected" : onRowClick ? "clickable" : "idle";
 
-  const handleClick = useCallback(() => {
-    onRowClick?.(row);
-  }, [onRowClick, row]);
+    return (
+      <tr
+        className={`${styles.tableRowBase} ${styles.tableRowStates[state]}`}
+        onClick={() => onRowClick?.(row)}
+      >
+        {TANTOU_COLUMNS.map((col) => {
+          const value = row[col.key as keyof Tantou];
+          const alignClass = styles.alignVariants[col.align ?? "left"];
 
-  return (
-    <tr
-      className={`${styles.tableRowBase} ${styles.tableRowStates[state]}`}
-      onClick={handleClick}
-    >
-      {TANTOU_COLUMNS.map((col) => {
-        const value = row[col.key as keyof Tantou];
-        const alignClass = styles.alignVariants[col.align ?? "left"];
+          return (
+            <td
+              key={String(col.key)}
+              className={`${styles.tdBase} ${alignClass}`}
+            >
+              <span className={styles.cellText}>
+                {value == null || value === "" ? "-" : String(value)}
+              </span>
+            </td>
+          );
+        })}
+      </tr>
+    );
+  },
+);
 
-        return (
-          <td
-            key={String(col.key)}
-            className={`${styles.tdBase} ${alignClass}`}
-          >
-            <span className={styles.cellText}>
-              {value == null || value === "" ? "-" : String(value)}
-            </span>
-          </td>
-        );
-      })}
-    </tr>
-  );
-};
-
-const TantouTableRow = memo(TantouTableRowInner);
+TantouTableRow.displayName = "TantouTableRow";
 
 export interface TantouTableProps {
   rows: readonly Tantou[];
@@ -101,7 +109,7 @@ export const TantouTable = memo(
 
                 return (
                   <TantouTableRow
-                    key={`${idKey}-${index}`}
+                    key={index}
                     row={row}
                     isSelected={isSelected}
                     onRowClick={onRowClick}
@@ -115,3 +123,5 @@ export const TantouTable = memo(
     );
   },
 );
+
+TantouTable.displayName = "TantouTable";

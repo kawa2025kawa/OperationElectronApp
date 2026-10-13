@@ -1,6 +1,7 @@
 // src/shared/utils/dependency/dependencyUtils.ts
 
 import {
+  JOB_STATUS,
   type ActiveFlags,
   type JobStatus,
   type OperationStatusState,
@@ -9,7 +10,7 @@ import type {
   OperationMaster,
   IrregularMaster,
   TodayIrregularMaster,
-} from "@shared/types/spreadsheet/spreadsheetTypes";
+} from "@shared/types/operation/operationTypes";
 import { isSuccessStatus } from "@shared/utils/statusUtils";
 
 export type MasterItem =
@@ -45,9 +46,7 @@ export interface DependencyMasters {
 }
 
 export interface DependencyStatuses {
-  operationStatuses: Record<string, OperationStatusState>;
-  irregularStatuses: Record<string, OperationStatusState>;
-  todayStatuses: Record<string, OperationStatusState>;
+  statuses: Record<string, OperationStatusState>;
 }
 
 const DEFAULT_JOB_EXECUTION_OPTIONS: Readonly<JobExecutionOptions> = {
@@ -82,7 +81,6 @@ function findMaster(
 
   for (const mastersList of getMasterLists(masters)) {
     const master = mastersList.find((item) => item.kanriNo.trim() === key);
-
     if (master) {
       return master;
     }
@@ -95,13 +93,7 @@ function findStatus(
   kanriNo: string,
   statuses: DependencyStatuses,
 ): OperationStatusState | undefined {
-  const key = kanriNo.trim();
-
-  return (
-    statuses.operationStatuses[key] ??
-    statuses.irregularStatuses[key] ??
-    statuses.todayStatuses[key]
-  );
+  return statuses.statuses[kanriNo.trim()];
 }
 
 function createMissingDependency(
@@ -120,7 +112,33 @@ function createMissingDependency(
   };
 }
 
+/**
+ * 依存先ステータスが前提条件を満たしているか判定する（特例ルール含む）
+ */
+function isDependencySatisfied(
+  targetKanriNo: string,
+  depKanriNo: string,
+  status: OperationStatusState | undefined,
+): boolean {
+  const currentStatus = status?.status;
+  if (!currentStatus) return false;
+
+  const targetKey = targetKanriNo.trim();
+  const depKey = depKanriNo.trim();
+
+  // 特例: kanriNo 75 における kanriNo 67 の依存判定
+  // 「完了 (isSuccessStatus)」または「実行中 (JOB_STATUS.RUNNING)」で前提クリアとする
+  if (targetKey === "75" && depKey === "67") {
+    return (
+      isSuccessStatus(currentStatus) || currentStatus === JOB_STATUS.RUNNING
+    );
+  }
+
+  return isSuccessStatus(currentStatus);
+}
+
 function checkDependency(
+  targetKanriNo: string,
   dependency: string,
   masters: DependencyMasters,
   statuses: DependencyStatuses,
@@ -143,7 +161,7 @@ function checkDependency(
   const master = findMaster(dependency, masters);
   const status = findStatus(dependency, statuses);
 
-  if (isSuccessStatus(status?.status)) {
+  if (isDependencySatisfied(targetKanriNo, dependency, status)) {
     return undefined;
   }
 
@@ -151,6 +169,7 @@ function checkDependency(
 }
 
 function checkDependencies(
+  targetKanriNo: string,
   dependencies: string[],
   masters: DependencyMasters,
   statuses: DependencyStatuses,
@@ -162,7 +181,13 @@ function checkDependencies(
 
   const missingDependencies = dependencies
     .map((dependency) =>
-      checkDependency(dependency, masters, statuses, activeFlags),
+      checkDependency(
+        targetKanriNo,
+        dependency,
+        masters,
+        statuses,
+        activeFlags,
+      ),
     )
     .filter(
       (dependency): dependency is MissingDependency => dependency !== undefined,
@@ -174,18 +199,46 @@ function checkDependencies(
   };
 }
 
-export function normalizeDependencies(rawDependsOn: unknown): string[] {
+/**
+ * dependsOn の文字列・配列を展開し、"ALL" 指定がある場合は
+ * operationMasters および todayIrregularMasters から自分以外の全管理Noを抽出して自動展開する
+ */
+export function normalizeDependencies(
+  rawDependsOn: unknown,
+  currentKanriNo?: string,
+  masters?: DependencyMasters,
+): string[] {
   if (rawDependsOn == null) {
     return [];
   }
 
   const values = Array.isArray(rawDependsOn) ? rawDependsOn : [rawDependsOn];
 
-  return values
+  const rawList = values
     .map(String)
     .flatMap((value) => value.split(","))
     .map((value) => value.trim())
-    .filter(Boolean);
+    .filter((v) => Boolean(v) && v !== "-" && v !== "ー");
+
+  const hasAll = rawList.some((v) => v.toLowerCase() === "all");
+
+  // "ALL" が指定されている場合は、自身を除く operationMasters と todayIrregularMasters の管理No群へ展開
+  if (hasAll && masters) {
+    const currentKey = currentKanriNo?.trim();
+    const targetMasters = [
+      ...masters.operationMasters,
+      ...masters.todayIrregularMasters,
+    ];
+
+    const allKanriNos = targetMasters
+      .map((item) => item.kanriNo.trim())
+      .filter((id) => Boolean(id) && id !== currentKey);
+
+    const otherDependencies = rawList.filter((v) => v.toLowerCase() !== "all");
+    return Array.from(new Set([...allKanriNos, ...otherDependencies]));
+  }
+
+  return rawList;
 }
 
 export function checkJobDependencies(
@@ -200,9 +253,19 @@ export function checkJobDependencies(
     return EMPTY_CHECK_RESULT;
   }
 
-  const dependencies = normalizeDependencies(target.dependsOn);
+  const dependencies = normalizeDependencies(
+    target.dependsOn,
+    kanriNo,
+    masters,
+  );
 
-  return checkDependencies(dependencies, masters, statuses, activeFlags);
+  return checkDependencies(
+    kanriNo,
+    dependencies,
+    masters,
+    statuses,
+    activeFlags,
+  );
 }
 
 export function validateJobDependencies(

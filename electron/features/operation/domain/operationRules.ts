@@ -1,6 +1,6 @@
 ﻿// electron/features/operation/domain/operationRules.ts
 
-import type { OperationMaster } from "@shared/types/spreadsheet/spreadsheetTypes";
+import type { OperationMaster } from "@shared/types/operation/operationTypes";
 
 /**
  * センターフラグのリスト

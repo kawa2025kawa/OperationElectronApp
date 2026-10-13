@@ -1,10 +1,8 @@
 ﻿// src/renderer/features/operation/operationModal.ts
 
 import { createElement } from "react";
-
-import { getScriptModalType } from "@shared/config/operationScriptRegistry";
 import { PdfUploadModalContent } from "@renderer/features/other/components/modal/contents/pdfUpload/PdfUploadModalContent";
-import { type AppState } from "@renderer/store";
+import type { AppState } from "@renderer/store";
 import type {
   LinkConfig,
   OperationViewItem,
@@ -14,6 +12,8 @@ import { LinkModalContent } from "./components/modal/linkModal/LinkModalContent"
 import { ScriptModalContent } from "./components/modal/scriptModal/ScriptModalContent";
 
 type OpenGlobalModal = AppState["openGlobalModal"];
+
+const PDF_UPLOAD_KANRI_NOS = new Set(["30", "37", "45", "48", "54"]);
 
 const PDF_UPLOAD_MODAL_CONFIG = {
   title: "Tempomatic PDF",
@@ -36,19 +36,25 @@ export function openScriptModal(
   openGlobalModal: OpenGlobalModal,
   item: OperationViewItem,
 ): void {
-  const modalType = getScriptModalType(item.kanriNo);
-
-  if (modalType === "pdfUpload") {
-    openGlobalModal(createElement(PdfUploadModalContent), {
-      ...PDF_UPLOAD_MODAL_CONFIG,
-    });
+  if (PDF_UPLOAD_KANRI_NOS.has(String(item.kanriNo).trim())) {
+    openGlobalModal(
+      createElement(PdfUploadModalContent),
+      PDF_UPLOAD_MODAL_CONFIG,
+    );
     return;
   }
 
-  openGlobalModal(createElement(ScriptModalContent, { item }), {
-    ...SCRIPT_MODAL_CONFIG,
-    title: item.workName || "スクリプト実行",
-  });
+  const workName = item.workName || `No.${item.kanriNo}`;
+
+  openGlobalModal(
+    createElement(ScriptModalContent, {
+      item: { ...item, workName },
+    }),
+    {
+      ...SCRIPT_MODAL_CONFIG,
+      title: item.workName || "スクリプト実行",
+    },
+  );
 }
 
 export function openLinkModal(

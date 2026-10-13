@@ -10,7 +10,6 @@ const PANEL_LABELS: Record<keyof InitStatus, string> = {
   update: "App Update Check",
   operation: "Operation Data",
   irregular: "Irregular Data",
-  todayIrregular: "Today Irregular Data",
   auth: "Google Auth",
   store: "Store Master",
   jugyoin: "jugyoin Master",

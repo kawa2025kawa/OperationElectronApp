@@ -1,30 +1,32 @@
-// src/renderer/features/other/store/gmailDraftSlice.ts
-
 import type { StateCreator } from "zustand";
-
 import type {
   GmailDraftFormValues,
   GmailDraftState,
 } from "@renderer/features/other/types/gmailDraftTypes";
 import type { AppState } from "@renderer/store";
 
+export interface GmailMessage {
+  text: string;
+  type: "info" | "success" | "error" | "warning";
+}
+
+export interface ExtendedGmailDraftState extends GmailDraftState {
+  infoMessage: GmailMessage;
+}
+
 export interface GmailDraftSlice {
-  gmailDraft: GmailDraftState;
-
-  updateGmailDraftForm(
-    update: Partial<GmailDraftFormValues>,
-  ): void;
-
-  setGmailDraft(
-    update: Partial<GmailDraftState>,
-  ): void;
-
-  setGmailDraftProcessing(
-    value: boolean,
-  ): void;
-
+  gmailDraft: ExtendedGmailDraftState;
+  updateGmailDraftForm(update: Partial<GmailDraftFormValues>): void;
+  setGmailDraft(update: Partial<GmailDraftState>): void;
+  setGmailDraftProcessing(value: boolean): void;
+  setGmailDraftMessage(message: GmailMessage): void;
   resetGmailDraft(): void;
 }
+
+const DEFAULT_GMAIL_MESSAGE: GmailMessage = {
+  text: "Gmail下書き作成用の宛先・件名・本文を入力してください。",
+  type: "info",
+};
 
 const createInitialFormValues = (): GmailDraftFormValues => ({
   to: "",
@@ -33,44 +35,35 @@ const createInitialFormValues = (): GmailDraftFormValues => ({
   body: "",
 });
 
-const createInitialGmailDraftState = (): GmailDraftState => ({
-  templateKey: null,
-  formValues: createInitialFormValues(),
-  isProcessing: false,
-});
-
 export const createGmailDraftSlice: StateCreator<
   AppState,
   [["zustand/immer", never]],
   [],
   GmailDraftSlice
 > = (set) => ({
-  gmailDraft: createInitialGmailDraftState(),
+  gmailDraft: {
+    templateKey: null,
+    formValues: createInitialFormValues(),
+    isProcessing: false,
+    infoMessage: DEFAULT_GMAIL_MESSAGE,
+  },
 
   updateGmailDraftForm: (update) => {
     set((state) => {
-      Object.assign(
-        state.gmailDraft.formValues,
-        update,
-      );
+      Object.assign(state.gmailDraft.formValues, update);
     });
   },
 
   setGmailDraft: (update) => {
     set((state) => {
       if (update.templateKey !== undefined) {
-        state.gmailDraft.templateKey =
-          update.templateKey;
+        state.gmailDraft.templateKey = update.templateKey;
       }
-
       if (update.formValues !== undefined) {
-        state.gmailDraft.formValues =
-          update.formValues;
+        state.gmailDraft.formValues = update.formValues;
       }
-
       if (update.isProcessing !== undefined) {
-        state.gmailDraft.isProcessing =
-          update.isProcessing;
+        state.gmailDraft.isProcessing = update.isProcessing;
       }
     });
   },
@@ -81,10 +74,18 @@ export const createGmailDraftSlice: StateCreator<
     });
   },
 
+  setGmailDraftMessage: (message) => {
+    set((state) => {
+      state.gmailDraft.infoMessage = message;
+    });
+  },
+
   resetGmailDraft: () => {
     set((state) => {
-      state.gmailDraft =
-        createInitialGmailDraftState();
+      state.gmailDraft.templateKey = null;
+      state.gmailDraft.formValues = createInitialFormValues();
+      state.gmailDraft.isProcessing = false;
+      state.gmailDraft.infoMessage = DEFAULT_GMAIL_MESSAGE;
     });
   },
 });

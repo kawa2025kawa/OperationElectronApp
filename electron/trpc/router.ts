@@ -1,4 +1,6 @@
-﻿import { publicProcedure, router } from "@electron/trpc/trpc";
+﻿//electron\trpc\router.ts
+
+import { publicProcedure, router } from "@electron/trpc/trpc";
 import { systemRouter } from "@electron/trpc/routers/systemRouter";
 import { authRouter } from "@electron/trpc/routers/authRouter";
 import { gmailRouter } from "@electron/trpc/routers/gmailRouter";

@@ -10,7 +10,7 @@ import {
 import type {
   OperationMaster,
   TodayIrregularMaster,
-} from "@shared/types/spreadsheet/spreadsheetTypes";
+} from "@shared/types/operation/operationTypes";
 
 import {
   checkJobDependencies,

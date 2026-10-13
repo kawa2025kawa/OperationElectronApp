@@ -6,7 +6,7 @@ export * from "./eseries/job_e29";
 export * from "./eseries/job_e30";
 export * from "./eseries/job_e41";
 export * from "./eseries/job_e5";
-export * from "./eseries/job_e5_check";
+export * from "./eseries/job_e55";
 export * from "./eseries/job_e8";
 export * from "./eseries/job_e9";
 

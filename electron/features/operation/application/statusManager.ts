@@ -1,4 +1,4 @@
-﻿//electron\features\operation\application\statusManager.ts
+﻿// electron/features/operation/application/statusManager.ts
 
 import { getActiveFlags } from "@electron/features/operation/application/activeFlagsManager";
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
@@ -16,7 +16,7 @@ import {
   type JobStatus,
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
-import type { MasterData } from "@shared/types/spreadsheet/spreadsheetTypes";
+import type { JsonMasterData } from "@shared/types/masterData/jsonMasterDataTypes";
 
 import {
   deleteStatusFile,
@@ -24,11 +24,6 @@ import {
   persistStatusesDebounced,
   persistStatusesImmediately,
 } from "@electron/features/operation/infrastructure/storage/statusStorage";
-
-import {
-  EMPTY_STATUS_SUMMARY,
-  type StatusSummary,
-} from "@shared/types/statusSummary/statusSummaryTypes";
 
 import { DependencyPropagator } from "./dependencyPropagator";
 import {
@@ -169,22 +164,16 @@ export function updateManualStatus(
 }
 
 export function getDependencyStatuses(): {
-  operationStatuses: StatusMap;
-  irregularStatuses: StatusMap;
-  todayStatuses: StatusMap;
+  statuses: StatusMap;
 } {
-  const statuses: StatusMap = Object.fromEntries(statusStore.statuses);
-
   return {
-    operationStatuses: statuses,
-    irregularStatuses: statuses,
-    todayStatuses: statuses,
+    statuses: Object.fromEntries(statusStore.statuses),
   };
 }
 
 export function registerTargets(
   targetList: StatusTarget[],
-  masterData: MasterData,
+  masterData: JsonMasterData,
 ): void {
   statusStore.setDependencyMasters(masterData);
 
@@ -316,27 +305,4 @@ export function refreshDependencyStatuses(): void {
   propagator.clearQueue();
   propagator.enqueueCenterFlagDependents(statusStore.targets);
   processPropagation();
-}
-
-export function getStatusSummary(): StatusSummary {
-  const summary: StatusSummary = {
-    ...EMPTY_STATUS_SUMMARY,
-    total: statusStore.targets.size,
-  };
-
-  for (const [kanriNo] of statusStore.targets) {
-    const statusState = statusStore.statuses.get(kanriNo);
-    const status = statusState?.status;
-
-    if (!status || !(status in summary)) {
-      continue;
-    }
-
-    summary[status] += 1;
-  }
-
-  summary.progress =
-    summary.total > 0 ? Math.round((summary.success / summary.total) * 100) : 0;
-
-  return summary;
 }

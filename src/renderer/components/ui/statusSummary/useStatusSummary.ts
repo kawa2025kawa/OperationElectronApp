@@ -1,30 +1,17 @@
 ﻿// src/renderer/components/ui/statusSummary/useStatusSummary.ts
 
-// src/renderer/components/ui/statusSummary/useStatusSummary.ts
-
 import { useCallback } from "react";
 import { useShallow } from "zustand/shallow";
 
-import {
-  filterSummaryItems,
-  type OperationSummaryRow,
-  type TodaySummaryRow,
-} from "@renderer/features/operation/services/operationSummaryService";
-import {
-  selectOperationMasters,
-  selectTodayIrregularMasters,
-} from "@renderer/features/spreadSheet/store/spreadsheetSelectors";
+import { trpc } from "@renderer/lib/trpc";
 import { useAppStore } from "@renderer/store";
-
 import type { SummaryDisplayKey } from "@shared/types/statusSummary/statusSummaryTypes";
 
 import * as styles from "./statusSummary.css";
 import { getSummaryLabel, SUMMARY_DISPLAY_ORDER } from "./statusSummaryConfig";
 
-type SummaryRow = OperationSummaryRow | TodaySummaryRow;
-
 export interface UseStatusSummaryParams {
-  openModal: (items: SummaryRow[], title: string) => void;
+  openModal: (items: any[], title: string) => void;
 }
 
 type StatusSummaryBadgeKey = keyof typeof styles.valueBadgeVariants;
@@ -34,21 +21,7 @@ const getBadgeClass = (key: SummaryDisplayKey): string => {
 };
 
 export const useStatusSummary = ({ openModal }: UseStatusSummaryParams) => {
-  const {
-    summary,
-    operationMasters,
-    todayIrregularMasters,
-    operationStatuses,
-    todayStatuses,
-  } = useAppStore(
-    useShallow((state) => ({
-      summary: state.summary,
-      operationMasters: selectOperationMasters(state),
-      todayIrregularMasters: selectTodayIrregularMasters(state),
-      operationStatuses: state.operationStatuses,
-      todayStatuses: state.todayStatuses,
-    })),
-  );
+  const summary = useAppStore(useShallow((state) => state.summary));
 
   const items = SUMMARY_DISPLAY_ORDER.map((key) => {
     const value = summary[key] ?? 0;
@@ -62,30 +35,26 @@ export const useStatusSummary = ({ openModal }: UseStatusSummaryParams) => {
   });
 
   const handleClick = useCallback(
-    (key: SummaryDisplayKey, label: string) => {
+    async (key: SummaryDisplayKey, label: string) => {
       if (key === "progress") {
         return;
       }
 
-      const filteredItems = filterSummaryItems(
-        {
-          operationMasters,
-          todayIrregularMasters,
-          operationStatuses,
-          todayStatuses,
-        },
-        key,
-      );
+      try {
+        // バックエンド (tRPC) で抽出済みの詳細一覧を取得
+        const filteredItems = await trpc.operation.getSummaryDetails.query({
+          filterKey: key,
+        });
 
-      openModal(filteredItems, label);
+        openModal(filteredItems, label);
+      } catch (error) {
+        console.error(
+          "[useStatusSummary] Failed to fetch summary details from backend:",
+          error,
+        );
+      }
     },
-    [
-      operationMasters,
-      todayIrregularMasters,
-      operationStatuses,
-      todayStatuses,
-      openModal,
-    ],
+    [openModal],
   );
 
   return {

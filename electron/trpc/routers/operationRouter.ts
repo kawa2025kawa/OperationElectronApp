@@ -1,5 +1,10 @@
-﻿import { z } from "zod";
-import { setActiveFlags } from "@electron/features/operation/application/activeFlagsManager";
+﻿// electron/trpc/routers/operationRouter.ts
+
+import { z } from "zod";
+import {
+  getActiveFlags,
+  setActiveFlags,
+} from "@electron/features/operation/application/activeFlagsManager";
 import {
   startPolling,
   stopPolling,
@@ -10,6 +15,8 @@ import {
 } from "@electron/features/operation/application/scriptExecutionStatus";
 import {
   deleteAllStatuses,
+  getDependencyMasters,
+  getDependencyStatuses,
   getTargetByKanriNo,
   initializeStatuses,
   refreshDependencyStatuses,
@@ -18,22 +25,52 @@ import {
   updateManualStatus,
   updateStatus,
 } from "@electron/features/operation/application/statusManager";
+import {
+  getOperationTableData,
+  getStatusSummary,
+  getSummaryDetails,
+} from "@electron/features/operation/application/operationQueryService";
+import {
+  clearJsonMasterDataCache,
+  getJsonMasterData,
+} from "@electron/features/masterData/application/jsonMasterDataManager";
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
 import { runScriptWithZipRecovery } from "@electron/features/operation/infrastructure/recovery/zipRecoveryHelper";
+import { isValidTrackerJobId } from "@electron/features/operation/infrastructure/tracker/trackerHelper";
 import { fetchTrackerStatusByJobId } from "@electron/features/operation/infrastructure/tracker/trackerServiceClient";
-import { clearMasterDataCache } from "@electron/features/spreadsheet/application/masterDataManager";
-import { getStatusSummary } from "@electron/features/operation/application/statusManager";
 import { publicProcedure, router } from "@electron/trpc/trpc";
 import {
   JOB_STATUS,
   type JobStatus,
 } from "@shared/types/operation/operationTypes";
-import type { MasterData } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { checkJobDependencies } from "@shared/utils/dependency/dependencyUtils";
 
 export const operationRouter = router({
+  /* ==========================================================================
+   * Query (参照・取得系)
+   * ========================================================================== */
+  getStatusSummary: publicProcedure.query(() => {
+    return getStatusSummary();
+  }),
+
+  getSummaryDetails: publicProcedure
+    .input(z.object({ filterKey: z.string() }))
+    .query(({ input }) => {
+      return getSummaryDetails(input.filterKey);
+    }),
+
+  getTableData: publicProcedure
+    .input(z.object({ mode: z.enum(["operation", "irregular", "today"]) }))
+    .query(({ input }) => {
+      return getOperationTableData(input.mode);
+    }),
+
+  /* ==========================================================================
+   * Command (更新・操作系)
+   * ========================================================================== */
   resetStatuses: publicProcedure.mutation(async () => {
     const result = resetAllStatusesToScheduled();
-    await clearMasterDataCache();
+    await clearJsonMasterDataCache();
     return result;
   }),
 
@@ -58,26 +95,22 @@ export const operationRouter = router({
     return initializeStatuses();
   }),
 
-  getStatusSummary: publicProcedure.query(() => {
-    return getStatusSummary();
-  }),
+  registerTargets: publicProcedure.mutation(async () => {
+    const masterData = await getJsonMasterData();
 
-  registerTargets: publicProcedure
-    .input(z.object({ masterData: z.custom<MasterData>() }))
-    .mutation(({ input }) => {
-      const { masterData } = input;
-      const targets = [
-        ...masterData.operations.map((target) => ({
-          ...target,
-          targetType: "operation" as const,
-        })),
-        ...masterData.todayIrregulars.map((target) => ({
-          ...target,
-          targetType: "today" as const,
-        })),
-      ];
-      registerTargets(targets, masterData);
-    }),
+    const targets = [
+      ...masterData.operations.map((target) => ({
+        ...target,
+        targetType: "operation" as const,
+      })),
+      ...masterData.todayIrregulars.map((target) => ({
+        ...target,
+        targetType: "today" as const,
+      })),
+    ];
+
+    registerTargets(targets, masterData);
+  }),
 
   updateJobStatus: publicProcedure
     .input(
@@ -110,6 +143,7 @@ export const operationRouter = router({
         kanriNo: z.string(),
         scriptKey: z.string().optional(),
         filePath: z.union([z.string(), z.array(z.string())]).optional(),
+        ignoreDependencies: z.boolean().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -117,6 +151,30 @@ export const operationRouter = router({
       const scriptKey = input.scriptKey?.trim()
         ? input.scriptKey.trim()
         : kanriNo;
+
+      if (!input.ignoreDependencies) {
+        const dependencyResult = checkJobDependencies(
+          kanriNo,
+          getDependencyMasters(),
+          getDependencyStatuses(),
+          getActiveFlags(),
+        );
+
+        if (!dependencyResult.ok) {
+          const missingKanriNos = dependencyResult.missingDependencies
+            .map(({ kanriNo }) => kanriNo)
+            .filter(Boolean);
+
+          const message =
+            missingKanriNos.length > 0
+              ? `未完了前作業 (No.${missingKanriNos.join(", ")})`
+              : "未完了前作業あり";
+
+          updateManualStatus(kanriNo, JOB_STATUS.ERROR, message);
+          throw new Error(message);
+        }
+      }
+
       try {
         const result = await runScriptWithZipRecovery(
           kanriNo,
@@ -136,14 +194,23 @@ export const operationRouter = router({
     .mutation(async ({ input }) => {
       const kanriNo = normalizeKanriNo(input.kanriNo);
       const target = getTargetByKanriNo(kanriNo);
-      if (!target || target.targetType !== "operation" || !target.jobId) {
-        throw new Error(`Tracker target not found (kanriNo=${kanriNo})`);
+
+      if (
+        !target ||
+        target.targetType !== "operation" ||
+        !isValidTrackerJobId(target.jobId)
+      ) {
+        throw new Error(
+          `Tracker target not found or Job ID is not configured (kanriNo=${kanriNo})`,
+        );
       }
+
       const trackerStatus = await fetchTrackerStatusByJobId(
-        target.jobId,
+        target.jobId.trim(),
         target.scheduledTime,
         target.kanriNo,
       );
+
       if (!trackerStatus) {
         return {
           kanriNo,
@@ -151,6 +218,7 @@ export const operationRouter = router({
           comment: "Trackerデータなし",
         };
       }
+
       updateStatus(trackerStatus);
       return trackerStatus;
     }),

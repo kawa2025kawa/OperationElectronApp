@@ -1,4 +1,5 @@
-﻿import { addDays, format } from "date-fns";
+﻿import { useMemo } from "react";
+import { addDays, format } from "date-fns";
 import { ja } from "date-fns/locale/ja";
 
 import type { Tantou } from "@shared/types/spreadsheet/tantou";
@@ -43,11 +44,14 @@ export function useTantouModalContent(data: Tantou) {
   const { selectedIndex, setSelectedIndex, displayItems } =
     useSpreadSheetTabData(data, TANTOU_MODAL_GROUPS);
 
-  const now = new Date();
-  const tomorrow = addDays(now, 1);
-
-  const todayLabel = `本日 ${formatDateForHeader(now)}`;
-  const tomorrowLabel = `明日 ${formatDateForHeader(tomorrow)}`;
+  const { todayLabel, tomorrowLabel } = useMemo(() => {
+    const now = new Date();
+    const tomorrow = addDays(now, 1);
+    return {
+      todayLabel: `本日 ${formatDateForHeader(now)}`,
+      tomorrowLabel: `明日 ${formatDateForHeader(tomorrow)}`,
+    };
+  }, []);
 
   return {
     state: {

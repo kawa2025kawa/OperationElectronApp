@@ -1,41 +1,26 @@
-﻿import { createElement, useMemo } from "react";
+﻿// src/renderer/features/operation/components/modal/summaryModal/useSummaryModalContent.ts
 
+import { createElement, useMemo } from "react";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
-import type {
-  OperationSummaryRow,
-  TodaySummaryRow,
-} from "@renderer/features/operation/services/operationSummaryService";
 import type { Column } from "@shared/types/table/tableType";
+import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes";
 
-export type SummaryRow = OperationSummaryRow | TodaySummaryRow;
-
-export function useSummaryModalContent(items: SummaryRow[] = []) {
-  const columns = useMemo<Column<SummaryRow>[]>(
+export function useSummaryModalContent(items: SummaryDetailRow[] = []) {
+  const columns = useMemo<Column<SummaryDetailRow>[]>(
     () => [
-      {
-        key: "kanriNo",
-        label: "No",
-        width: "15%",
-      },
-      {
-        key: "workName",
-        label: "作業名",
-        width: "55%",
-      },
+      { key: "kanriNo", label: "管理No", width: "15%" },
+      { key: "workName", label: "作業名", width: "55%" },
       {
         key: "jobId",
         label: "Job ID",
         width: "15%",
-        render: (item) => ("jobId" in item && item.jobId ? item.jobId : "-"),
+        render: (item) => item.jobId || "-",
       },
       {
         key: "status",
         label: "ステータス",
         width: "15%",
-        render: (item) =>
-          createElement(StatusBadge, {
-            status: item.status ?? undefined,
-          }),
+        render: (item) => createElement(StatusBadge, { status: item.status }),
       },
     ],
     [],

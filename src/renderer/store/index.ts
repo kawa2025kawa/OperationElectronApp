@@ -14,11 +14,6 @@ import {
 } from "@renderer/features/auth/store/authSlice";
 
 import {
-  createOperationSlice,
-  type OperationSlice,
-} from "@renderer/features/operation/store/operationSlice";
-
-import {
   createOperationStatusSlice,
   type OperationStatusSlice,
 } from "@renderer/features/operation/store/operationStatusSlice";
@@ -85,7 +80,6 @@ import { createThemeSlice, type ThemeSlice } from "./slices/themeSlice";
 // ============================================================================
 
 export type AppState = AuthSlice &
-  OperationSlice &
   StatusSummarySlice &
   OperationStatusSlice &
   PollingSlice &
@@ -108,12 +102,8 @@ export type AppState = AuthSlice &
 export const useAppStore = create<AppState>()(
   subscribeWithSelector(
     immer((...args) => ({
-      // ----------------------------------------------------------------------
-      // Feature
-      // ----------------------------------------------------------------------
-
+      // Feature Slices
       ...createAuthSlice(...args),
-      ...createOperationSlice(...args),
       ...createStatusSummarySlice(...args),
       ...createOperationStatusSlice(...args),
       ...createPollingSlice(...args),
@@ -123,10 +113,7 @@ export const useAppStore = create<AppState>()(
       ...createGiftMdSlice(...args),
       ...createGmailDraftSlice(...args),
 
-      // ----------------------------------------------------------------------
-      // Global
-      // ----------------------------------------------------------------------
-
+      // Global Slices
       ...createThemeSlice(...args),
       ...createNavigationSlice(...args),
       ...createOverlaySlice(...args),
@@ -136,6 +123,7 @@ export const useAppStore = create<AppState>()(
     })),
   ),
 );
+
 if (import.meta.env.DEV) {
   Object.assign(window, { useAppStore });
 }

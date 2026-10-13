@@ -1,4 +1,4 @@
-﻿//src\renderer\features\operation\components\modal\summaryModal\SummaryModalContent.tsx
+﻿// src/renderer/features/operation/components/modal/summaryModal/SummaryModalContent.tsx
 
 import { memo } from "react";
 import { clsx } from "clsx";
@@ -7,15 +7,13 @@ import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { getValueByPath } from "@shared/utils/getValueByPath";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Column } from "@shared/types/table/tableType";
+import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes"; // 新しい型をインポート
 
-import {
-  type SummaryRow,
-  useSummaryModalContent,
-} from "./useSummaryModalContent";
+import { useSummaryModalContent } from "./useSummaryModalContent";
 import * as styles from "./summaryModalContent.css";
 
 interface SummaryModalContentProps {
-  items: SummaryRow[];
+  items: SummaryDetailRow[]; // SummaryRow から SummaryDetailRow へ変更
 }
 
 interface TableColGroupProps<T extends object> {
@@ -59,11 +57,9 @@ const TableRowInner = <T extends object>({
       {columns.map((column) => {
         const key = String(column.key);
         const align = column.align ?? "left";
-
         const value = column.render
           ? column.render(item)
           : getValueByPath(item as unknown as Record<string, unknown>, key);
-
         const title =
           typeof value === "string" || typeof value === "number"
             ? String(value)
@@ -113,12 +109,10 @@ export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps>
           <div className={styles.headerWrapper}>
             <table className={styles.headerTable}>
               <TableColGroup columns={state.columns} />
-
               <thead>
                 <tr>
                   {state.columns.map((column) => {
                     const align = column.align ?? "left";
-
                     return (
                       <th
                         key={String(column.key)}
@@ -139,7 +133,6 @@ export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps>
           <div className={styles.bodyWrapper}>
             <table className={styles.bodyTable}>
               <TableColGroup columns={state.columns} />
-
               <tbody>
                 {state.items.map((item, index) => {
                   const key =
