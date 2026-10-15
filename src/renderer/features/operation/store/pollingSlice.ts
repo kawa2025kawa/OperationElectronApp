@@ -2,7 +2,7 @@
 
 import type { StateCreator } from "zustand";
 
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { AppState } from "@renderer/store";
 
 export interface PollingSlice {
@@ -33,7 +33,7 @@ export const createPollingSlice: StateCreator<
     }
 
     try {
-      await trpc.operation.startPolling.mutate();
+      await window.electronAPI.invoke(IPC_CHANNELS.OPERATION.START_POLLING);
       set({ isPolling: true });
     } catch (error: unknown) {
       console.error("[PollingSlice] startPolling failed:", error);
@@ -46,7 +46,7 @@ export const createPollingSlice: StateCreator<
     }
 
     try {
-      await trpc.operation.stopPolling.mutate();
+      await window.electronAPI.invoke(IPC_CHANNELS.OPERATION.STOP_POLLING);
       set({ isPolling: false });
     } catch (error: unknown) {
       console.error("[PollingSlice] stopPolling failed:", error);

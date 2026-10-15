@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect } from "react";
 import { useShallow } from "zustand/shallow";
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import { useAppStore } from "@renderer/store";
 
 export function useGiftMdModalContent() {
@@ -44,7 +44,10 @@ export function useGiftMdModalContent() {
     });
 
     try {
-      const message = await trpc.other.processGiftMd.mutate(giftFile.path);
+      const message = await window.electronAPI.invoke(
+        IPC_CHANNELS.OTHER.PROCESS_GIFT_MD,
+        giftFile.path,
+      );
       setGiftMdMessage({
         text: message || "ギフトデータの処理が正常に完了しました。",
         type: "success",

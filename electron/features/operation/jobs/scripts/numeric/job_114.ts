@@ -1,74 +1,79 @@
-// electron/features/operation/jobs/scripts/job_114.ts
+// electron/features/operation/jobs/scripts/numeric/job_114.ts
+
 import path from "node:path";
 import { format } from "date-fns";
 import fs from "fs-extra";
 import iconv from "iconv-lite";
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
-const LOG_DIR = "\\\\192.88.100.1\\diskD\\execute\\log";
-const REQUIRED_KEYWORD = "READ=";
+const CONFIG = {
+  logDir: "\\\\192.88.100.1\\diskD\\execute\\log",
+  fileSuffix: "ORJH0010.log",
+  keyword: "READ=",
+  encoding: "Shift_JIS",
+} as const;
+
+async function findLogFile(): Promise<string | undefined> {
+  const datePrefix = format(new Date(), "yyMMdd");
+  const files = await fs.readdir(CONFIG.logDir);
+
+  return files.find(
+    (name) => name.startsWith(datePrefix) && name.includes(CONFIG.fileSuffix),
+  );
+}
+
+async function readCount(filePath: string): Promise<string> {
+  const buffer = await fs.readFile(filePath);
+  const text = iconv.decode(buffer, CONFIG.encoding);
+  const match = text.match(/READ=([^\s\r\n,]+)/);
+
+  if (!match?.[1]) {
+    throw new Error(`キーワード '${CONFIG.keyword}' がログ内に見つかりません`);
+  }
+
+  const rawCount = match[1];
+  const count = Number.parseInt(rawCount, 10);
+
+  return Number.isNaN(count) ? `${rawCount}件` : `${count.toLocaleString()}件`;
+}
 
 export async function runJob114(): Promise<string> {
   const now = new Date();
-  const yymmdd = format(now, "yyMMdd");
-  const todayFormatted = format(now, "yyyy/MM/dd");
-  const outputLines: string[] = [];
-  const addLine = (message: string = "") => outputLines.push(message);
+  const logger = new JobLogger();
 
-  addLine(`==================================================`);
-  addLine(` [Job114] 自動発注6時00分件数確認 (日付: ${todayFormatted})`);
-  addLine(`==================================================`);
-  addLine(`▶ 監視フォルダ: ${LOG_DIR}`);
+  logger.log(`ファイルパス : ${CONFIG.logDir}`);
 
-  if (!(await fs.pathExists(LOG_DIR))) {
-    throw new Error(`対象ディレクトリが存在しません: ${LOG_DIR}`);
+  if (!(await fs.pathExists(CONFIG.logDir))) {
+    throw logger.fail(`ディレクトリが存在しません: ${CONFIG.logDir}`);
   }
 
-  const files = await fs.readdir(LOG_DIR);
-  const targetFile = files.find(
-    (name) => name.startsWith(yymmdd) && name.includes("ORJH0010.log"),
-  );
+  const targetFile = await findLogFile();
 
   if (!targetFile) {
-    addLine(
-      `❌ 本日の対象ログファイルが見つかりません (接頭辞: ${yymmdd}*_ORJH0010.log)`,
+    logger.log(
+      `対象ファイルなし (${format(now, "yyMMdd")}*_${CONFIG.fileSuffix})`,
     );
-    addLine(`--------------------------------------------------`);
-    throw new Error(
-      `本日の対象ファイルなし (${yymmdd})\n\n${outputLines.join("\n")}`,
+    throw logger.fail(
+      `ログファイルが見つかりません (${format(now, "yyMMdd")})`,
     );
   }
 
-  const filePath = path.join(LOG_DIR, targetFile);
+  const filePath = path.join(CONFIG.logDir, targetFile);
   const stat = await fs.stat(filePath);
-  const formattedDate = format(stat.mtime, "yyyy/MM/dd HH:mm:ss");
 
-  addLine(`▶ 対象ファイル: ${targetFile}`);
-  addLine(`   └ 更新日時: ${formattedDate}`);
-  addLine();
+  logger.log(`検出ファイル : ${targetFile}`);
+  logger.log(
+    `ファイル更新日時 : ${format(stat.mtime, "yyyy/MM/dd HH:mm:ss")}\n`,
+  );
 
-  const buffer = await fs.readFile(filePath);
-  const logText = iconv.decode(buffer, "Shift_JIS");
+  try {
+    const countText = await readCount(filePath);
+    logger.log(`READ件数 : ${countText}`);
+    return logger.complete(countText);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
 
-  const match = logText.match(/READ=([^\s\r\n,]+)/);
-  if (match?.[1]) {
-    const parsed = parseInt(match[1], 10);
-    const countText = Number.isNaN(parsed)
-      ? `${match[1]}件`
-      : `${parsed.toLocaleString()}件`;
-
-    addLine(`▶ 抽出結果: ${REQUIRED_KEYWORD}${match[1]} -> ${countText}`);
-    addLine(`--------------------------------------------------`);
-    addLine(` [Job114] 正常終了 (取得件数: ${countText})`);
-    addLine(`==================================================`);
-
-    return outputLines.join("\n");
+    logger.log(`必須キーワード "${CONFIG.keyword}" なし`);
+    throw logger.fail(message);
   }
-
-  addLine(
-    `❌ ログ解析エラー: キーワード "${REQUIRED_KEYWORD}" が見つかりません`,
-  );
-  addLine(`--------------------------------------------------`);
-  throw new Error(
-    `エラー (${targetFile}): '${REQUIRED_KEYWORD}' が見つかりません\n\n${outputLines.join("\n")}`,
-  );
 }

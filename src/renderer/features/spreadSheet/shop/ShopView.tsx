@@ -45,7 +45,7 @@ export const SHOP_COLUMNS: readonly Column<Shop>[] = [
 ] as const;
 
 // --- コンポーネント本体 ---
-export const ShopView = memo(() => {
+const ShopView = memo(() => {
   const { isAuthenticated, data, openGlobalModal } =
     useSpreadSheetDomainLogic<Shop>(SHEETS.STORE.sheetName);
 

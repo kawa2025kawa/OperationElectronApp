@@ -1,15 +1,22 @@
-﻿// electron/features/operation/jobs/scripts/job_39.ts
-import { execFile } from "node:child_process";
-import path from "node:path";
-import { promisify } from "node:util";
+﻿// electron/features/operation/jobs/scripts/numeric/job_39.ts
+
 import { format, isSameDay } from "date-fns";
-import fs from "fs-extra";
+import path from "node:path";
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
 
-const execFileAsync = promisify(execFile);
+import {
+  findFiles,
+  getFileInfo,
+} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
 
-const BEFORE_NOON_DIR = "\\\\172.25.101.51\\if\\MASTER\\RCV";
-const AFTER_NOON_DIR = "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV";
-const TARGET_FILES = ["Okurikomi_toMD.dat", "htsf0060"] as const;
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+
+const CONFIG = {
+  beforeNoonDir: "\\\\172.25.101.51\\if\\MASTER\\RCV",
+  afterNoonDir: "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV",
+  targetFiles: ["Okurikomi_toMD.dat", "htsf0060"] as const,
+} as const;
 
 interface FileCheckDetail {
   targetName: string;
@@ -18,91 +25,80 @@ interface FileCheckDetail {
   error?: string;
 }
 
-async function hasFileWithPattern(
-  dirPath: string,
-  prefix: string,
-  dateStr: string,
-): Promise<{ exists: boolean; matchedName?: string }> {
-  try {
-    const { stdout } = await execFileAsync("cmd.exe", [
-      "/c",
-      "dir",
-      "/b",
-      path.join(dirPath, `${prefix}_${dateStr}*`),
-    ]);
-    const matchedName = stdout.trim().split(/\r?\n/)[0];
-    return { exists: !!matchedName, matchedName };
-  } catch {
-    return { exists: false };
-  }
-}
-
 async function checkBeforeNoonFile(
   targetName: string,
   now: Date,
 ): Promise<FileCheckDetail> {
-  const filePath = path.join(BEFORE_NOON_DIR, targetName);
+  const filePath = path.join(CONFIG.beforeNoonDir, targetName);
+
   try {
-    const stats = await fs.stat(filePath);
-    if (!isSameDay(stats.mtime, now)) {
+    const info = await getFileInfo(filePath);
+
+    if (!isSameDay(info.mtime, now)) {
       return {
         targetName,
-        mtime: stats.mtime,
-        error: "更新日時が本日ではありません",
+        mtime: info.mtime,
+        error: "更新日が本日ではありません",
       };
     }
-    return { targetName, foundName: targetName, mtime: stats.mtime };
+
+    return {
+      targetName,
+      foundName: targetName,
+      mtime: info.mtime,
+    };
   } catch {
-    return { targetName, error: "未存在" };
+    return {
+      targetName,
+      error: "ファイルが存在しません",
+    };
   }
 }
 
 async function checkAfterNoonFile(
   targetName: string,
-  todayStr: string,
+  today: string,
 ): Promise<FileCheckDetail> {
-  const { exists, matchedName } = await hasFileWithPattern(
-    AFTER_NOON_DIR,
-    targetName,
-    todayStr,
-  );
+  const matchedFiles = await findFiles(CONFIG.afterNoonDir, {
+    prefix: `${targetName}_${today}`,
+  });
 
-  if (!exists) {
-    return { targetName, error: `${targetName}_${todayStr}* (未存在)` };
+  if (matchedFiles.length === 0) {
+    return {
+      targetName,
+      error: `${targetName}_${today}* (ファイルなし)`,
+    };
   }
 
-  const filePath = path.join(AFTER_NOON_DIR, matchedName!);
-  const stats = await fs.stat(filePath);
+  const fileInfo = await getFileInfo(matchedFiles[0]);
 
   return {
     targetName,
-    foundName: matchedName,
-    mtime: stats.mtime,
+    foundName: fileInfo.fileName,
+    mtime: fileInfo.mtime,
   };
 }
 
 export async function runJob39(): Promise<string> {
   const now = new Date();
   const isBeforeNoon = now.getHours() < 12;
-  const todayStr = format(now, "yyyyMMdd");
-  const targetDir = isBeforeNoon ? BEFORE_NOON_DIR : AFTER_NOON_DIR;
+  const today = getDateKey(now);
+  const targetDir = isBeforeNoon ? CONFIG.beforeNoonDir : CONFIG.afterNoonDir;
   const timePeriodText = isBeforeNoon ? "午前 (12時前)" : "午後 (12時以降)";
+  const logger = new JobLogger();
 
-  const outputLines: string[] = [];
-  const addLine = (message: string = "") => outputLines.push(message);
+  logger.log(`時間帯判定       : ${timePeriodText}`);
+  logger.log(`対象ディレクトリ : ${targetDir}`);
 
-  addLine(`==================================================`);
-  addLine(` [Job39] 送込・マスターファイル存在チェック (日付: ${todayStr})`);
-  addLine(`==================================================`);
-  addLine(`▶ 判定区分: ${timePeriodText}`);
-  addLine(`▶ 監視フォルダ: ${targetDir}`);
-  addLine();
+  if (!(await directoryExists(targetDir))) {
+    throw logger.fail(`ディレクトリが存在しません: ${targetDir}`);
+  }
 
   const results = await Promise.all(
-    TARGET_FILES.map((name) =>
+    CONFIG.targetFiles.map((name) =>
       isBeforeNoon
         ? checkBeforeNoonFile(name, now)
-        : checkAfterNoonFile(name, todayStr),
+        : checkAfterNoonFile(name, today),
     ),
   );
 
@@ -111,24 +107,21 @@ export async function runJob39(): Promise<string> {
   for (const item of results) {
     if (item.error) {
       errors.push(`${item.targetName} (${item.error})`);
-      addLine(`❌ [${item.targetName}] 不備検出: ${item.error}`);
-    } else {
-      const dateText = item.mtime
-        ? format(item.mtime, "yyyy/MM/dd HH:mm:ss")
-        : "-";
-      addLine(`▶ [${item.targetName}] 検出: ${item.foundName}`);
-      addLine(`   └ 更新日時: ${dateText}`);
+      logger.log(`  [${item.targetName}] エラー : ${item.error}`);
+      continue;
     }
-  }
 
-  addLine(`--------------------------------------------------`);
+    const dateText = item.mtime
+      ? format(item.mtime, "yyyy/MM/dd HH:mm:ss")
+      : "-";
+
+    logger.log(`  [${item.targetName}] 検出 : ${item.foundName}`);
+    logger.log(`    更新日時 : ${dateText}`);
+  }
 
   if (errors.length > 0) {
-    throw new Error(`NG: ${errors.join(", ")}\n\n${outputLines.join("\n")}`);
+    throw logger.fail(`NG: ${errors.join(", ")}`);
   }
 
-  addLine(` [Job39] 正常終了 (全対象ファイル確認完了)`);
-  addLine(`==================================================`);
-
-  return outputLines.join("\n");
+  return logger.complete("全対象ファイル確認済");
 }

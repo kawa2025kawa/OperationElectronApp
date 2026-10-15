@@ -12,7 +12,7 @@ import {
  * Basic Selectors
  * ========================= */
 
-export const selectCurrentMode = (state: AppState) => state.currentMode;
+const selectCurrentMode = (state: AppState) => state.currentMode;
 
 /* =========================
  * Search Filtering

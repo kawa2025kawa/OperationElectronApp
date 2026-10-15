@@ -1,105 +1,87 @@
-﻿// electron/features/operation/jobs/scripts/job_20.ts
-import path from "node:path";
-import { format, subDays } from "date-fns";
-import fs from "fs-extra";
+﻿// electron/features/operation/jobs/scripts/numeric/job_20.ts
 
-const MAX_DIFF_KB = 10000.0;
-const TARGET_DIR = "\\\\172.25.101.51\\if\\AUTOORD\\RCV\\SV";
+import { format } from "date-fns";
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
 
-interface TargetFileInfo {
-  fileName: string;
-  sizeKb: number;
-  mtime: Date;
-}
+import {
+  findFiles,
+  getFileInfo,
+} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
 
-async function getTargetFileInfo(
-  dir: string,
-  dateKey: string,
-): Promise<TargetFileInfo> {
-  const files = await fs.readdir(dir);
-  const targetFile = files.find(
-    (file) => file.includes("JIDOHAT") && file.includes(dateKey),
-  );
+import {
+  getDateKey,
+  getDateKeyOffset,
+} from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
-  if (!targetFile) {
-    throw new Error(`対象ファイルが見つかりません (日付キー: ${dateKey})`);
-  }
-
-  const filePath = path.join(dir, targetFile);
-  const stats = await fs.stat(filePath);
-
-  return {
-    fileName: targetFile,
-    sizeKb: stats.size / 1024.0,
-    mtime: stats.mtime,
-  };
-}
+const CONFIG = {
+  targetDir: "\\\\172.25.101.51\\if\\AUTOORD\\RCV\\SV",
+  targetFileKeyword: "JIDOHAT",
+  maxDiffKb: 10000,
+} as const;
 
 export async function runJob20(): Promise<string> {
   const now = new Date();
-  const today = format(now, "yyMMdd");
-  const lastWeek = format(subDays(now, 7), "yyMMdd");
-  const outputLines: string[] = [];
+  const today = getDateKey(now, "yyMMdd");
+  const lastWeek = getDateKeyOffset(7, now, "yyMMdd");
+  const logger = new JobLogger();
 
-  const addLine = (message = "") => {
-    outputLines.push(message);
-  };
+  logger.log(`対象ディレクトリ : ${CONFIG.targetDir}`);
 
-  addLine();
-
-  if (!(await fs.pathExists(TARGET_DIR))) {
-    throw new Error(`ディレクトリが存在しません: ${TARGET_DIR}`);
+  if (!(await directoryExists(CONFIG.targetDir))) {
+    throw logger.fail(`対象ディレクトリが存在しません: ${CONFIG.targetDir}`);
   }
 
-  let todayFile: TargetFileInfo;
-  let lastWeekFile: TargetFileInfo;
-
   try {
-    // 本日分ファイル取得
-    todayFile = await getTargetFileInfo(TARGET_DIR, today);
+    const todayFiles = await findFiles(CONFIG.targetDir, {
+      includes: [CONFIG.targetFileKeyword, today],
+    });
 
-    addLine(`・本日 (${today}) の対象ファイル:`);
-    addLine(`  └ ${todayFile.fileName}`);
-    addLine(`・サイズ:`);
-    addLine(`  └ ${todayFile.sizeKb.toFixed(2)} KB`);
-    addLine(`・更新日時:`);
-    addLine(`  └ ${format(todayFile.mtime, "yyyy/MM/dd HH:mm:ss")}`);
-    addLine();
+    if (todayFiles.length === 0) {
+      throw new Error(`対象ファイルが見つかりません (日付キー: ${today})`);
+    }
 
-    // 先週同日分ファイル取得
-    lastWeekFile = await getTargetFileInfo(TARGET_DIR, lastWeek);
+    const todayFile = await getFileInfo(todayFiles[0]);
 
-    addLine(`・先週 (${lastWeek}) の対象ファイル:`);
-    addLine(`  └ ${lastWeekFile.fileName}`);
-    addLine(`・サイズ:`);
-    addLine(`  └ ${lastWeekFile.sizeKb.toFixed(2)} KB`);
-    addLine(`・更新日時:`);
-    addLine(`  └ ${format(lastWeekFile.mtime, "yyyy/MM/dd HH:mm:ss")}`);
-    addLine();
+    logger.log(`本日分 (${today}) ファイル : ${todayFile.fileName}`);
+    logger.log(`サイズ : ${todayFile.sizeKb.toFixed(2)} KB`);
+    logger.log(`更新日時 : ${format(todayFile.mtime, "yyyy/MM/dd HH:mm:ss")}`);
+
+    const lastWeekFiles = await findFiles(CONFIG.targetDir, {
+      includes: [CONFIG.targetFileKeyword, lastWeek],
+    });
+
+    if (lastWeekFiles.length === 0) {
+      throw new Error(`対象ファイルが見つかりません (日付キー: ${lastWeek})`);
+    }
+
+    const lastWeekFile = await getFileInfo(lastWeekFiles[0]);
+
+    logger.log(`先週分 (${lastWeek}) ファイル : ${lastWeekFile.fileName}`);
+    logger.log(`サイズ : ${lastWeekFile.sizeKb.toFixed(2)} KB`);
+    logger.log(
+      `更新日時 : ${format(lastWeekFile.mtime, "yyyy/MM/dd HH:mm:ss")}`,
+    );
+
+    const diffKb = Math.abs(todayFile.sizeKb - lastWeekFile.sizeKb);
+    const formattedDiff = diffKb.toFixed(2);
+    const formattedLimit = CONFIG.maxDiffKb.toFixed(0);
+
+    logger.log(`サイズ差分 : ${formattedDiff} KB`);
+    logger.log(`許容閾値 : ${formattedLimit} KB`);
+
+    if (diffKb > CONFIG.maxDiffKb) {
+      throw new Error(
+        `ファイルサイズの差分が閾値を超えています (差分: ${formattedDiff} KB, 許容値: ${formattedLimit} KB)`,
+      );
+    }
+
+    logger.log("判定結果 : 正常 (閾値内)");
+
+    return logger.complete(`差分 ${formattedDiff} KB (閾値内)`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    throw new Error(`${errorMessage}\n\n${outputLines.join("\n")}`);
+    throw logger.fail(errorMessage);
   }
-
-  // 差分計算
-  const diffKb = Math.abs(todayFile.sizeKb - lastWeekFile.sizeKb);
-
-  addLine(`・サイズ差異:`);
-  addLine(`  └ ${diffKb.toFixed(2)} KB`);
-  addLine(`・許容閾値:`);
-  addLine(`  └ ${MAX_DIFF_KB.toFixed(0)} KB`);
-  addLine();
-
-  if (diffKb > MAX_DIFF_KB) {
-    throw new Error(
-      `許容値超過: ${diffKb.toFixed(2)} KB 差分が発生しています (閾値: ${MAX_DIFF_KB.toFixed(0)} KB)\n\n${outputLines.join("\n")}`,
-    );
-  }
-
-  addLine(`▶ 判定結果:`);
-  addLine(`  └ OK（許容範囲内）`);
-  addLine();
-
-  return outputLines.join("\n");
 }

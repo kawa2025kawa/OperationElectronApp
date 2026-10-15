@@ -8,9 +8,9 @@ export interface EmailTemplateOption {
 }
 
 export const EMAIL_TEMPLATE_OPTIONS = [
-  { key: "E8", label: "棚割データ" },
-  { key: "E9", label: "POPデータ" },
-  { key: "E10", label: "実績データ" },
+  { key: "E8", label: "シェルフラベル発注" },
+  { key: "E9", label: "各種ポップラベル発注" },
+  { key: "E10", label: "TV売上集計&メール" },
 ] as const satisfies readonly EmailTemplateOption[];
 
 export interface GmailDraftFormValues {

@@ -155,19 +155,34 @@ export function normalizeItem(
 
 /**
  * Tracker のステータス配列からアプリ内部のステータスを解決する。
- * 配列の先頭のステータスのみを参照する。
+ *
+ * error / failed が含まれる場合は、他のステータスより優先して
+ * JOB_STATUS.ERROR として扱う。
+ * それ以外の場合は、配列の先頭のステータスを参照する。
  */
 function resolveStatus(statuses: string[]): JobStatus | undefined {
-  const firstStatus = statuses[0];
-
-  if (!firstStatus) {
+  if (statuses.length === 0) {
     return undefined;
   }
 
-  const key = firstStatus
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_-]/g, "");
+  const normalizedStatuses = statuses.map((status) =>
+    status
+      .trim()
+      .toLowerCase()
+      .replace(/[\s_-]/g, ""),
+  );
 
-  return STATUS_ALIAS_MAP[key];
+  // エラーが含まれている場合は、エラーを優先する
+  if (
+    normalizedStatuses.some(
+      (status) => STATUS_ALIAS_MAP[status] === JOB_STATUS.ERROR,
+    )
+  ) {
+    return JOB_STATUS.ERROR;
+  }
+
+  // エラーがなければ、従来どおり先頭のステータスを使用する
+  const firstStatus = normalizedStatuses[0];
+
+  return firstStatus ? STATUS_ALIAS_MAP[firstStatus] : undefined;
 }

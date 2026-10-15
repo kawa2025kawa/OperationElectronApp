@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { toast } from "sonner";
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { LinkConfig } from "@shared/types/operation/operationTypes";
 
 export function useLinkModalContent(link?: LinkConfig[] | null) {
@@ -11,7 +11,9 @@ export function useLinkModalContent(link?: LinkConfig[] | null) {
     if (!url) return;
 
     try {
-      await trpc.system.openExternal.mutate({ urlOrPath: url });
+      await window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, {
+        urlOrPath: url,
+      });
     } catch (error) {
       console.error("[useLinkModalContent.handleOpenUrl] Failed:", error);
       toast.error("URLを開けませんでした");

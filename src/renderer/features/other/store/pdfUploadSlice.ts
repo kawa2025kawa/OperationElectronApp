@@ -2,7 +2,7 @@
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { AppState } from "@renderer/store";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
 
@@ -167,9 +167,12 @@ export const createPdfUploadSlice: StateCreator<
         "Tempomatic PDF",
         async () => {
           const filePaths = files.map((file) => file.path);
-          await trpc.tempomatic.uploadDocument.mutate({
-            filePaths,
-          });
+          await window.electronAPI.invoke(
+            IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT,
+            {
+              filePaths,
+            },
+          );
         },
       );
 

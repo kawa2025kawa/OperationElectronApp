@@ -20,18 +20,6 @@ const EMPTY_MASTERS = Object.freeze([]) as readonly never[];
 
 // Operation、Irregular、TodayIrregularはバックエンド側で扱う。
 
-export const selectShopMasters = (state: AppState): Shop[] =>
-  (state.sheetData[SHEETS.STORE.sheetName]?.data ??
-    EMPTY_MASTERS) as unknown as Shop[];
-
-export const selectJugyoinMasters = (state: AppState): Jugyoin[] =>
-  (state.sheetData[SHEETS.JUGYOIN.sheetName]?.data ??
-    EMPTY_MASTERS) as unknown as Jugyoin[];
-
-export const selectKokyuhyoMasters = (state: AppState): Kokyuhyo[] =>
-  (state.sheetData[SHEETS.KOKYUHYO.sheetName]?.data ??
-    EMPTY_MASTERS) as unknown as Kokyuhyo[];
-
 export const selectTantouMasters = (state: AppState): Tantou[] =>
   (state.sheetData[SHEETS.KOKYUHYO_TANTOU.sheetName]?.data ??
     EMPTY_MASTERS) as unknown as Tantou[];

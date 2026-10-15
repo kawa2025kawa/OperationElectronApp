@@ -1,71 +1,66 @@
-﻿// electron/features/operation/jobs/scripts/job_25.ts
-import path from "node:path";
-import { format } from "date-fns";
-import fs from "fs-extra";
+﻿// electron/features/operation/jobs/scripts/numeric/job_25.ts
 
-const TARGET_DIR = "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV";
-const KEYWORDS = ["htsf0060", "Okurikomi"] as const;
+import { format } from "date-fns";
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
+
+import {
+  findFiles,
+  getLatestFile,
+} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
+
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+
+const CONFIG = {
+  targetDir: "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV",
+  keywords: ["htsf0060", "Okurikomi"],
+} as const;
 
 export async function runJob25(): Promise<string> {
-  const now = new Date();
-  const today = format(now, "yyyyMMdd");
-  const outputLines: string[] = [];
+  const today = getDateKey(new Date());
+  const logger = new JobLogger();
 
-  const addLine = (message: string = "") => {
-    outputLines.push(message);
-  };
+  logger.log(`対象ディレクトリ : ${CONFIG.targetDir}`);
+  logger.log(`検索日付 : ${today}`);
 
-  addLine(`==================================================`);
-  addLine(` [Job25] マスター受信ファイル存在チェック (日付: ${today})`);
-  addLine(`==================================================`);
-
-  if (!(await fs.pathExists(TARGET_DIR))) {
-    throw new Error(`ディレクトリが存在しません: ${TARGET_DIR}`);
+  if (!(await directoryExists(CONFIG.targetDir))) {
+    throw logger.fail(`ディレクトリが存在しません: ${CONFIG.targetDir}`);
   }
 
-  const files = await fs.readdir(TARGET_DIR);
-  const todayFiles = files.filter((f) => f.includes(today));
+  const todayFiles = await findFiles(CONFIG.targetDir, {
+    dateKey: today,
+  });
 
   const missingKeywords: string[] = [];
 
-  for (const kw of KEYWORDS) {
-    const matchedFiles = todayFiles.filter((f) => f.includes(kw));
+  for (const keyword of CONFIG.keywords) {
+    const matchedFiles = await findFiles(CONFIG.targetDir, {
+      dateKey: today,
+      includes: [keyword],
+    });
 
     if (matchedFiles.length === 0) {
-      missingKeywords.push(kw);
-      addLine(`❌ [キーワード: ${kw}] 未存在 (日付: ${today})`);
+      missingKeywords.push(keyword);
+      logger.log(`対象なし [${keyword}]`);
       continue;
     }
 
-    // 最新のファイルを特定して更新日時を取得
-    const fileWithStats = await Promise.all(
-      matchedFiles.map(async (fileName) => {
-        const filePath = path.join(TARGET_DIR, fileName);
-        const stat = await fs.stat(filePath);
-        return { fileName, mtime: stat.mtime };
-      }),
-    );
+    const latest = await getLatestFile(matchedFiles);
 
-    // 更新日時の新しい順にソート
-    fileWithStats.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+    if (!latest) {
+      missingKeywords.push(keyword);
+      logger.log(`対象なし [${keyword}]`);
+      continue;
+    }
 
-    const latest = fileWithStats[0];
-    const formattedDate = format(latest.mtime, "yyyy/MM/dd HH:mm:ss");
-
-    addLine(`▶ [キーワード: ${kw}] 検出: ${latest.fileName}`);
-    addLine(`   └ 更新日時: ${formattedDate}`);
+    logger.log(`検出 [${keyword}] : ${latest.fileName}`);
   }
-
-  addLine(`--------------------------------------------------`);
 
   if (missingKeywords.length > 0) {
-    throw new Error(
-      `ファイル不足 (未検知キーワード: ${missingKeywords.join(", ")})\n\n${outputLines.join("\n")}`,
+    throw logger.fail(
+      `未受信ファイルあり (対象: ${missingKeywords.join(", ")})`,
     );
   }
 
-  addLine(` [Job25] 正常終了 (全対象ファイル検出完了)`);
-  addLine(`==================================================`);
-
-  return outputLines.join("\n");
+  return logger.complete("全ファイル受信確認");
 }

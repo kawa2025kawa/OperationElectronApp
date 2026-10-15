@@ -13,7 +13,7 @@ import { TantouModalContent } from "./modal/TantouModalContent";
 import * as styles from "./TantouView.css";
 
 // --- コンポーネント本体 ---
-export const TantouView = memo(() => {
+const TantouView = memo(() => {
   const { isAuthenticated, data, openGlobalModal } =
     useSpreadSheetDomainLogic<Tantou>(SHEETS.KOKYUHYO_TANTOU.sheetName);
 

@@ -1,62 +1,55 @@
-﻿// electron/services/operation/jobs/scripts/job_34.ts
+﻿// electron/features/operation/jobs/scripts/numeric/job_34.ts
+
 import { format } from "date-fns";
 import fs from "fs-extra";
 import iconv from "iconv-lite";
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
 
-const LOG_PATH = "\\\\192.88.1.220\\log\\SANSAN_TXT_LOAD.log";
+import { getFileInfo } from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
 
-// 「さんさん畑」直後のスペース表記揺れを回避するため後方キーワードで判定
-const COMPLETE_MESSAGE = "売上取り込み処理を終了しました";
+const CONFIG = {
+  logPath: "\\\\192.88.1.220\\log\\SANSAN_TXT_LOAD.log",
+  encoding: "Shift_JIS",
+  completeMessage: "売上取り込み処理を終了しました",
+} as const;
 
 export async function runJob34(): Promise<string> {
   const now = new Date();
   const today = format(now, "yyyy/MM/dd");
-  const outputLines: string[] = [];
+  const logger = new JobLogger();
 
-  const addLine = (message: string = "") => {
-    outputLines.push(message);
-  };
+  logger.log(`ファイル : ${CONFIG.logPath}`);
 
-  addLine(`==================================================`);
-  addLine(` [Job34] さんさん畑 売上取り込みログ確認 (日付: ${today})`);
-  addLine(`==================================================`);
-  addLine(`▶ 監視ログファイル: ${LOG_PATH}`);
-
-  if (!(await fs.pathExists(LOG_PATH))) {
-    throw new Error(`ログファイルが存在しません: ${LOG_PATH}`);
+  if (!(await directoryExists(CONFIG.logPath))) {
+    throw logger.fail(`ファイルが存在しません: ${CONFIG.logPath}`);
   }
 
-  // ログファイルの最終更新日時を取得
-  const stat = await fs.stat(LOG_PATH);
-  const formattedDate = format(stat.mtime, "yyyy/MM/dd HH:mm:ss");
-  addLine(`   └ ファイル更新日時: ${formattedDate}`);
-  addLine();
+  const fileInfo = await getFileInfo(CONFIG.logPath);
 
-  const buffer = await fs.readFile(LOG_PATH);
-  const text = iconv.decode(buffer, "Shift_JIS");
+  logger.log(
+    `ファイル更新日時     : ${format(fileInfo.mtime, "yyyy/MM/dd HH:mm:ss")}`,
+  );
+
+  const buffer = await fs.readFile(CONFIG.logPath);
+  const text = iconv.decode(buffer, CONFIG.encoding);
 
   const found = text
     .split(/\r?\n/)
     .reverse()
-    .find((line) => line.includes(today) && line.includes(COMPLETE_MESSAGE));
+    .find(
+      (line) => line.includes(today) && line.includes(CONFIG.completeMessage),
+    );
 
-  if (found) {
-    addLine(`▶ 検出ログメッセージ:`);
-    addLine(`   ${found.trim()}`);
-    addLine(`--------------------------------------------------`);
-    addLine(` [Job34] 正常終了 (終了ログ確認完了)`);
-    addLine(`==================================================`);
+  if (!found) {
+    logger.log(`本日の売上取り込み終了ログが見つかりません (${today})`);
+    logger.log(`検索キーワード : "${CONFIG.completeMessage}"`);
 
-    return outputLines.join("\n");
+    throw logger.fail("売上取り込み終了ログが見つかりません");
   }
 
-  addLine(
-    `❌ [検出失敗] 本日 (${today}) の売上取り込み終了ログが見つかりません。`,
-  );
-  addLine(`   └ 検索キーワード: "${COMPLETE_MESSAGE}"`);
-  addLine(`--------------------------------------------------`);
+  logger.log("検出ログ :");
+  logger.log(`   ${found.trim()}`);
 
-  throw new Error(
-    `本日の売上取り込み終了ログが見つかりません\n\n${outputLines.join("\n")}`,
-  );
+  return logger.complete();
 }

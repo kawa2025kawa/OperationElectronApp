@@ -2,7 +2,7 @@
 
 import type { StateCreator } from "zustand";
 
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { AppState } from "@renderer/store";
 
 import {
@@ -41,7 +41,9 @@ export const createStatusSummarySlice: StateCreator<
 
   fetchStatusSummary: async () => {
     try {
-      const summary = await trpc.operation.getStatusSummary.query();
+      const summary = await window.electronAPI.invoke(
+        IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY,
+      );
       set({ summary });
     } catch (error) {
       console.error("[StatusSummaryStore] fetchStatusSummary Error:", error);

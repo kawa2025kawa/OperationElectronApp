@@ -1,6 +1,6 @@
 ﻿// src/renderer/services/updateService.ts
 
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import { useAppStore } from "@renderer/store";
 import { showToast } from "@renderer/utils/toastUtils";
 
@@ -51,7 +51,9 @@ function isNewerVersion(
 
 async function check(): Promise<boolean> {
   try {
-    const updateInfo = await trpc.system.readUpdateInfo.query();
+    const updateInfo = await window.electronAPI.invoke(
+      IPC_CHANNELS.SYSTEM.READ_UPDATE_INFO,
+    );
 
     if (!updateInfo || !isNewerVersion(updateInfo.version, CURRENT_VERSION)) {
       setStatus("OK");
@@ -71,7 +73,7 @@ async function check(): Promise<boolean> {
       return true;
     }
 
-    await trpc.system.openExternal.mutate({
+    await window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, {
       urlOrPath: DEFAULT_UPDATE_EXE_PATH,
     });
 

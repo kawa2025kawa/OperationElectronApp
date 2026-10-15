@@ -3,9 +3,8 @@
 import { app, BrowserWindow, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createIPCHandler } from "electron-trpc/main";
-import { appRouter } from "./trpc/router";
 import { stopPolling } from "@electron/features/operation/application/operationScheduler";
+import { registerIpcHandlers } from "./ipc";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,12 +22,6 @@ function createWindow(): void {
       nodeIntegration: false,
       sandbox: false,
     },
-  });
-
-  // electron-trpc IPC ハンドラー登録[cite: 4]
-  createIPCHandler({
-    router: appRouter,
-    windows: [mainWindow],
   });
 
   void loadRenderer().catch((error) => {
@@ -63,6 +56,7 @@ async function loadRenderer(): Promise<void> {
 app
   .whenReady()
   .then(() => {
+    registerIpcHandlers();
     createWindow();
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {

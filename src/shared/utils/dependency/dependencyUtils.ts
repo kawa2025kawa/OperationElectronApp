@@ -200,6 +200,31 @@ function checkDependencies(
 }
 
 /**
+ * 不足している前提依存関係の管理番号を抽出してカンマ区切りの文字列を生成する
+ */
+export function formatMissingKanriNos(
+  missingDependencies: readonly MissingDependency[],
+): string {
+  return missingDependencies
+    .map(({ kanriNo }) => kanriNo)
+    .filter(Boolean)
+    .join(", ");
+}
+
+/**
+ * 依存関係未達時のステータスコメントを生成する
+ */
+export function formatDependencyWaitingComment(
+  missingDependencies: readonly MissingDependency[],
+): string {
+  const missingNos = formatMissingKanriNos(missingDependencies);
+  if (!missingNos) {
+    return "前提未完了";
+  }
+  return `前提未完了(No.${missingNos})`;
+}
+
+/**
  * dependsOn の文字列・配列を展開し、"ALL" 指定がある場合は
  * operationMasters および todayIrregularMasters から自分以外の全管理Noを抽出して自動展開する
  */
@@ -266,32 +291,4 @@ export function checkJobDependencies(
     statuses,
     activeFlags,
   );
-}
-
-export function validateJobDependencies(
-  kanriNo: string,
-  masters: DependencyMasters,
-  statuses: DependencyStatuses,
-  options: JobExecutionOptions = DEFAULT_JOB_EXECUTION_OPTIONS,
-  activeFlags?: ActiveFlags,
-): ValidationResult {
-  if (options.ignoreDependencies) {
-    return { ok: true };
-  }
-
-  const result = checkJobDependencies(kanriNo, masters, statuses, activeFlags);
-
-  if (result.ok) {
-    return { ok: true };
-  }
-
-  const message =
-    result.missingDependencies
-      .map(({ kanriNo: id, comment }) => `No.${id}: ${comment || "未完了"}`)
-      .join("\n") || "前提ジョブが完了していません";
-
-  return {
-    ok: false,
-    message,
-  };
 }

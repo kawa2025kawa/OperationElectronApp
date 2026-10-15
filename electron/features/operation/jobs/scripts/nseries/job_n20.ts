@@ -1,8 +1,8 @@
-﻿// electron/features/operation/jobs/scripts/job_n20.ts
-import fs from "fs-extra";
+﻿import fs from "fs-extra";
 import path from "node:path";
 import { Client } from "basic-ftp";
 import iconv from "iconv-lite";
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
 const DOWNLOAD_DIR =
   process.env.OPERATION_DOWNLOAD_DIR ??
@@ -28,13 +28,10 @@ async function inspectCsvFile(filePath: string): Promise<void> {
   const lines = iconv.decode(buffer, "Shift_JIS").split(/\r?\n/).slice(1);
 
   const errorDetails = lines.flatMap((line, index) => {
-    const trimmed = line.trim();
+    if (!line.trim()) return [];
 
-    if (!trimmed) {
-      return [];
-    }
-
-    const columns = trimmed
+    const columns = line
+      .trim()
       .split(",")
       .map((column) => column.trim().replace(/^"|"$/g, ""));
 
@@ -61,51 +58,79 @@ function validateFtpConfig(): void {
       "FTP認証情報が設定されていません。OPERATION_FTP_USER / OPERATION_FTP_PASSWORD を設定してください。",
     );
   }
+
+  if (!Number.isInteger(FTP_PORT) || FTP_PORT < 1 || FTP_PORT > 65535) {
+    throw new Error(`FTPポート番号が不正です: ${FTP_PORT}`);
+  }
 }
 
 export async function runJobN20(): Promise<string> {
-  validateFtpConfig();
-  await fs.ensureDir(DOWNLOAD_DIR);
-
-  const client = new Client();
-  const downloadedFiles: string[] = [];
+  const logger = new JobLogger();
 
   try {
-    await client.access({
-      host: FTP_HOST,
-      port: FTP_PORT,
-      user: FTP_USER,
-      password: FTP_PASSWORD,
-    });
+    validateFtpConfig();
+    await fs.ensureDir(DOWNLOAD_DIR);
 
-    await client.cd(FTP_DIRECTORY);
+    logger.log(`FTP接続先 : ${FTP_HOST}:${FTP_PORT}`);
+    logger.log(`FTPディレクトリ : ${FTP_DIRECTORY}`);
+    logger.log(`ダウンロード先 : ${DOWNLOAD_DIR}`);
 
-    const targets = (await client.list()).filter((item) => {
-      const name = item.name.toLowerCase();
+    const client = new Client();
+    const downloadedFiles: string[] = [];
 
-      return (
-        name.endsWith(".csv") &&
-        (item.name.includes("S330") || item.name.includes("S332"))
-      );
-    });
+    try {
+      await client.access({
+        host: FTP_HOST,
+        port: FTP_PORT,
+        user: FTP_USER!,
+        password: FTP_PASSWORD!,
+      });
 
-    for (const item of targets) {
-      const localPath = path.join(DOWNLOAD_DIR, item.name);
+      await client.cd(FTP_DIRECTORY);
 
-      await client.downloadTo(localPath, item.name);
-      downloadedFiles.push(localPath);
+      const targets = (await client.list()).filter((item) => {
+        const name = item.name.toLowerCase();
+
+        return (
+          name.endsWith(".csv") &&
+          (item.name.includes("S330") || item.name.includes("S332"))
+        );
+      });
+
+      logger.log(`ダウンロード対象 : ${targets.length}件`);
+
+      for (const item of targets) {
+        const localPath = path.join(DOWNLOAD_DIR, item.name);
+
+        await client.downloadTo(localPath, item.name);
+        downloadedFiles.push(localPath);
+
+        logger.log(`ダウンロード完了 : ${item.name}`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`FTP通信エラー: ${message}`);
+    } finally {
+      client.close();
     }
-  } finally {
-    client.close();
-  }
 
-  if (downloadedFiles.length === 0) {
-    return "対象のCSVファイルが存在しませんでした";
-  }
+    if (downloadedFiles.length === 0) {
+      logger.log("対象のCSVファイルが存在しませんでした");
+      return logger.complete("対象ファイルなし");
+    }
 
-  for (const filePath of downloadedFiles) {
-    await inspectCsvFile(filePath);
-  }
+    for (const filePath of downloadedFiles) {
+      logger.log(`CSV検証開始 : ${path.basename(filePath)}`);
 
-  return `完了 (${downloadedFiles.length}ファイル確認)`;
+      await inspectCsvFile(filePath);
+
+      logger.log(`CSV検証完了 : ${path.basename(filePath)}`);
+    }
+
+    return logger.complete(`${downloadedFiles.length}ファイル確認完了`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    throw logger.fail(errorMessage);
+  }
 }

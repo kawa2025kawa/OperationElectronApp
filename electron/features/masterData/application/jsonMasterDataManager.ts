@@ -97,7 +97,7 @@ export async function getJsonMasterData(): Promise<JsonMasterData> {
   return refreshJsonMasterData();
 }
 
-export async function refreshJsonMasterData(): Promise<JsonMasterData> {
+async function refreshJsonMasterData(): Promise<JsonMasterData> {
   if (clearPromise) {
     await clearPromise;
     return refreshJsonMasterData();

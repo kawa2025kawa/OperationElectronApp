@@ -1,6 +1,6 @@
 import { useCallback, useEffect, type ChangeEvent } from "react";
 import { useShallow } from "zustand/shallow";
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftTypes";
 import type {
   EmailTemplateKey,
@@ -71,10 +71,10 @@ export function useGmailModalLogic() {
 
       const key: EmailTemplateKey = option.key;
       try {
-        const draft = await trpc.gmail.generateDraftTemplate.query({
-          templateKey: key,
-          familyName: familyName ?? "",
-        });
+        const draft = (await window.electronAPI.invoke(
+          IPC_CHANNELS.GMAIL.GENERATE_DRAFT_TEMPLATE,
+          { templateKey: key, familyName: familyName ?? "" },
+        )) as GmailDraftFormValues;
         setGmailDraft({
           templateKey: key,
           formValues: draft,
@@ -113,7 +113,10 @@ export function useGmailModalLogic() {
     });
 
     try {
-      await trpc.gmail.createDraft.mutate(formValues);
+      await window.electronAPI.invoke(
+        IPC_CHANNELS.GMAIL.CREATE_DRAFT,
+        formValues,
+      );
       setGmailDraftMessage({
         text: "Gmailの下書きを正常に作成しました。",
         type: "success",

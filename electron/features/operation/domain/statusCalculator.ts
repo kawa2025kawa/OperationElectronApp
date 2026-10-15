@@ -1,4 +1,4 @@
-﻿// electron/features/operation/domain/status/statusCalculator.ts
+﻿// electron/features/operation/domain/statusCalculator.ts
 
 import {
   JOB_STATUS,
@@ -14,6 +14,7 @@ import type {
 
 import {
   checkJobDependencies,
+  formatDependencyWaitingComment,
   normalizeDependencies,
   type DependencyMasters,
   type DependencyStatuses,
@@ -30,7 +31,7 @@ interface StatusCalculationResult {
   comment: string;
 }
 
-export function calculateJobStatus(
+function calculateJobStatus(
   target: StatusCalculationTarget,
   masters: DependencyMasters,
   statuses: DependencyStatuses,
@@ -111,22 +112,8 @@ function createDependencyWaitingResult(
 ): StatusCalculationResult {
   return {
     status: JOB_STATUS.WAITING,
-    comment: createDependencyWaitingComment(missingDependencies),
+    comment: formatDependencyWaitingComment(missingDependencies),
   };
-}
-
-function createDependencyWaitingComment(
-  missingDependencies: readonly MissingDependency[],
-): string {
-  const missingKanriNos = missingDependencies
-    .map(({ kanriNo }) => kanriNo)
-    .filter(Boolean);
-
-  if (missingKanriNos.length === 0) {
-    return "前提未完了";
-  }
-
-  return `前提未完了(No.${missingKanriNos.join(", ")})`;
 }
 
 function isBeforeScheduledTime(

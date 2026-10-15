@@ -82,7 +82,7 @@ export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   },
 ] as const;
 
-export const JugyoinView = memo(() => {
+const JugyoinView = memo(() => {
   const { isAuthenticated, data, openGlobalModal } =
     useSpreadSheetDomainLogic<Jugyoin>(SHEETS.JUGYOIN.sheetName);
 

@@ -2,7 +2,7 @@
 
 import { toast } from "sonner";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { AppState } from "@renderer/store";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 import type { JobExecutionOptions } from "@shared/utils/dependency/dependencyUtils";
@@ -25,12 +25,15 @@ export async function executeScriptJob(
     cleanKanriNo,
     async (): Promise<JobResult> => {
       try {
-        return await trpc.operation.executeScript.mutate({
-          kanriNo: cleanKanriNo,
-          scriptKey: cleanScriptKey,
-          filePath,
-          ignoreDependencies: options?.ignoreDependencies,
-        });
+        return await window.electronAPI.invoke(
+          IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT,
+          {
+            kanriNo: cleanKanriNo,
+            scriptKey: cleanScriptKey,
+            filePath,
+            ignoreDependencies: options?.ignoreDependencies,
+          },
+        );
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (!options?.silent) {

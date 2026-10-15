@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { addDays, format, getDay } from "date-fns";
 import { ja } from "date-fns/locale/ja";
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
 
 const formatDateWithDay = (date: Date) => {
@@ -31,7 +31,9 @@ export function useKokyuhyoModalContent(data: Kokyuhyo) {
 
   const handleOpenSchedule = useCallback(() => {
     if (scheduleLink) {
-      void trpc.system.openExternal.mutate({ urlOrPath: scheduleLink });
+      void window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, {
+        urlOrPath: scheduleLink,
+      });
     }
   }, [scheduleLink]);
 

@@ -1,9 +1,8 @@
-﻿// electron/features/operation/jobs/scripts/job_e5.ts
-
-import fs from "fs-extra";
+﻿import fs from "fs-extra";
 import path from "node:path";
 import iconv from "iconv-lite";
 import { parseCsvLine } from "../helpers/shared/parseCsvLine";
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
 const INPUT_FILE_NAME = "TENF0140.csv";
 const OUTPUT_DIR = "\\\\C0088150\\nec\\ftp";
@@ -26,7 +25,6 @@ function resolveInputFilePath(inputFilePath?: string | string[]): string {
 
   const filePath = filePaths[0];
 
-  // CSV以外のファイルが渡された場合はエラーとして弾く
   if (path.extname(filePath).toLowerCase() !== ".csv") {
     throw new Error(
       `CSVファイル (.csv) のみ処理可能です。指定されたファイル: ${path.basename(filePath)}`,
@@ -45,6 +43,7 @@ function resolveInputFilePath(inputFilePath?: string | string[]): string {
 function normalizeCode(value: string, digits: number): string {
   const text = value.trim();
   const num = Number(text);
+
   return text && Number.isFinite(num)
     ? String(num).padStart(digits, "0")
     : text;
@@ -52,12 +51,18 @@ function normalizeCode(value: string, digits: number): string {
 
 function transformCsv(text: string): string[][] {
   const lines = text.split(/\r\n|\n|\r/).filter((line) => line.trim() !== "");
-  if (lines.length <= 1) throw new Error("CSVに有効なデータ行がありません。");
 
-  // ヘッダー除外後、11カラム以上の行のみを抽出・整形 (flatMapを活用)
+  if (lines.length <= 1) {
+    throw new Error("CSVに有効なデータ行がありません。");
+  }
+
   const shapedRows = lines.slice(1).flatMap((line) => {
     const cols = parseCsvLine(line);
-    if (cols.length < 11) return [];
+
+    if (cols.length < 11) {
+      return [];
+    }
+
     return [
       [
         normalizeCode(cols[2], 2),
@@ -71,38 +76,66 @@ function transformCsv(text: string): string[][] {
     ];
   });
 
-  if (shapedRows.length === 0)
+  if (shapedRows.length === 0) {
     throw new Error("CSVに処理可能なデータ行がありません。");
+  }
+
   return shapedRows;
 }
 
 export async function runJobE5(
   inputFilePath?: string | string[],
 ): Promise<string> {
-  const csvFilePath = resolveInputFilePath(inputFilePath);
+  const logger = new JobLogger();
 
-  const stat = await fs.stat(csvFilePath);
-  if (!stat.isFile())
-    throw new Error(
-      `処理対象のファイル (${INPUT_FILE_NAME}) がファイルではありません。`,
+  try {
+    const csvFilePath = resolveInputFilePath(inputFilePath);
+
+    logger.log(`入力ファイル : ${csvFilePath}`);
+
+    const stat = await fs.stat(csvFilePath);
+
+    if (!stat.isFile()) {
+      throw new Error(
+        `処理対象のファイル (${INPUT_FILE_NAME}) がファイルではありません。`,
+      );
+    }
+
+    if (stat.size === 0) {
+      throw new Error(
+        `処理対象のファイル (${INPUT_FILE_NAME}) が空 (0バイト) です。`,
+      );
+    }
+
+    const rawBuffer = await fs.readFile(csvFilePath);
+    const decodedText = iconv.decode(rawBuffer, ENCODING);
+    const shapedRows = transformCsv(decodedText);
+
+    logger.log(`変換件数 : ${shapedRows.length}件`);
+
+    const outputBuffer = iconv.encode(
+      `${shapedRows.map((row) => row.join(",")).join("\n")}\n`,
+      ENCODING,
     );
-  if (stat.size === 0)
-    throw new Error(
-      `処理対象のファイル (${INPUT_FILE_NAME}) が空 (0バイト) です。`,
-    );
 
-  const rawBuffer = await fs.readFile(csvFilePath);
-  const shapedRows = transformCsv(iconv.decode(rawBuffer, ENCODING));
-  const outputBuffer = iconv.encode(
-    shapedRows.map((row) => row.join(",")).join("\n") + "\n",
-    ENCODING,
-  );
+    await fs.ensureDir(OUTPUT_DIR);
 
-  await fs.ensureDir(OUTPUT_DIR);
-  await Promise.all([
-    fs.writeFile(path.join(OUTPUT_DIR, OUTPUT_FILE1), outputBuffer),
-    fs.writeFile(path.join(OUTPUT_DIR, OUTPUT_FILE2), outputBuffer),
-  ]);
+    const outputPath1 = path.join(OUTPUT_DIR, OUTPUT_FILE1);
+    const outputPath2 = path.join(OUTPUT_DIR, OUTPUT_FILE2);
 
-  return "JACOS端末で「140」を送信して下さい";
+    await Promise.all([
+      fs.writeFile(outputPath1, outputBuffer),
+      fs.writeFile(outputPath2, outputBuffer),
+    ]);
+
+    logger.log(`出力ファイル : ${outputPath1}`);
+    logger.log(`出力ファイル : ${outputPath2}`);
+    logger.complete("TENF0140変換完了");
+
+    return "JACOS端末で「140」を送信して下さい";
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    throw logger.fail(errorMessage);
+  }
 }

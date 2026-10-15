@@ -1,13 +1,7 @@
 ﻿// electron/preload.ts
 
 import { contextBridge, ipcRenderer, webUtils } from "electron";
-import { exposeElectronTRPC } from "electron-trpc/main";
-import type { IpcChannelMap } from "@shared/types/electron/ipc";
-
-// electron-trpc のブリッジを露出
-process.once("loaded", () => {
-  exposeElectronTRPC();
-});
+import type { IpcChannelMap } from "@shared/types/electron/ipcTypes";
 
 type IpcListener = (...args: unknown[]) => void;
 

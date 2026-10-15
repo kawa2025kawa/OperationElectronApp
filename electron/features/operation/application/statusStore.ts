@@ -8,7 +8,7 @@ import type { StatusTarget } from "./statusNotifier";
 /**
  * アプリケーションのインメモリ状態（ターゲット情報、ステータス、依存マスタ）を保持するストア
  */
-export class StatusStore {
+class StatusStore {
   public readonly targets = new Map<string, StatusTarget>();
   public readonly statuses = new Map<string, OperationStatusState>();
 

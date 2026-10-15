@@ -2,7 +2,7 @@
 
 import { toast } from "sonner";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { AppState } from "@renderer/store";
 
 export async function executeJcJob(
@@ -18,9 +18,12 @@ export async function executeJcJob(
     cleanKanriNo,
     async () => {
       try {
-        const result = await trpc.operation.fetchSingleStatus.mutate({
-          kanriNo: cleanKanriNo,
-        });
+        const result = await window.electronAPI.invoke(
+          IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS,
+          {
+            kanriNo: cleanKanriNo,
+          },
+        );
         if (!result) {
           throw new Error(`No.${cleanKanriNo} のステータス取得に失敗しました`);
         }

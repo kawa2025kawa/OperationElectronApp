@@ -3,7 +3,7 @@
 import { useMemo, useCallback } from "react";
 import type { Shop } from "@shared/types/spreadsheet/shop";
 import type { ModalAction } from "@shared/types/ui/modal";
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
 import {
   SHOP_MODAL_GROUPS,
@@ -36,7 +36,9 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     if (!normalizedPath) return;
 
     try {
-      await trpc.system.openExternal.mutate({ urlOrPath: normalizedPath });
+      await window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, {
+        urlOrPath: normalizedPath,
+      });
     } catch (error) {
       console.error(
         "[useShopModalContent] Failed to open external path:",
@@ -48,7 +50,9 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
 
   const handleOpenImage = useCallback((value: string | undefined) => {
     if (value && value !== "-") {
-      void trpc.system.openExternal.mutate({ urlOrPath: value });
+      void window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, {
+        urlOrPath: value,
+      });
     }
   }, []);
 

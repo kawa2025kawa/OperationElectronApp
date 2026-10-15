@@ -159,10 +159,6 @@ async function fetchTrackerData(
   }
 }
 
-export function hasJobId(target: OperationMaster): boolean {
-  return Boolean(getJobId(target));
-}
-
 async function findTrackerItem(
   jobId: string,
   scheduledTime: string | null | undefined,

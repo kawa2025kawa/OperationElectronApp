@@ -2,187 +2,125 @@
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { AppState } from "@renderer/store";
-
-import {
-  JOB_STATUS,
-  type OperationStatusState,
+import type { ViewMode } from "@renderer/registry/appRegistry";
+import type {
+  OperationStatusState,
+  OperationViewItem,
 } from "@shared/types/operation/operationTypes";
 
-/* =========================
- * Types
- * ========================= */
-
 type StatusMap = Record<string, OperationStatusState>;
-
 type OperationStatusUpdate = Pick<
   OperationStatusState,
   "kanriNo" | "status" | "comment"
 >;
 
-/* =========================
- * Status Helpers
- * ========================= */
-
-function mergeStatus(
-  current: OperationStatusState | undefined,
-  update: OperationStatusState,
-): OperationStatusState {
-  return {
-    ...current,
-    ...update,
-    kanriNo: update.kanriNo,
-    status: update.status ?? current?.status ?? JOB_STATUS.SCHEDULED,
-    comment: update.comment ?? current?.comment ?? "",
-  };
-}
-
-function isSameStatus(
-  current: OperationStatusState | undefined,
-  next: OperationStatusState,
-): boolean {
-  if (!current) {
-    return false;
-  }
-
-  return (
-    current.status === next.status &&
-    current.comment === next.comment &&
-    current.startTime === next.startTime &&
-    current.endTime === next.endTime &&
-    current.expectedStartTime === next.expectedStartTime &&
-    current.expectedEndTime === next.expectedEndTime &&
-    current.substatus === next.substatus &&
-    current.info === next.info
-  );
-}
-
-/* =========================
- * State Update (Single Map Unified)
- * ========================= */
-
-function applyStatusUpdates(
-  state: AppState,
-  updates: readonly OperationStatusState[],
-): Partial<AppState> {
-  if (updates.length === 0) {
-    return state;
-  }
-
-  let nextStatuses: StatusMap | null = null;
-
-  for (const update of updates) {
-    const kanriNo = update.kanriNo.trim();
-
-    if (!kanriNo) {
-      continue;
-    }
-
-    const currentMap = nextStatuses ?? state.operationStatuses;
-    const current = currentMap[kanriNo];
-    const next = mergeStatus(current, {
-      ...update,
-      kanriNo,
-    });
-
-    if (isSameStatus(current, next)) {
-      continue;
-    }
-
-    if (!nextStatuses) {
-      nextStatuses = { ...state.operationStatuses };
-    }
-
-    nextStatuses[kanriNo] = next;
-  }
-
-  if (!nextStatuses) {
-    return state;
-  }
-
-  // 単一の operationStatuses のみ更新
-  return {
-    operationStatuses: nextStatuses,
-  };
-}
-
-/* =========================
- * Public Slice Interface
- * ========================= */
-
 export interface OperationStatusSlice {
   operationStatuses: StatusMap;
-
-  applyOperationStatusUpdates(updates: OperationStatusState[]): void;
-  updateOperationStatus(update: OperationStatusUpdate): void;
-  resetAllOperationStatuses(): Promise<void>;
+  tableRows: OperationViewItem[];
+  isTableLoading: boolean;
+  fetchTableData: (mode: ViewMode) => Promise<void>;
+  applyOperationStatusUpdates: (updates: OperationStatusState[]) => void;
+  updateOperationStatus: (update: OperationStatusUpdate) => void;
+  resetAllOperationStatuses: () => Promise<void>;
 }
-
-/* =========================
- * Slice Creator
- * ========================= */
 
 export const createOperationStatusSlice: StateCreator<
   AppState,
-  [],
+  [["zustand/immer", never]],
   [],
   OperationStatusSlice
 > = (set, get) => ({
   operationStatuses: {},
+  tableRows: [],
+  isTableLoading: false,
 
-  /* =========================
-   * IPC Status Sync
-   * ========================= */
+  fetchTableData: async (mode: ViewMode) => {
+    try {
+      set((state) => {
+        state.isTableLoading = true;
+      });
+      const data = await window.electronAPI.invoke(
+        IPC_CHANNELS.OPERATION.GET_TABLE_DATA,
+        { mode },
+      );
+      set((state) => {
+        state.tableRows = data;
+      });
+    } catch (error) {
+      console.error("[OperationStore] Failed to fetch table data:", error);
+    } finally {
+      set((state) => {
+        state.isTableLoading = false;
+      });
+    }
+  },
 
   applyOperationStatusUpdates: (updates) => {
     if (updates.length === 0) return;
 
-    set((state) => applyStatusUpdates(state, updates));
+    set((state) => {
+      for (const update of updates) {
+        const kanriNo = update.kanriNo?.trim();
+        if (!kanriNo) continue;
+
+        // 1. ステータスマップの更新
+        const current = state.operationStatuses[kanriNo];
+        state.operationStatuses[kanriNo] = {
+          ...current,
+          ...update,
+          kanriNo,
+          comment: update.comment ?? current?.comment ?? "",
+        };
+
+        // 2. テーブル行が存在する場合は直接インプレース更新（全件再フェッチを回避）
+        const targetRow = state.tableRows.find(
+          (row) => row.kanriNo === kanriNo,
+        );
+        if (targetRow) {
+          if (update.status !== undefined) targetRow.status = update.status;
+          if (update.comment !== undefined) targetRow.comment = update.comment;
+          if (update.startTime !== undefined)
+            targetRow.startTime = update.startTime;
+          if (update.endTime !== undefined) targetRow.endTime = update.endTime;
+        }
+      }
+    });
+
     void get().fetchStatusSummary();
   },
 
-  /* =========================
-   * Manual Status Update
-   * ========================= */
-
   updateOperationStatus: (update) => {
     const kanriNo = update.kanriNo.trim();
-
     if (!kanriNo || !update.status) {
       return;
     }
-
-    void trpc.operation.updateJobStatus
-      .mutate({
+    void window.electronAPI
+      .invoke(IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS, {
         kanriNo,
         status: update.status,
         comment: update.comment ?? "",
       })
       .catch((error: unknown) => {
-        console.error("[Store] updateOperationStatus Error:", error);
+        console.error("[OperationStore] updateOperationStatus Error:", error);
       });
   },
 
-  /* =========================
-   * Reset
-   * ========================= */
-
   resetAllOperationStatuses: async () => {
     try {
-      const resetStatuses = await trpc.operation.resetStatuses.mutate();
+      const resetStatuses = await window.electronAPI.invoke(
+        IPC_CHANNELS.OPERATION.RESET_STATUSES,
+      );
       const updates = Object.values(resetStatuses);
-
       if (updates.length === 0) {
         await get().fetchStatusSummary();
       } else {
         get().applyOperationStatusUpdates(updates);
       }
-
       toast.success("ステータスを初期化しました");
     } catch (error) {
-      console.error("[Store] resetAllOperationStatuses Error:", error);
+      console.error("[OperationStore] resetAllOperationStatuses Error:", error);
       toast.error("ステータスの初期化に失敗しました");
       throw error;
     }

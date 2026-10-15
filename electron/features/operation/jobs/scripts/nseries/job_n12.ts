@@ -1,8 +1,7 @@
-﻿// electron/features/operation/jobs/scripts/nseries/job_n12.ts
-
-import path from "node:path";
+﻿import path from "node:path";
 import { format } from "date-fns";
 import fs from "fs-extra";
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
 const TARGET_DIR = "\\\\172.25.101.51\\if\\WMSSLIP\\RCV";
 
@@ -14,61 +13,66 @@ const KEYWORDS = [
 ] as const;
 
 export async function runJobN12(): Promise<string> {
-  const now = new Date();
-  const today = format(now, "yyyyMMdd");
-  const outputLines: string[] = [];
+  const logger = new JobLogger();
+  const today = format(new Date(), "yyyyMMdd");
 
-  const addLine = (message: string = "") => outputLines.push(message);
+  try {
+    logger.log(`処理日 : ${today}`);
+    logger.log(`監視ディレクトリ : ${TARGET_DIR}`);
 
-  addLine(`==================================================`);
-  addLine(` [JobN12] ファイル存在チェック開始 (日付: ${today})`);
-  addLine(`==================================================`);
-  addLine(`▶ 参照フォルダ: ${TARGET_DIR}`);
-  addLine();
-
-  if (!(await fs.pathExists(TARGET_DIR))) {
-    throw new Error(`ディレクトリが存在しません: ${TARGET_DIR}`);
-  }
-
-  const files = await fs.readdir(TARGET_DIR);
-  const missing: string[] = [];
-
-  for (const kw of KEYWORDS) {
-    const matchedFiles = files.filter((f) => f.includes(kw));
-
-    if (matchedFiles.length === 0) {
-      missing.push(kw);
-      addLine(`❌ [${kw}] 未存在`);
-      continue;
+    if (!(await fs.pathExists(TARGET_DIR))) {
+      throw new Error(`ディレクトリが存在しません: ${TARGET_DIR}`);
     }
 
-    const fileWithStats = await Promise.all(
-      matchedFiles.map(async (fileName) => {
-        const filePath = path.join(TARGET_DIR, fileName);
-        const stat = await fs.stat(filePath);
-        return { fileName, mtime: stat.mtime };
-      }),
-    );
+    const files = await fs.readdir(TARGET_DIR);
+    const missing: string[] = [];
 
-    fileWithStats.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+    for (const keyword of KEYWORDS) {
+      const matchedFiles = files.filter((fileName) =>
+        fileName.includes(keyword),
+      );
 
-    const latest = fileWithStats[0];
-    const formattedDate = format(latest.mtime, "yyyy/MM/dd HH:mm:ss");
+      if (matchedFiles.length === 0) {
+        missing.push(keyword);
+        logger.log(`[${keyword}] 未検出`);
+        continue;
+      }
 
-    addLine(`▶ [${kw}] 検出: ${latest.fileName}`);
-    addLine(`   └ 更新日時: ${formattedDate}`);
+      const fileWithStats = await Promise.all(
+        matchedFiles.map(async (fileName) => {
+          const filePath = path.join(TARGET_DIR, fileName);
+          const stat = await fs.stat(filePath);
+
+          return {
+            fileName,
+            mtime: stat.mtime,
+            isFile: stat.isFile(),
+          };
+        }),
+      );
+
+      const latest = fileWithStats
+        .filter((file) => file.isFile)
+        .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())[0];
+
+      if (!latest) {
+        missing.push(keyword);
+        logger.log(`[${keyword}] ファイル情報取得失敗`);
+        continue;
+      }
+
+      logger.log(`[${keyword}] 最新ファイル : ${latest.fileName}`);
+      logger.log(`更新日時 : ${format(latest.mtime, "yyyy/MM/dd HH:mm:ss")}`);
+    }
+
+    if (missing.length > 0) {
+      throw new Error(`未受信ファイルあり (対象: ${missing.join(", ")})`);
+    }
+
+    return logger.complete("全ファイル確認完了");
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    throw logger.fail(errorMessage);
   }
-
-  addLine(`--------------------------------------------------`);
-
-  if (missing.length > 0) {
-    throw new Error(
-      `ファイル不足 (欠損: ${missing.join(", ")})\n\n${outputLines.join("\n")}`,
-    );
-  }
-
-  addLine(` [JobN12] 正常終了 (全4ファイル確認完了)`);
-  addLine(`==================================================`);
-
-  return outputLines.join("\n");
 }

@@ -1,7 +1,7 @@
 // src/renderer/features/operation/store/centerSlice.ts
 
 import type { StateCreator } from "zustand";
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { AppState } from "@renderer/store";
 import type {
   ActiveFlags,
@@ -30,7 +30,7 @@ export const createCenterSlice: StateCreator<
 
     const { is1CActive, is2CActive, is3CActive } = get();
 
-    void trpc.operation.setActiveFlags.mutate({
+    void window.electronAPI.invoke(IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS, {
       is1CActive,
       is2CActive,
       is3CActive,

@@ -107,7 +107,7 @@ export async function getSpreadsheetMasterData(): Promise<SpreadsheetMasterData>
   return refreshSpreadsheetMasterData();
 }
 
-export async function refreshSpreadsheetMasterData(): Promise<SpreadsheetMasterData> {
+async function refreshSpreadsheetMasterData(): Promise<SpreadsheetMasterData> {
   if (clearPromise) {
     await clearPromise;
     return refreshSpreadsheetMasterData();
@@ -165,36 +165,4 @@ export async function getFilteredSheetData<T>(
       getValueByPath(item, key).toLocaleLowerCase().includes(normalizedTerm),
     ),
   ) as T[];
-}
-
-export async function clearSpreadsheetMasterDataCache(): Promise<void> {
-  if (clearPromise) {
-    return clearPromise;
-  }
-
-  cacheGeneration += 1;
-  const pendingRefresh = refreshPromise;
-
-  const currentClear = (async () => {
-    if (pendingRefresh) {
-      try {
-        await pendingRefresh;
-      } catch {
-        // 更新失敗後も削除を続行する。
-      }
-    }
-
-    clearSpreadsheetMasterMemoryCache();
-    await deleteSpreadsheetMasterDataCache();
-  })();
-
-  clearPromise = currentClear;
-
-  try {
-    await currentClear;
-  } finally {
-    if (clearPromise === currentClear) {
-      clearPromise = null;
-    }
-  }
 }

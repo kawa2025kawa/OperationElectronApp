@@ -10,7 +10,7 @@ import {
   ProcessingLoader,
 } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { MainView } from "@renderer/layout/MainView";
-import { trpc } from "@renderer/lib/trpc"; // ← 追加
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes"; // ← 追加
 
 export const App = () => {
   const { theme, showAppLoader, initializeApp } = useAppStore(

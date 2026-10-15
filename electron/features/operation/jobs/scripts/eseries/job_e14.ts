@@ -1,15 +1,19 @@
-﻿// electron/features/operation/jobs/scripts/job_e14.ts
+﻿// electron/features/operation/jobs/scripts/eseries/job_e14.ts
 
 import path from "node:path";
 import fs from "fs-extra";
 import * as ExcelJS from "exceljs";
-import { format, subMonths } from "date-fns";
+import { subMonths } from "date-fns";
 import type { JobResult } from "@shared/types/operation/operationTypes";
-import { compressFiles } from "../helpers/shared/zipHelper";
 
-// ============================================================
-// 1. 定数
-// ============================================================
+import { compressFiles, getFileInfo } from "../helpers/fileUtils";
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
+import {
+  formatDateTime,
+  getDateKey,
+} from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+
 const TANPIN_PREFIX = "ＴＶ売上";
 const BUMON_PREFIX = "05 部門別売上（イオン向け）";
 const TANPIN_OUTPUT_NAME = "ベルクTV単品売上";
@@ -23,21 +27,21 @@ const BUMON_DELETE_TOP_ROWS = 23;
 type E14FileType = "tanpin" | "bumon";
 
 interface E14Output {
-  fileType: E14FileType;
-  inputPath: string;
   outputPath: string;
 }
 
-// ============================================================
-// 2. Excel ヘルパー
-// ============================================================
-async function loadWorksheet(
-  filePath: string,
-): Promise<{ workbook: ExcelJS.Workbook; worksheet: ExcelJS.Worksheet }> {
+async function loadWorksheet(filePath: string): Promise<{
+  workbook: ExcelJS.Workbook;
+  worksheet: ExcelJS.Worksheet;
+}> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(filePath);
+
   const worksheet = workbook.worksheets[0];
-  if (!worksheet) throw new Error(`Excelシートが存在しません。\n${filePath}`);
+  if (!worksheet) {
+    throw new Error(`Excelシートが存在しません。\n${filePath}`);
+  }
+
   return { workbook, worksheet };
 }
 
@@ -49,9 +53,12 @@ async function saveWorkbook(
   await workbook.xlsx.writeFile(outputPath);
 }
 
-// ============================================================
-// 3. 各種 Excel 加工ロジック (processBumon / processTanpin)
-// ============================================================
+function getFileType(fileName: string): E14FileType | null {
+  if (fileName.startsWith(TANPIN_PREFIX)) return "tanpin";
+  if (fileName.startsWith(BUMON_PREFIX)) return "bumon";
+  return null;
+}
+
 async function processBumon(
   inputPath: string,
   outputPath: string,
@@ -67,42 +74,37 @@ async function processTanpin(
 ): Promise<void> {
   const { workbook, worksheet } = await loadWorksheet(inputPath);
 
-  // 行の削除 (26行目を削除後、1〜24行目を削除)
   worksheet.spliceRows(TANPIN_DELETE_ROW, 1);
   worksheet.spliceRows(1, TANPIN_DELETE_TOP_ROWS);
 
-  // A1:B1の結合解除
   const a1 = worksheet.getCell("A1");
   const b1 = worksheet.getCell("B1");
-  if (a1.master !== a1) worksheet.unMergeCells(a1.master.address);
-  else if (b1.master !== b1) worksheet.unMergeCells(b1.master.address);
 
-  b1.value = "商品名";
-  worksheet.getCell("C1").value = "JANコード";
+  if (a1.master !== a1) {
+    worksheet.unMergeCells(a1.master.address);
+  } else if (b1.master !== b1) {
+    worksheet.unMergeCells(b1.master.address);
+  }
 
   const { rowCount, columnCount } = worksheet;
-  const rows = Array.from({ length: rowCount }, (_, i) => i + 1);
 
-  // B列(商品名)・C列(JANコード)・D列以降を退避 (Array.from と map を活用)
-  const productNames = rows.map((r) => worksheet.getCell(r, 2).value);
-  const janCodes = rows.map((r) => worksheet.getCell(r, 3).value);
+  // 列削除前に、JANコード・商品名・その他の列の値を退避する。
+  const rows = Array.from({ length: rowCount }, (_, i) => i + 1);
+  const productNames = rows.map((row) => worksheet.getCell(row, 2).value);
+  const janCodes = rows.map((row) => worksheet.getCell(row, 3).value);
   const otherColumns = Array.from(
     { length: Math.max(0, columnCount - 3) },
-    (_, i) => {
-      const colIdx = i + 4;
-      return rows.map((r) => worksheet.getCell(r, colIdx).value);
-    },
+    (_, i) => rows.map((row) => worksheet.getCell(row, i + 4).value),
   );
 
-  // 元A列を削除
   worksheet.spliceColumns(1, 1);
 
-  // 再配置 (JANコード -> A列, 商品名 -> B列, その他 -> C列以降)
-  rows.forEach((r, idx) => {
-    worksheet.getCell(r, 1).value = janCodes[idx];
-    worksheet.getCell(r, 2).value = productNames[idx];
-    otherColumns.forEach((colValues, colIdx) => {
-      worksheet.getCell(r, colIdx + 3).value = colValues[idx];
+  rows.forEach((row, i) => {
+    worksheet.getCell(row, 1).value = janCodes[i];
+    worksheet.getCell(row, 2).value = productNames[i];
+
+    otherColumns.forEach((values, columnIndex) => {
+      worksheet.getCell(row, columnIndex + 3).value = values[i];
     });
   });
 
@@ -112,26 +114,23 @@ async function processTanpin(
   await saveWorkbook(workbook, outputPath);
 }
 
-// ============================================================
-// 4. 入力ファイル検証・実行ヘルパー
-// ============================================================
-const getFileType = (fileName: string): E14FileType | null =>
-  fileName.startsWith(TANPIN_PREFIX)
-    ? "tanpin"
-    : fileName.startsWith(BUMON_PREFIX)
-      ? "bumon"
-      : null;
-
 async function processInputFile(
   inputPath: string,
   outputFolderPath: string,
   targetMonth: string,
+  logger: JobLogger,
 ): Promise<E14Output | null> {
-  const stat = await fs.stat(inputPath);
-  if (!stat.isFile()) return null;
+  const fileInfo = await getFileInfo(inputPath);
+  const { fileName, mtime } = fileInfo;
+  const fileType = getFileType(fileName);
 
-  const fileType = getFileType(path.basename(inputPath));
-  if (!fileType) return null;
+  logger.log(`入力ファイル : ${fileName}`);
+  logger.log(`更新日時 : ${formatDateTime(mtime)}`);
+
+  if (!fileType) {
+    logger.log(`対象外ファイルのためスキップ : ${fileName}`);
+    return null;
+  }
 
   const isTanpin = fileType === "tanpin";
   const outputName = isTanpin ? TANPIN_OUTPUT_NAME : BUMON_OUTPUT_NAME;
@@ -140,61 +139,80 @@ async function processInputFile(
     `${targetMonth}${outputName}.xlsx`,
   );
 
+  logger.log(`ファイル種別 : ${isTanpin ? "単品売上" : "部門別売上"}`);
+  logger.log(`出力ファイル : ${outputPath}`);
+
   if (isTanpin) {
     await processTanpin(inputPath, outputPath);
   } else {
     await processBumon(inputPath, outputPath);
   }
 
-  return { fileType, inputPath, outputPath };
+  logger.log(`Excel加工完了 : ${path.basename(outputPath)}`);
+  return { outputPath };
 }
 
-// ============================================================
-// 5. メインジョブ関数 (runJobE14)
-// ============================================================
 export async function runJobE14(
   inputFilePath?: string | string[],
 ): Promise<JobResult> {
-  const inputPaths = inputFilePath
-    ? Array.isArray(inputFilePath)
-      ? inputFilePath
-      : [inputFilePath]
-    : [];
-  if (inputPaths.length === 0) {
-    throw new Error(
-      "入力ファイルが指定されていません。対象のファイルをドロップしてください。",
-    );
-  }
-
-  const targetMonth = format(subMonths(new Date(), 1), "yyyyMM");
-  const baseDir = path.dirname(inputPaths[0]);
-  const outputFolderPath = path.join(
-    baseDir,
-    `${targetMonth}${OUTPUT_FOLDER_SUFFIX}`,
-  );
-  const outputZipPath = `${outputFolderPath}.zip`;
-
-  if (await fs.pathExists(outputFolderPath)) {
-    throw new Error(
-      `既にフォルダが存在します。\n${outputFolderPath}\nフォルダを削除後、再度実施して下さい。`,
-    );
-  }
-  if (await fs.pathExists(outputZipPath)) {
-    throw new Error(
-      `既にZIPファイルが存在します。\n${outputZipPath}\nZIPファイルを削除後、再度実施して下さい。`,
-    );
-  }
-
-  await fs.ensureDir(outputFolderPath);
+  const logger = new JobLogger();
+  logger.log("ベルクTV売上ファイル加工処理を開始します");
 
   try {
-    // 並列処理と filter で有効な処理結果だけを抽出
-    const processedResults = await Promise.all(
-      inputPaths.map((p) => processInputFile(p, outputFolderPath, targetMonth)),
+    const inputPaths = inputFilePath
+      ? Array.isArray(inputFilePath)
+        ? inputFilePath
+        : [inputFilePath]
+      : [];
+
+    if (inputPaths.length === 0) {
+      throw new Error(
+        "入力ファイルが指定されていません。対象のファイルをドロップしてください。",
+      );
+    }
+
+    logger.log(`入力ファイル数 : ${inputPaths.length}件`);
+    inputPaths.forEach((filePath) => logger.log(`指定ファイル : ${filePath}`));
+
+    const targetMonth = getDateKey(subMonths(new Date(), 1), "yyyyMM");
+    const outputFolderPath = path.join(
+      path.dirname(inputPaths[0]),
+      `${targetMonth}${OUTPUT_FOLDER_SUFFIX}`,
     );
-    const outputs = processedResults.filter(
-      (item): item is E14Output => item !== null,
-    );
+    const outputZipPath = `${outputFolderPath}.zip`;
+
+    logger.log(`対象年月 : ${targetMonth}`);
+    logger.log(`出力フォルダ : ${outputFolderPath}`);
+    logger.log(`出力ZIP : ${outputZipPath}`);
+
+    if (await directoryExists(outputFolderPath)) {
+      throw new Error(
+        `既にフォルダが存在します。\n${outputFolderPath}\nフォルダを削除後、再度実施して下さい。`,
+      );
+    }
+
+    if (await directoryExists(outputZipPath)) {
+      throw new Error(
+        `既にZIPファイルが存在します。\n${outputZipPath}\nZIPファイルを削除後、再度実施して下さい。`,
+      );
+    }
+
+    await fs.ensureDir(outputFolderPath);
+    logger.log("出力フォルダを作成しました");
+
+    const outputs: E14Output[] = [];
+
+    // 出力先が同じファイルの並列書き込みを避けるため、順次処理する。
+    for (const inputPath of inputPaths) {
+      const output = await processInputFile(
+        inputPath,
+        outputFolderPath,
+        targetMonth,
+        logger,
+      );
+
+      if (output) outputs.push(output);
+    }
 
     if (outputs.length === 0) {
       throw new Error(
@@ -202,15 +220,30 @@ export async function runJobE14(
       );
     }
 
-    const zipSourceFiles = outputs.map((o) => o.outputPath);
-    await compressFiles(zipSourceFiles, outputZipPath);
+    logger.log(`加工完了ファイル数 : ${outputs.length}件`);
+    logger.log("加工済みファイルをZIP圧縮しています");
+
+    await compressFiles(
+      outputs.map(({ outputPath }) => outputPath),
+      outputZipPath,
+    );
+
+    logger.log(`ZIP作成完了 : ${outputZipPath}`);
+
     await fs.remove(outputFolderPath);
+    logger.log("一時出力フォルダを削除しました");
 
     return {
-      message: "正常終了",
-      artifacts: [{ name: path.basename(outputZipPath), path: outputZipPath }],
+      message: logger.complete("正常終了"),
+      artifacts: [
+        {
+          name: path.basename(outputZipPath),
+          path: outputZipPath,
+        },
+      ],
     };
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    const message = error instanceof Error ? error.message : String(error);
+    throw logger.fail(message);
   }
 }

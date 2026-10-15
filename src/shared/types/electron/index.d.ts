@@ -1,6 +1,6 @@
 // src\shared\types\electron\index.d.ts
 
-import type { IpcChannelMap } from "./ipc";
+import type { IpcChannelMap } from "./ipcTypes";
 
 export interface IElectronAPI {
   invoke<K extends keyof IpcChannelMap>(

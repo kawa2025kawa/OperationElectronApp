@@ -66,6 +66,7 @@ export type ScriptExecutionType = "manual" | "auto";
 export interface OperationScriptKey {
   key: string;
   executionType: ScriptExecutionType;
+  requiresFileSelection?: boolean;
 }
 
 /* =========================
@@ -134,9 +135,12 @@ export interface JobArtifact {
   size?: number;
 }
 
+export type JobResultKind = "success" | "difference" | "error";
+
 export interface JobResult {
   message: string;
   success?: boolean;
+  kind?: JobResultKind;
   data?: unknown;
   artifacts?: JobArtifact[];
 }
@@ -187,9 +191,16 @@ export interface OperationStatusState {
  * Operation View
  * ========================= */
 
-export type OperationViewItem =
+export type OperationViewItem = (
   | OperationMaster
   | IrregularMaster
-  | TodayIrregularMaster;
+  | TodayIrregularMaster
+) & {
+  isPdfUpload?: boolean;
+  status?: JobStatus;
+  comment?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+};
 
 export type SelectedOperationItem = OperationViewItem & OperationStatusState;

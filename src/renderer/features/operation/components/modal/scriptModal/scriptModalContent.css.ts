@@ -95,14 +95,6 @@ export const infoBoxVariants = styleVariants({
   ],
 });
 
-export const scriptSelectorWrapper = style({
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  justifyContent: "center",
-  flexShrink: 0,
-});
-
 /* =======================================
  * 下部：メインコンテナ (縦スクロールバー限定エリア)
  * ======================================= */

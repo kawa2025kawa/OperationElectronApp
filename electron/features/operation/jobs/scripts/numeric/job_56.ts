@@ -1,14 +1,25 @@
-﻿// electron/features/operation/jobs/scripts/job_56.ts
-import path from "node:path";
+﻿// electron/features/operation/jobs/scripts/numeric/job_56.ts
+
 import { format } from "date-fns";
 import fs from "fs-extra";
 import iconv from "iconv-lite";
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
 
-const TARGET_DIR = "\\\\172.25.101.51\\if\\WEB-SV\\RCV\\SV";
-const ENCODING = "Windows-31J";
-const MAX_BYTE_LENGTH = 256;
-const CHAR_A_BYTE = 0x41;
-const VALID_CHAR_REGEX = /^[AD0-9 ]+$/;
+import {
+  findFiles,
+  getFileInfo,
+} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
+
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+
+const CONFIG = {
+  targetDir: "\\\\172.25.101.51\\if\\WEB-SV\\RCV\\SV",
+  encoding: "Windows-31J",
+  maxByteLength: 256,
+  charAByte: 0x41,
+  validCharRegex: /^[AD0-9 ]+$/,
+} as const;
 
 function validateLine(
   line: string,
@@ -18,108 +29,105 @@ function validateLine(
   const errors: string[] = [];
   const trimmed = line.replace(/[\s\u00A0]+$/g, "");
 
-  if (trimmed.length > 0 && !VALID_CHAR_REGEX.test(trimmed)) {
+  if (trimmed.length > 0 && !CONFIG.validCharRegex.test(trimmed)) {
     errors.push(
-      `${fileName} (${lineNum}行目): 許可されていない文字が含まれています (半角 A, D, 0-9, 半角スペースのみ)`,
+      `${fileName} (${lineNum}行目): A, D, 0-9, 半角スペース以外の文字が含まれています`,
     );
   }
 
-  const lineBuf = iconv.encode(line, ENCODING);
-  if (lineBuf.length > MAX_BYTE_LENGTH) {
+  const lineBuf = iconv.encode(line, CONFIG.encoding);
+
+  if (lineBuf.length > CONFIG.maxByteLength) {
     errors.push(
-      `${fileName} (${lineNum}行目): 行長超過 (${lineBuf.length}バイト / 制限 256バイト)`,
+      `${fileName} (${lineNum}行目): レコード長超過 (${lineBuf.length}バイト / 最大256バイト)`,
     );
   }
 
-  if (lineBuf.length >= 3 && lineBuf.subarray(2).includes(CHAR_A_BYTE)) {
+  if (lineBuf.length >= 3 && lineBuf.subarray(2).includes(CONFIG.charAByte)) {
     errors.push(
-      `${fileName} (${lineNum}行目): 3バイト目以降に "A" が存在します`,
+      `${fileName} (${lineNum}行目): 3バイト目以降に "A" が含まれています`,
     );
   }
 
   return errors;
 }
 
-async function validateFile(
-  filePath: string,
-  fileName: string,
-): Promise<{ errors: string[]; lineCount: number; mtime: Date }> {
-  const stat = await fs.stat(filePath);
-  const rawBuf = await fs.readFile(filePath);
-  const lines = iconv.decode(rawBuf, ENCODING).split(/\r?\n/);
+async function validateFile(filePath: string): Promise<{
+  fileName: string;
+  errors: string[];
+  lineCount: number;
+  mtime: Date;
+}> {
+  const [fileInfo, rawBuf] = await Promise.all([
+    getFileInfo(filePath),
+    fs.readFile(filePath),
+  ]);
 
-  const errors = lines.flatMap((line, idx) => {
-    if (idx === lines.length - 1 && line.length === 0) return [];
-    return validateLine(line, fileName, idx + 1);
+  const lines = iconv.decode(rawBuf, CONFIG.encoding).split(/\r?\n/);
+
+  const errors = lines.flatMap((line, index) => {
+    if (index === lines.length - 1 && line.length === 0) {
+      return [];
+    }
+
+    return validateLine(line, fileInfo.fileName, index + 1);
   });
 
-  return { errors, lineCount: lines.length, mtime: stat.mtime };
+  return {
+    fileName: fileInfo.fileName,
+    errors,
+    lineCount: lines.length,
+    mtime: fileInfo.mtime,
+  };
 }
 
 export async function runJob56(): Promise<string> {
-  const today = format(new Date(), "yyyyMMdd");
+  const today = getDateKey(new Date());
   const filePrefix = `SEIKYUDT_${today}`;
-  const outputLines: string[] = [];
+  const logger = new JobLogger();
 
-  const addLine = (message: string = "") => outputLines.push(message);
+  logger.log(`監視ディレクトリ : ${CONFIG.targetDir}`);
+  logger.log(`検索対象プレフィックス : ${filePrefix}*`);
 
-  addLine(`==================================================`);
-  addLine(` [Job56] 請求データフォーマット検証 (日付: ${today})`);
-  addLine(`==================================================`);
-  addLine(`▶ 監視フォルダ: ${TARGET_DIR}`);
-  addLine(`▶ 対象接頭辞  : ${filePrefix}*`);
-  addLine();
-
-  if (!(await fs.pathExists(TARGET_DIR))) {
-    throw new Error(`対象フォルダが存在しません: ${TARGET_DIR}`);
+  if (!(await directoryExists(CONFIG.targetDir))) {
+    throw logger.fail(`ディレクトリが存在しません: ${CONFIG.targetDir}`);
   }
 
-  const entries = await fs.readdir(TARGET_DIR, { withFileTypes: true });
-  const targetFiles = entries.filter(
-    (e) => e.isFile() && e.name.startsWith(filePrefix),
-  );
+  const targetFiles = await findFiles(CONFIG.targetDir, {
+    prefix: filePrefix,
+  });
 
   if (targetFiles.length === 0) {
-    addLine(`▶ 対象ファイル (${filePrefix}*) は検出されませんでした。`);
-    addLine(`--------------------------------------------------`);
-    addLine(` [Job56] 処理対象なしで終了`);
-    addLine(`==================================================`);
-    return outputLines.join("\n");
+    logger.log(`対象ファイルなし (${filePrefix}*)`);
+    return logger.complete("対象ファイルなし");
   }
 
-  addLine(`▶ 対象ファイル検出: 計 ${targetFiles.length} 件`);
+  logger.log(`検出ファイル数 : ${targetFiles.length} 件`);
 
   const results = await Promise.all(
-    targetFiles.map(async (file) => {
-      const filePath = path.join(TARGET_DIR, file.name);
-      const res = await validateFile(filePath, file.name);
-      return { fileName: file.name, ...res };
-    }),
+    targetFiles.map((filePath) => validateFile(filePath)),
   );
 
   const allErrors: string[] = [];
 
   for (const item of results) {
-    const formattedDate = format(item.mtime, "yyyy/MM/dd HH:mm:ss");
-    addLine(`   ├ ${item.fileName} (${item.lineCount} 行)`);
-    addLine(`   └ 更新日時: ${formattedDate}`);
+    logger.log(`  ${item.fileName} (${item.lineCount} 行)`);
+    logger.log(`    更新日時 : ${format(item.mtime, "yyyy/MM/dd HH:mm:ss")}`);
 
     if (item.errors.length > 0) {
       allErrors.push(...item.errors);
-      item.errors.forEach((err) => addLine(`      ❌ ${err}`));
+
+      for (const error of item.errors) {
+        logger.log(`      [エラー] ${error}`);
+      }
     }
   }
 
-  addLine(`--------------------------------------------------`);
-
   if (allErrors.length > 0) {
-    throw new Error(
-      `検証エラー発覚 (${allErrors.length}件):\n${allErrors.join("\n")}\n\n${outputLines.join("\n")}`,
+    throw logger.fail(
+      `データ不正 (${allErrors.length} 件のエラー):\n${allErrors.join("\n")}`,
     );
   }
 
-  addLine(` [Job56] 全ファイル (${targetFiles.length}件) の検証完了 (正常)`);
-  addLine(`==================================================`);
-
-  return outputLines.join("\n");
+  return logger.complete(`対象 ${targetFiles.length} ファイル検証完了`);
 }

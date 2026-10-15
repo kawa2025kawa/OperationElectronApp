@@ -84,7 +84,7 @@ export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
 ] as const;
 
 // --- コンポーネント本体 ---
-export const KokyuhyoView = memo(() => {
+const KokyuhyoView = memo(() => {
   const { isAuthenticated, data, openGlobalModal } =
     useSpreadSheetDomainLogic<Kokyuhyo>(SHEETS.KOKYUHYO.sheetName);
 

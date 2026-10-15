@@ -17,14 +17,12 @@ import {
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
 import type { JsonMasterData } from "@shared/types/masterData/jsonMasterDataTypes";
-
 import {
   deleteStatusFile,
   loadStatusesFromFile,
   persistStatusesDebounced,
   persistStatusesImmediately,
 } from "@electron/features/operation/infrastructure/storage/statusStorage";
-
 import { DependencyPropagator } from "./dependencyPropagator";
 import {
   notifyReady,
@@ -50,18 +48,16 @@ export function getDependencyMasters() {
   return statusStore.dependencyMasters;
 }
 
-function recalculateTargetStatus(
+export function recalculateTargetStatus(
   kanriNo: string,
-  activeFlags: ActiveFlags,
+  activeFlags: ActiveFlags = getActiveFlags(),
 ): void {
   const target = statusStore.targets.get(kanriNo);
-
   if (!target) {
     return;
   }
 
   const current = statusStore.statuses.get(kanriNo);
-
   if (isProtectedStatus(current?.status)) {
     return;
   }
@@ -87,7 +83,6 @@ function applyStatus(
   { propagate = true }: ApplyStatusOptions = {},
 ): boolean {
   const kanriNo = normalizeKanriNo(update.kanriNo);
-
   if (!kanriNo) {
     return false;
   }
@@ -111,7 +106,6 @@ function applyStatus(
     previous?.status !== JOB_STATUS.READY
   ) {
     const target = statusStore.targets.get(kanriNo);
-
     if (target) {
       notifyReady(target);
     }
@@ -151,7 +145,6 @@ export function updateManualStatus(
   comment = "",
 ): boolean {
   const normalizedKanriNo = normalizeKanriNo(kanriNo);
-
   if (!normalizedKanriNo) {
     return false;
   }
@@ -179,45 +172,22 @@ export function registerTargets(
 
   for (const target of targetList) {
     const kanriNo = normalizeKanriNo(target.kanriNo);
-
     if (!kanriNo) {
       continue;
     }
-
     statusStore.targets.set(kanriNo, target);
+
+    if (!statusStore.statuses.has(kanriNo)) {
+      statusStore.statuses.set(kanriNo, createScheduledStatus(kanriNo));
+    }
   }
 
   propagator.rebuildDependencyIndex(statusStore.targets.values());
-
-  const masters = getDependencyMasters();
-  const dependencyStatuses = getDependencyStatuses();
-  const activeFlags = getActiveFlags();
-
-  for (const target of targetList) {
-    const kanriNo = normalizeKanriNo(target.kanriNo);
-
-    if (!kanriNo || statusStore.statuses.has(kanriNo)) {
-      continue;
-    }
-
-    applyStatus(
-      calculateOperationStatus(
-        target,
-        masters,
-        dependencyStatuses,
-        activeFlags,
-      ),
-      { propagate: false },
-    );
-  }
-
   propagator.enqueueAllRecalculableTargets(
     statusStore.statuses,
     statusStore.targets,
   );
-
-  processPropagation(activeFlags);
-
+  processPropagation(getActiveFlags());
   persistStatusesDebounced(statusStore.statuses);
 }
 
@@ -225,14 +195,11 @@ export async function initializeStatuses(): Promise<
   Record<string, OperationStatusState>
 > {
   const persistedStatuses = await loadStatusesFromFile();
-
   statusStore.statuses.clear();
 
   let recoveredRunningStatus = false;
-
   for (const [kanriNo, status] of Object.entries(persistedStatuses)) {
     const normalizedKanriNo = normalizeKanriNo(kanriNo);
-
     if (!normalizedKanriNo) {
       continue;
     }
@@ -280,9 +247,7 @@ export function resetAllStatusesToScheduled(): Record<
     statusStore.statuses,
     statusStore.targets,
   );
-
   processPropagation();
-
   persistStatusesImmediately(statusStore.statuses);
 
   return Object.fromEntries(statusStore.statuses);
@@ -293,7 +258,6 @@ export async function deleteAllStatuses(): Promise<void> {
 
   propagator.clearQueue();
   statusStore.statuses.clear();
-
   await deleteStatusFile();
 
   for (const kanriNo of targetKanriNos) {

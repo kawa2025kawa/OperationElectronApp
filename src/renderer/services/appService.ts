@@ -1,7 +1,7 @@
 ﻿// src/renderer/services/appService.ts
 
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import { updateService } from "@renderer/services/updateService";
 import { useAppStore } from "@renderer/store";
 
@@ -11,7 +11,9 @@ import { useAppStore } from "@renderer/store";
 
 async function restorePersistedStatuses(): Promise<void> {
   try {
-    const savedStatuses = await trpc.operation.initializeStatus.mutate();
+    const savedStatuses = await window.electronAPI.invoke(
+      IPC_CHANNELS.OPERATION.INITIALIZE_STATUS,
+    );
     const updates = Object.values(savedStatuses);
 
     if (updates.length === 0) {
@@ -42,7 +44,7 @@ async function loadOperationData(): Promise<void> {
   }
 
   // 2. JSON マスタから作業ターゲットを登録
-  await trpc.operation.registerTargets.mutate();
+  await window.electronAPI.invoke(IPC_CHANNELS.OPERATION.REGISTER_TARGETS);
 
   // 3. 永続化されたステータスを復元
   await restorePersistedStatuses();

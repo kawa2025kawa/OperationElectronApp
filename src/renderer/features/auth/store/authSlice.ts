@@ -1,16 +1,10 @@
 ﻿// src/renderer/features/auth/store/authSlice.ts
 
 import type { StateCreator } from "zustand";
-import { trpc } from "@renderer/lib/trpc";
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
 import type { AppState } from "@renderer/store";
 import type { AuthProfile, AuthSlice } from "@shared/types/auth/authTypes";
-
-function normalize(value?: string | null): string | null {
-  const normalized = value?.trim();
-
-  return normalized || null;
-}
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 
 function clearAuthState(state: AppState): void {
   state.isAuthenticated = false;
@@ -19,7 +13,7 @@ function clearAuthState(state: AppState): void {
   state.familyName = null;
 }
 
-function applyAuthenticatedState(state: AppState, profile: AuthProfile): void {
+function applyAuthState(state: AppState, profile: AuthProfile): void {
   state.isAuthenticated = true;
   state.userEmail = profile.email;
   state.familyName = profile.familyName;
@@ -38,28 +32,27 @@ export const createAuthSlice: StateCreator<
   userEmail: null,
   familyName: null,
 
-  setIsAuthenticated: (auth) => {
-    set((state) => {
-      state.isAuthenticated = auth;
-    });
-  },
+  login: async (): Promise<boolean> => {
+    try {
+      const profile = await window.electronAPI.invoke(IPC_CHANNELS.AUTH.LOGIN);
+      if (!profile) {
+        set((state) => {
+          clearAuthState(state);
+        });
+        return false;
+      }
 
-  setIsChecking: (check) => {
-    set((state) => {
-      state.isChecking = check;
-    });
-  },
-
-  setUserEmail: (email) => {
-    set((state) => {
-      state.userEmail = email;
-    });
-  },
-
-  setFamilyName: (familyName) => {
-    set((state) => {
-      state.familyName = familyName;
-    });
+      set((state) => {
+        applyAuthState(state, profile);
+      });
+      return true;
+    } catch (error) {
+      console.error("[Auth] Login failed:", error);
+      set((state) => {
+        clearAuthState(state);
+      });
+      throw error;
+    }
   },
 
   checkAuthStatus: async (forceRefresh = false): Promise<boolean> => {
@@ -68,33 +61,26 @@ export const createAuthSlice: StateCreator<
     });
 
     try {
-      const profile = await trpc.auth.loadSession.query({ forceRefresh });
-
+      const profile = await window.electronAPI.invoke(
+        IPC_CHANNELS.AUTH.LOAD_SESSION,
+        forceRefresh,
+      );
       if (!profile) {
         set((state) => {
           clearAuthState(state);
         });
-
         return false;
       }
 
-      const normalizedProfile: AuthProfile = {
-        email: normalize(profile.email),
-        familyName: normalize(profile.familyName),
-      };
-
       set((state) => {
-        applyAuthenticatedState(state, normalizedProfile);
+        applyAuthState(state, profile);
       });
-
       return true;
     } catch (error) {
       console.error("[Auth] Session check failed:", error);
-
       set((state) => {
         clearAuthState(state);
       });
-
       return false;
     } finally {
       set((state) => {
@@ -103,34 +89,15 @@ export const createAuthSlice: StateCreator<
     }
   },
 
-  handleLoginSuccess: async (email, familyName): Promise<void> => {
-    try {
-      const profile: AuthProfile = {
-        email: normalize(email),
-        familyName: normalize(familyName),
-      };
-
-      set((state) => {
-        applyAuthenticatedState(state, profile);
-      });
-    } catch (error) {
-      console.error("[Auth] Login success handler failed:", error);
-      throw error;
-    }
-  },
-
   logout: async (): Promise<void> => {
-    console.trace("[Auth] logout called");
-
     try {
-      await trpc.auth.logout.mutate();
+      await window.electronAPI.invoke(IPC_CHANNELS.AUTH.LOGOUT);
     } catch (error) {
       console.error("[Auth] Logout command failed:", error);
     } finally {
       set((state) => {
         clearAuthState(state);
       });
-
       get().setCurrentView(APP_VIEW_IDS.AUTH);
     }
   },

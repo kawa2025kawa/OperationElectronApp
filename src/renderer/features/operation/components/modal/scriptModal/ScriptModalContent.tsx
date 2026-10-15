@@ -6,17 +6,18 @@ import { FileDropZone } from "@renderer/components/ui/fileDropZone/FileDropZone"
 import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { JobArtifact } from "@shared/types/operation/operationTypes";
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import { useScriptModalContent } from "./useScriptModalContent";
 import * as styles from "./scriptModalContent.css";
 
 interface ScriptModalContentProps {
   item: OperationViewItem;
+  scriptKey: string;
 }
 
 export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
-  memo(function ScriptModalContent({ item }) {
-    const { state, actions } = useScriptModalContent(item);
+  memo(function ScriptModalContent({ item, scriptKey }) {
+    const { state, actions } = useScriptModalContent(item, scriptKey);
     const updateModalConfig = useAppStore((s) => s.updateModalConfig);
 
     useEffect(() => {
@@ -55,7 +56,9 @@ export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
 
     const handleOpenArtifact = useCallback(async (path: string) => {
       try {
-        await trpc.system.openExternal.mutate({ urlOrPath: path });
+        await window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, {
+          urlOrPath: path,
+        });
       } catch (error) {
         console.error("Failed to open artifact:", error);
       }
@@ -63,38 +66,10 @@ export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
 
     return (
       <div className={styles.contentFlexContainer}>
-        {/* 上部: メッセージ・ステータス表示用 Infobox */}
         <div className={styles.infoBoxVariants[state.infoMessage.type]}>
           {state.infoMessage.text}
         </div>
 
-        {/* 複数スクリプト切替セレクター */}
-        {state.scriptKeys.length > 1 && !state.isFinished && (
-          <div className={styles.scriptSelectorWrapper}>
-            <label style={{ fontSize: "14px", fontWeight: "bold" }}>
-              実行スクリプト:
-            </label>
-            <select
-              value={state.selectedScriptKey}
-              onChange={(e) => actions.handleSelectScriptKey(e.target.value)}
-              disabled={state.isExecuting}
-              style={{
-                padding: "4px 12px",
-                borderRadius: "6px",
-                fontSize: "14px",
-                fontWeight: "bold",
-              }}
-            >
-              {state.scriptKeys.map((key) => (
-                <option key={key} value={key}>
-                  {key}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* 下部: 縦スクロールバー付きメインコンテナ */}
         <div className={styles.mainContainer}>
           {state.isDropZoneVisible ? (
             <FileDropZone

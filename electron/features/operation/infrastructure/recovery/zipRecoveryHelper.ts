@@ -11,7 +11,7 @@ import type { JobResult } from "@shared/types/operation/operationTypes";
 /**
  * エラーメッセージからZIPファイルのパスを抽出
  */
-export function extractZipPath(error: unknown): string | null {
+function extractZipPath(error: unknown): string | null {
   const message = error instanceof Error ? error.message : String(error);
   const match = message.match(/([A-Z]:\\[^\r\n]+\.zip)/i);
   return match?.[1] ?? null;
@@ -20,7 +20,7 @@ export function extractZipPath(error: unknown): string | null {
 /**
  * 破損ZIPの削除確認ダイアログを表示
  */
-export function confirmZipRecovery(zipPath: string): boolean {
+function confirmZipRecovery(zipPath: string): boolean {
   const response = dialog.showMessageBoxSync({
     type: "question",
     buttons: ["削除して再実行", "キャンセル"],

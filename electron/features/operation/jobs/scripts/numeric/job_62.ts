@@ -1,68 +1,72 @@
-﻿// electron/services/operation/jobs/scripts/job_62.ts
-import path from "node:path";
-import { format } from "date-fns";
-import fs from "fs-extra";
+﻿// electron/features/operation/jobs/scripts/numeric/job_62.ts
 
-const TARGET_DIR = "\\\\172.25.101.51\\if\\MASTER\\RCV";
-const EXPECTED_FILES = [
-  { keyword: "htsf0060", count: 1 },
-  { keyword: "Syohin_toMD_N", count: 4 },
-  { keyword: "Tokusyo_toMD_N", count: 4 },
-] as const;
+import { format } from "date-fns";
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
+
+import {
+  findFiles,
+  getFileInfo,
+} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
+
+const CONFIG = {
+  targetDir: "\\\\172.25.101.51\\if\\MASTER\\RCV",
+  expectedFiles: [
+    { keyword: "htsf0060", count: 1 },
+    { keyword: "Syohin_toMD_N", count: 4 },
+    { keyword: "Tokusyo_toMD_N", count: 4 },
+  ],
+} as const;
 
 export async function runJob62(): Promise<string> {
-  const outputLines: string[] = [];
-  const addLine = (message: string = "") => outputLines.push(message);
+  const logger = new JobLogger();
 
-  addLine(`==================================================`);
-  addLine(` [Job62] 抽出ファイル件数一致確認`);
-  addLine(`==================================================`);
-  addLine(`▶ 監視フォルダ: ${TARGET_DIR}`);
-  addLine();
+  logger.log(`監視ディレクトリ : ${CONFIG.targetDir}`);
 
-  if (!(await fs.pathExists(TARGET_DIR))) {
-    throw new Error(`対象フォルダが見つかりません: ${TARGET_DIR}`);
+  if (!(await directoryExists(CONFIG.targetDir))) {
+    throw logger.fail(`ディレクトリが存在しません: ${CONFIG.targetDir}`);
   }
 
-  const files = await fs.readdir(TARGET_DIR);
   const errorDetails: string[] = [];
 
-  for (const rule of EXPECTED_FILES) {
-    const foundNames = files.filter((f) => f.includes(rule.keyword));
-    const isMatched = foundNames.length === rule.count;
+  for (const rule of CONFIG.expectedFiles) {
+    const matchedFiles = await findFiles(CONFIG.targetDir, {
+      includes: [rule.keyword],
+    });
+
+    const isMatched = matchedFiles.length === rule.count;
 
     if (isMatched) {
-      addLine(
-        `▶ [${rule.keyword}] 検出成功 (件数: ${foundNames.length} / 期待: ${rule.count})`,
+      logger.log(
+        `  [${rule.keyword}] 検出 : ${matchedFiles.length} / 期待 : ${rule.count}`,
       );
-      for (const name of foundNames) {
-        const filePath = path.join(TARGET_DIR, name);
-        const stat = await fs.stat(filePath);
-        const formattedDate = format(stat.mtime, "yyyy/MM/dd HH:mm:ss");
-        addLine(`   ├ ${name}`);
-        addLine(`   └ 更新日時: ${formattedDate}`);
+
+      const fileInfos = await Promise.all(
+        matchedFiles.map((filePath) => getFileInfo(filePath)),
+      );
+
+      for (const info of fileInfos) {
+        logger.log(`    ${info.fileName}`);
+        logger.log(
+          `    更新日時 : ${format(info.mtime, "yyyy/MM/dd HH:mm:ss")}`,
+        );
       }
     } else {
       errorDetails.push(
-        `${rule.keyword} (期待数: ${rule.count}, 実際: ${foundNames.length})`,
+        `${rule.keyword} (期待: ${rule.count}, 検出: ${matchedFiles.length})`,
       );
-      addLine(
-        `❌ [${rule.keyword}] 件数不一致 (期待数: ${rule.count} / 実際: ${foundNames.length})`,
+
+      logger.log(
+        `  [${rule.keyword}] 不一致 (期待: ${rule.count} / 検出: ${matchedFiles.length})`,
       );
     }
-    addLine();
-  }
 
-  addLine(`--------------------------------------------------`);
+    logger.section();
+  }
 
   if (errorDetails.length > 0) {
-    throw new Error(
-      `ファイル数不一致:\n${errorDetails.join("\n")}\n\n${outputLines.join("\n")}`,
-    );
+    throw logger.fail(`ファイル件数不一致:\n${errorDetails.join("\n")}`);
   }
 
-  addLine(` [Job62] 全ファイル数一致確認完了 (正常)`);
-  addLine(`==================================================`);
-
-  return outputLines.join("\n");
+  return logger.complete("全期待ファイル確認済");
 }

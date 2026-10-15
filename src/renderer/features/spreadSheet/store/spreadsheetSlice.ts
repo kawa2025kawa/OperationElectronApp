@@ -2,7 +2,7 @@
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { AppState } from "@renderer/store";
 import type { SpreadsheetMasterData } from "@shared/types/masterData/spreadsheetMasterDataTypes";
 import {
@@ -92,7 +92,9 @@ export const createSpreadSheetSlice: StateCreator<
 
   const fetchMasterData = async (): Promise<SpreadsheetMasterData | null> => {
     try {
-      const masterData = await trpc.spreadsheet.getMasterData.query();
+      const masterData = await window.electronAPI.invoke(
+        IPC_CHANNELS.SPREADSHEET.GET_MASTER_DATA,
+      );
 
       // Spreadsheet由来のデータのみをZustandへ反映する
       applyMasterData(masterData);

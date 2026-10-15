@@ -7,13 +7,10 @@ import type {
   LinkConfig,
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
-
 import { LinkModalContent } from "./components/modal/linkModal/LinkModalContent";
 import { ScriptModalContent } from "./components/modal/scriptModal/ScriptModalContent";
 
 type OpenGlobalModal = AppState["openGlobalModal"];
-
-const PDF_UPLOAD_KANRI_NOS = new Set(["30", "37", "45", "48", "54"]);
 
 const PDF_UPLOAD_MODAL_CONFIG = {
   title: "Tempomatic PDF",
@@ -35,8 +32,9 @@ const LINK_MODAL_CONFIG = {
 export function openScriptModal(
   openGlobalModal: OpenGlobalModal,
   item: OperationViewItem,
+  scriptKey?: string,
 ): void {
-  if (PDF_UPLOAD_KANRI_NOS.has(String(item.kanriNo).trim())) {
+  if (!scriptKey && item.isPdfUpload) {
     openGlobalModal(
       createElement(PdfUploadModalContent),
       PDF_UPLOAD_MODAL_CONFIG,
@@ -45,14 +43,14 @@ export function openScriptModal(
   }
 
   const workName = item.workName || `No.${item.kanriNo}`;
-
   openGlobalModal(
     createElement(ScriptModalContent, {
       item: { ...item, workName },
+      scriptKey: scriptKey ?? String(item.kanriNo),
     }),
     {
       ...SCRIPT_MODAL_CONFIG,
-      title: item.workName || "スクリプト実行",
+      title: scriptKey ? `${workName} (${scriptKey})` : item.workName || "",
     },
   );
 }

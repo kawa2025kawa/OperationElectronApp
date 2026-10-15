@@ -12,7 +12,7 @@ export const SUMMARY_DISPLAY_ORDER = [
   ...JOB_STATUS_VALUES,
 ] as const satisfies readonly SummaryDisplayKey[];
 
-export const SUMMARY_LABEL: Record<"total" | "progress", string> = {
+const SUMMARY_LABEL: Record<"total" | "progress", string> = {
   total: "対象件数",
   progress: "進捗率",
 };

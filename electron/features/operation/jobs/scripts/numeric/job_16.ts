@@ -1,84 +1,70 @@
-﻿// electron/features/operation/jobs/scripts/job_16.ts
-import path from "node:path";
+﻿// electron/features/operation/jobs/scripts/numeric/job_16.ts
+
 import { format } from "date-fns";
-import fs from "fs-extra";
-
-const NORMAL_ERROR_PATH = "\\\\192.88.1.3\\syn_tran";
-const FARMERS_ERROR_PATH = "\\\\192.88.1.3\\syn_tran\\ファーマーズエラー";
-const TARGET_PREFIX = "SANSAN_ERROR_";
-
-function selectTargetDirectory(): { dir: string; reason: string } {
-  const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
-
-  if (hour < 8 || (hour === 8 && minute <= 30)) {
-    return {
-      dir: NORMAL_ERROR_PATH,
-      reason: "8:30以前のため通常パスを参照",
-    };
-  }
-
-  return {
-    dir: FARMERS_ERROR_PATH,
-    reason: "8:31以降のためファーマーズエラーパスを参照",
-  };
-}
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  directoryExists,
+  selectDirectoryByTime,
+} from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
+import {
+  findFiles,
+  getFileInfo,
+} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+const CONFIG = {
+  normalErrorPath: "\\\\192.88.1.3\\syn_tran",
+  farmersErrorPath: "\\\\192.88.1.3\\syn_tran\\ファーマーズエラー",
+  targetPrefix: "SANSAN_ERROR_",
+  extension: ".txt",
+  cutoffHour: 8,
+  cutoffMinute: 30,
+} as const;
 
 export async function runJob16(): Promise<string> {
   const now = new Date();
-  const today = format(now, "yyyyMMdd");
-  const targetPrefix = `${TARGET_PREFIX}${today}`;
-  const { dir, reason } = selectTargetDirectory();
-  const outputLines: string[] = [];
+  const logger = new JobLogger();
 
-  const addLine = (message = "") => {
-    outputLines.push(message);
-  };
+  const today = getDateKey(now);
+  const targetPrefix = `${CONFIG.targetPrefix}${today}`;
 
-  addLine(`・日付: ${today}`);
-  addLine(`・監視ディレクトリ:`);
-  addLine(`  └ ${dir}`);
-  addLine(`・判定条件:`);
-  addLine(`  └ ${reason}`);
-  addLine(`・接頭辞条件:`);
-  addLine(`  └ ${targetPrefix}*.txt`);
-  addLine();
-
-  if (!(await fs.pathExists(dir))) {
-    throw new Error(`ディレクトリが存在しません: ${dir}`);
-  }
-
-  const files = await fs.readdir(dir);
-
-  // 対象の ERROR ファイルを検索
-  const targetFiles = files.filter(
-    (file) => file.startsWith(targetPrefix) && file.endsWith(".txt"),
+  const dir = selectDirectoryByTime(
+    now,
+    CONFIG.normalErrorPath,
+    CONFIG.farmersErrorPath,
+    CONFIG.cutoffHour,
+    CONFIG.cutoffMinute,
   );
 
-  if (targetFiles.length > 0) {
-    addLine(`❌ エラーファイル検出`);
-    addLine(`・検出件数: ${targetFiles.length}件`);
-    addLine();
+  logger.log(`対象ディレクトリ : ${dir}`);
+  logger.log(`検索パターン : ${targetPrefix}*${CONFIG.extension}`);
 
-    for (const fileName of targetFiles) {
-      const filePath = path.join(dir, fileName);
-      const stat = await fs.stat(filePath);
-      const formattedDate = format(stat.mtime, "yyyy/MM/dd HH:mm:ss");
-
-      addLine(`・ファイル:`);
-      addLine(`  └ ${fileName}`);
-      addLine(`・更新日時:`);
-      addLine(`  └ ${formattedDate}`);
-    }
-
-    throw new Error(
-      `SANSANエラーファイルが存在します (${targetFiles.length}件)\n\n${outputLines.join("\n")}`,
-    );
+  if (!(await directoryExists(dir))) {
+    throw logger.fail(`ディレクトリが存在しません: ${dir}`);
   }
 
-  addLine(`▶ 検出結果:`);
-  addLine(`  └ 対象エラーファイルなし（正常）`);
+  const targetFiles = await findFiles(dir, {
+    prefix: targetPrefix,
+    suffix: CONFIG.extension,
+  });
 
-  return outputLines.join("\n");
+  if (targetFiles.length === 0) {
+    logger.log("検出結果 : エラーファイルなし");
+    return logger.complete("エラーファイルなし (正常)");
+  }
+
+  logger.log("エラーファイルを検出しました");
+  logger.log(`検出件数 : ${targetFiles.length}件`);
+
+  const fileInfos = await Promise.all(
+    targetFiles.map((filePath) => getFileInfo(filePath)),
+  );
+
+  for (const fileInfo of fileInfos) {
+    logger.log(`ファイル名 : ${fileInfo.fileName}`);
+    logger.log(`更新日時 : ${format(fileInfo.mtime, "yyyy/MM/dd HH:mm:ss")}`);
+  }
+
+  throw logger.fail(
+    `SANSANエラーファイルを検出しました (${targetFiles.length}件)`,
+  );
 }

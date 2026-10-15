@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { AppState } from "@renderer/store";
 import type { RdpMaster } from "@shared/types/rdp/rdpTypes";
 
@@ -33,7 +33,9 @@ export const createRdpSlice: StateCreator<AppState, [], [], RdpSlice> = (
     set({ isRdpLoading: true });
 
     try {
-      const targets = await trpc.rdp.getMasters.query();
+      const targets = await window.electronAPI.invoke(
+        IPC_CHANNELS.RDP.GET_MASTERS,
+      );
       set({ rdpTargets: targets });
     } catch (error: unknown) {
       toast.error(`RDP取得エラー: ${getErrorMessage(error)}`);
@@ -45,7 +47,7 @@ export const createRdpSlice: StateCreator<AppState, [], [], RdpSlice> = (
 
   runRdp: async (name: string) => {
     try {
-      await trpc.rdp.startSession.mutate({ name });
+      await window.electronAPI.invoke(IPC_CHANNELS.RDP.START_SESSION, { name });
     } catch (error: unknown) {
       toast.error(`RDP起動エラー: ${getErrorMessage(error)}`);
     }

@@ -3,7 +3,8 @@
 import { useCallback } from "react";
 import { useShallow } from "zustand/shallow";
 
-import { trpc } from "@renderer/lib/trpc";
+import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes";
 import { useAppStore } from "@renderer/store";
 import type { SummaryDisplayKey } from "@shared/types/statusSummary/statusSummaryTypes";
 
@@ -41,10 +42,10 @@ export const useStatusSummary = ({ openModal }: UseStatusSummaryParams) => {
       }
 
       try {
-        // バックエンド (tRPC) で抽出済みの詳細一覧を取得
-        const filteredItems = await trpc.operation.getSummaryDetails.query({
-          filterKey: key,
-        });
+        const filteredItems = (await window.electronAPI.invoke(
+          IPC_CHANNELS.OPERATION.GET_SUMMARY_DETAILS,
+          { filterKey: key },
+        )) as SummaryDetailRow[];
 
         openModal(filteredItems, label);
       } catch (error) {

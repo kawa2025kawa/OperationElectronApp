@@ -5,12 +5,11 @@ import {
   getDependencyMasters,
   getDependencyStatuses,
   getStatus,
+  recalculateTargetStatus,
   updateStatus,
   type StatusTarget,
 } from "@electron/features/operation/application/statusManager";
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
-import { calculateOperationStatus } from "@electron/features/operation/domain/statusCalculator";
-import { isProtectedStatus } from "@electron/features/operation/domain/statusRules";
 import { fetchTrackerStatusByJobId } from "@electron/features/operation/infrastructure/tracker/trackerServiceClient";
 import { getJobId } from "@electron/features/operation/infrastructure/tracker/trackerHelper";
 import {
@@ -21,6 +20,7 @@ import {
 } from "@shared/types/operation/operationTypes";
 import {
   checkJobDependencies,
+  formatDependencyWaitingComment,
   type DependencyCheckResult,
 } from "@shared/utils/dependency/dependencyUtils";
 
@@ -55,10 +55,12 @@ function checkDependencies(
   );
 }
 
-function evaluateTrackerStatus(
+export function evaluateTrackerStatus(
   trackerStatus: OperationStatusState,
-  activeFlags: ActiveFlags,
-  dependencyMasters: ReturnType<typeof getDependencyMasters>,
+  activeFlags: ActiveFlags = getActiveFlags(),
+  dependencyMasters: ReturnType<
+    typeof getDependencyMasters
+  > = getDependencyMasters(),
 ): OperationStatusState {
   if (trackerStatus.status !== JOB_STATUS.SUCCESS) {
     return trackerStatus;
@@ -74,25 +76,19 @@ function evaluateTrackerStatus(
     return trackerStatus;
   }
 
-  const missingKanriNos = dependencyResult.missingDependencies
-    .map(({ kanriNo }) => kanriNo)
-    .filter(Boolean);
-
   return {
     ...trackerStatus,
     status: JOB_STATUS.WAITING,
-    comment:
-      missingKanriNos.length > 0
-        ? `前提未完了(No.${missingKanriNos.join(", ")})`
-        : "前提未完了",
+    comment: formatDependencyWaitingComment(
+      dependencyResult.missingDependencies,
+    ),
   };
 }
 
-async function fetchTrackerStatus(
+export async function fetchTrackerStatus(
   target: OperationTarget,
 ): Promise<OperationStatusState | undefined> {
   const jobId = target.jobId?.trim();
-
   if (!jobId) {
     return undefined;
   }
@@ -100,10 +96,12 @@ async function fetchTrackerStatus(
   return fetchTrackerStatusByJobId(jobId, target.scheduledTime, target.kanriNo);
 }
 
-function applyTrackerStatus(
+export function applyTrackerStatus(
   trackerStatus: OperationStatusState,
-  activeFlags: ActiveFlags,
-  dependencyMasters: ReturnType<typeof getDependencyMasters>,
+  activeFlags: ActiveFlags = getActiveFlags(),
+  dependencyMasters: ReturnType<
+    typeof getDependencyMasters
+  > = getDependencyMasters(),
 ): void {
   updateStatus(
     evaluateTrackerStatus(trackerStatus, activeFlags, dependencyMasters),
@@ -118,21 +116,16 @@ export async function syncReadyTrackerStatus(
   }
 
   const kanriNo = normalizeKanriNo(target.kanriNo);
-
   if (getStatus(kanriNo)?.status !== JOB_STATUS.READY) {
     return;
   }
 
   const trackerStatus = await fetchTrackerStatus(target);
-
   if (!trackerStatus || shouldKeepReadyStatus(trackerStatus.status)) {
     return;
   }
 
-  const activeFlags = getActiveFlags();
-  const dependencyMasters = getDependencyMasters();
-
-  applyTrackerStatus(trackerStatus, activeFlags, dependencyMasters);
+  applyTrackerStatus(trackerStatus);
 }
 
 async function evaluateTrackerTarget(
@@ -149,32 +142,11 @@ async function evaluateTrackerTarget(
     return await fetchTrackerStatus(target);
   } catch (error) {
     console.error(
-      `[StatusEvaluator] Tracker同期エラー (kanriNo=${kanriNo}):`,
+      `[StatusEvaluator] Tracker 連携エラー (kanriNo=${kanriNo}):`,
       error,
     );
+    return undefined;
   }
-}
-
-function applyLocalStatus(
-  target: StatusTarget,
-  activeFlags: ActiveFlags,
-  dependencyMasters: ReturnType<typeof getDependencyMasters>,
-): void {
-  const kanriNo = normalizeKanriNo(target.kanriNo);
-  const currentStatus = getStatus(kanriNo);
-
-  if (isProtectedStatus(currentStatus?.status)) {
-    return;
-  }
-
-  updateStatus(
-    calculateOperationStatus(
-      target,
-      dependencyMasters,
-      getDependencyStatuses(),
-      activeFlags,
-    ),
-  );
 }
 
 export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
@@ -192,7 +164,7 @@ export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
   const activeFlags = getActiveFlags();
   const dependencyMasters = getDependencyMasters();
 
-  // 1. Tracker 対象を並列取得
+  // 1. Tracker 対象のステータスを取得
   const trackerResults = await Promise.all(
     trackerTargets.map(async (target) => ({
       target,
@@ -200,17 +172,17 @@ export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
     })),
   );
 
-  // 2. Tracker から取得できない場合はローカル判定
+  // 2. Tracker 結果を反映（取得失敗時はローカル計算）
   for (const { target, status } of trackerResults) {
     if (status) {
       applyTrackerStatus(status, activeFlags, dependencyMasters);
     } else {
-      applyLocalStatus(target, activeFlags, dependencyMasters);
+      recalculateTargetStatus(target.kanriNo, activeFlags);
     }
   }
 
-  // 3. Tracker 対象外もローカル判定
+  // 3. Tracker 対象外のステータスを計算
   for (const target of localTargets) {
-    applyLocalStatus(target, activeFlags, dependencyMasters);
+    recalculateTargetStatus(target.kanriNo, activeFlags);
   }
 }

@@ -43,18 +43,8 @@ export interface AuthSliceState {
 }
 
 export interface AuthSliceActions {
-  setIsAuthenticated: (auth: boolean) => void;
-  setIsChecking: (check: boolean) => void;
-  setUserEmail: (email: string | null) => void;
-  setFamilyName: (familyName: string | null) => void;
-
+  login: () => Promise<boolean>;
   checkAuthStatus: (forceRefresh?: boolean) => Promise<boolean>;
-
-  handleLoginSuccess: (
-    email?: string | null,
-    familyName?: string | null,
-  ) => Promise<void>;
-
   logout: () => Promise<void>;
 }
 
