@@ -1,4 +1,4 @@
-﻿// src/renderer/components/ui/statusSummary/statusSummaryConfig.ts
+// src/renderer/components/ui/statusSummary/statusSummaryConfig.ts
 
 import {
   JOB_STATUS_LABEL,

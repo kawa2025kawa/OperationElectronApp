@@ -1,4 +1,6 @@
-﻿import type { BuildRawMessageParams } from "./gmailTypes";
+// electron/features/gmail/gmailUtils.ts
+
+import type { BuildRawMessageParams } from "./gmailTypes";
 
 export function getNextTuesdayString(now: Date = new Date()): string {
   const dayOfWeek = now.getDay();
@@ -58,24 +60,8 @@ export function formatLinks(links?: Record<string, string> | null): string {
     .join("\n");
 }
 
-function toBase64(value: string): string {
-  const bytes = new TextEncoder().encode(value);
-  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join(
-    "",
-  );
-
-  return btoa(binary);
-}
-
-function toBase64Url(value: string): string {
-  return toBase64(value)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
 function encodeMimeHeader(value: string): string {
-  return `=?UTF-8?B?${toBase64(value)}?=`;
+  return `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
 }
 
 function normalizeCrlf(text: string): string {
@@ -104,5 +90,5 @@ export function buildRawMessage(params: BuildRawMessageParams): string {
   const message =
     `${headers.join("\r\n")}\r\n\r\n` + normalizeCrlf(params.body);
 
-  return toBase64Url(message);
+  return Buffer.from(message, "utf8").toString("base64url");
 }

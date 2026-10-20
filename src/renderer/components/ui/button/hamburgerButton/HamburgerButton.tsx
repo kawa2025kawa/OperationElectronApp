@@ -1,4 +1,4 @@
-﻿// src/renderer/components/layout/nav/components/HamburgerButton.tsx
+// src/renderer/components/layout/nav/components/HamburgerButton.tsx
 
 import { useAppStore } from "@renderer/store";
 import * as styles from "./hamburgerButton.css";

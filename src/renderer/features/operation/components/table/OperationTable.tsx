@@ -4,20 +4,21 @@ import { memo, useCallback, useMemo } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 
-import type { JobStatus } from "@shared/types/operation/operationTypes";
-
+import type {
+  JobStatus,
+  OperationViewItem,
+} from "@shared/types/operation/operationTypes";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { StatusContextMenu } from "@renderer/features/operation/components/contextMenu/StatusContextMenu";
-import type { OperationViewItem } from "@shared/types/operation/operationTypes";
 
 import { useOperationTable } from "./useOperationTable";
 import * as styles from "./operationTable.css";
 
 interface ColumnMeta {
-  label: string;
-  width: string;
-  align?: keyof typeof styles.alignVariants;
+  readonly label: string;
+  readonly width: string;
+  readonly align?: keyof typeof styles.alignVariants;
 }
 
 const COLUMN_CONFIG: Record<string, ColumnMeta> = {
@@ -47,18 +48,26 @@ const COLUMN_CONFIG: Record<string, ColumnMeta> = {
     width: "140px",
     align: "center",
   },
-};
+} as const;
 
 /** モードごとに表示する列の順序を定義 */
-const VISIBLE_COLUMNS: Record<string, string[]> = {
+const VISIBLE_COLUMNS: Record<string, readonly string[]> = {
   operation: ["kanriNo", "scheduledTime", "workName", "jobId", "status"],
   irregular: ["kanriNo", "scheduledTime", "cycle", "workName"],
   today: ["kanriNo", "scheduledTime", "workName", "status"],
-};
+} as const;
 
+function getOperationColumnValue(
+  row: OperationViewItem,
+  column: string,
+): unknown {
+  return column in row
+    ? (row as unknown as Record<string, unknown>)[column]
+    : undefined;
+}
 interface OperationTableRowProps {
   row: OperationViewItem;
-  columns: string[];
+  columns: readonly string[];
   isSelected: boolean;
   onRowClick: (kanriNo: string) => void;
   kanriNo: string;
@@ -72,23 +81,21 @@ const OperationTableRow = memo(
     onRowClick,
     kanriNo,
   }: OperationTableRowProps) => {
-    const record = row as unknown as Record<string, unknown>;
-
     const handleClick = useCallback(() => {
       onRowClick(kanriNo);
     }, [onRowClick, kanriNo]);
 
-    const rowClass = [
-      styles.tableRowBase,
-      isSelected
-        ? styles.tableRowStates.selected
-        : styles.tableRowStates.clickable,
-    ].join(" ");
+    const rowStateClass = isSelected
+      ? styles.tableRowStates.selected
+      : styles.tableRowStates.clickable;
 
     return (
-      <tr className={rowClass} onClick={handleClick}>
+      <tr
+        className={`${styles.tableRowBase} ${rowStateClass}`}
+        onClick={handleClick}
+      >
         {columns.map((column) => {
-          const value = record[column];
+          const value = getOperationColumnValue(row, column);
           const config = COLUMN_CONFIG[column];
           const alignClass = styles.alignVariants[config?.align ?? "left"];
 
@@ -128,7 +135,7 @@ const OperationTableRow = memo(
 
 OperationTableRow.displayName = "OperationTableRow";
 
-export const UnifiedTable = memo(() => {
+export const OperationTable = memo(() => {
   const { currentMode, rows, selectedId, handleRowClick } = useOperationTable();
 
   const columns = useMemo(() => {
@@ -216,13 +223,7 @@ export const UnifiedTable = memo(() => {
                   </tr>
                 ) : (
                   rows.map((row, index) => {
-                    const record = row as unknown as Record<string, unknown>;
-
-                    const kanriNo =
-                      typeof record.kanriNo === "string"
-                        ? record.kanriNo.trim()
-                        : String(record.kanriNo ?? index);
-
+                    const kanriNo = row.kanriNo.trim();
                     const isSelected = selectedId === kanriNo;
 
                     return (
@@ -245,3 +246,8 @@ export const UnifiedTable = memo(() => {
     </div>
   );
 });
+
+OperationTable.displayName = "OperationTable";
+
+/** 既存コードとの後方互換性エイリアス */
+export const UnifiedTable = OperationTable;

@@ -1,4 +1,4 @@
-﻿import { Client } from "basic-ftp";
+import { Client } from "basic-ftp";
 import iconv from "iconv-lite";
 import { format } from "date-fns";
 import { PassThrough, type Readable } from "stream";

@@ -1,4 +1,4 @@
-﻿import { style } from "@vanilla-extract/css";
+import { style } from "@vanilla-extract/css";
 import { themeTransition, tokens } from "@renderer/styles/tokens";
 
 const BADGE_WIDTH = "60px";

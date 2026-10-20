@@ -1,4 +1,4 @@
-﻿// src/shared/types/constants/ipcChannelsTypes.ts
+// src/shared/types/constants/ipcChannelsTypes.ts
 
 import type { IpcChannelMap } from "../electron/ipcTypes";
 

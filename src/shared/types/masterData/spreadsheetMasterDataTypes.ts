@@ -1,4 +1,4 @@
-﻿// src/shared/types/masterData/spreadsheetMasterDataTypes.ts
+// src/shared/types/masterData/spreadsheetMasterDataTypes.ts
 
 import type { SheetData } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";

@@ -1,4 +1,4 @@
-﻿// electron/ipc/operationIpc.ts
+// electron/ipc/operationIpc.ts
 
 import { ipcMain } from "electron";
 import {
@@ -12,21 +12,20 @@ import {
 } from "@electron/features/operation/application/operationScheduler";
 import { getScriptExecutionRequirement } from "@electron/features/operation/application/scriptExecutionRequirements";
 import {
-  registerOperationTargets,
-  resetOperationStatuses,
-  updateOperationActiveFlags,
-  updateOperationJobStatus,
-} from "@electron/features/operation/application/operationCommandService";
-import { executeManualScript } from "@electron/features/operation/application/scriptExecutionService";
-import { fetchSingleTrackerStatus } from "@electron/features/operation/application/trackerStatusService";
-import {
   deleteAllStatuses,
   initializeStatuses,
+  registerOperationTargets,
+  resetOperationStatuses,
+  updateManualStatus,
+  updateOperationActiveFlags,
 } from "@electron/features/operation/application/statusManager";
+import { executeManualScript } from "@electron/features/operation/application/scriptExecutionService";
+import { fetchSingleTrackerStatus } from "@electron/features/operation/application/operationStatusEvaluator";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { ActiveFlags } from "@shared/types/operation/operationTypes";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 
+// 運用ジョブ関連（ステータス取得・更新・ポーリング・スクリプト実行等）のIPCハンドラーを登録する。
 export function registerOperationIpc(): void {
   ipcMain.handle(IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY, () => {
     return getStatusSummary();
@@ -59,8 +58,12 @@ export function registerOperationIpc(): void {
 
   ipcMain.handle(
     IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS,
-    (_event, { flags }: { flags: Partial<ActiveFlags> }) => {
-      updateOperationActiveFlags(flags);
+    (_event, input: Partial<ActiveFlags> | { flags: Partial<ActiveFlags> }) => {
+      if ("flags" in input) {
+        updateOperationActiveFlags(input.flags);
+      } else {
+        updateOperationActiveFlags(input);
+      }
     },
   );
 
@@ -86,7 +89,7 @@ export function registerOperationIpc(): void {
         comment?: string;
       },
     ) => {
-      updateOperationJobStatus(input);
+      updateManualStatus(input.kanriNo, input.status, input.comment ?? "");
     },
   );
 

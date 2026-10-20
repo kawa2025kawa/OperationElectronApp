@@ -1,4 +1,4 @@
-﻿//src\renderer\components\ui\button\pollingToggleButton\usePollingToggleButton.ts
+//src\renderer\components\ui\button\pollingToggleButton\usePollingToggleButton.ts
 
 import { useCallback } from "react";
 import { useAppStore } from "@renderer/store";

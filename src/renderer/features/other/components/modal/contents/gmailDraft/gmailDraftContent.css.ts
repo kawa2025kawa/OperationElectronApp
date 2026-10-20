@@ -1,4 +1,4 @@
-﻿// src/renderer/features/other/components/modal/contents/gmailDraft/gmailDraftContent.css.ts
+// src/renderer/features/other/components/modal/contents/gmailDraft/gmailDraftContent.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens";

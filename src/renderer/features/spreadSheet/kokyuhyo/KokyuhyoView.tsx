@@ -1,9 +1,6 @@
-﻿// src/renderer/features/spreadSheet/kokyuhyo/KokyuhyoView.tsx
+// src/renderer/features/spreadsheet/kokyuhyo/KokyuhyoView.tsx
 
 import { memo, useCallback } from "react";
-import { format, addDays } from "date-fns";
-import { ja } from "date-fns/locale/ja";
-
 import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
 import type { Column } from "@shared/types/table/tableType";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
@@ -14,21 +11,10 @@ import {
 import { AuthView } from "@renderer/features/auth/AuthView";
 
 import { useSpreadSheetDomainLogic } from "../hooks/useSpreadSheetDomainLogic";
+import { DATE_LABELS } from "../utils/spreadsheetDateUtils";
 import { KokyuhyoTable } from "./table/KokyuhyoTable";
 import { KokyuhyoModalContent } from "./modal/KokyuhyoModalContent";
 import * as styles from "./KokyuhyoView.css";
-
-// --- 日付計算ヘルパー ---
-const getOffsetDate = (offsetDays: number): Date =>
-  addDays(new Date(), offsetDays);
-
-const formatDateForHeader = (date: Date): string =>
-  format(date, "MM/dd(EEE)", { locale: ja });
-
-const DATE_LABELS = {
-  today: `本日 (${formatDateForHeader(new Date())})`,
-  tomorrow: `明日 (${formatDateForHeader(getOffsetDate(1))})`,
-} as const;
 
 // --- テーブルカラム定義 ---
 export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [

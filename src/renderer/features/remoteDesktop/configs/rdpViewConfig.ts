@@ -1,4 +1,4 @@
-﻿import {
+import {
   APP_VIEW_IDS,
   type AppViewDefinition,
 } from "@shared/types/registry/viewDefinition";

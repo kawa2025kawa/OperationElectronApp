@@ -1,4 +1,4 @@
-﻿// src/shared/types/statusSummary/statusSummaryTypes.ts
+// src/shared/types/statusSummary/statusSummaryTypes.ts
 
 import {
   JOB_STATUS,

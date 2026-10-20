@@ -1,4 +1,4 @@
-﻿// src/renderer/components/layout/navbar/components/hamburgerButton/hamburgerButton.css.ts
+// src/renderer/components/layout/navbar/components/hamburgerButton/hamburgerButton.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens";

@@ -1,4 +1,4 @@
-﻿//src\renderer\features\other\OtherView.tsx
+//src\renderer\features\other\OtherView.tsx
 
 import { memo } from "react";
 import { clsx } from "clsx";

@@ -1,17 +1,16 @@
-﻿// src/renderer/features/auth/useAuth.ts
+// src/renderer/features/auth/useAuth.ts
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@renderer/store";
 import type { AuthState } from "@shared/types/auth/authTypes";
 
 export const useAuth = () => {
-  const [isProcessing, setIsProcessing] = useState(false);
-
   const {
     isAuthenticated,
     isChecking,
+    isGlobalProcessing,
     userEmail,
     familyName,
     login,
@@ -21,6 +20,7 @@ export const useAuth = () => {
     useShallow((state) => ({
       isAuthenticated: state.isAuthenticated,
       isChecking: state.isChecking,
+      isGlobalProcessing: state.globalProcessing !== null,
       userEmail: state.userEmail,
       familyName: state.familyName,
       login: state.login,
@@ -29,9 +29,11 @@ export const useAuth = () => {
     })),
   );
 
+  const isProcessing = isChecking || isGlobalProcessing;
+
   const handleLogin = useCallback(async (): Promise<void> => {
     if (isProcessing) return;
-    setIsProcessing(true);
+
     setGlobalProcessing({
       message: "認証処理中...",
       target: "Google OAuth Login",
@@ -46,14 +48,18 @@ export const useAuth = () => {
         error instanceof Error ? error.message : "ログインに失敗しました";
       toast.error(message);
     } finally {
-      setIsProcessing(false);
       setGlobalProcessing(null);
     }
   }, [isProcessing, login, setGlobalProcessing]);
 
   const handleLogout = useCallback(async (): Promise<void> => {
     if (isProcessing) return;
-    setIsProcessing(true);
+
+    setGlobalProcessing({
+      message: "ログアウト処理中...",
+      target: "Google OAuth Logout",
+    });
+
     try {
       await logout();
       toast.success("ログアウトしました");
@@ -61,25 +67,25 @@ export const useAuth = () => {
       console.error("[Auth] Logout failed:", error);
       toast.error("ログアウトに失敗しました");
     } finally {
-      setIsProcessing(false);
+      setGlobalProcessing(null);
     }
-  }, [isProcessing, logout]);
+  }, [isProcessing, logout, setGlobalProcessing]);
 
   const handleAuthToggle = useCallback((): void => {
-    if (isProcessing || isChecking) return;
+    if (isProcessing) return;
+
     if (isAuthenticated) {
       void handleLogout();
     } else {
       void handleLogin();
     }
-  }, [isProcessing, isChecking, isAuthenticated, handleLogout, handleLogin]);
+  }, [isProcessing, isAuthenticated, handleLogout, handleLogin]);
 
-  const authState: AuthState =
-    isProcessing || isChecking
-      ? "loading"
-      : isAuthenticated
-        ? "loggedIn"
-        : "loggedOut";
+  const authState: AuthState = isProcessing
+    ? "loading"
+    : isAuthenticated
+      ? "loggedIn"
+      : "loggedOut";
 
   return {
     isAuthenticated,

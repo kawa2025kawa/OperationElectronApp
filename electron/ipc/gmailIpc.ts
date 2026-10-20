@@ -1,4 +1,4 @@
-﻿// electron/ipc/gmailIpc.ts
+// electron/ipc/gmailIpc.ts
 
 import { ipcMain } from "electron";
 import {
@@ -8,6 +8,7 @@ import {
 } from "@electron/features/gmail/gmailService";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 
+// Gmail署名取得・テンプレート生成・下書き作成に関するIPCハンドラーを登録する。
 export function registerGmailIpc(): void {
   ipcMain.handle(
     IPC_CHANNELS.GMAIL.GET_SIGNATURE,

@@ -1,4 +1,4 @@
-﻿// src/renderer/components/layout/footer/components/footerActionButton.css.ts
+// src/renderer/components/layout/footer/components/footerActionButton.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens, themeTransition } from "@renderer/styles/tokens";

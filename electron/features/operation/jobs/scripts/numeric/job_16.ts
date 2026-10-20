@@ -1,16 +1,10 @@
-﻿// electron/features/operation/jobs/scripts/numeric/job_16.ts
+// electron/features/operation/jobs/scripts/numeric/job_16.ts
 
+import fs from "fs-extra";
+import path from "node:path";
 import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import {
-  directoryExists,
-  selectDirectoryByTime,
-} from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
-import {
-  findFiles,
-  getFileInfo,
-} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+
 const CONFIG = {
   normalErrorPath: "\\\\192.88.1.3\\syn_tran",
   farmersErrorPath: "\\\\192.88.1.3\\syn_tran\\ファーマーズエラー",
@@ -19,6 +13,69 @@ const CONFIG = {
   cutoffHour: 8,
   cutoffMinute: 30,
 } as const;
+
+// timeUtils の getDateKey をローカル関数として実装
+function getDateKey(date: Date): string {
+  return format(date, "yyyyMMdd");
+}
+
+// folderUtils の directoryExists をローカル関数として実装
+async function directoryExists(dirPath: string): Promise<boolean> {
+  try {
+    const stats = await fs.stat(dirPath);
+    return stats.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+// folderUtils の selectDirectoryByTime をローカル関数として実装
+function selectDirectoryByTime(
+  now: Date,
+  normalPath: string,
+  farmersPath: string,
+  cutoffHour: number,
+  cutoffMinute: number,
+): string {
+  const cutoff = new Date(now);
+  cutoff.setHours(cutoffHour, cutoffMinute, 0, 0);
+
+  return now < cutoff ? farmersPath : normalPath;
+}
+
+// fileUtils の findFiles をローカル関数として実装
+async function findFiles(
+  dirPath: string,
+  options: { prefix?: string; suffix?: string } = {},
+): Promise<string[]> {
+  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+  return entries
+    .filter((entry) => {
+      if (!entry.isFile()) return false;
+      if (options.prefix && !entry.name.startsWith(options.prefix)) {
+        return false;
+      }
+      if (options.suffix && !entry.name.endsWith(options.suffix)) {
+        return false;
+      }
+      return true;
+    })
+    .map((entry) => path.join(dirPath, entry.name));
+}
+
+// fileUtils の getFileInfo をローカル関数として実装
+async function getFileInfo(filePath: string): Promise<{
+  fileName: string;
+  mtime: Date;
+}> {
+  const fileStat = await fs.stat(filePath);
+
+  return {
+    fileName: path.basename(filePath),
+    mtime: fileStat.mtime,
+  };
+}
 
 export async function runJob16(): Promise<string> {
   const now = new Date();
@@ -49,7 +106,7 @@ export async function runJob16(): Promise<string> {
 
   if (targetFiles.length === 0) {
     logger.log("検出結果 : エラーファイルなし");
-    return logger.complete("エラーファイルなし (正常)");
+    return logger.complete();
   }
 
   logger.log("エラーファイルを検出しました");

@@ -1,3 +1,5 @@
+// src/renderer/features/operation/operationView.css.ts
+
 import { style, globalStyle, keyframes } from "@vanilla-extract/css";
 import { tokens, themeTransition, truncateText } from "@renderer/styles/tokens";
 import { contextMenuTokens } from "@renderer/styles/tokens/component/contextMenu.tokens";
@@ -354,10 +356,12 @@ export const row = style([
         boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.low}`,
       },
       "&[data-remarks='true']": {
+        flexDirection: "column", // 🎯 縦並びにして下の行から本文を表示
         height: "auto",
         minHeight: "4.2rem",
         paddingBlock: tokens.space.md,
-        alignItems: "flex-start",
+        alignItems: "flex-start", // 🎯 全て左寄せ
+        gap: tokens.space.xs,
       },
     },
   },
@@ -378,7 +382,10 @@ export const resultValue = style([
     textAlign: "right",
     selectors: {
       [`${row}[data-remarks='true'] &`]: {
-        whiteSpace: "normal",
+        width: "100%",
+        paddingLeft: 0,
+        textAlign: "left", // 🎯 備考テキストを完全左寄せ
+        whiteSpace: "pre-wrap", // 🎯 改行コード(\n)を有効化
         wordBreak: "break-all",
         lineHeight: 1.6,
       },

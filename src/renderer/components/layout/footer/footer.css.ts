@@ -1,7 +1,7 @@
 // src/renderer/components/layout/footer/footer.css.ts
 
 import { style } from "@vanilla-extract/css";
-import { tokens, themeTransition } from "@renderer/styles/tokens";
+import { themeTransition, tokens } from "@renderer/styles/tokens";
 
 export const footerContainer = style([
   themeTransition,
@@ -18,6 +18,12 @@ export const footerContainer = style([
     backgroundColor: tokens.color.bg.base,
     boxShadow: tokens.shadow.raised.low,
     borderTop: `1px solid ${tokens.color.border.subtle}`,
+
+    // 🎯 描画分離（Paint Flashing 対策）
+    position: "relative",
+    zIndex: 10,
+    isolation: "isolate",
+    transform: "translateZ(0)",
 
     "@media": {
       "screen and (min-width: 768px)": {

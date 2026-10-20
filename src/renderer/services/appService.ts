@@ -1,9 +1,9 @@
 ﻿// src/renderer/services/appService.ts
 
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import { updateService } from "@renderer/services/updateService";
 import { useAppStore } from "@renderer/store";
+import { operationService } from "@renderer/features/operation/operationService";
 
 /* =========================
  * Status Restore
@@ -11,9 +11,7 @@ import { useAppStore } from "@renderer/store";
 
 async function restorePersistedStatuses(): Promise<void> {
   try {
-    const savedStatuses = await window.electronAPI.invoke(
-      IPC_CHANNELS.OPERATION.INITIALIZE_STATUS,
-    );
+    const savedStatuses = await operationService.initializeStatus();
     const updates = Object.values(savedStatuses);
 
     if (updates.length === 0) {
@@ -44,13 +42,16 @@ async function loadOperationData(): Promise<void> {
   }
 
   // 2. JSON マスタから作業ターゲットを登録
-  await window.electronAPI.invoke(IPC_CHANNELS.OPERATION.REGISTER_TARGETS);
+  await operationService.registerTargets();
 
   // 3. 永続化されたステータスを復元
   await restorePersistedStatuses();
 
   // 4. サマリー集計
   await store.fetchStatusSummary();
+
+  // 5. 初回のテーブル表示データを取得
+  await store.fetchTableData(store.currentMode);
 }
 
 /* =========================

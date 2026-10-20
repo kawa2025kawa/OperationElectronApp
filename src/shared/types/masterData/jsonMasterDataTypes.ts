@@ -1,4 +1,4 @@
-﻿// src/shared/types/masterData/jsonMasterDataTypes.ts
+// src/shared/types/masterData/jsonMasterDataTypes.ts
 
 import type {
   IrregularMaster,

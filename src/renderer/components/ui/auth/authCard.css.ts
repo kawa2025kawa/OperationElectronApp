@@ -1,4 +1,4 @@
-﻿// src/renderer/components/ui/auth/authCard.css.ts
+// src/renderer/components/ui/auth/authCard.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens";

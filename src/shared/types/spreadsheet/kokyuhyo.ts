@@ -1,4 +1,4 @@
-﻿// src/shared/types/spreadsheet/kokyuhyo.ts
+// src/shared/types/spreadsheet/kokyuhyo.ts
 
 /**
  * 1. 各フィールドの「キー」と「日本語ラベル」を一元管理

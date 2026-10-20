@@ -1,4 +1,4 @@
-﻿import fs from "fs-extra";
+import fs from "fs-extra";
 import path from "node:path";
 import { Client } from "basic-ftp";
 import iconv from "iconv-lite";

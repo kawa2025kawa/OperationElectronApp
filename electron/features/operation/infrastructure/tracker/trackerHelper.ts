@@ -7,7 +7,6 @@ import {
   type OperationMaster,
 } from "@shared/types/operation/operationTypes";
 import { isPreviousDayJob } from "@electron/features/operation/domain/operationRules";
-import { parseHHMM } from "@electron/features/operation/utils/operationUtils";
 
 const TRACKER_API_KEY = "71e7f0bcc0f995c1d2d322cbdde23543a5be8f91";
 const TRACKER_API_BASE_URL = "http://192.88.1.152/api/v2/trackers";
@@ -42,6 +41,23 @@ export interface TrackerApiResponseItem {
 
 export interface TrackerApiResponse {
   data: TrackerApiResponseItem[];
+}
+
+export interface ParsedTime {
+  hours: number;
+  minutes: number;
+}
+
+export function parseHHMM(value?: string | null): ParsedTime | null {
+  const match = value?.match(/(\d{1,2}):(\d{1,2})/);
+  if (!match) return null;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  if (hours > 23 || minutes > 59) return null;
+
+  return { hours, minutes };
 }
 
 /**

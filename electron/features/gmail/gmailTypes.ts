@@ -1,13 +1,12 @@
-﻿// electron/features/gmail/gmailTypes.ts
+import type {
+  EmailTemplateKey,
+  GmailDraft,
+} from "@shared/types/gmail/gmailDraftTypes";
 
-export type EmailTemplateKey = "E8" | "E9" | "E10";
-
-export interface GmailDraft {
-  to: string;
-  cc: string;
-  subject: string;
-  body: string;
-}
+export type {
+  EmailTemplateKey,
+  GmailDraft,
+} from "@shared/types/gmail/gmailDraftTypes";
 
 export interface GmailSendAs {
   isPrimary?: boolean;
@@ -22,6 +21,7 @@ export interface GenerateDraftTemplateParams {
   templateKey: EmailTemplateKey;
   familyName?: string;
   links?: Record<string, string> | null;
+  ym?: string;
 }
 
 export interface BuildRawMessageParams {

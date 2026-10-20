@@ -1,4 +1,4 @@
-﻿// src/renderer/components/layout/footer/components/FooterActionButton.tsx
+// src/renderer/components/layout/footer/components/FooterActionButton.tsx
 
 import { memo } from "react";
 import * as styles from "./footerActionButton.css";

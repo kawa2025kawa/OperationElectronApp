@@ -1,4 +1,4 @@
-﻿// src/shared/utils/fileUtils.ts
+// src/shared/utils/fileUtils.ts
 
 /**
  * ファイルパスまたはURLからファイル名を取得します

@@ -1,4 +1,4 @@
-//src\renderer\layout\MainView.tsx
+// src/renderer/layout/MainView.tsx
 
 import { memo } from "react";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "framer-motion";
@@ -60,7 +60,7 @@ export const MainView = memo(() => {
                     x: -12,
                   }}
                   transition={{
-                    duration: 0.2,
+                    duration: 0.15,
                     ease: "easeOut",
                   }}
                   style={{
@@ -84,3 +84,5 @@ export const MainView = memo(() => {
     </LazyMotion>
   );
 });
+
+MainView.displayName = "MainView";

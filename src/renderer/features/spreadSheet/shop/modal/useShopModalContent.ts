@@ -1,9 +1,9 @@
-﻿// src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
+// src/renderer/features/spreadsheet/shop/modal/useShopModalContent.ts
 
 import { useMemo, useCallback } from "react";
 import type { Shop } from "@shared/types/spreadsheet/shop";
 import type { ModalAction } from "@shared/types/ui/modal";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { systemIpcService } from "@renderer/services/systemIpcService";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
 import {
   SHOP_MODAL_GROUPS,
@@ -21,7 +21,6 @@ function getValidFilePath(value: unknown): string {
 }
 
 export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
-  // 渡された data から直接取得し、Zustandの全件再検索と不要サブスクリプションを排除
   const excelPath = getValidFilePath(data.excelFilePath);
   const pdfPath = getValidFilePath(data.pdfFilePath);
 
@@ -31,28 +30,19 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
   const isTimeRecorderTab =
     SHOP_MODAL_GROUPS[selectedIndex]?.title === "タイムレコーダー";
 
-  const handleOpen = useCallback(async (path: string) => {
-    const normalizedPath = path.trim();
-    if (!normalizedPath) return;
+  const handleOpenPath = useCallback(async (path: string | undefined) => {
+    if (!path || path === "-") return;
+    const normalized = path.trim();
+    if (!normalized) return;
 
     try {
-      await window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, {
-        urlOrPath: normalizedPath,
-      });
+      await systemIpcService.openExternal(normalized);
     } catch (error) {
       console.error(
         "[useShopModalContent] Failed to open external path:",
-        normalizedPath,
+        normalized,
         error,
       );
-    }
-  }, []);
-
-  const handleOpenImage = useCallback((value: string | undefined) => {
-    if (value && value !== "-") {
-      void window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, {
-        urlOrPath: value,
-      });
     }
   }, []);
 
@@ -67,7 +57,7 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
         return {
           id: `image-${key}`,
           label,
-          onClick: () => handleOpenImage(rawValue),
+          onClick: () => void handleOpenPath(rawValue),
           disabled: !hasUrl,
           variant: "default",
         };
@@ -80,7 +70,7 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
       fileActions.push({
         id: "excel",
         label: "店舗情報.xlsx",
-        onClick: () => void handleOpen(excelPath),
+        onClick: () => void handleOpenPath(excelPath),
         variant: "default",
       });
     }
@@ -89,20 +79,13 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
       fileActions.push({
         id: "pdf",
         label: "店舗情報.pdf",
-        onClick: () => void handleOpen(pdfPath),
+        onClick: () => void handleOpenPath(pdfPath),
         variant: "default",
       });
     }
 
     return [...imageActions, ...fileActions];
-  }, [
-    isTimeRecorderTab,
-    data,
-    excelPath,
-    pdfPath,
-    handleOpen,
-    handleOpenImage,
-  ]);
+  }, [isTimeRecorderTab, data, excelPath, pdfPath, handleOpenPath]);
 
   return {
     selectedIndex,

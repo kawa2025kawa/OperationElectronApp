@@ -1,4 +1,4 @@
-﻿// src/renderer/features/spreadSheet/shop/modal/ShopModalContent.tsx
+// src/renderer/features/spreadSheet/shop/modal/ShopModalContent.tsx
 
 import { memo, useEffect } from "react";
 import { useAppStore } from "@renderer/store";

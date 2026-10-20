@@ -1,4 +1,4 @@
-﻿// src/shared/utils/statusToastSuppression.ts
+// src/shared/utils/statusToastSuppression.ts
 
 /**
  * 手動操作による成功トーストの二重表示を抑止する管理Set

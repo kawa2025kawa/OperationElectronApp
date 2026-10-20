@@ -1,66 +1,66 @@
-﻿// electron/features/operation/jobs/scripts/numeric/job_25.ts
+//electron\features\operation\jobs\scripts\numeric\job_25.ts
 
+import fs from "fs-extra";
 import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
-
-import {
-  findFiles,
-  getLatestFile,
-} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
-
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 const CONFIG = {
   targetDir: "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV",
   keywords: ["htsf0060", "Okurikomi"],
+  maxFilesPerKeyword: 1,
 } as const;
 
 export async function runJob25(): Promise<string> {
-  const today = getDateKey(new Date());
   const logger = new JobLogger();
+  const today = format(new Date(), "yyyyMMdd");
 
   logger.log(`対象ディレクトリ : ${CONFIG.targetDir}`);
-  logger.log(`検索日付 : ${today}`);
+  logger.log(`対象日付 : ${today}`);
 
-  if (!(await directoryExists(CONFIG.targetDir))) {
-    throw logger.fail(`ディレクトリが存在しません: ${CONFIG.targetDir}`);
+  let entries;
+
+  try {
+    entries = await fs.readdir(CONFIG.targetDir, {
+      withFileTypes: true,
+    });
+  } catch {
+    throw logger.fail(`ディレクトリにアクセスできません: ${CONFIG.targetDir}`);
   }
 
-  const todayFiles = await findFiles(CONFIG.targetDir, {
-    dateKey: today,
-  });
+  const todayFiles = entries.filter(
+    (entry) => entry.isFile() && entry.name.includes(today),
+  );
 
-  const missingKeywords: string[] = [];
+  const errors: string[] = [];
 
   for (const keyword of CONFIG.keywords) {
-    const matchedFiles = await findFiles(CONFIG.targetDir, {
-      dateKey: today,
-      includes: [keyword],
-    });
+    const matches = todayFiles.filter((entry) => entry.name.includes(keyword));
 
-    if (matchedFiles.length === 0) {
-      missingKeywords.push(keyword);
+    if (matches.length === 0) {
+      errors.push(`${keyword}: 対象ファイルなし`);
       logger.log(`対象なし [${keyword}]`);
       continue;
     }
 
-    const latest = await getLatestFile(matchedFiles);
+    if (matches.length > CONFIG.maxFilesPerKeyword) {
+      errors.push(
+        `${keyword}: 上限超過 (${matches.length}件 / 上限${CONFIG.maxFilesPerKeyword}件)`,
+      );
+      logger.log(`対象複数 [${keyword}] ${matches.length}件`);
 
-    if (!latest) {
-      missingKeywords.push(keyword);
-      logger.log(`対象なし [${keyword}]`);
+      for (const entry of matches) {
+        logger.log(`  ${entry.name}`);
+      }
+
       continue;
     }
 
-    logger.log(`検出 [${keyword}] : ${latest.fileName}`);
+    logger.log(`対象あり [${keyword}] ${matches[0].name}`);
   }
 
-  if (missingKeywords.length > 0) {
-    throw logger.fail(
-      `未受信ファイルあり (対象: ${missingKeywords.join(", ")})`,
-    );
+  if (errors.length > 0) {
+    throw logger.fail(`ファイル確認エラー: ${errors.join(" / ")}`);
   }
 
-  return logger.complete("全ファイル受信確認");
+  return logger.complete();
 }

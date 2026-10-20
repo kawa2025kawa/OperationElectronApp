@@ -1,4 +1,4 @@
-﻿// electron/features/operation/jobs/tools/scrapeApi.ts
+// electron/features/operation/jobs/tools/scrapeApi.ts
 
 import fs from "node:fs";
 import path from "node:path";

@@ -1,24 +1,70 @@
-﻿// electron/features/operation/jobs/scripts/numeric/job_20.ts
+// electron/features/operation/jobs/scripts/numeric/job_20.ts
 
-import { format } from "date-fns";
+import fs from "fs-extra";
+import path from "node:path";
+import { addDays, format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
-
-import {
-  findFiles,
-  getFileInfo,
-} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
-
-import {
-  getDateKey,
-  getDateKeyOffset,
-} from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 const CONFIG = {
   targetDir: "\\\\172.25.101.51\\if\\AUTOORD\\RCV\\SV",
   targetFileKeyword: "JIDOHAT",
   maxDiffKb: 10000,
 } as const;
+
+// timeUtils の getDateKey をローカル実装
+function getDateKey(date: Date, dateFormat = "yyyyMMdd"): string {
+  return format(date, dateFormat);
+}
+
+// timeUtils の getDateKeyOffset をローカル実装
+function getDateKeyOffset(
+  offsetDays: number,
+  baseDate: Date,
+  dateFormat = "yyyyMMdd",
+): string {
+  return format(addDays(baseDate, -offsetDays), dateFormat);
+}
+
+// folderUtils の directoryExists をローカル実装
+async function directoryExists(dirPath: string): Promise<boolean> {
+  try {
+    return (await fs.stat(dirPath)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+// fileUtils の findFiles をローカル実装
+async function findFiles(
+  dirPath: string,
+  options: { includes?: string[] },
+): Promise<string[]> {
+  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  const includes = options.includes ?? [];
+
+  return entries
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        includes.every((keyword) => entry.name.includes(keyword)),
+    )
+    .map((entry) => path.join(dirPath, entry.name));
+}
+
+// fileUtils の getFileInfo をローカル実装
+async function getFileInfo(filePath: string): Promise<{
+  fileName: string;
+  sizeKb: number;
+  mtime: Date;
+}> {
+  const stats = await fs.stat(filePath);
+
+  return {
+    fileName: path.basename(filePath),
+    sizeKb: stats.size / 1024,
+    mtime: stats.mtime,
+  };
+}
 
 export async function runJob20(): Promise<string> {
   const now = new Date();
@@ -43,9 +89,8 @@ export async function runJob20(): Promise<string> {
 
     const todayFile = await getFileInfo(todayFiles[0]);
 
-    logger.log(`本日分 (${today}) ファイル : ${todayFile.fileName}`);
+    logger.log(`本日分 : ${todayFile.fileName}`);
     logger.log(`サイズ : ${todayFile.sizeKb.toFixed(2)} KB`);
-    logger.log(`更新日時 : ${format(todayFile.mtime, "yyyy/MM/dd HH:mm:ss")}`);
 
     const lastWeekFiles = await findFiles(CONFIG.targetDir, {
       includes: [CONFIG.targetFileKeyword, lastWeek],
@@ -57,11 +102,8 @@ export async function runJob20(): Promise<string> {
 
     const lastWeekFile = await getFileInfo(lastWeekFiles[0]);
 
-    logger.log(`先週分 (${lastWeek}) ファイル : ${lastWeekFile.fileName}`);
+    logger.log(`先週分  : ${lastWeekFile.fileName}`);
     logger.log(`サイズ : ${lastWeekFile.sizeKb.toFixed(2)} KB`);
-    logger.log(
-      `更新日時 : ${format(lastWeekFile.mtime, "yyyy/MM/dd HH:mm:ss")}`,
-    );
 
     const diffKb = Math.abs(todayFile.sizeKb - lastWeekFile.sizeKb);
     const formattedDiff = diffKb.toFixed(2);
@@ -78,7 +120,7 @@ export async function runJob20(): Promise<string> {
 
     logger.log("判定結果 : 正常 (閾値内)");
 
-    return logger.complete(`差分 ${formattedDiff} KB (閾値内)`);
+    return logger.complete();
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 

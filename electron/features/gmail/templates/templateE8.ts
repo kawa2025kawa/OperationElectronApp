@@ -1,5 +1,5 @@
 // electron/features/gmail/templates/templateE8.ts
-
+//シェルフラベル発注
 import type { GmailDraft } from "../gmailTypes";
 
 export function createTemplateE8(

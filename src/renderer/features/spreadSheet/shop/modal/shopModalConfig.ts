@@ -1,4 +1,4 @@
-﻿import type { Shop } from "@shared/types/spreadsheet/shop";
+import type { Shop } from "@shared/types/spreadsheet/shop";
 import { SHOP_FIELD_LABELS } from "@shared/types/spreadsheet/shop";
 import type { TabGroupConfig } from "../../hooks/useSpreadSheetTabData";
 

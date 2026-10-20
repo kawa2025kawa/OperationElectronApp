@@ -1,4 +1,4 @@
-﻿// electron/features/operation/infrastructure/tracker/trackerServiceClient.ts
+// electron/features/operation/infrastructure/tracker/trackerServiceClient.ts
 
 import {
   addKanshiTime,

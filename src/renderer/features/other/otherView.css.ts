@@ -1,4 +1,4 @@
-﻿//src\renderer\features\other\otherView.css.ts
+//src\renderer\features\other\otherView.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens, themeTransition } from "@renderer/styles/tokens";

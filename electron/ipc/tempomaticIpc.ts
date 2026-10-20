@@ -1,4 +1,4 @@
-﻿// electron/ipc/tempomaticIpc.ts
+// electron/ipc/tempomaticIpc.ts
 
 import { ipcMain } from "electron";
 import { addDays, format } from "date-fns";
@@ -7,11 +7,13 @@ import path from "node:path";
 import { uploadPdfDocuments } from "@electron/features/tempomatic/tempomaticService";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 
+// 指定日数後の有効期限日付文字列（yyyy/MM/dd）を算出する。
 function calculateExpireDate(offsetDays = 7): string {
   const date = addDays(new Date(), offsetDays);
   return format(date, "yyyy/MM/dd");
 }
 
+// TempomaticへのPDF帳票アップロードに関するIPCハンドラーを登録する。
 export function registerTempomaticIpc(): void {
   ipcMain.handle(
     IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT,

@@ -22,10 +22,7 @@ export interface OperationMaster {
   /** AutoManual ボタンの表示判定・起動先 */
   autoManualUrl?: string;
 
-  Script?: boolean;
   ScriptKeys?: OperationScriptKey[];
-
-  link?: boolean;
   links?: OperationLink[];
 
   other1?: string;
@@ -45,10 +42,7 @@ export interface IrregularMaster {
   /** AutoManual ボタンの表示判定・起動先 */
   autoManualUrl?: string;
 
-  Script?: boolean;
   ScriptKeys?: OperationScriptKey[];
-
-  link?: boolean;
   links?: OperationLink[];
 
   other1?: string;
@@ -65,7 +59,8 @@ export type ScriptExecutionType = "manual" | "auto";
 
 export interface OperationScriptKey {
   key: string;
-  executionType: ScriptExecutionType;
+  label?: string;
+  executionTypes?: ScriptExecutionType[];
   requiresFileSelection?: boolean;
 }
 

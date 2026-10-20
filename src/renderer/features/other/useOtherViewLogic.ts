@@ -1,10 +1,11 @@
-﻿// src/renderer/features/other/useOtherViewLogic.ts
+// src/renderer/features/other/useOtherViewLogic.ts
 
 import { createElement } from "react";
+
 import { useAppStore } from "@renderer/store";
-import { GiftMdModalContent } from "./components/modal/contents/giftMd/GiftMdModalContent";
-import { GmailDraftContent } from "./components/modal/contents/gmailDraft/GmailDraftContent";
-import { PdfUploadModalContent } from "./components/modal/contents/pdfUpload/PdfUploadModalContent";
+import { openPdfUploadModal } from "@renderer/features/other/components/modal/contents/pdfUpload/openPdfUploadModal";
+import { GiftMdModalContent } from "@renderer/features/other/components/modal/contents/giftMd/GiftMdModalContent";
+import { GmailDraftContent } from "@renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent";
 
 const MODAL_SIZE = {
   width: "min(95vw, calc(75vh * (21 / 9)))",
@@ -15,10 +16,7 @@ export function useOtherViewLogic() {
   const openGlobalModal = useAppStore((state) => state.openGlobalModal);
 
   const handleOpenPdfModal = () => {
-    openGlobalModal(createElement(PdfUploadModalContent), {
-      title: "Tempomatic PDF",
-      ...MODAL_SIZE,
-    });
+    openPdfUploadModal(openGlobalModal);
   };
 
   const handleOpenGmailModal = () => {

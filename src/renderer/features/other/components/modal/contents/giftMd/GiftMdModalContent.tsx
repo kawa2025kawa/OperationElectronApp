@@ -1,4 +1,4 @@
-﻿// src/renderer/features/other/components/modal/contents/giftMd/GiftMdModalContent.tsx
+// src/renderer/features/other/components/modal/contents/giftMd/GiftMdModalContent.tsx
 
 import { memo } from "react";
 

@@ -1,4 +1,4 @@
-﻿import { chromium, type Page } from "playwright";
+import { chromium, type Page } from "playwright";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
 const TOP_URL = "https://www2.belc.co.jp:8002/webedi/belcwebedi.html";

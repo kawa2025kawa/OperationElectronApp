@@ -1,14 +1,9 @@
-﻿// electron/features/operation/jobs/scripts/numeric/job_80.ts
+// electron/features/operation/jobs/scripts/numeric/job_80.ts
 
+import path from "node:path";
+import { format } from "date-fns";
+import fs from "fs-extra";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
-
-import {
-  findFiles,
-  getFileInfo,
-} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
-
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 const TARGET_DIR = "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV";
 
@@ -21,6 +16,69 @@ interface MatchedFile {
   mtime: Date;
 }
 
+function getDateKey(date = new Date()): string {
+  return format(date, "yyyyMMdd");
+}
+
+async function directoryExists(dirPath: string): Promise<boolean> {
+  try {
+    return (await fs.stat(dirPath)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+async function findFiles(dirPath: string, prefix: string): Promise<string[]> {
+  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+  return entries
+    .filter((entry) => entry.isFile() && entry.name.startsWith(prefix))
+    .map((entry) => path.join(dirPath, entry.name));
+}
+
+async function getFileInfo(filePath: string): Promise<MatchedFile> {
+  const stat = await fs.stat(filePath);
+
+  return {
+    target: "",
+    fileName: path.basename(filePath),
+    filePath,
+    mtime: stat.mtime,
+  };
+}
+
+async function findMatchedFile(
+  target: string,
+  prefix: string,
+): Promise<MatchedFile | null> {
+  const [filePath] = await findFiles(TARGET_DIR, prefix);
+
+  if (!filePath) {
+    return null;
+  }
+
+  const info = await getFileInfo(filePath);
+
+  return { ...info, target };
+}
+
+function formatModifiedTime(date: Date): string {
+  return date.toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
+function logMatchedFile(logger: JobLogger, item: MatchedFile): void {
+  logger.log(`  ${item.fileName}`);
+  logger.log(`    更新日時 : ${formatModifiedTime(item.mtime)}`);
+}
+
 export async function runJob80(): Promise<string> {
   const today = getDateKey();
   const logger = new JobLogger();
@@ -31,83 +89,28 @@ export async function runJob80(): Promise<string> {
     throw logger.fail(`ディレクトリが存在しません: ${TARGET_DIR}`);
   }
 
-  // 固定名ファイルを検索
   const fixedFiles = await Promise.all(
-    REQUIRED_FILES.map(async (target): Promise<MatchedFile | null> => {
-      const matchedFiles = await findFiles(TARGET_DIR, {
-        prefix: target,
-      });
-
-      const filePath = matchedFiles[0];
-
-      if (!filePath) {
-        return null;
-      }
-
-      const fileInfo = await getFileInfo(filePath);
-
-      return {
-        target,
-        fileName: fileInfo.fileName,
-        filePath: fileInfo.filePath,
-        mtime: fileInfo.mtime,
-      };
-    }),
+    REQUIRED_FILES.map((target) => findMatchedFile(target, target)),
   );
 
-  const hasAllFixed = fixedFiles.every((item) => item !== null);
-
-  if (hasAllFixed) {
+  if (fixedFiles.every((item) => item !== null)) {
     logger.log("固定名ファイルを検出しました");
 
     for (const item of fixedFiles) {
-      if (!item) {
-        continue;
+      if (item) {
+        logMatchedFile(logger, item);
       }
-
-      logger.log(`  ${item.fileName}`);
-      logger.log(
-        `    更新日時 : ${item.mtime
-          .toLocaleString("ja-JP", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: false,
-          })
-          .replace(/\//g, "/")}`,
-      );
     }
 
     return logger.complete("固定名ファイル確認完了");
   }
 
-  // 固定名ファイルが揃わない場合は、当日の日付付きファイルを検索
   logger.log(`本日日付 (${today}) のファイルを検索中...`);
 
   const datedFiles = await Promise.all(
-    REQUIRED_FILES.map(async (target): Promise<MatchedFile | null> => {
-      const matchedFiles = await findFiles(TARGET_DIR, {
-        prefix: `${target}_${today}`,
-      });
-
-      const filePath = matchedFiles[0];
-
-      if (!filePath) {
-        return null;
-      }
-
-      const fileInfo = await getFileInfo(filePath);
-
-      return {
-        target,
-        fileName: fileInfo.fileName,
-        filePath: fileInfo.filePath,
-        mtime: fileInfo.mtime,
-      };
-    }),
+    REQUIRED_FILES.map((target) =>
+      findMatchedFile(target, `${target}_${today}`),
+    ),
   );
 
   const missing: string[] = [];
@@ -118,18 +121,7 @@ export async function runJob80(): Promise<string> {
 
     if (item) {
       logger.log(`  検出 : ${item.fileName}`);
-
-      logger.log(
-        `    更新日時 : ${item.mtime.toLocaleString("ja-JP", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        })}`,
-      );
+      logger.log(`    更新日時 : ${formatModifiedTime(item.mtime)}`);
     } else {
       missing.push(target);
       logger.log(`  未検出 : [${target}] ファイルが見つかりません`);

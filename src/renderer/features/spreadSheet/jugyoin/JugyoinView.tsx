@@ -1,9 +1,6 @@
-﻿// src/renderer/features/spreadSheet/jugyoin/JugyoinView.tsx
+// src/renderer/features/spreadsheet/jugyoin/JugyoinView.tsx
 
-import { addDays, format } from "date-fns";
-import { ja } from "date-fns/locale/ja";
 import { memo, useCallback } from "react";
-
 import { AuthView } from "@renderer/features/auth/AuthView";
 import {
   APP_VIEW_IDS,
@@ -14,20 +11,10 @@ import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { Column } from "@shared/types/table/tableType";
 
 import { useSpreadSheetDomainLogic } from "../hooks/useSpreadSheetDomainLogic";
+import { DATE_LABELS } from "../utils/spreadsheetDateUtils";
 import { JugyoinModalContent } from "./modal/JugyoinModalContent";
-import * as styles from "./JugyoinView.css";
 import { JugyoinTable } from "./table/JugyoinTable";
-
-const getOffsetDate = (offsetDays: number): Date =>
-  addDays(new Date(), offsetDays);
-
-const formatDateForHeader = (date: Date): string =>
-  format(date, "MM/dd(EEE)", { locale: ja });
-
-const DATE_LABELS = {
-  today: `本日 (${formatDateForHeader(new Date())})`,
-  tomorrow: `明日 (${formatDateForHeader(getOffsetDate(1))})`,
-} as const;
+import * as styles from "./JugyoinView.css";
 
 export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
   { key: "bumon", label: "部門", width: "15%" },

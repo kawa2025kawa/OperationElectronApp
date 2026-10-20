@@ -1,8 +1,11 @@
-﻿import { memo, useCallback } from "react";
+// src/renderer/features/spreadSheet/kokyuhyo/table/KokyuhyoTable.tsx
+
+import { memo, useCallback } from "react";
 import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
-import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
+import type { Column } from "@shared/types/table/tableType";
+import { SpreadSheetBaseTable } from "../../components/table/SpreadSheetBaseTable";
 import { KOKYUHYO_COLUMNS } from "../KokyuhyoView";
-import * as styles from "./KokyuhyoTable.css";
+import * as styles from "@renderer/styles/global/table.css";
 
 const checkIsHolidayText = (value: unknown): boolean => {
   if (value == null || typeof value === "object") return false;
@@ -15,62 +18,6 @@ const checkIsHolidayText = (value: unknown): boolean => {
   );
 };
 
-const TableColGroup = () => (
-  <colgroup>
-    {KOKYUHYO_COLUMNS.map((col) => (
-      <col key={String(col.key)} style={{ width: col.width }} />
-    ))}
-  </colgroup>
-);
-
-interface KokyuhyoTableRowProps {
-  row: Kokyuhyo;
-  isSelected: boolean;
-  onRowClick?: (item: Kokyuhyo) => void;
-}
-
-const KokyuhyoTableRowInner = ({
-  row,
-  isSelected,
-  onRowClick,
-}: KokyuhyoTableRowProps) => {
-  const state = isSelected ? "selected" : onRowClick ? "clickable" : "idle";
-
-  const handleClick = useCallback(() => {
-    onRowClick?.(row);
-  }, [onRowClick, row]);
-
-  return (
-    <tr
-      className={`${styles.tableRowBase} ${styles.tableRowStates[state]}`}
-      onClick={handleClick}
-    >
-      {KOKYUHYO_COLUMNS.map((col) => {
-        const value = row[col.key as keyof Kokyuhyo];
-        const alignClass = styles.alignVariants[col.align ?? "left"];
-        const isHoliday = checkIsHolidayText(value);
-
-        return (
-          <td
-            key={String(col.key)}
-            className={`${styles.tdBase} ${alignClass}`}
-          >
-            <span
-              className={`${styles.cellText} ${
-                isHoliday ? styles.cellTextHoliday : ""
-              }`}
-            >
-              {value == null || value === "" ? "-" : String(value)}
-            </span>
-          </td>
-        );
-      })}
-    </tr>
-  );
-};
-
-const KokyuhyoTableRow = memo(KokyuhyoTableRowInner);
-
 export interface KokyuhyoTableProps {
   rows: readonly Kokyuhyo[];
   selectedId?: string;
@@ -79,57 +26,32 @@ export interface KokyuhyoTableProps {
 
 export const KokyuhyoTable = memo(
   ({ rows, selectedId, onRowClick }: KokyuhyoTableProps) => {
-    if (rows.length === 0) {
-      return <EmptyState />;
-    }
+    const renderCell = useCallback(
+      (_row: Kokyuhyo, _col: Column<Kokyuhyo>, value: unknown) => {
+        const isHoliday = checkIsHolidayText(value);
+        return (
+          <span
+            className={`${styles.cellText} ${isHoliday ? styles.cellTextHoliday : ""}`}
+          >
+            {value == null || value === "" ? "-" : String(value)}
+          </span>
+        );
+      },
+      [],
+    );
 
     return (
-      <div className={styles.container}>
-        <div className={styles.headerWrapper}>
-          <table className={styles.headerTable}>
-            <TableColGroup />
-            <thead>
-              <tr>
-                {KOKYUHYO_COLUMNS.map((col) => {
-                  const alignClass = styles.alignVariants[col.align ?? "left"];
-
-                  return (
-                    <th
-                      key={String(col.key)}
-                      className={`${styles.thBase} ${alignClass}`}
-                    >
-                      {col.label}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-          </table>
-        </div>
-
-        <div className={styles.bodyWrapper}>
-          <table className={styles.bodyTable}>
-            <TableColGroup />
-            <tbody>
-              {rows.map((row, index) => {
-                const idKey = row.name
-                  ? String(row.name).trim()
-                  : String(index);
-                const isSelected = selectedId === idKey;
-
-                return (
-                  <KokyuhyoTableRow
-                    key={`${idKey}-${index}`}
-                    row={row}
-                    isSelected={isSelected}
-                    onRowClick={onRowClick}
-                  />
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <SpreadSheetBaseTable
+        rows={rows}
+        columns={KOKYUHYO_COLUMNS}
+        selectedId={selectedId}
+        getRowId={(row, index) =>
+          row.name ? String(row.name).trim() : String(index)
+        }
+        onRowClick={onRowClick}
+        renderCell={renderCell}
+        styles={styles}
+      />
     );
   },
 );

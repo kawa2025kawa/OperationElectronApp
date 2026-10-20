@@ -1,1 +1,1 @@
-﻿export * from "./update";
+export * from "./update";

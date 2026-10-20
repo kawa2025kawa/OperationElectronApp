@@ -1,11 +1,12 @@
-﻿// electron/features/operation/jobs/scripts/eseries/job_e30.ts
+// electron/features/operation/jobs/scripts/eseries/job_e30.ts
 
 import path from "node:path";
 import fs from "fs-extra";
+import iconv from "iconv-lite";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { parseAmount } from "../helpers/shared/parseAmount";
-import { parseCsv } from "../helpers/shared/parseCsvLine";
+import { parseCsv } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
+import { parseAmount } from "../helpers/parseAmount";
 
 type YosanMap = Map<string, number>;
 
@@ -14,19 +15,10 @@ function normalizeInputPaths(inputFilePath?: string | string[]): string[] {
   return Array.isArray(inputFilePath) ? inputFilePath : [inputFilePath];
 }
 
-function normalizeStoreCode(value: string): string {
-  const codePart = value.split(":")[0]?.trim() ?? value;
-  const numericOnly = codePart.replace(/[^0-9]/g, "");
-  const number = Number.parseInt(numericOnly, 10);
-
-  return Number.isNaN(number)
-    ? value.trim().slice(0, 3)
-    : String(number).padStart(3, "0");
-}
-
 async function readShiftJisCsv(filePath: string): Promise<string[][]> {
   const buffer = await fs.readFile(filePath);
-  return parseCsv(new TextDecoder("shift-jis").decode(buffer));
+  const decodedText = iconv.decode(buffer, "Shift_JIS");
+  return parseCsv(decodedText);
 }
 
 async function parseMeisYosan(filePath: string): Promise<YosanMap> {
@@ -34,13 +26,12 @@ async function parseMeisYosan(filePath: string): Promise<YosanMap> {
   const result = new Map<string, number>();
 
   for (const row of rows) {
-    const rawStoreCode = row[0]?.trim() ?? "";
-    if (!rawStoreCode) continue;
+    const storeCode = row[0]; // csvUtils 側でトリム・パース済み
+    if (!storeCode) continue;
 
     const amount = parseAmount(row[4]);
     if (amount === null) continue;
 
-    const storeCode = normalizeStoreCode(rawStoreCode);
     result.set(storeCode, (result.get(storeCode) ?? 0) + amount);
   }
 
@@ -49,14 +40,14 @@ async function parseMeisYosan(filePath: string): Promise<YosanMap> {
 
 async function parseUriYosan(filePath: string): Promise<YosanMap> {
   const rows = await readShiftJisCsv(filePath);
-  const startIndex = rows.findIndex((row) => row[0]?.trim().includes("002"));
+  const startIndex = rows.findIndex((row) => row[0]?.includes("002"));
 
   if (startIndex === -1) {
     throw new Error("開始店舗コード '002' が見つかりませんでした");
   }
 
   const endIndex = rows.findIndex(
-    (row, index) => index >= startIndex && row[0]?.trim().includes("700"),
+    (row, index) => index >= startIndex && row[0]?.includes("700"),
   );
   const validRows =
     endIndex === -1 ? rows.slice(startIndex) : rows.slice(startIndex, endIndex);
@@ -64,13 +55,13 @@ async function parseUriYosan(filePath: string): Promise<YosanMap> {
   const result = new Map<string, number>();
 
   for (const row of validRows) {
-    const rawLabel = row[0]?.trim() ?? "";
-    if (!rawLabel) continue;
+    const storeCode = row[0];
+    if (!storeCode) continue;
 
     const amount = parseAmount(row[1]);
     if (amount === null) continue;
 
-    result.set(normalizeStoreCode(rawLabel), amount);
+    result.set(storeCode, amount);
   }
 
   return result;

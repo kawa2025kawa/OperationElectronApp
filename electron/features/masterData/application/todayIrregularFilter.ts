@@ -1,10 +1,11 @@
-﻿// electron/features/masterData/application/todayIrregularFilter.ts
+// electron/features/masterData/application/todayIrregularFilter.ts
 
 import type {
   IrregularMaster,
   TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
 
+// CSVなどのレコードのキーと文字列値を正規化する。
 function normalizeRecord(record: IrregularMaster): IrregularMaster {
   const normalized: Record<string, unknown> = {};
 
@@ -16,6 +17,7 @@ function normalizeRecord(record: IrregularMaster): IrregularMaster {
   return normalized as unknown as IrregularMaster;
 }
 
+// 指定日時から日本時間の年月日・曜日・月末日を取得する。
 function getJstDateParts(now: Date) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Tokyo",
@@ -50,6 +52,7 @@ function getJstDateParts(now: Date) {
   };
 }
 
+// 周期指定が月日・週・曜日・奇数月・偶数月などの条件に一致するか判定する。
 function matchesCycle(cycleValue: string, now: Date): boolean {
   const today = getJstDateParts(now);
 
@@ -101,6 +104,7 @@ function matchesCycle(cycleValue: string, now: Date): boolean {
   });
 }
 
+// 予定時刻を並べ替え用の数値に変換し、AM・PMや不正値も区別する。
 function getScheduledTimeRank(value: string): number {
   const time = value.trim().toUpperCase();
 
@@ -121,6 +125,7 @@ function getScheduledTimeRank(value: string): number {
   return 9999;
 }
 
+// 不定期運用データから当日の対象レコードを抽出し、予定時刻順に並べる。
 export function buildTodayIrregulars(
   source: IrregularMaster[],
   now: Date = new Date(),

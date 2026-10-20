@@ -1,19 +1,10 @@
-﻿// electron/features/operation/jobs/scripts/numeric/job_64.ts
+// electron/features/operation/jobs/scripts/numeric/job_64.ts
 
 import path from "node:path";
 import { format } from "date-fns";
 import fs from "fs-extra";
 import iconv from "iconv-lite";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
-
-import {
-  findFiles,
-  getFileInfo,
-  moveFile,
-} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
-
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 const CONFIG = {
   baseDir: "\\\\172.25.101.51\\if\\LOG\\DCMMD",
@@ -38,6 +29,41 @@ interface MoveTarget {
   processed: boolean;
 }
 
+function getDateKey(date = new Date(), pattern = "yyyyMMdd"): string {
+  return format(date, pattern);
+}
+
+async function directoryExists(dirPath: string): Promise<boolean> {
+  try {
+    return (await fs.stat(dirPath)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+async function findFiles(dirPath: string): Promise<string[]> {
+  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => path.join(dirPath, entry.name));
+}
+
+async function getFileInfo(filePath: string) {
+  const stats = await fs.stat(filePath);
+  return {
+    fileName: path.basename(filePath),
+    mtime: stats.mtime,
+  };
+}
+
+async function moveFile(
+  filePath: string,
+  destinationDir: string,
+): Promise<void> {
+  await fs.ensureDir(destinationDir);
+  await fs.move(filePath, path.join(destinationDir, path.basename(filePath)));
+}
+
 function isPluDuplicateFile(name: string): boolean {
   return name.normalize("NFKC").includes("PLU重複");
 }
@@ -46,31 +72,21 @@ async function readShiftJis(filePath: string): Promise<string> {
   return iconv.decode(await fs.readFile(filePath), CONFIG.encoding);
 }
 
-async function processDataFile(
-  filePath: string,
-  result: CheckResult,
-): Promise<{ hasProcessableRow: boolean }> {
-  const text = await readShiftJis(filePath);
-  const lines = text.split(/\r?\n/).filter((line) => line.trim());
-
+function processDataText(text: string, result: CheckResult): boolean {
   let hasProcessableRow = false;
 
-  for (const line of lines) {
-    const columns = line.split(",");
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
 
-    if (columns.length < 6) {
-      continue;
-    }
+    const columns = line.split(",");
+    if (columns.length < 6) continue;
 
     const type = columns[4]?.trim();
     const status = columns[5]?.trim();
 
-    if (CONFIG.excludedStatuses.has(status)) {
-      continue;
-    }
+    if (CONFIG.excludedStatuses.has(status)) continue;
 
     hasProcessableRow = true;
-
     const output = columns.slice(4).join(",");
 
     if (CONFIG.syohinTypes.has(type)) {
@@ -80,7 +96,7 @@ async function processDataFile(
     }
   }
 
-  return { hasProcessableRow };
+  return hasProcessableRow;
 }
 
 async function writeOutput(
@@ -88,20 +104,16 @@ async function writeOutput(
   fileName: string,
   lines: string[],
 ): Promise<boolean> {
-  if (lines.length === 0) {
-    return false;
-  }
+  if (lines.length === 0) return false;
 
   const datPath = path.join(targetDir, fileName);
-
   await fs.writeFile(
     datPath,
     iconv.encode(lines.join("\r\n"), CONFIG.encoding),
   );
 
   const dmyPath = datPath.replace(/\.dat$/, ".dmy");
-
-  if (!(await directoryExists(dmyPath))) {
+  if (!(await fs.pathExists(dmyPath))) {
     await fs.copy(datPath, dmyPath);
   }
 
@@ -110,14 +122,11 @@ async function writeOutput(
 
 async function moveProcessedFiles(
   targetDir: string,
-  moveTargets: MoveTarget[],
+  targets: MoveTarget[],
 ): Promise<void> {
-  for (const { filePath, processed } of moveTargets) {
+  for (const { filePath, processed } of targets) {
     const fileName = path.basename(filePath);
-
-    if (isPluDuplicateFile(fileName)) {
-      continue;
-    }
+    if (isPluDuplicateFile(fileName)) continue;
 
     const destinationDir = path.join(
       targetDir,
@@ -125,12 +134,7 @@ async function moveProcessedFiles(
     );
     const destinationPath = path.join(destinationDir, fileName);
 
-    await fs.ensureDir(destinationDir);
-
-    // 移動先に同名ファイルがある場合は従来どおりスキップ
-    if (await directoryExists(destinationPath)) {
-      continue;
-    }
+    if (await fs.pathExists(destinationPath)) continue;
 
     await moveFile(filePath, destinationDir);
   }
@@ -155,34 +159,30 @@ export async function runJob64(): Promise<string> {
     syohinLines: [],
     tokusyoLines: [],
   };
-
   const moveTargets: MoveTarget[] = [];
   const entries = await findFiles(targetDir);
 
   logger.log(`検出ファイル数: 計 ${entries.length} 件`);
 
   for (const filePath of entries) {
-    const info = await getFileInfo(filePath);
-    const fileName = info.fileName;
+    const { fileName, mtime } = await getFileInfo(filePath);
 
     logger.log(`対象ファイル: ${fileName}`);
-    logger.log(`更新日時: ${format(info.mtime, "yyyy/MM/dd HH:mm:ss")}`);
 
     if (fileName.startsWith("PLU")) {
       const isNg = (await readShiftJis(filePath)).trim().length !== 12;
-
       result.pluNg ||= isNg;
-
       logger.log(`判定: PLUチェック -> ${isNg ? "NG (桁数不備)" : "OK"}`);
-
       continue;
     }
 
-    const { hasProcessableRow } = await processDataFile(filePath, result);
+    const hasProcessableRow = processDataText(
+      await readShiftJis(filePath),
+      result,
+    );
 
     if (fileName.includes("SKU")) {
       result.skuNg ||= hasProcessableRow;
-
       logger.log(
         `判定: SKUチェック -> ${hasProcessableRow ? "NG (処理対象行あり)" : "OK"}`,
       );
@@ -193,40 +193,32 @@ export async function runJob64(): Promise<string> {
       continue;
     }
 
-    moveTargets.push({
-      filePath,
-      processed: hasProcessableRow,
-    });
+    moveTargets.push({ filePath, processed: hasProcessableRow });
   }
 
   logger.section("出力ファイル生成結果");
 
-  const syohinDatName = `Syohin_toMD_N_${CONFIG.systemId}_${timestamp}.dat`;
-  const tokusyoDatName = `Tokusyo_toMD_N_MD_${CONFIG.systemId}_${timestamp}.dat`;
+  const outputs = [
+    {
+      label: "商品DAT",
+      fileName: `Syohin_toMD_N_${CONFIG.systemId}_${timestamp}.dat`,
+      lines: result.syohinLines,
+    },
+    {
+      label: "特商DAT",
+      fileName: `Tokusyo_toMD_N_MD_${CONFIG.systemId}_${timestamp}.dat`,
+      lines: result.tokusyoLines,
+    },
+  ];
 
-  const createdSyohin = await writeOutput(
-    targetDir,
-    syohinDatName,
-    result.syohinLines,
-  );
-
-  logger.log(
-    createdSyohin
-      ? `[商品DAT] 生成完了: ${syohinDatName} (${result.syohinLines.length} 行)`
-      : "[商品DAT] スキップ (対象行なし)",
-  );
-
-  const createdTokusyo = await writeOutput(
-    targetDir,
-    tokusyoDatName,
-    result.tokusyoLines,
-  );
-
-  logger.log(
-    createdTokusyo
-      ? `[特商DAT] 生成完了: ${tokusyoDatName} (${result.tokusyoLines.length} 行)`
-      : "[特商DAT] スキップ (対象行なし)",
-  );
+  for (const output of outputs) {
+    const created = await writeOutput(targetDir, output.fileName, output.lines);
+    logger.log(
+      created
+        ? `[${output.label}] 生成完了: ${output.fileName} (${output.lines.length} 行)`
+        : `[${output.label}] スキップ (対象行なし)`,
+    );
+  }
 
   await moveProcessedFiles(targetDir, moveTargets);
 
@@ -243,24 +235,19 @@ export async function runJob64(): Promise<string> {
   logger.log(
     `特商判定: ${tokusyoNg ? "NG" : "OK"} (${result.tokusyoLines.length} 行)`,
   );
-  logger.log(`NMA8100要否: ${nma8100Required ? "必要" : "不要"}`);
+  logger.log(`修正: ${nma8100Required ? "必要" : "不要"}`);
 
   if (moveTargets.length > 0) {
     logger.section("移動処理実績");
 
-    for (const target of moveTargets) {
-      const fileName = path.basename(target.filePath);
-      const destination = target.processed
-        ? CONFIG.processedDir
-        : CONFIG.excludedDir;
-
-      logger.log(`${fileName} -> ${destination}/`);
+    for (const { filePath, processed } of moveTargets) {
+      logger.log(
+        `${path.basename(filePath)} -> ${
+          processed ? CONFIG.processedDir : CONFIG.excludedDir
+        }/`,
+      );
     }
   }
 
-  if (nma8100Required) {
-    throw logger.fail("NMA8100要対応");
-  }
-
-  return logger.complete("正常終了 (NMA8100不要)");
+  return logger.complete();
 }

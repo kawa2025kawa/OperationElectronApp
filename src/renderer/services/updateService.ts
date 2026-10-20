@@ -1,8 +1,8 @@
-﻿// src/renderer/services/updateService.ts
+// src/renderer/services/updateService.ts
 
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import { useAppStore } from "@renderer/store";
 import { showToast } from "@renderer/utils/toastUtils";
+import { systemIpcService } from "@renderer/services/systemIpcService";
 
 const DEFAULT_UPDATE_EXE_PATH =
   "\\\\S0088210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp\\OperationElectronApp-setup.exe";
@@ -51,9 +51,7 @@ function isNewerVersion(
 
 async function check(): Promise<boolean> {
   try {
-    const updateInfo = await window.electronAPI.invoke(
-      IPC_CHANNELS.SYSTEM.READ_UPDATE_INFO,
-    );
+    const updateInfo = await systemIpcService.readUpdateInfo();
 
     if (!updateInfo || !isNewerVersion(updateInfo.version, CURRENT_VERSION)) {
       setStatus("OK");
@@ -73,9 +71,7 @@ async function check(): Promise<boolean> {
       return true;
     }
 
-    await window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, {
-      urlOrPath: DEFAULT_UPDATE_EXE_PATH,
-    });
+    await systemIpcService.openExternal(DEFAULT_UPDATE_EXE_PATH);
 
     setStatus("OK");
     return true;

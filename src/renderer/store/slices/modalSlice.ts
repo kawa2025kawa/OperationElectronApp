@@ -1,4 +1,4 @@
-﻿// src/renderer/store/slices/modalSlice.ts
+// src/renderer/store/slices/modalSlice.ts
 
 import type { ReactNode } from "react";
 import type { StateCreator } from "zustand";
@@ -13,6 +13,7 @@ export interface ModalSlice {
   closeGlobalModal: () => void;
 }
 
+// アプリケーション共通のモーダル表示状態および操作を管理するスライスを生成する。
 export const createModalSlice: StateCreator<
   AppState,
   [["zustand/immer", never]],
@@ -25,6 +26,7 @@ export const createModalSlice: StateCreator<
     config: null,
   },
 
+  // モーダルコンテンツと設定を受け取り、グローバルモーダルを開く。
   openGlobalModal: (content, config) =>
     set((state) => {
       state.modal.isOpen = true;
@@ -32,6 +34,7 @@ export const createModalSlice: StateCreator<
       state.modal.config = config ?? {};
     }),
 
+  // 表示中のモーダルの設定情報（ボタンやメッセージ等）を部分更新する。
   updateModalConfig: (configPartial) =>
     set((state) => {
       if (!state.modal.config) {
@@ -44,6 +47,7 @@ export const createModalSlice: StateCreator<
       };
     }),
 
+  // グローバルモーダルを閉じ、コンテンツと設定を初期化する。
   closeGlobalModal: () =>
     set((state) => {
       state.modal.isOpen = false;

@@ -3,16 +3,16 @@
 import { useCallback } from "react";
 import { useShallow } from "zustand/shallow";
 
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes";
 import { useAppStore } from "@renderer/store";
 import type { SummaryDisplayKey } from "@shared/types/statusSummary/statusSummaryTypes";
+import { operationService } from "@renderer/features/operation/operationService";
 
 import * as styles from "./statusSummary.css";
 import { getSummaryLabel, SUMMARY_DISPLAY_ORDER } from "./statusSummaryConfig";
 
 export interface UseStatusSummaryParams {
-  openModal: (items: any[], title: string) => void;
+  openModal: (items: SummaryDetailRow[], title: string) => void;
 }
 
 type StatusSummaryBadgeKey = keyof typeof styles.valueBadgeVariants;
@@ -42,11 +42,7 @@ export const useStatusSummary = ({ openModal }: UseStatusSummaryParams) => {
       }
 
       try {
-        const filteredItems = (await window.electronAPI.invoke(
-          IPC_CHANNELS.OPERATION.GET_SUMMARY_DETAILS,
-          { filterKey: key },
-        )) as SummaryDetailRow[];
-
+        const filteredItems = await operationService.getSummaryDetails(key);
         openModal(filteredItems, label);
       } catch (error) {
         console.error(

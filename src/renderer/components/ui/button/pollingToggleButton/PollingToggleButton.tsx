@@ -1,4 +1,4 @@
-﻿//src\renderer\components\ui\button\pollingToggleButton\PollingToggleButton.tsx
+//src\renderer\components\ui\button\pollingToggleButton\PollingToggleButton.tsx
 
 import { usePollingToggleButton } from "./usePollingToggleButton";
 import * as styles from "./pollingToggleButton.css";

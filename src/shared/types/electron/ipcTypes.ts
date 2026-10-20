@@ -15,6 +15,7 @@ import type {
   StatusSummary,
   SummaryDetailRow,
 } from "@shared/types/statusSummary/statusSummaryTypes";
+import type { EmailTemplateKey } from "@renderer/features/other/types/gmailDraftTypes";
 
 export interface IpcChannelMap {
   /* ================= Auth ================= */
@@ -83,7 +84,7 @@ export interface IpcChannelMap {
   "gmail:generateDraftTemplate": {
     args: [
       params: {
-        templateKey: "E8" | "E9" | "E10";
+        templateKey: EmailTemplateKey;
         familyName?: string;
         links?: Record<string, string> | null;
       },

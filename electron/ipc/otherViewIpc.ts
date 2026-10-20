@@ -1,4 +1,4 @@
-﻿// electron\ipc\otherViewIpc.ts
+// electron/ipc/otherViewIpc.ts
 
 import { ipcMain } from "electron";
 import fs from "fs-extra";
@@ -6,6 +6,7 @@ import path from "node:path";
 import { runJobE41 } from "@electron/features/operation/jobs/scripts/eseries/job_e41";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 
+// ギフトMDファイルを処理するIPCハンドラーを登録する。
 export function registerOtherIpc(): void {
   ipcMain.handle(
     IPC_CHANNELS.OTHER.PROCESS_GIFT_MD,

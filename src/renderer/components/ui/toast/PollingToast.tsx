@@ -1,4 +1,4 @@
-﻿// src/renderer/components/ui/toast/PollingToast.tsx
+// src/renderer/components/ui/toast/PollingToast.tsx
 
 import { memo } from "react";
 import { useShallow } from "zustand/react/shallow";

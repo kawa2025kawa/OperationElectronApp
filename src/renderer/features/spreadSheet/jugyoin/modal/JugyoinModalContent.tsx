@@ -1,4 +1,4 @@
-﻿//src\renderer\features\spreadSheet\jugyoin\modal\JugyoinModalContent.tsx
+//src\renderer\features\spreadSheet\jugyoin\modal\JugyoinModalContent.tsx
 
 import { memo } from "react";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";

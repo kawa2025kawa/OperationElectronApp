@@ -1,18 +1,28 @@
-﻿// electron/features/operation/jobs/scripts/numeric/job_34.ts
+// electron/features/operation/jobs/scripts/numeric/job_34.ts
 
 import { format } from "date-fns";
 import fs from "fs-extra";
 import iconv from "iconv-lite";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
-
-import { getFileInfo } from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
 
 const CONFIG = {
   logPath: "\\\\192.88.1.220\\log\\SANSAN_TXT_LOAD.log",
   encoding: "Shift_JIS",
   completeMessage: "売上取り込み処理を終了しました",
 } as const;
+
+// fileUtils の getFileInfo をローカル実装
+async function getFileInfo(filePath: string): Promise<{
+  fileName: string;
+  mtime: Date;
+}> {
+  const stats = await fs.stat(filePath);
+
+  return {
+    fileName: filePath.split(/[\\/]/).pop() ?? filePath,
+    mtime: stats.mtime,
+  };
+}
 
 export async function runJob34(): Promise<string> {
   const now = new Date();
@@ -21,7 +31,7 @@ export async function runJob34(): Promise<string> {
 
   logger.log(`ファイル : ${CONFIG.logPath}`);
 
-  if (!(await directoryExists(CONFIG.logPath))) {
+  if (!(await fs.pathExists(CONFIG.logPath))) {
     throw logger.fail(`ファイルが存在しません: ${CONFIG.logPath}`);
   }
 

@@ -1,4 +1,4 @@
-﻿export interface UpdateInfo {
+export interface UpdateInfo {
   version: string;
   notes?: string;
   pub_date?: string;

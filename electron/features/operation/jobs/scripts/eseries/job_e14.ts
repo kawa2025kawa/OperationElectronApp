@@ -1,14 +1,12 @@
-﻿// electron/features/operation/jobs/scripts/eseries/job_e14.ts
-
 import path from "node:path";
 import fs from "fs-extra";
+import { stat } from "node:fs/promises";
 import * as ExcelJS from "exceljs";
 import { subMonths } from "date-fns";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
-import { compressFiles, getFileInfo } from "../helpers/fileUtils";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
+import { createZipArchive } from "@electron/features/operation/jobs/scripts/helpers/zipHelper";
 import {
   formatDateTime,
   getDateKey,
@@ -28,6 +26,32 @@ type E14FileType = "tanpin" | "bumon";
 
 interface E14Output {
   outputPath: string;
+}
+
+/**
+ * ディレクトリの存在確認
+ */
+async function directoryExists(dirPath: string): Promise<boolean> {
+  try {
+    return (await stat(dirPath)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * ファイル情報を取得
+ */
+async function getFileInfo(filePath: string): Promise<{
+  fileName: string;
+  mtime: Date;
+}> {
+  const fileStat = await stat(filePath);
+
+  return {
+    fileName: path.basename(filePath),
+    mtime: fileStat.mtime,
+  };
 }
 
 async function loadWorksheet(filePath: string): Promise<{
@@ -88,10 +112,11 @@ async function processTanpin(
 
   const { rowCount, columnCount } = worksheet;
 
-  // 列削除前に、JANコード・商品名・その他の列の値を退避する。
+  // 列削除前に値を退避
   const rows = Array.from({ length: rowCount }, (_, i) => i + 1);
   const productNames = rows.map((row) => worksheet.getCell(row, 2).value);
   const janCodes = rows.map((row) => worksheet.getCell(row, 3).value);
+
   const otherColumns = Array.from(
     { length: Math.max(0, columnCount - 3) },
     (_, i) => rows.map((row) => worksheet.getCell(row, i + 4).value),
@@ -158,51 +183,50 @@ export async function runJobE14(
   const logger = new JobLogger();
   logger.log("ベルクTV売上ファイル加工処理を開始します");
 
-  try {
-    const inputPaths = inputFilePath
-      ? Array.isArray(inputFilePath)
-        ? inputFilePath
-        : [inputFilePath]
+  const inputPaths = Array.isArray(inputFilePath)
+    ? inputFilePath
+    : inputFilePath
+      ? [inputFilePath]
       : [];
 
-    if (inputPaths.length === 0) {
-      throw new Error(
-        "入力ファイルが指定されていません。対象のファイルをドロップしてください。",
-      );
-    }
-
-    logger.log(`入力ファイル数 : ${inputPaths.length}件`);
-    inputPaths.forEach((filePath) => logger.log(`指定ファイル : ${filePath}`));
-
-    const targetMonth = getDateKey(subMonths(new Date(), 1), "yyyyMM");
-    const outputFolderPath = path.join(
-      path.dirname(inputPaths[0]),
-      `${targetMonth}${OUTPUT_FOLDER_SUFFIX}`,
+  if (inputPaths.length === 0) {
+    throw logger.fail(
+      "入力ファイルが指定されていません。対象のファイルをドロップしてください。",
     );
-    const outputZipPath = `${outputFolderPath}.zip`;
+  }
 
-    logger.log(`対象年月 : ${targetMonth}`);
-    logger.log(`出力フォルダ : ${outputFolderPath}`);
-    logger.log(`出力ZIP : ${outputZipPath}`);
+  logger.log(`入力ファイル数 : ${inputPaths.length}件`);
+  inputPaths.forEach((filePath) => logger.log(`指定ファイル : ${filePath}`));
 
-    if (await directoryExists(outputFolderPath)) {
-      throw new Error(
-        `既にフォルダが存在します。\n${outputFolderPath}\nフォルダを削除後、再度実施して下さい。`,
-      );
-    }
+  const baseDir = path.dirname(inputPaths[0]);
+  const targetMonth = getDateKey(subMonths(new Date(), 1), "yyyyMM");
+  const zipPrefix = `${targetMonth}${OUTPUT_FOLDER_SUFFIX}`;
+  const outputFolderPath = path.join(baseDir, zipPrefix);
+  const outputZipPath = `${outputFolderPath}.zip`;
 
-    if (await directoryExists(outputZipPath)) {
-      throw new Error(
-        `既にZIPファイルが存在します。\n${outputZipPath}\nZIPファイルを削除後、再度実施して下さい。`,
-      );
-    }
+  logger.log(`対象年月 : ${targetMonth}`);
+  logger.log(`出力フォルダ : ${outputFolderPath}`);
+  logger.log(`出力ZIP : ${outputZipPath}`);
 
+  if (await directoryExists(outputFolderPath)) {
+    throw logger.fail(
+      `既にフォルダが存在します。\n${outputFolderPath}\nフォルダを削除後、再度実施して下さい。`,
+    );
+  }
+
+  if (await directoryExists(outputZipPath)) {
+    throw logger.fail(
+      `既にZIPファイルが存在します。\n${outputZipPath}\nZIPファイルを削除後、再度実施して下さい。`,
+    );
+  }
+
+  try {
     await fs.ensureDir(outputFolderPath);
     logger.log("出力フォルダを作成しました");
 
     const outputs: E14Output[] = [];
 
-    // 出力先が同じファイルの並列書き込みを避けるため、順次処理する。
+    // 同じ出力先への並列書き込みを避け、順次処理する
     for (const inputPath of inputPaths) {
       const output = await processInputFile(
         inputPath,
@@ -221,17 +245,18 @@ export async function runJobE14(
     }
 
     logger.log(`加工完了ファイル数 : ${outputs.length}件`);
-    logger.log("加工済みファイルをZIP圧縮しています");
 
-    await compressFiles(
-      outputs.map(({ outputPath }) => outputPath),
-      outputZipPath,
+    const createdFiles = outputs.map(({ outputPath }) => outputPath);
+
+    await createZipArchive(
+      {
+        filePaths: createdFiles,
+        outputDir: baseDir,
+        zipPrefix,
+        includeFileList: true,
+      },
+      logger,
     );
-
-    logger.log(`ZIP作成完了 : ${outputZipPath}`);
-
-    await fs.remove(outputFolderPath);
-    logger.log("一時出力フォルダを削除しました");
 
     return {
       message: logger.complete("正常終了"),
@@ -245,5 +270,11 @@ export async function runJobE14(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw logger.fail(message);
+  } finally {
+    // 一時出力フォルダを後始末
+    if (await directoryExists(outputFolderPath)) {
+      await fs.remove(outputFolderPath);
+      logger.log("一時出力フォルダを削除しました");
+    }
   }
 }

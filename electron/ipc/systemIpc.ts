@@ -1,4 +1,4 @@
-﻿// electron/ipc/systemIpc.ts
+// electron/ipc/systemIpc.ts
 
 import { app, dialog, ipcMain, shell, type OpenDialogOptions } from "electron";
 import {
@@ -10,6 +10,7 @@ import {
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { UpdateInfo } from "@shared/types/system";
 
+// アプリ基本操作（バージョン取得・ウィンドウ表示・終了・マニュアル・ファイル選択等）のIPCハンドラーを登録する。
 export function registerSystemIpc(): void {
   ipcMain.handle(IPC_CHANNELS.SYSTEM.GET_APP_VERSION, (): string => {
     return app.getVersion();

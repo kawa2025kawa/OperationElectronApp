@@ -1,4 +1,4 @@
-﻿//src\renderer\features\spreadSheet\tantou\modal\TantouModalContent.tsx
+//src\renderer\features\spreadSheet\tantou\modal\TantouModalContent.tsx
 
 import { memo } from "react";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";

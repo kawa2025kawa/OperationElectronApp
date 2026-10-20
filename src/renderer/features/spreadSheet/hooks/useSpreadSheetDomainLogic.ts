@@ -1,9 +1,9 @@
-﻿// src/renderer/features/spreadSheet/hooks/useSpreadSheetDomainLogic.ts
+// src/renderer/features/spreadSheet/hooks/useSpreadSheetDomainLogic.ts
 
 import { useShallow } from "zustand/shallow";
 import { useAppStore, type AppState } from "@renderer/store";
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";
-import { selectFilteredSheetRows } from "../store/spreadsheetSelectors";
+import { selectFilteredSheetRows } from "@renderer/store/selectors/spreadsheetSelectors";
 import type { SheetId } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { AppViewDefinition } from "@shared/types/registry/viewDefinition";
 

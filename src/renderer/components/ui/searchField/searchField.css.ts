@@ -1,4 +1,5 @@
-// src\renderer\components\ui\searchField\searchField.css.ts
+// src/renderer/components/ui/searchField/searchField.css.ts
+
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens";
 import { searchFieldTokens } from "@renderer/styles/tokens/component/searchField.tokens";
@@ -8,15 +9,18 @@ export const inner = style({
   display: "flex",
   alignItems: "center",
   width: "100%",
-  maxWidth: searchFieldTokens.maxWidth, // デフォルト値 300px
+  maxWidth: searchFieldTokens.maxWidth,
 
-  // ウィンドウ幅に応じたレスポンシブガード
+  // 🎯 描画隔離（フォーカス・アクティブ時のGlowによる全域ペイント波及を遮断）
+  isolation: "isolate",
+  transform: "translateZ(0)",
+
   "@media": {
     "screen and (max-width: 900px)": {
-      maxWidth: "240px", // 画面が狭いときは検索窓を少し縮めてNavbar内の他の要素を生かす
+      maxWidth: "240px",
     },
     "screen and (max-width: 600px)": {
-      maxWidth: "160px", // スマホサイズではさらに縮小
+      maxWidth: "160px",
     },
   },
 });
@@ -25,7 +29,7 @@ export const searchField = style({
   width: "100%",
   border: "none",
   outline: "none",
-  padding: `${tokens.space.sm} ${tokens.space.lg}`, // 🎯 修正: 左右幅(上下非対称)のシンプルなパディングへと修正
+  padding: `${tokens.space.sm} ${tokens.space.lg}`,
   borderRadius: searchFieldTokens.radius,
   backgroundColor: tokens.color.bg.base,
   boxShadow: tokens.shadow.raised.low,
@@ -34,10 +38,9 @@ export const searchField = style({
   fontWeight: tokens.font.weight.bold,
   transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
 
-  // モバイル用にフォントサイズを微調整
   "@media": {
     "screen and (max-width: 600px)": {
-      fontSize: "0.8rem",
+      fontSize: tokens.font.size.xs,
     },
   },
 

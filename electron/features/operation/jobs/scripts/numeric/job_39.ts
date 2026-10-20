@@ -1,28 +1,50 @@
-﻿// electron/features/operation/jobs/scripts/numeric/job_39.ts
+// electron/features/operation/jobs/scripts/numeric/job_39.ts
 
 import { format, isSameDay } from "date-fns";
 import path from "node:path";
+import fs from "fs-extra";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
-
-import {
-  findFiles,
-  getFileInfo,
-} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
-
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 const CONFIG = {
   beforeNoonDir: "\\\\172.25.101.51\\if\\MASTER\\RCV",
   afterNoonDir: "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV",
   targetFiles: ["Okurikomi_toMD.dat", "htsf0060"] as const,
+  maxFilesPerTarget: 2,
 } as const;
 
 interface FileCheckDetail {
   targetName: string;
-  foundName?: string;
+  foundNames?: string[];
   mtime?: Date;
   error?: string;
+}
+
+function getDateKey(date = new Date()): string {
+  return format(date, "yyyyMMdd");
+}
+
+async function directoryExists(dirPath: string): Promise<boolean> {
+  try {
+    return (await fs.stat(dirPath)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+async function getFileInfo(filePath: string): Promise<{
+  fileName: string;
+  mtime: Date;
+}> {
+  const stats = await fs.stat(filePath);
+
+  if (!stats.isFile()) {
+    throw new Error(`ファイルではありません: ${filePath}`);
+  }
+
+  return {
+    fileName: path.basename(filePath),
+    mtime: stats.mtime,
+  };
 }
 
 async function checkBeforeNoonFile(
@@ -44,13 +66,13 @@ async function checkBeforeNoonFile(
 
     return {
       targetName,
-      foundName: targetName,
+      foundNames: [info.fileName],
       mtime: info.mtime,
     };
   } catch {
     return {
       targetName,
-      error: "ファイルが存在しません",
+      error: "ファイルが存在しないか、読み取れません",
     };
   }
 }
@@ -59,23 +81,43 @@ async function checkAfterNoonFile(
   targetName: string,
   today: string,
 ): Promise<FileCheckDetail> {
-  const matchedFiles = await findFiles(CONFIG.afterNoonDir, {
-    prefix: `${targetName}_${today}`,
-  });
+  let entries;
 
-  if (matchedFiles.length === 0) {
+  try {
+    entries = await fs.readdir(CONFIG.afterNoonDir, {
+      withFileTypes: true,
+    });
+  } catch {
     return {
       targetName,
-      error: `${targetName}_${today}* (ファイルなし)`,
+      error: `ディレクトリにアクセスできません: ${CONFIG.afterNoonDir}`,
     };
   }
 
-  const fileInfo = await getFileInfo(matchedFiles[0]);
+  const prefix = `${targetName}_${today}`;
+
+  const matches = entries.filter(
+    (entry) => entry.isFile() && entry.name.startsWith(prefix),
+  );
+
+  if (matches.length === 0) {
+    return {
+      targetName,
+      error: `${prefix}* (ファイルなし)`,
+    };
+  }
+
+  if (matches.length > CONFIG.maxFilesPerTarget) {
+    return {
+      targetName,
+      foundNames: matches.map((entry) => entry.name),
+      error: `対象ファイルが上限超過 (${matches.length}件 / 上限${CONFIG.maxFilesPerTarget}件)`,
+    };
+  }
 
   return {
     targetName,
-    foundName: fileInfo.fileName,
-    mtime: fileInfo.mtime,
+    foundNames: matches.map((entry) => entry.name),
   };
 }
 
@@ -108,20 +150,22 @@ export async function runJob39(): Promise<string> {
     if (item.error) {
       errors.push(`${item.targetName} (${item.error})`);
       logger.log(`  [${item.targetName}] エラー : ${item.error}`);
+
+      for (const name of item.foundNames ?? []) {
+        logger.log(`    ${name}`);
+      }
+
       continue;
     }
 
-    const dateText = item.mtime
-      ? format(item.mtime, "yyyy/MM/dd HH:mm:ss")
-      : "-";
-
-    logger.log(`  [${item.targetName}] 検出 : ${item.foundName}`);
-    logger.log(`    更新日時 : ${dateText}`);
+    for (const name of item.foundNames ?? []) {
+      logger.log(name);
+    }
   }
 
   if (errors.length > 0) {
     throw logger.fail(`NG: ${errors.join(", ")}`);
   }
 
-  return logger.complete("全対象ファイル確認済");
+  return logger.complete();
 }

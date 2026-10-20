@@ -147,15 +147,13 @@ function checkDependency(
   const activeKey = CENTER_DEPENDENCY_KEYS[dependency];
 
   if (activeKey) {
-    if (activeFlags?.[activeKey] === true) {
+    // 該当センターが非アクティブ (OFF) の場合は、そのセンターの作業自体が不要なため前提クリア扱い
+    if (!activeFlags?.[activeKey]) {
       return undefined;
     }
 
-    return {
-      kanriNo: dependency,
-      status: null,
-      comment: `${dependency} が未アクティブ`,
-    };
+    // センターがアクティブ (ON) の場合はフラグ条件クリア扱い
+    return undefined;
   }
 
   const master = findMaster(dependency, masters);

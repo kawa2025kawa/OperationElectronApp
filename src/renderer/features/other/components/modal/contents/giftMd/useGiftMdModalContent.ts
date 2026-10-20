@@ -1,60 +1,80 @@
-﻿import { useCallback, useEffect } from "react";
-import { useShallow } from "zustand/shallow";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
-import { useAppStore } from "@renderer/store";
+// src/renderer/features/other/components/modal/contents/giftMd/useGiftMdModalContent.ts
 
+import { useCallback, useEffect, useState } from "react";
+import { useShallow } from "zustand/shallow";
+import { useAppStore } from "@renderer/store";
+import { getFileName } from "@shared/utils/fileUtils";
+import type {
+  GiftMdFile,
+  GiftMessage,
+} from "@renderer/features/other/types/giftMdTypes";
+import { otherIpcService } from "@renderer/services/otherIpcService";
+
+const DEFAULT_INFO_MESSAGE: GiftMessage = {
+  text: "処理対象のギフトデータファイル (.txt, .DAT) をドラッグ＆ドロップしてください。",
+  type: "info",
+};
+
+// ギフトMD処理モーダルのローカル状態および実行ロジックを管理するフック。
 export function useGiftMdModalContent() {
-  const {
-    giftFile,
-    isProcessing,
-    infoMessage,
-    setGiftMdFileFromRaw,
-    setGiftMdProcessing,
-    setGiftMdMessage,
-    updateModalConfig,
-    closeGlobalModal,
-  } = useAppStore(
+  const { updateModalConfig, closeGlobalModal } = useAppStore(
     useShallow((state) => ({
-      giftFile: state.giftMd.selectedFile,
-      isProcessing: state.giftMd.isProcessing,
-      infoMessage: state.giftMd.infoMessage,
-      setGiftMdFileFromRaw: state.setGiftMdFileFromRaw,
-      setGiftMdProcessing: state.setGiftMdProcessing,
-      setGiftMdMessage: state.setGiftMdMessage,
       updateModalConfig: state.updateModalConfig,
       closeGlobalModal: state.closeGlobalModal,
     })),
   );
 
-  const files = giftFile ? [giftFile] : [];
+  const [giftFile, setGiftFile] = useState<GiftMdFile | null>(null);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [infoMessage, setInfoMessage] =
+    useState<GiftMessage>(DEFAULT_INFO_MESSAGE);
 
+  // 選択されたファイル配列からギフトファイルパス・名前を抽出しローカル状態に保持する。
+  const setGiftMdFileFromRaw = useCallback((rawFiles: File[]) => {
+    if (rawFiles.length === 0) return;
+    const file = rawFiles[0];
+    const path =
+      window.electronAPI.getFilePath(file) ||
+      ("path" in file && typeof file.path === "string" ? file.path : file.name);
+    if (!path) return;
+
+    const fileName = file.name || getFileName(path) || path;
+
+    setGiftFile({
+      name: fileName,
+      path,
+    });
+    setInfoMessage({
+      text: `選択中のファイル: ${fileName}`,
+      type: "info",
+    });
+  }, []);
+
+  // ギフトMD処理をバックエンドに要求し進捗メッセージを更新する。
   const handleExecute = useCallback(async () => {
     if (!giftFile) {
-      setGiftMdMessage({
+      setInfoMessage({
         text: "処理対象のファイルを選択してください。",
         type: "warning",
       });
       return;
     }
 
-    setGiftMdProcessing(true);
-    setGiftMdMessage({
+    setIsProcessing(true);
+    setInfoMessage({
       text: "ギフトデータの処理を実行しています...",
       type: "info",
     });
 
     try {
-      const message = await window.electronAPI.invoke(
-        IPC_CHANNELS.OTHER.PROCESS_GIFT_MD,
-        giftFile.path,
-      );
-      setGiftMdMessage({
+      const message = await otherIpcService.processGiftMd(giftFile.path);
+      setInfoMessage({
         text: message || "ギフトデータの処理が正常に完了しました。",
         type: "success",
       });
     } catch (error) {
       console.error("[useGiftMdModalContent] Process error:", error);
-      setGiftMdMessage({
+      setInfoMessage({
         text:
           error instanceof Error
             ? error.message
@@ -62,9 +82,9 @@ export function useGiftMdModalContent() {
         type: "error",
       });
     } finally {
-      setGiftMdProcessing(false);
+      setIsProcessing(false);
     }
-  }, [giftFile, setGiftMdProcessing, setGiftMdMessage]);
+  }, [giftFile]);
 
   useEffect(() => {
     updateModalConfig({
@@ -93,6 +113,8 @@ export function useGiftMdModalContent() {
     updateModalConfig,
     closeGlobalModal,
   ]);
+
+  const files = giftFile ? [giftFile] : [];
 
   return {
     files,

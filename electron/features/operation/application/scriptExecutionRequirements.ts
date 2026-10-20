@@ -1,15 +1,9 @@
-﻿// electron/features/operation/application/scriptExecutionRequirements.ts
+// electron/features/operation/application/scriptExecutionRequirements.ts
 
 export interface ScriptExecutionRequirement {
   requiresFileSelection: boolean;
 }
 
-/**
- * 手動スクリプトの実行要件。
- *
- * ファイル選択要件の唯一の定義元として使用する。
- * キーは大文字・小文字を区別しない。
- */
 const SCRIPT_EXECUTION_REQUIREMENTS: Readonly<
   Record<string, ScriptExecutionRequirement>
 > = {
@@ -24,18 +18,15 @@ const DEFAULT_REQUIREMENT: ScriptExecutionRequirement = {
   requiresFileSelection: false,
 };
 
+// スクリプトキーに応じたファイル選択必須などの実行要件を取得する。
 export function getScriptExecutionRequirement(
   scriptKey: string,
 ): ScriptExecutionRequirement {
   const normalizedKey = scriptKey.trim().toUpperCase();
-
   return SCRIPT_EXECUTION_REQUIREMENTS[normalizedKey] ?? DEFAULT_REQUIREMENT;
 }
 
-/**
- * 手動実行時の入力要件を検証する。
- * 自動実行の実行経路には適用しない。
- */
+// 手動実行時にファイル選択が必須のスクリプトで有効なファイルパスが存在するか検証する。
 export function validateScriptExecutionInput(
   scriptKey: string,
   filePath?: string | string[],
@@ -46,9 +37,13 @@ export function validateScriptExecutionInput(
     return;
   }
 
-  const paths = Array.isArray(filePath) ? filePath : filePath ? [filePath] : [];
+  const rawPaths = Array.isArray(filePath)
+    ? filePath
+    : typeof filePath === "string"
+      ? [filePath]
+      : [];
 
-  const validPaths = paths.filter((path) => path.trim().length > 0);
+  const validPaths = rawPaths.map((p) => p.trim()).filter(Boolean);
 
   if (validPaths.length === 0) {
     throw new Error(

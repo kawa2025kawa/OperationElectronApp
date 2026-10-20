@@ -1,4 +1,4 @@
-﻿// electron/features/masterData/infrastructure/driveJsonClient.ts
+// electron/features/masterData/infrastructure/driveJsonClient.ts
 
 import { authService } from "@electron/features/auth/authService";
 import { TextDecoder } from "node:util";
@@ -6,11 +6,13 @@ import { TextDecoder } from "node:util";
 const DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
 const MASTER_FOLDER_ID = "1eIAgbP2nIwm_tB4YnzCaHnDkvNCT0OLA";
 
+// Google Drive のファイル ID とファイル名を表す。
 interface DriveFile {
   id: string;
   name: string;
 }
 
+// Google Drive のファイル一覧 API のレスポンス型。
 interface DriveFileListResponse {
   files?: DriveFile[];
 }
@@ -44,10 +46,12 @@ function decodeJsonBuffer(buffer: Buffer, fileName: string): string {
   }
 }
 
+// Google Drive の検索クエリに使用する値のバックスラッシュとシングルクォートをエスケープする。
 function escapeDriveQueryValue(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
+// 指定フォルダから JSON ファイルを取得し、内容を検証してオブジェクト配列として返す。
 export async function fetchDriveJson<T extends object>(
   fileName: string,
 ): Promise<T[]> {

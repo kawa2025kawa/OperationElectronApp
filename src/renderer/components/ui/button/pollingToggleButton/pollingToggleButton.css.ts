@@ -1,4 +1,4 @@
-﻿// src/renderer/components/ui/button/pollingToggleButton/pollingToggleButton.css.ts
+// src/renderer/components/ui/button/pollingToggleButton/pollingToggleButton.css.ts
 
 import { keyframes, style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens";

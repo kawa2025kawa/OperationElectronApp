@@ -1,7 +1,9 @@
-﻿import fs from "fs-extra";
+// electron/features/operation/jobs/scripts/eseries/job_e5.ts
+
+import fs from "fs-extra";
 import path from "node:path";
 import iconv from "iconv-lite";
-import { parseCsvLine } from "../helpers/shared/parseCsvLine";
+import { parseCsvLine } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
 const INPUT_FILE_NAME = "TENF0140.csv";
@@ -24,16 +26,17 @@ function resolveInputFilePath(inputFilePath?: string | string[]): string {
   }
 
   const filePath = filePaths[0];
+  const fileName = path.basename(filePath);
 
   if (path.extname(filePath).toLowerCase() !== ".csv") {
     throw new Error(
-      `CSVファイル (.csv) のみ処理可能です。指定されたファイル: ${path.basename(filePath)}`,
+      `CSVファイル (.csv) のみ処理可能です。指定されたファイル: ${fileName}`,
     );
   }
 
-  if (path.basename(filePath) !== INPUT_FILE_NAME) {
+  if (fileName !== INPUT_FILE_NAME) {
     throw new Error(
-      `処理対象ファイルは${INPUT_FILE_NAME}のみです。指定されたファイル: ${path.basename(filePath)}`,
+      `処理対象ファイルは${INPUT_FILE_NAME}のみです。指定されたファイル: ${fileName}`,
     );
   }
 
@@ -50,7 +53,7 @@ function normalizeCode(value: string, digits: number): string {
 }
 
 function transformCsv(text: string): string[][] {
-  const lines = text.split(/\r\n|\n|\r/).filter((line) => line.trim() !== "");
+  const lines = text.split(/\r?\n/).filter((line) => line.trim() !== "");
 
   if (lines.length <= 1) {
     throw new Error("CSVに有効なデータ行がありません。");
@@ -113,10 +116,10 @@ export async function runJobE5(
 
     logger.log(`変換件数 : ${shapedRows.length}件`);
 
-    const outputBuffer = iconv.encode(
-      `${shapedRows.map((row) => row.join(",")).join("\n")}\n`,
-      ENCODING,
-    );
+    // 旧型システム・通信端末向けの改行コード (CRLF) に統一
+    const outputText =
+      shapedRows.map((row) => row.join(",")).join("\r\n") + "\r\n";
+    const outputBuffer = iconv.encode(outputText, ENCODING);
 
     await fs.ensureDir(OUTPUT_DIR);
 

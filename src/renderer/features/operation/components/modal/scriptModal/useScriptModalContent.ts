@@ -5,8 +5,8 @@ import type {
   OperationViewItem,
   JobResult,
 } from "@shared/types/operation/operationTypes";
-import { executeScriptJob } from "@renderer/features/operation/services/scriptJobService";
 import { useAppStore } from "@renderer/store";
+import { operationService } from "@renderer/features/operation/operationService";
 
 interface ScriptFileItem {
   name: string;
@@ -45,7 +45,6 @@ export function useScriptModalContent(
   scriptKey: string,
 ) {
   const closeGlobalModal = useAppStore((state) => state.closeGlobalModal);
-  const setGlobalProcessing = useAppStore((state) => state.setGlobalProcessing);
 
   const [selectedFiles, setSelectedFiles] = useState<ScriptFileItem[]>([]);
   const [executionState, setExecutionState] = useState<ExecutionState>("idle");
@@ -112,31 +111,30 @@ export function useScriptModalContent(
     }
 
     setIsExecuting(true);
-    setGlobalProcessing({
-      message: "処理中...",
-      target: item?.workName || scriptKey,
-    });
 
     try {
-      const result = await executeScriptJob(
+      const result = await operationService.executeScriptJob(
         useAppStore.getState(),
-        kanriNo,
-        scriptKey,
-        filePaths.length > 0 ? filePaths : undefined,
+        {
+          kanriNo,
+          scriptKey,
+          targetName: item?.workName,
+          filePath: filePaths.length > 0 ? filePaths : undefined,
+        },
       );
       setExecutionResult(result);
       setExecutionState(result.success === false ? "error" : "completed");
       setSelectedFiles([]);
     } catch (error) {
+      const message = toErrorMessage(error);
       setExecutionResult({
         success: false,
         kind: "error",
-        message: toErrorMessage(error),
+        message,
       });
       setExecutionState("error");
     } finally {
       setIsExecuting(false);
-      setGlobalProcessing(null);
     }
   }, [
     kanriNo,
@@ -145,7 +143,6 @@ export function useScriptModalContent(
     isFileSelectionRequired,
     selectedFiles,
     item?.workName,
-    setGlobalProcessing,
   ]);
 
   return {

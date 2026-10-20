@@ -1,4 +1,4 @@
-﻿// electron/features/operation/jobs/scripts/numeric/job_66.ts
+// electron/features/operation/jobs/scripts/numeric/job_66.ts
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 

@@ -8,11 +8,6 @@ import {
   titleText,
 } from "@renderer/styles/tokens";
 
-const SUMMARY_MODAL_SIZE = {
-  width: "min(80vw, 850px)",
-  height: "min(75vh, 600px)",
-} as const;
-
 export const container = style([
   themeTransition,
   {
@@ -24,6 +19,11 @@ export const container = style([
     backgroundColor: tokens.color.bg.base,
     boxShadow: tokens.shadow.raised.high,
     zIndex: tokens.zIndex.content,
+
+    // 🎯 描画分離（GPU合成レイヤーによるペイント範囲の限定）
+    position: "relative",
+    isolation: "isolate",
+    transform: "translateZ(0)",
   },
 ]);
 
@@ -53,6 +53,15 @@ export const centerItem = style({
 
 export const centerSummaryWrapper = style({
   width: "80%",
+  flexShrink: 1,
+  minWidth: 0,
+
+  // 🎯 ウインドウ幅が狭い場合のレイアウト崩れ防止（サマリー非表示化）
+  "@media": {
+    "screen and (max-width: 900px)": {
+      display: "none",
+    },
+  },
 });
 
 export const summaryPlaceholder = style([

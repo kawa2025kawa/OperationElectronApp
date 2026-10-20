@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";

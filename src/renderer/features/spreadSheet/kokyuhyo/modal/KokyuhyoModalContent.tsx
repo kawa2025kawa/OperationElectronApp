@@ -1,4 +1,4 @@
-﻿import { memo } from "react";
+import { memo } from "react";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";

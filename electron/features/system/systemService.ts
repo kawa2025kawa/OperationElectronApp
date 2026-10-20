@@ -1,4 +1,4 @@
-﻿// electron/features/system/systemService.ts
+// electron/features/system/systemService.ts
 
 import {
   app,
@@ -17,27 +17,18 @@ const UPDATE_INFO_PATH = path.join(
   "OperationElectronApp_update.json",
 );
 
-const MANUAL_ALIAS_MAP: Readonly<Record<string, string>> = {
-  "37": "30",
-  "45": "30",
-  "48": "30",
-  "54": "30",
-  "36": "29",
-  "44": "29",
-  "47": "29",
-  "43": "28",
-  "68": "28",
-};
-
+// 対象管理Noに対応するWebマニュアルのURLを生成して返す。
 export function getManualUrl(target: string): string {
   return `https://sites.google.com/belc.co.jp/operation-manual-${target}`;
 }
 
+// 破棄されていないアクティブなメインウィンドウインスタンスを取得する。
 export function getMainWindow(): BrowserWindow | null {
   const win = BrowserWindow.getAllWindows()[0];
   return win && !win.isDestroyed() ? win : null;
 }
 
+// URLまたはローカルパスを判定し適切な既定アプリまたはブラウザで開く。
 export async function openExternalOrPath(target: string): Promise<void> {
   const cleanTarget = target.trim();
   if (!cleanTarget) return;
@@ -54,6 +45,7 @@ export async function openExternalOrPath(target: string): Promise<void> {
   }
 }
 
+// 共有ディレクトリからアプリの最新アップデート情報を読み込んで返す。
 export async function readUpdateInfo(): Promise<UpdateInfo | null> {
   try {
     const content = await fs.readFile(UPDATE_INFO_PATH, "utf-8");

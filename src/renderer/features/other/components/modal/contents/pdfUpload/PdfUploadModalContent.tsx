@@ -8,8 +8,13 @@ import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import { usePdfUploadModalContent } from "@renderer/features/other/components/modal/contents/pdfUpload/usePdfUploadModalContent";
 
 export const PdfUploadModalContent: GlobalModalComponent = memo(() => {
-  const { files, isProcessing, addPdfFiles, handleFileReorder } =
-    usePdfUploadModalContent();
+  const {
+    files,
+    isProcessing,
+    addPdfFiles,
+    handleFileReorder,
+    handleRemoveFile,
+  } = usePdfUploadModalContent();
 
   return (
     <FileDropZone
@@ -19,6 +24,7 @@ export const PdfUploadModalContent: GlobalModalComponent = memo(() => {
       disabled={isProcessing}
       onFileSelect={addPdfFiles}
       onReorderFile={handleFileReorder}
+      onRemoveFile={handleRemoveFile}
     />
   );
 });

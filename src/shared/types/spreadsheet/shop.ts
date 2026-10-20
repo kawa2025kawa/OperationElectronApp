@@ -1,4 +1,4 @@
-﻿// src/shared/types/spreadsheet/shop.ts
+// src/shared/types/spreadsheet/shop.ts
 
 /**
  * 1. 各フィールドの「キー」と「日本語ラベル」を一元管理するオブジェクト
@@ -10,7 +10,7 @@ export const SHOP_FIELD_LABELS = {
   shopKana: "店舗カナ",
   openTime: "開店時間",
   closeTime: "閉店時間",
-  centerName: "センター名",
+  centerName: "担当センタ",
   areaName: "エリア名",
   phoneNumber: "電話番号",
   postalCode: "郵便番号",
@@ -18,31 +18,31 @@ export const SHOP_FIELD_LABELS = {
   mobileSales: "移動販売",
 
   // プリンター (B)
-  printerModelB: "B 型番",
-  printerSerialB: "B シリアル",
-  printerCallB: "B 連絡先",
-  printerHolidayB: "B 休保",
-  printerContractIdB: "B 契約ID",
+  printerModelB: "機種名",
+  printerSerialB: "シリアル",
+  printerCallB: "連絡先",
+  printerHolidayB: "休保",
+  printerContractIdB: "契約ID",
 
   // プリンター (K)
-  printerModelK: "K 型番",
-  printerSerialK: "K シリアル",
-  printerCallK: "K 連絡先",
-  printerHolidayK: "K 休保",
-  printerContractIdK: "K 契約ID",
+  printerModelK: "機種名",
+  printerSerialK: "シリアル",
+  printerCallK: "連絡先",
+  printerHolidayK: "休保",
+  printerContractIdK: "契約ID",
 
   // プリンター (O)
-  printerModelO: "O 型番",
-  printerSerialO: "O シリアル",
-  printerCallO: "O 連絡先",
-  printerHolidayO: "O 休保",
-  printerContractIdO: "O 契約ID",
+  printerModelO: "機種名",
+  printerSerialO: "シリアル",
+  printerCallO: "連絡先",
+  printerHolidayO: "休保",
+  printerContractIdO: "契約ID",
 
   // 担当者・役職
   tencyoName: "店長",
   hukuTencyoName1: "副店長1",
   hukuTencyoName2: "副店長2",
-  managerName: "エリアMGR",
+  managerName: "マネージャ",
 
   // ファイルパス
   excelFilePath: "Excelパス",

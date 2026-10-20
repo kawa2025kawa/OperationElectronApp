@@ -1,4 +1,4 @@
-//src\renderer\components\layout\sidebar\sidebar.css.ts
+// src/renderer/components/layout/sidebar/sidebar.css.ts
 
 import { style } from "@vanilla-extract/css";
 import {
@@ -12,7 +12,7 @@ import {
    1. サイドバーコンテナー
 ========================= */
 export const sidebar = style([
-  themeTransition, // 各種背景色やテキストカラー、シャドウ、枠線などの切り替えをシームレスにするベース定義
+  themeTransition,
   {
     position: "fixed",
     top: 0,
@@ -30,6 +30,9 @@ export const sidebar = style([
     flexDirection: "column",
     boxShadow: tokens.shadow.raised.high,
     borderRight: `1px solid ${tokens.color.border.subtle}`,
+
+    // 🎯 描画分離（開閉・ホバー時のメイン領域へのペイント波及遮断）
+    isolation: "isolate",
   },
 ]);
 
@@ -48,10 +51,10 @@ export const header = style({
 });
 
 export const headerTitle = style([
-  brandGradientText, // ブランドグラデーションの適用
-  titleText, // タイトルフォントファミリーの割当
+  brandGradientText,
+  titleText,
   {
-    fontSize: tokens.font.size.xl, // タイトルサイズ指定
+    fontSize: tokens.font.size.xl,
   },
 ]);
 
@@ -97,19 +100,16 @@ export const menuButton = style({
       boxShadow: tokens.shadow.pressed.low,
     },
     "&[data-active='true']": {
-      // 選択状態のアクティブな項目は、raised（浮き出し）から pressed（窪み）へ反転させて沈み込みを表現
       backgroundColor: tokens.color.bg.base,
       boxShadow: tokens.shadow.pressed.low,
     },
   },
 });
 
-// 🎯 修正: export に修正
 export const menuText = style({
   transition: `filter ${tokens.transition.normal}`,
 
   selectors: {
-    // アクティブ（data-active='true'）になった際、子要素のテキストに対してブランドカラーのグラデーションクリップをパッチ
     [`${menuButton}[data-active='true'] &`]: {
       backgroundImage: tokens.gradient.brand,
       WebkitBackgroundClip: "text",
@@ -132,7 +132,6 @@ export const sidebarFooter = style({
   alignItems: "center",
 });
 
-// 🎯 修正: export に修正
 export const footerLabel = style({
   fontWeight: "bold",
   color: tokens.color.text.base,
@@ -151,7 +150,6 @@ export const toggleTrack = style({
   transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
 });
 
-// 🎯 修正: export に修正
 export const toggleThumb = style({
   width: "16px",
   height: "16px",

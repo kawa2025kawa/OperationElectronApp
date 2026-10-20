@@ -1,4 +1,4 @@
-﻿// src/renderer/components/ui/button/actionButton/actionButton.css.ts
+// src/renderer/components/ui/button/actionButton/actionButton.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { themeTransition, tokens } from "@renderer/styles/tokens";
@@ -16,6 +16,11 @@ export const actionButton = style([
     outline: "none",
     transition: tokens.transition.fast,
     textDecoration: "none",
+
+    // 🎯 描画分離（ホバー・クリック時の周囲領域へのペイント波及を防止）
+    position: "relative",
+    isolation: "isolate",
+    transform: "translateZ(0)",
 
     selectors: {
       "&:disabled": {
@@ -61,7 +66,7 @@ export const variants = styleVariants({
     borderRadius: tokens.radius.md,
     fontSize: tokens.font.fluid.sm,
     backgroundColor: tokens.color.bg.base,
-    color: tokens.color.text.base, // muted から base へ修正
+    color: tokens.color.text.base,
     opacity: 0.8,
     border: `1px solid ${tokens.color.border.subtle}`,
     boxShadow: tokens.shadow.pressed.low,
@@ -83,7 +88,7 @@ export const variants = styleVariants({
   pill: {
     padding: "0.4vmin 1.6vmin",
     borderRadius: tokens.radius.full,
-    fontSize: tokens.font.fluid.sm, // xs から sm へ修正
+    fontSize: tokens.font.fluid.sm,
     backgroundColor: tokens.color.bg.base,
     color: tokens.color.text.base,
     border: `1px solid ${tokens.color.border.default}`,

@@ -2,9 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
-import { executeJcJob } from "@renderer/features/operation/services/jcJobService";
-import { selectActiveItemStatusFlags } from "@renderer/features/operation/store/operationSelectors";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { selectActiveItemStatusFlags } from "@renderer/store/selectors/operationSelectors";
 import type { ViewMode } from "@renderer/registry/appRegistry";
 import { useAppStore, type AppState } from "@renderer/store";
 import type {
@@ -14,6 +12,8 @@ import type {
 } from "@shared/types/operation/operationTypes";
 import { toDisplayValue } from "./operationDisplayUtils";
 import { openLinkModal, openScriptModal } from "./operationModal";
+import { operationService } from "@renderer/features/operation/operationService";
+import { systemIpcService } from "@renderer/services/systemIpcService";
 
 export interface ViewAction {
   key: string;
@@ -69,17 +69,10 @@ const INFO_ROW_DEFINITIONS: Record<ViewMode, InfoRowDefinition[]> = {
 };
 
 function getLinkConfigs(item: OperationViewItem): LinkConfig[] {
-  if (item.link !== true || !Array.isArray(item.links)) return [];
+  if (!Array.isArray(item.links) || item.links.length === 0) return [];
   return item.links
     .filter((entry) => entry?.label?.trim() && entry?.path?.trim())
     .map((entry) => ({ key: entry.label.trim(), url: entry.path.trim() }));
-}
-
-function getManualScriptKeys(item: OperationViewItem): string[] {
-  if (item.Script !== true || !Array.isArray(item.ScriptKeys)) return [];
-  return item.ScriptKeys.filter(
-    (entry) => entry.executionType === "manual" && entry.key?.trim(),
-  ).map((entry) => entry.key.trim());
 }
 
 function createActiveActions(
@@ -88,22 +81,37 @@ function createActiveActions(
 ): ViewAction[] {
   const actions: ViewAction[] = [];
 
+  // 1. JC アクション
   if ("jobId" in item && Boolean(item.jobId)) {
     actions.push({
       key: "jc",
       label: "JC",
-      execute: () => executeJcJob(useAppStore.getState(), item.kanriNo),
+      execute: async () => {
+        await operationService.executeJcJob(
+          useAppStore.getState(),
+          item.kanriNo,
+        );
+      },
     });
   }
 
-  getManualScriptKeys(item).forEach((scriptKey, index) => {
-    actions.push({
-      key: `script:${index}:${scriptKey}`,
-      label: `Script ${scriptKey}`,
-      execute: () => openScriptModal(openGlobalModal, item, scriptKey),
+  // 2. 手動スクリプト
+  if (Array.isArray(item.ScriptKeys)) {
+    item.ScriptKeys.filter(
+      (entry) => entry.key?.trim() && entry.executionTypes?.includes("manual"),
+    ).forEach(({ key, label }, index) => {
+      const cleanKey = key.trim();
+      const cleanLabel = label?.trim() || cleanKey;
+      actions.push({
+        key: `script:${index}:${cleanKey}`,
+        label: cleanLabel,
+        execute: () =>
+          openScriptModal(openGlobalModal, item, cleanKey, cleanLabel),
+      });
     });
-  });
+  }
 
+  // 3. リンク一覧
   const links = getLinkConfigs(item);
   if (links.length > 0) {
     actions.push({
@@ -113,26 +121,24 @@ function createActiveActions(
     });
   }
 
-  if ("manualUrl" in item && typeof item.manualUrl === "string") {
+  // 4. マニュアル
+  if (item.manualUrl && typeof item.manualUrl === "string") {
     actions.push({
       key: "manual",
       label: "Manual",
       execute: async () => {
-        await window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_MANUAL, {
-          target: item.manualUrl as string,
-        });
+        await systemIpcService.openManual(item.manualUrl as string);
       },
     });
   }
 
-  if ("autoManualUrl" in item && typeof item.autoManualUrl === "string") {
+  // 5. Autoマニュアル
+  if (item.autoManualUrl && typeof item.autoManualUrl === "string") {
     actions.push({
       key: "autoManual",
       label: "AutoManual",
       execute: async () => {
-        await window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_MANUAL, {
-          target: item.autoManualUrl as string,
-        });
+        await systemIpcService.openManual(item.autoManualUrl as string);
       },
     });
   }

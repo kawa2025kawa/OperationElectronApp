@@ -1,6 +1,7 @@
-// src\renderer\layout\mainView.css.ts
+// src/renderer/layout/mainView.css.ts
+
 import { style, styleVariants } from "@vanilla-extract/css";
-import { tokens, themeTransition } from "@renderer/styles/tokens";
+import { themeTransition, tokens } from "@renderer/styles/tokens";
 
 /**
  * 1. アプリ全体の最外殻（ウィンドウ全体）
@@ -11,32 +12,40 @@ export const appContainer = style([
   {
     display: "flex",
     flexDirection: "column",
-    height: "100vh", // 画面の縦高さいっぱいに固定
-    width: "100vw", // 画面の横幅いっぱいに固定
+    height: "100vh",
+    width: "100vw",
     backgroundColor: tokens.color.bg.base,
-    overflow: "hidden", // アプリ全体の不要なスクロールを完全に禁止
+    overflow: "hidden",
+
+    // 最外殻のレイヤー隔離
+    position: "relative",
+    isolation: "isolate",
   },
 ]);
 
 /**
  * 2. ナビゲーションバーの下、メイン領域（サイドバー ＋ コンテンツ）が入る器
- * ナビゲーションバーの高さ（例: 80px）を引いた、残りの画面高さいっぱいに割り当てられます。
  */
 export const contentWrapper = style({
   display: "flex",
-  flex: 1, // ナビゲーションバー以外の残りの高さを全取り
+  flex: 1,
   width: "100%",
-  minHeight: 0, // Flexboxの高さ潰れによるスクロール破綻を防ぐための最重要プロパティ
+  minHeight: 0,
   position: "relative",
+  isolation: "isolate",
 });
 
 /**
- * 3. サイドバーの表示・非表示切り替え用スタイル（recipe を廃止）
+ * 3. サイドバーの表示・非表示切り替え用スタイル
  */
 export const sidebarBase = style({
   height: "100%",
   transition: `width ${tokens.transition.normal}`,
   flexShrink: 0,
+  position: "relative",
+  zIndex: 20,
+  isolation: "isolate",
+  transform: "translateZ(0)",
 });
 
 export const sidebarCollapsed = styleVariants({
@@ -46,20 +55,30 @@ export const sidebarCollapsed = styleVariants({
 
 /**
  * 4. 右側のメインコンテンツ本体
- * contentWrapper の高さを 100% 引き継ぎ、内部を縦の FlexBox とします。
  */
 export const mainContent = style({
   flex: 1,
-  height: "100%", // 親の「残りの高さ」を100%継承
+  height: "100%",
   minWidth: 0,
   display: "flex",
   flexDirection: "column",
+  position: "relative",
+  zIndex: 10,
+  isolation: "isolate",
+  transform: "translateZ(0)",
 });
 
-// ビューコンポーネント配置用ラッパー
+/**
+ * 5. ビューコンポーネント配置用ラッパー
+ * VIEW 切り替え時のアニメーションや DOM 差し替えによるペイントをこの領域内だけに完全閉塞します。
+ */
 export const viewWrapper = style({
   flex: 1,
   minHeight: 0,
   display: "flex",
   flexDirection: "column",
+  position: "relative",
+  isolation: "isolate",
+  transform: "translateZ(0)",
+  overflow: "hidden",
 });

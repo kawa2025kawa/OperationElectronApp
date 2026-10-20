@@ -1,9 +1,14 @@
-﻿import fs from "fs-extra";
+// electron/features/operation/jobs/scripts/eseries/job_e55.ts
+// e5 仕入原価リストデータ作成完了後のチェック処理
+// 3.宮地店を対象
+
+import fs from "fs-extra";
 import path from "node:path";
 import iconv from "iconv-lite";
 import { isSameDay } from "date-fns";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { parseCsvLine } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 
 const OUTPUT_DIR = "\\\\C0088150\\nec\\ftp";
 const TARGET_FILE = "TENF0140.dat";
@@ -22,6 +27,19 @@ const DEPT_MAP: Record<string, string> = {
 
 const TARGET_DEPTS = ["01", "21", "03", "23", "04", "24", "05", "25"];
 const TARGET_STORE = "003";
+
+// fileUtils の getFileInfo をローカル関数として実装
+async function getFileInfo(filePath: string): Promise<{
+  fileName: string;
+  mtime: Date;
+}> {
+  const fileStat = await fs.stat(filePath);
+
+  return {
+    fileName: path.basename(filePath),
+    mtime: fileStat.mtime,
+  };
+}
 
 function getStringWidth(str: string): number {
   let width = 0;
@@ -74,9 +92,9 @@ export async function runJobE55(): Promise<JobResult> {
       throw new Error(`送信済みファイルが存在しません: ${datPath}`);
     }
 
-    const stat = await fs.stat(datPath);
+    const fileInfo = await getFileInfo(datPath);
 
-    if (!isSameDay(stat.mtime, new Date())) {
+    if (!isSameDay(fileInfo.mtime, new Date())) {
       throw new Error(
         `ファイル (${TARGET_FILE}) の更新日時が本日ではありません。本日の送信処理がまだ行われていない可能性があります。`,
       );
@@ -98,7 +116,7 @@ export async function runJobE55(): Promise<JobResult> {
     > = {};
 
     for (const line of lines) {
-      const cols = line.split(",").map((column) => column.trim());
+      const cols = parseCsvLine(line);
 
       if (cols.length < 7) continue;
 

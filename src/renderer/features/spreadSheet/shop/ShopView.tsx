@@ -1,4 +1,4 @@
-﻿// src/renderer/features/spreadSheet/shop/ShopView.tsx
+// src/renderer/features/spreadSheet/shop/ShopView.tsx
 
 import { memo, useCallback } from "react";
 import type { Shop } from "@shared/types/spreadsheet/shop";

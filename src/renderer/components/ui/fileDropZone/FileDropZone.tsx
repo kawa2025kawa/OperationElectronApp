@@ -1,4 +1,4 @@
-﻿//src\renderer\components\ui\fileDropZone\FileDropZone.tsx
+//src\renderer\components\ui\fileDropZone\FileDropZone.tsx
 
 import { memo } from "react";
 import type { MouseEvent } from "react";

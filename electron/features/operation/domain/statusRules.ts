@@ -1,5 +1,6 @@
-﻿// electron/features/operation/domain/statusRules.ts
+// electron/features/operation/domain/statusRules.ts
 
+import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
 import {
   JOB_STATUS,
   type JobStatus,
@@ -9,7 +10,7 @@ import {
 /**
  * 外部（Trackerや手動操作）から上書き保護されるステータスの定義
  */
-const PROTECTED_STATUSES = new Set<JobStatus>([
+const PROTECTED_STATUSES: ReadonlySet<JobStatus> = new Set([
   JOB_STATUS.RUNNING,
   JOB_STATUS.SCRIPT_RUNNING,
   JOB_STATUS.SUCCESS,
@@ -19,14 +20,16 @@ const PROTECTED_STATUSES = new Set<JobStatus>([
 /**
  * ステータスが保護状態（自動依存関係の再計算などで上書きされない状態）か判定する
  */
-export function isProtectedStatus(status?: JobStatus): boolean {
+export function isProtectedStatus(status?: JobStatus): status is JobStatus {
   return status !== undefined && PROTECTED_STATUSES.has(status);
 }
 
 /**
  * ステータスが現在実行中（アプリ内スクリプトまたは外部ジョブ）であるか判定する
  */
-export function isRunningStatus(status?: JobStatus): boolean {
+export function isRunningStatus(
+  status?: JobStatus,
+): status is typeof JOB_STATUS.RUNNING | typeof JOB_STATUS.SCRIPT_RUNNING {
   return status === JOB_STATUS.RUNNING || status === JOB_STATUS.SCRIPT_RUNNING;
 }
 
@@ -37,10 +40,12 @@ export function mergeStatus(
   current: OperationStatusState | undefined,
   update: OperationStatusState,
 ): OperationStatusState {
+  const kanriNo = normalizeKanriNo(update.kanriNo);
+
   return {
     ...current,
     ...update,
-    kanriNo: update.kanriNo,
+    kanriNo,
     status: update.status ?? current?.status,
     comment: update.comment ?? current?.comment ?? "",
   };
@@ -72,7 +77,7 @@ export function hasStatusChanged(
  */
 export function createScheduledStatus(kanriNo: string): OperationStatusState {
   return {
-    kanriNo,
+    kanriNo: normalizeKanriNo(kanriNo),
     status: JOB_STATUS.SCHEDULED,
     comment: "予定時刻待ち",
     startTime: null,

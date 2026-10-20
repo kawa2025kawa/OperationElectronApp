@@ -1,4 +1,4 @@
-﻿// src/shared/store/slices/overlaySlice.ts
+// src/renderer/store/slices/overlaySlice.ts
 
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
@@ -16,6 +16,7 @@ export interface OverlaySlice {
   setGlobalProcessing: (processing: GlobalProcessingState | null) => void;
 }
 
+// 画面全体の処理中ローディングオーバーレイ表示を管理するスライスを生成する。
 export const createOverlaySlice: StateCreator<
   AppState,
   [["zustand/immer", never]],
@@ -24,6 +25,7 @@ export const createOverlaySlice: StateCreator<
 > = (set) => ({
   globalProcessing: null,
 
+  // 処理中メッセージおよび対象を含むグローバル処理中ステートを設定する。
   setGlobalProcessing: (processing) =>
     set((state: AppState) => {
       state.globalProcessing = processing;

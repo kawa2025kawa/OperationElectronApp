@@ -1,4 +1,4 @@
-﻿// src/renderer/components/ui/auth/AuthCard.tsx
+// src/renderer/components/ui/auth/AuthCard.tsx
 
 import { memo } from "react";
 import { clsx } from "clsx";

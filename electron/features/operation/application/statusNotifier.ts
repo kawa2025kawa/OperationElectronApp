@@ -1,4 +1,4 @@
-﻿// electron/features/operation/application/statusNotifier.ts
+// electron/features/operation/application/statusNotifier.ts
 
 import { BrowserWindow } from "electron";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
@@ -28,20 +28,27 @@ type StatusNotification = OperationStatusState | StatusClearPayload;
 
 const readyStatusListeners = new Set<ReadyStatusListener>();
 
+// レンダラープロセスの全ウィンドウへステータス通知メッセージをブロードキャストする。
 function notifyRenderer(payload: StatusNotification): void {
   for (const window of BrowserWindow.getAllWindows()) {
-    if (window.isDestroyed()) {
+    if (window.isDestroyed() || window.webContents?.isDestroyed()) {
       continue;
     }
 
-    window.webContents.send(IPC_CHANNELS.OPERATION.STATUS_UPDATED, payload);
+    try {
+      window.webContents.send(IPC_CHANNELS.OPERATION.STATUS_UPDATED, payload);
+    } catch (error) {
+      console.error("[StatusNotifier] 送信エラー:", error);
+    }
   }
 }
 
+// ステータス更新内容をレンダラーへ通知する。
 export function notifyStatusUpdated(status: OperationStatusState): void {
   notifyRenderer(status);
 }
 
+// 指定管理Noのステータスクリア通知をレンダラーへ送信する。
 export function notifyStatusCleared(kanriNo: string): void {
   notifyRenderer({
     kanriNo,
@@ -50,6 +57,7 @@ export function notifyStatusCleared(kanriNo: string): void {
   });
 }
 
+// ジョブがREADY状態になったことを登録済みリスナーへ通知する。
 export function notifyReady(target: StatusTarget): void {
   for (const listener of readyStatusListeners) {
     try {
@@ -60,6 +68,7 @@ export function notifyReady(target: StatusTarget): void {
   }
 }
 
+// READYステータス発生時のコールバックリスナーを登録し、解除関数を返す。
 export function onReadyStatus(listener: ReadyStatusListener): () => void {
   readyStatusListeners.add(listener);
 

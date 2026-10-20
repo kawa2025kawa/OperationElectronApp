@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { SpreadSheetEntity } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { getValueByPath } from "@shared/utils/getValueByPath";
 

@@ -1,4 +1,6 @@
-﻿import { format, subDays } from "date-fns";
+//electron\features\operation\jobs\scripts\helpers\timeUtils.ts
+
+import { format, subDays } from "date-fns";
 
 /**
  * 日付を指定形式の文字列に変換する。

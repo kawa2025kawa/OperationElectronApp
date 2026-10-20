@@ -1,8 +1,10 @@
+// src/renderer/features/operation/OperationView.tsx
+
 import { memo } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
-import { UnifiedTable } from "@renderer/features/operation/components/table/OperationTable";
+import { OperationTable } from "@renderer/features/operation/components/table/OperationTable";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 import type { ViewMode } from "@renderer/registry/appRegistry";
 
@@ -42,6 +44,8 @@ const ModeSwitcher = memo(
   ),
 );
 
+ModeSwitcher.displayName = "ModeSwitcher";
+
 interface InfoRowProps extends InfoRowData {}
 
 const InfoRow = memo(({ label, value, type }: InfoRowProps) => (
@@ -57,6 +61,8 @@ const InfoRow = memo(({ label, value, type }: InfoRowProps) => (
     </span>
   </div>
 ));
+
+InfoRow.displayName = "InfoRow";
 
 // -----------------------------------------------------------------------------
 // Main Component
@@ -76,7 +82,7 @@ export const OperationView = memo(() => {
     <div className={styles.container}>
       <div className={styles.tableArea}>
         <div className={styles.tableCard}>
-          <UnifiedTable />
+          <OperationTable />
         </div>
       </div>
 
@@ -104,7 +110,10 @@ export const OperationView = memo(() => {
                         key={action.key}
                         className={styles.menuItem}
                         onSelect={() => {
-                          void executeAction(action.key);
+                          // 🎯 Radix UI Dropdown 閉鎖イベントとの干渉を防ぐため非同期化
+                          requestAnimationFrame(() => {
+                            void executeAction(action.key);
+                          });
                         }}
                       >
                         {action.label}
@@ -126,3 +135,5 @@ export const OperationView = memo(() => {
     </div>
   );
 });
+
+OperationView.displayName = "OperationView";

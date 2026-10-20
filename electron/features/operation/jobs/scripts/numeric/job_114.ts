@@ -13,8 +13,11 @@ const CONFIG = {
   encoding: "Shift_JIS",
 } as const;
 
-async function findLogFile(): Promise<string | undefined> {
-  const datePrefix = format(new Date(), "yyMMdd");
+function getDatePrefix(date = new Date()): string {
+  return format(date, "yyMMdd");
+}
+
+async function findLogFile(datePrefix: string): Promise<string | undefined> {
   const files = await fs.readdir(CONFIG.logDir);
 
   return files.find(
@@ -39,6 +42,7 @@ async function readCount(filePath: string): Promise<string> {
 
 export async function runJob114(): Promise<string> {
   const now = new Date();
+  const datePrefix = getDatePrefix(now);
   const logger = new JobLogger();
 
   logger.log(`ファイルパス : ${CONFIG.logDir}`);
@@ -47,15 +51,11 @@ export async function runJob114(): Promise<string> {
     throw logger.fail(`ディレクトリが存在しません: ${CONFIG.logDir}`);
   }
 
-  const targetFile = await findLogFile();
+  const targetFile = await findLogFile(datePrefix);
 
   if (!targetFile) {
-    logger.log(
-      `対象ファイルなし (${format(now, "yyMMdd")}*_${CONFIG.fileSuffix})`,
-    );
-    throw logger.fail(
-      `ログファイルが見つかりません (${format(now, "yyMMdd")})`,
-    );
+    logger.log(`対象ファイルなし (${datePrefix}*_${CONFIG.fileSuffix})`);
+    throw logger.fail(`ログファイルが見つかりません (${datePrefix})`);
   }
 
   const filePath = path.join(CONFIG.logDir, targetFile);
@@ -69,6 +69,7 @@ export async function runJob114(): Promise<string> {
   try {
     const countText = await readCount(filePath);
     logger.log(`READ件数 : ${countText}`);
+
     return logger.complete(countText);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

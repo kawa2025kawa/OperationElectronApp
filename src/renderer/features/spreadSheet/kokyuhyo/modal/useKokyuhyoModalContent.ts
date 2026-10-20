@@ -1,10 +1,10 @@
-﻿// src/renderer/features/spreadSheet/kokyuhyo/modal/useKokyuhyoModalContent.ts
+// src/renderer/features/spreadsheet/kokyuhyo/modal/useKokyuhyoModalContent.ts
 
 import { useCallback } from "react";
 import { addDays, format, getDay } from "date-fns";
 import { ja } from "date-fns/locale/ja";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
+import { systemIpcService } from "@renderer/services/systemIpcService";
 
 const formatDateWithDay = (date: Date) => {
   const mmdd = format(date, "MM/dd");
@@ -31,9 +31,7 @@ export function useKokyuhyoModalContent(data: Kokyuhyo) {
 
   const handleOpenSchedule = useCallback(() => {
     if (scheduleLink) {
-      void window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, {
-        urlOrPath: scheduleLink,
-      });
+      void systemIpcService.openExternal(scheduleLink);
     }
   }, [scheduleLink]);
 

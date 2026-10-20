@@ -1,4 +1,4 @@
-﻿// src/shared/types/spreadsheet/spreadsheetTypes.ts
+// src/shared/types/spreadsheet/spreadsheetTypes.ts
 
 import type { Jugyoin } from "./jugyoin";
 import type { Kokyuhyo } from "./kokyuhyo";

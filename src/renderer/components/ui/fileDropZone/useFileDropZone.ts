@@ -1,4 +1,4 @@
-﻿//src\renderer\components\ui\fileDropZone\useFileDropZone.ts
+//src\renderer\components\ui\fileDropZone\useFileDropZone.ts
 
 import { useRef, useState, useCallback } from "react";
 import type { DragEvent, KeyboardEvent, ChangeEvent } from "react";

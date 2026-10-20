@@ -1,2 +1,2 @@
-﻿// src/shared/types/auth/index.ts
+// src/shared/types/auth/index.ts
 export * from "./authTypes";

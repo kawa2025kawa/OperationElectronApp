@@ -1,4 +1,4 @@
-﻿import { chromium, type Browser } from "playwright";
+import { chromium, type Browser } from "playwright";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
 const LOGIN_URL = "http://192.88.1.192/belcta/login.php";

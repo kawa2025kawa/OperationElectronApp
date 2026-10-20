@@ -1,4 +1,4 @@
-﻿// electron/features/operation/application/dependencyPropagator.ts
+// electron/features/operation/application/dependencyPropagator.ts
 
 import {
   hasCenterFlagDependency,
@@ -14,6 +14,7 @@ export class DependencyPropagator {
   private propagationQueue = new Set<string>();
   private isPropagating = false;
 
+  // 指定されたターゲットの依存関係を依存先から参照できる索引に登録する。
   public registerDependencyIndex(target: StatusTarget): void {
     const kanriNo = normalizeKanriNo(target.kanriNo);
     if (!kanriNo) return;
@@ -22,19 +23,24 @@ export class DependencyPropagator {
       const dependencyNo = normalizeKanriNo(dependency);
       if (!dependencyNo) continue;
 
-      const dependents =
-        this.dependentTargets.get(dependencyNo) ?? new Set<string>();
-
+      let dependents = this.dependentTargets.get(dependencyNo);
+      if (!dependents) {
+        dependents = new Set<string>();
+        this.dependentTargets.set(dependencyNo, dependents);
+      }
       dependents.add(kanriNo);
-      this.dependentTargets.set(dependencyNo, dependents);
     }
   }
 
+  // 既存の依存関係索引を破棄し、全ターゲットから再構築する。
   public rebuildDependencyIndex(targets: Iterable<StatusTarget>): void {
     this.dependentTargets.clear();
-    for (const target of targets) this.registerDependencyIndex(target);
+    for (const target of targets) {
+      this.registerDependencyIndex(target);
+    }
   }
 
+  // 指定された管理番号に依存するターゲットを再計算キューに追加する。
   public enqueueDependents(kanriNo: string): void {
     const dependents = this.dependentTargets.get(kanriNo);
     if (!dependents) return;
@@ -44,9 +50,7 @@ export class DependencyPropagator {
     }
   }
 
-  /**
-   * センターフラグ(1C/2C/3C)に依存するタスクを抽出し、再計算キューに投入する
-   */
+  // センターフラグ（1C/2C/3C）に依存するターゲットを再計算キューに追加する。
   public enqueueCenterFlagDependents(targets: Map<string, StatusTarget>): void {
     for (const [kanriNo, target] of targets) {
       const dependencies = normalizeDependencies(target.dependsOn);
@@ -56,6 +60,7 @@ export class DependencyPropagator {
     }
   }
 
+  // 保護対象ではなく、登録済みターゲットに対応するステータスを再計算キューに追加する。
   public enqueueAllRecalculableTargets(
     statuses: Map<string, OperationStatusState>,
     targets: Map<string, StatusTarget>,
@@ -66,25 +71,30 @@ export class DependencyPropagator {
     }
   }
 
+  // 再計算キューの登録内容をすべて削除する。
   public clearQueue(): void {
     this.propagationQueue.clear();
   }
 
+  // 依存関係索引と再計算キューをすべて初期化する。
   public clearAll(): void {
     this.dependentTargets.clear();
     this.propagationQueue.clear();
   }
 
+  // 再計算キューが空になるまで各ターゲットの再計算処理を順次実行する。
   public processPropagation(recalculateFn: (kanriNo: string) => void): void {
     if (this.isPropagating) return;
 
     this.isPropagating = true;
     try {
       while (this.propagationQueue.size > 0) {
-        const queue = [...this.propagationQueue];
+        const queue = Array.from(this.propagationQueue);
         this.propagationQueue.clear();
 
-        for (const kanriNo of queue) recalculateFn(kanriNo);
+        for (const kanriNo of queue) {
+          recalculateFn(kanriNo);
+        }
       }
     } finally {
       this.isPropagating = false;

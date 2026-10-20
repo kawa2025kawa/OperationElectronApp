@@ -1,15 +1,13 @@
-﻿// electron/features/operation/jobs/scripts/eseries/job_e29.ts
+// electron/features/operation/jobs/scripts/eseries/job_e29.ts
 
 import path from "node:path";
 import fs from "fs-extra";
+import iconv from "iconv-lite";
 import * as ExcelJS from "exceljs";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import {
-  parseAmount,
-  parseRealYosanAmount,
-} from "../helpers/shared/parseAmount";
-import { parseCsv } from "../helpers/shared/parseCsvLine";
+import { parseCsv } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
+import { parseAmount, parseRealYosanAmount } from "../helpers/parseAmount";
 
 const CONFIG = {
   targetSheetName: "店舗毎（税抜き）",
@@ -69,7 +67,9 @@ function isTotalRow(value: unknown): boolean {
 }
 
 async function parseMeisYosan(filePath: string): Promise<YosanMap> {
-  const rows = parseCsv(await fs.readFile(filePath, "utf8")).slice(1);
+  const rawBuffer = await fs.readFile(filePath);
+  const text = iconv.decode(rawBuffer, "Shift_JIS");
+  const rows = parseCsv(text).slice(1);
   const result = new Map<string, number>();
 
   for (const row of rows) {

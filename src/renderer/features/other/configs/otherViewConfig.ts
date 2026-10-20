@@ -1,4 +1,4 @@
-﻿//src\renderer\features\other\configs\otherViewConfig.ts
+//src\renderer\features\other\configs\otherViewConfig.ts
 
 import {
   APP_VIEW_IDS,

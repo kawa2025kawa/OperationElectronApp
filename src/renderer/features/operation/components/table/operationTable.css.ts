@@ -2,19 +2,7 @@
 
 import { style } from "@vanilla-extract/css";
 
-export {
-  tableContainer as container,
-  headerWrapper,
-  bodyWrapper,
-  headerTable,
-  bodyTable,
-  tableRowBase,
-  tableRowStates,
-  thBase,
-  tdBase,
-  alignVariants,
-  cellText,
-} from "@renderer/features/operation/styles/sharedTable.css";
+export * from "@renderer/styles/global/table.css";
 
 export const statusCellWrapper = style({
   display: "flex",

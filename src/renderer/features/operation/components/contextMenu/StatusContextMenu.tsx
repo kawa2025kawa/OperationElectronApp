@@ -1,7 +1,6 @@
 // src/renderer/features/operation/components/contextMenu/StatusContextMenu.tsx
 
 import { memo, useCallback } from "react";
-
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import clsx from "clsx";
 
@@ -29,13 +28,16 @@ export const StatusContextMenu = memo<StatusContextMenuProps>(({ kanriNo }) => {
     (state) => state.updateOperationStatus,
   );
 
-  const handleSelectStatus = (status: JobStatus) => {
-    updateOperationStatus({
-      kanriNo,
-      status,
-      comment: "",
-    });
-  };
+  const handleSelectStatus = useCallback(
+    (status: JobStatus) => {
+      updateOperationStatus({
+        kanriNo,
+        status,
+        comment: "",
+      });
+    },
+    [kanriNo, updateOperationStatus],
+  );
 
   return (
     <ContextMenu.Portal>
@@ -60,3 +62,5 @@ export const StatusContextMenu = memo<StatusContextMenuProps>(({ kanriNo }) => {
     </ContextMenu.Portal>
   );
 });
+
+StatusContextMenu.displayName = "StatusContextMenu";

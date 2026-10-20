@@ -1,4 +1,4 @@
-﻿// electron/features/operation/jobs/scripts/helpers/jobLogger.ts
+// electron/features/operation/jobs/scripts/helpers/jobLogger.ts
 
 import { format } from "date-fns";
 

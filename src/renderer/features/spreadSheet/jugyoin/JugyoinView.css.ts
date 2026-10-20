@@ -1,4 +1,4 @@
-﻿import { style } from "@vanilla-extract/css";
+import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens";
 
 export const viewContainer = style({

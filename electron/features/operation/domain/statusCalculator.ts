@@ -1,17 +1,17 @@
-﻿// electron/features/operation/domain/statusCalculator.ts
+// electron/features/operation/domain/statusCalculator.ts
 
+import {
+  isPreviousDayJob,
+  normalizeKanriNo,
+} from "@electron/features/operation/domain/operationRules";
 import {
   JOB_STATUS,
   type ActiveFlags,
   type JobStatus,
+  type OperationMaster,
   type OperationStatusState,
+  type TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
-
-import type {
-  OperationMaster,
-  TodayIrregularMaster,
-} from "@shared/types/operation/operationTypes";
-
 import {
   checkJobDependencies,
   formatDependencyWaitingComment,
@@ -21,9 +21,6 @@ import {
   type MissingDependency,
 } from "@shared/utils/dependency/dependencyUtils";
 
-import { isPreviousDayJob } from "@electron/features/operation/domain/operationRules";
-import { parseHHMM } from "@electron/features/operation/utils/operationUtils";
-
 export type StatusCalculationTarget = OperationMaster | TodayIrregularMaster;
 
 interface StatusCalculationResult {
@@ -31,6 +28,32 @@ interface StatusCalculationResult {
   comment: string;
 }
 
+interface ParsedTime {
+  hours: number;
+  minutes: number;
+}
+
+const READY_RESULT: Readonly<StatusCalculationResult> = Object.freeze({
+  status: JOB_STATUS.READY,
+  comment: "実施可能",
+});
+
+/**
+ * 時刻文字列 (HH:mm) をパースして「時」と「分」を取得する。
+ */
+function parseHHMM(value?: string | null): ParsedTime | null {
+  const match = value?.match(/(\d{1,2}):(\d{1,2})/);
+  if (!match) return null;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  if (hours > 23 || minutes > 59) return null;
+
+  return { hours, minutes };
+}
+
+// 依存関係の有無に応じてジョブのステータス計算処理を振り分ける。
 function calculateJobStatus(
   target: StatusCalculationTarget,
   masters: DependencyMasters,
@@ -46,6 +69,7 @@ function calculateJobStatus(
   return calculateWithDependencies(target, masters, statuses, activeFlags);
 }
 
+// 計算結果から管理番号・ステータス・コメントを含む状態オブジェクトを生成する。
 export function calculateOperationStatus(
   target: StatusCalculationTarget,
   masters: DependencyMasters,
@@ -55,12 +79,13 @@ export function calculateOperationStatus(
   const result = calculateJobStatus(target, masters, statuses, activeFlags);
 
   return {
-    kanriNo: target.kanriNo,
+    kanriNo: normalizeKanriNo(target.kanriNo),
     status: result.status,
     comment: result.comment,
   };
 }
 
+// 依存関係がないジョブについて予定時刻に基づくステータスを計算する。
 function calculateWithoutDependencies(
   target: StatusCalculationTarget,
 ): StatusCalculationResult {
@@ -71,12 +96,10 @@ function calculateWithoutDependencies(
     };
   }
 
-  return {
-    status: JOB_STATUS.READY,
-    comment: "実施可能",
-  };
+  return READY_RESULT;
 }
 
+// 依存ジョブの状態と予定時刻に基づいてステータスを計算する。
 function calculateWithDependencies(
   target: StatusCalculationTarget,
   masters: DependencyMasters,
@@ -101,12 +124,10 @@ function calculateWithDependencies(
     };
   }
 
-  return {
-    status: JOB_STATUS.READY,
-    comment: "実施可能",
-  };
+  return READY_RESULT;
 }
 
+// 未充足の依存関係を待機ステータスと説明コメントに変換する。
 function createDependencyWaitingResult(
   missingDependencies: readonly MissingDependency[],
 ): StatusCalculationResult {
@@ -116,6 +137,7 @@ function createDependencyWaitingResult(
   };
 }
 
+// 指定された現在時刻が予定時刻より前かどうかを判定する。
 function isBeforeScheduledTime(
   target: StatusCalculationTarget,
   now: Date = new Date(),
@@ -127,7 +149,6 @@ function isBeforeScheduledTime(
   }
 
   const targetDate = new Date(now);
-
   targetDate.setHours(scheduledTime.hours, scheduledTime.minutes, 0, 0);
 
   if (isPreviousDayJob(target.kanriNo, target.scheduledTime)) {

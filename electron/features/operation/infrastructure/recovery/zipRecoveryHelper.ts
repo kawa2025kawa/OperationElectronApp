@@ -1,4 +1,4 @@
-﻿// electron/features/operation/helpers/zipRecoveryHelper.ts
+// electron/features/operation/helpers/zipRecoveryHelper.ts
 
 import fs from "node:fs/promises";
 import { dialog } from "electron";

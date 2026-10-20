@@ -1,17 +1,10 @@
-﻿// electron/features/operation/jobs/scripts/numeric/job_56.ts
+// electron/features/operation/jobs/scripts/numeric/job_56.ts
 
 import { format } from "date-fns";
 import fs from "fs-extra";
+import path from "node:path";
 import iconv from "iconv-lite";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/folderUtils";
-
-import {
-  findFiles,
-  getFileInfo,
-} from "@electron/features/operation/jobs/scripts/helpers/fileUtils";
-
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 const CONFIG = {
   targetDir: "\\\\172.25.101.51\\if\\WEB-SV\\RCV\\SV",
@@ -20,6 +13,55 @@ const CONFIG = {
   charAByte: 0x41,
   validCharRegex: /^[AD0-9 ]+$/,
 } as const;
+
+// timeUtils の getDateKey をローカル実装
+function getDateKey(date = new Date()): string {
+  return format(date, "yyyyMMdd");
+}
+
+// folderUtils の directoryExists をローカル実装
+async function directoryExists(dirPath: string): Promise<boolean> {
+  try {
+    return (await fs.stat(dirPath)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+// fileUtils の findFiles をローカル実装
+async function findFiles(
+  dirPath: string,
+  options: { prefix?: string; suffix?: string; includes?: string[] } = {},
+): Promise<string[]> {
+  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  const includes = options.includes ?? [];
+
+  return entries
+    .filter((entry) => {
+      if (!entry.isFile()) return false;
+      if (options.prefix && !entry.name.startsWith(options.prefix)) {
+        return false;
+      }
+      if (options.suffix && !entry.name.endsWith(options.suffix)) {
+        return false;
+      }
+      return includes.every((keyword) => entry.name.includes(keyword));
+    })
+    .map((entry) => path.join(dirPath, entry.name));
+}
+
+// fileUtils の getFileInfo をローカル実装
+async function getFileInfo(filePath: string): Promise<{
+  fileName: string;
+  mtime: Date;
+}> {
+  const stats = await fs.stat(filePath);
+
+  return {
+    fileName: path.basename(filePath),
+    mtime: stats.mtime,
+  };
+}
 
 function validateLine(
   line: string,

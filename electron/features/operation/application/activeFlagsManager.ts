@@ -1,37 +1,20 @@
-﻿// electron/features/operation/application/activeFlagsManager.ts
+// electron/features/operation/application/activeFlagsManager.ts
 
 import {
   DEFAULT_ACTIVE_FLAGS,
   type ActiveFlags,
 } from "@shared/types/operation/operationTypes";
 
-let activeFlags = { ...DEFAULT_ACTIVE_FLAGS };
+let activeFlags: ActiveFlags = { ...DEFAULT_ACTIVE_FLAGS };
 
-const isDebugEnabled = () => process.env.DEBUG_ACTIVE_FLAGS === "true";
-
-let previousLoggedFlags: string | null = null;
-
-export const setActiveFlags = (flags?: Partial<ActiveFlags>) => {
+// センターフラグ（1C/2C/3C）の有効状態を更新する。
+export function setActiveFlags(flags?: Partial<ActiveFlags>): void {
   if (flags) {
     activeFlags = { ...activeFlags, ...flags };
   }
+}
 
-  if (isDebugEnabled()) {
-    console.log("[DEBUG activeFlagsManager] set", activeFlags);
-  }
-};
-
-export const getActiveFlags = () => {
-  const flags = { ...activeFlags };
-
-  if (isDebugEnabled()) {
-    const serializedFlags = JSON.stringify(flags);
-
-    if (serializedFlags !== previousLoggedFlags) {
-      console.log("[DEBUG activeFlagsManager] get", flags);
-      previousLoggedFlags = serializedFlags;
-    }
-  }
-
-  return flags;
-};
+// 現在保持しているセンターフラグのコピーを取得する。
+export function getActiveFlags(): ActiveFlags {
+  return { ...activeFlags };
+}

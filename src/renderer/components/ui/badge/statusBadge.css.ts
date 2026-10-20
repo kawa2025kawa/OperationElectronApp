@@ -1,28 +1,36 @@
-/* src/renderer/components/ui/badge/StatusBadge.css.ts */
+/* src/renderer/components/ui/badge/statusBadge.css.ts */
 
 import { style, styleVariants } from "@vanilla-extract/css";
-import { tokens } from "@renderer/styles/tokens";
+import { themeTransition, tokens } from "@renderer/styles/tokens";
+
 /* =========================
    Base
 ========================= */
 
-export const badge = style({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: "28px",
-  minWidth: "86px",
-  padding: `0 ${tokens.space.md}`,
-  borderRadius: tokens.radius.full,
-  fontSize: tokens.font.size.xs,
-  fontWeight: tokens.font.weight.bold,
-  whiteSpace: "nowrap",
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-  backgroundColor: tokens.color.bg.base,
-  border: "2px solid currentcolor",
-  transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
-});
+export const badge = style([
+  themeTransition,
+  {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "28px",
+    minWidth: "86px",
+    padding: `0 ${tokens.space.md}`,
+    borderRadius: tokens.radius.full,
+    fontSize: tokens.font.size.xs,
+    fontWeight: tokens.font.weight.bold,
+    whiteSpace: "nowrap",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    backgroundColor: tokens.color.bg.base,
+    border: "2px solid currentcolor",
+
+    // 🎯 描画分離（Glow影による親セル・行へのペイント浸食を遮断）
+    position: "relative",
+    isolation: "isolate",
+    transform: "translateZ(0)",
+  },
+]);
 
 /* =========================
    Tone

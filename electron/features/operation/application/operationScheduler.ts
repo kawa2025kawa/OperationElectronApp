@@ -1,17 +1,18 @@
-﻿// electron/features/operation/application/operationScheduler.ts
+// electron/features/operation/application/operationScheduler.ts
 
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
 import {
   getRegisteredTargets,
   getStatus,
   onReadyStatus,
+  recalculateAllStatuses,
   updateStatus,
   type StatusTarget,
 } from "@electron/features/operation/application/statusManager";
 import {
   applyScriptExecutionError,
   applyScriptExecutionResult,
-} from "@electron/features/operation/application/scriptExecutionStatus";
+} from "@electron/features/operation/application/scriptExecutionService";
 import { executeSingleScriptJob } from "@electron/features/operation/runners/scriptRunner";
 import {
   JOB_STATUS,
@@ -25,17 +26,20 @@ import {
 
 const POLLING_INTERVAL_MS = 60_000;
 let pollingTimer: NodeJS.Timeout | null = null;
-let isPolling = false;
+let isPollingActive = false;
+let isCycleExecuting = false;
 let unsubscribeReadyStatus: (() => void) | null = null;
 
 const readyQueue: StatusTarget[] = [];
 const queuedKanriNos = new Set<string>();
 let isProcessingReadyQueue = false;
 
+// 指定管理Noが実行可能（READY）ステータスかを判定する。
 function isReady(kanriNo: string): boolean {
   return getStatus(kanriNo)?.status === JOB_STATUS.READY;
 }
 
+// スクリプト実行中ステータスを記録し単一スクリプトを実行して結果を反映する。
 async function executeScript(
   kanriNo: string,
   scriptKey: string,
@@ -56,6 +60,7 @@ async function executeScript(
   }
 }
 
+// READY状態のジョブに紐づく自動実行スクリプトを順次実行する。
 async function executeReadyJob(item: OperationViewItem): Promise<void> {
   const kanriNo = item.kanriNo;
 
@@ -63,14 +68,10 @@ async function executeReadyJob(item: OperationViewItem): Promise<void> {
     return;
   }
 
-  if (!("Script" in item) || item.Script !== true) {
-    return;
-  }
-
   const scriptKeys = Array.isArray(item.ScriptKeys)
-    ? item.ScriptKeys.filter((entry) => entry.executionType === "auto")
-        .map((entry) => entry.key)
-        .filter((key) => key.trim() !== "")
+    ? item.ScriptKeys.filter((entry) => entry.executionTypes?.includes("auto"))
+        .map((entry) => entry.key.trim())
+        .filter(Boolean)
     : [];
 
   if (scriptKeys.length === 0) {
@@ -98,6 +99,7 @@ async function executeReadyJob(item: OperationViewItem): Promise<void> {
   }
 }
 
+// READYターゲットのTrackerステータスを事前確認した上でスクリプトを実行する。
 async function processReadyTarget(target: StatusTarget): Promise<void> {
   const kanriNo = normalizeKanriNo(target.kanriNo);
   if (!kanriNo || !isReady(kanriNo)) {
@@ -112,6 +114,7 @@ async function processReadyTarget(target: StatusTarget): Promise<void> {
   await executeReadyJob(target);
 }
 
+// READYジョブキューから順次ターゲットを取り出して実行処理を行う。
 async function processReadyQueue(): Promise<void> {
   if (isProcessingReadyQueue) {
     return;
@@ -139,6 +142,7 @@ async function processReadyQueue(): Promise<void> {
   }
 }
 
+// 実行可能（READY）ターゲットをキューに追加して処理を開始する。
 function enqueueReadyTarget(target: StatusTarget): void {
   const kanriNo = normalizeKanriNo(target.kanriNo);
   if (!kanriNo || !isReady(kanriNo) || queuedKanriNos.has(kanriNo)) {
@@ -150,46 +154,69 @@ function enqueueReadyTarget(target: StatusTarget): void {
   void processReadyQueue();
 }
 
+// 現在登録されている全ターゲットのうちREADY状態のものをキューへ投入する。
 function enqueueCurrentReadyTargets(targets: StatusTarget[]): void {
   for (const target of targets) {
     enqueueReadyTarget(target);
   }
 }
 
+// 1回のポーリングサイクルとしてTracker同期、時間経過によるローカル判定更新、READYキュー投入を実行する。
 async function runPollingCycle(): Promise<void> {
-  if (isPolling) {
+  if (isCycleExecuting || !isPollingActive) {
     return;
   }
-  isPolling = true;
+  isCycleExecuting = true;
   try {
     const targets = getRegisteredTargets();
     if (targets.length === 0) {
       return;
     }
+    // Tracker連携ターゲットの同期
     await syncStatuses(targets);
+
+    // 時間経過（予定時刻到達）によるステータスの定期再判定
+    recalculateAllStatuses();
+
+    // READYターゲットのキュー投入
     enqueueCurrentReadyTargets(targets);
   } catch (error) {
     console.error("[Scheduler] ポーリングエラー:", error);
   } finally {
-    isPolling = false;
+    isCycleExecuting = false;
+    scheduleNextCycle();
   }
 }
 
-export function startPolling(): void {
-  if (pollingTimer !== null) {
+function scheduleNextCycle(): void {
+  if (!isPollingActive) {
     return;
   }
+  if (pollingTimer !== null) {
+    clearTimeout(pollingTimer);
+  }
+  pollingTimer = setTimeout(() => {
+    void runPollingCycle();
+  }, POLLING_INTERVAL_MS);
+}
+
+// 定期ポーリングタイマーを開始しREADY通知リスナーを登録する。
+export function startPolling(): void {
+  if (isPollingActive) {
+    return;
+  }
+  isPollingActive = true;
   unsubscribeReadyStatus = onReadyStatus(enqueueReadyTarget);
   void runPollingCycle();
-  pollingTimer = setInterval(() => void runPollingCycle(), POLLING_INTERVAL_MS);
 }
 
+// ポーリングタイマーを停止しキューとリスナーをクリーンアップする。
 export function stopPolling(): void {
-  if (pollingTimer === null) {
-    return;
+  isPollingActive = false;
+  if (pollingTimer !== null) {
+    clearTimeout(pollingTimer);
+    pollingTimer = null;
   }
-  clearInterval(pollingTimer);
-  pollingTimer = null;
   unsubscribeReadyStatus?.();
   unsubscribeReadyStatus = null;
   readyQueue.length = 0;

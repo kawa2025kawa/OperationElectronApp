@@ -1,4 +1,6 @@
-﻿import path from "node:path";
+// electron/features/operation/jobs/scripts/eseries/job_e41.ts
+
+import path from "node:path";
 import readline from "node:readline";
 import fs from "fs-extra";
 import { addDays, format } from "date-fns";
@@ -10,21 +12,41 @@ const BACKUP_PATH = "\\\\C0088150\\nec\\ftp\\GIFTSYS\\giftRecv\\BackUp\\";
 const OUTPUT_PATH = "\\\\C0088150\\nec\\ftp\\GIFTSYS\\giftRecv\\";
 const ERROR_PREFIX = "マスタ情報獲得エラー :";
 
+// folderUtils の directoryExists をローカル関数として実装
+async function directoryExists(dirPath: string): Promise<boolean> {
+  try {
+    const stats = await fs.stat(dirPath);
+    return stats.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function resolveSingleFilePath(filePath?: ScriptFilePath): string {
+  const filePaths = Array.isArray(filePath)
+    ? filePath
+    : filePath
+      ? [filePath]
+      : [];
+
+  if (filePaths.length === 0) {
+    throw new Error(
+      "ファイルが指定されていません。ファイルをドロップしてください。",
+    );
+  }
+
+  if (filePaths.length > 1) {
+    throw new Error("ファイルは1つだけ指定してください。");
+  }
+
+  return filePaths[0];
+}
+
 export async function runJobE41(filePath?: ScriptFilePath): Promise<string> {
   const logger = new JobLogger();
 
   try {
-    if (!filePath) {
-      throw new Error(
-        "ファイルが指定されていません。ファイルをドロップしてください。",
-      );
-    }
-
-    if (Array.isArray(filePath) && filePath.length > 1) {
-      throw new Error("ファイルは1つだけ指定してください。");
-    }
-
-    const targetFilePath = Array.isArray(filePath) ? filePath[0] : filePath;
+    const targetFilePath = resolveSingleFilePath(filePath);
 
     if (!(await fs.pathExists(targetFilePath))) {
       throw new Error(`指定されたファイルが存在しません: ${targetFilePath}`);
@@ -32,6 +54,7 @@ export async function runJobE41(filePath?: ScriptFilePath): Promise<string> {
 
     logger.log(`入力ファイル : ${targetFilePath}`);
 
+    // エラーログから検索キーワード（11〜15桁目の4文字）を抽出
     const keywordSet = new Set<string>();
     const rlError = readline.createInterface({
       input: fs.createReadStream(targetFilePath, { encoding: "utf8" }),
@@ -55,10 +78,11 @@ export async function runJobE41(filePath?: ScriptFilePath): Promise<string> {
       throw new Error("ファイルから対象キーワードが見つかりませんでした。");
     }
 
-    if (!(await fs.pathExists(BACKUP_PATH))) {
+    if (!(await directoryExists(BACKUP_PATH))) {
       throw new Error(`バックアップフォルダが存在しません: ${BACKUP_PATH}`);
     }
 
+    // バックアップフォルダから最新の GIFTDEN111 ファイルを取得
     const backupFiles = await fs.readdir(BACKUP_PATH);
     let latestFile = "";
     let latestMtime = new Date(0);
@@ -83,6 +107,7 @@ export async function runJobE41(filePath?: ScriptFilePath): Promise<string> {
 
     logger.log(`参照バックアップ : ${latestFile}`);
 
+    // バックアップファイルから対象キーワードが含まれる行を抽出
     const result: string[] = [];
     const rlBackup = readline.createInterface({
       input: fs.createReadStream(latestFile, { encoding: "utf8" }),
@@ -110,6 +135,7 @@ export async function runJobE41(filePath?: ScriptFilePath): Promise<string> {
     const outFilePath = path.join(OUTPUT_PATH, outFileName);
     const tomorrowStr = format(addDays(now, 1), "yyyyMMdd");
 
+    // 先頭8桁を明日の日付に置換して書き出し
     const outputLines = result.map((line) =>
       line.length >= 8 ? tomorrowStr + line.substring(8) : line,
     );

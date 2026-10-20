@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
 import { useAppStore } from "@renderer/store";
-import { selectFilteredTableRows } from "@renderer/features/operation/store/operationSelectors";
+import { selectFilteredTableRows } from "@renderer/store/selectors/operationSelectors";
 import { useTableHotkeys } from "./useOperationTableHotkeys";
 
 export const useOperationTable = () => {

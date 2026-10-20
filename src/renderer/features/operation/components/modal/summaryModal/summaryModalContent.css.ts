@@ -3,21 +3,10 @@
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens";
 
-export {
-  tableContainer,
-  headerWrapper,
-  bodyWrapper,
-  headerTable,
-  bodyTable,
-  tableRowBase,
-  tableRowStates,
-  thBase,
-  thAlignVariants,
-  tdBase,
-  tdAlignVariants,
-  cellText,
-} from "@renderer/features/operation/styles/sharedTable.css";
+// 共通テーブルスタイルを一括継承
+export * from "@renderer/styles/global/table.css";
 
+// モーダルコンテナ固有のスタイル
 export const container = style({
   display: "flex",
   width: "100%",

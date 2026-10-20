@@ -1,6 +1,7 @@
-﻿//electron\features\operation\jobs\scripts\index.ts
+//electron\features\operation\jobs\scripts\index.ts
 
 // Eシリーズ
+export * from "./eseries/job_e1";
 export * from "./eseries/job_e14";
 export * from "./eseries/job_e29";
 export * from "./eseries/job_e30";
@@ -30,6 +31,3 @@ export * from "./numeric/job_62";
 export * from "./numeric/job_64";
 export * from "./numeric/job_66";
 export * from "./numeric/job_80";
-
-// RDP系
-export * from "./rdp/job_rdp";

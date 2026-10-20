@@ -1,13 +1,10 @@
-﻿// src/renderer/store/slices/initSlice.ts
+// src/renderer/store/slices/initSlice.ts
 
 import type { StateCreator } from "zustand";
 
-import { handleStatusToastNotification } from "@renderer/components/ui/toast/statusToastHandler";
-import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { appService } from "@renderer/services/appService";
 import type { AppState } from "@renderer/store";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
-import type { OperationStatusState } from "@shared/types/operation/operationTypes";
+import { setupInitIpcListeners } from "@renderer/store/listeners/initIpcListeners";
 
 import {
   INITIAL_INIT_STATUS,
@@ -26,8 +23,6 @@ const APP_LOADER_DELAY_MS = 2000;
 
 let loaderTimeoutId: number | null = null;
 
-let cleanupIpcListeners: (() => void) | null = null;
-
 const DATA_LOADING_STATUS: InitStatus = {
   update: "LOADING",
   operation: "LOADING",
@@ -43,14 +38,17 @@ const DATA_LOADING_STATUS: InitStatus = {
  * Initialization Helpers
  * ========================= */
 
+// 初期化ステータスの値が完了（OK/NG/CONNECTED）状態か判定する。
 const isSettledStatus = (value: unknown): boolean => {
   return value === "OK" || value === "NG" || value === "CONNECTED";
 };
 
+// すべての初期化項目が確定状態になっているかを判定する。
 const isInitStatusSettled = (status: InitStatus): boolean => {
   return Object.values(status).every(isSettledStatus);
 };
 
+// 未完了状態の初期化項目をNGステータスとして抽出する。
 const getUnsettledStatus = (status: InitStatus): Partial<InitStatus> => {
   return Object.fromEntries(
     Object.entries(status)
@@ -59,13 +57,13 @@ const getUnsettledStatus = (status: InitStatus): Partial<InitStatus> => {
   ) as Partial<InitStatus>;
 };
 
+// ローダー非表示タイマーを破棄してクリアする。
 const clearLoaderTimeout = (): void => {
   if (loaderTimeoutId === null) {
     return;
   }
 
   window.clearTimeout(loaderTimeoutId);
-
   loaderTimeoutId = null;
 };
 
@@ -78,11 +76,6 @@ export interface InitSlice {
   isInitializing: boolean;
   showAppLoader: boolean;
   initStatus: InitStatus;
-  isIpcListenersSetup: boolean;
-
-  setIsInitialLoaded(value: boolean): void;
-
-  setShowAppLoader(value: boolean): void;
 
   setInitStatus(
     update:
@@ -90,15 +83,10 @@ export interface InitSlice {
       | ((prev: InitStatus) => Partial<InitStatus> | void),
   ): void;
 
-  markInitializationCompleted(): void;
-
-  markInitializationFailed(error: unknown): void;
-
-  setupIpcListeners(): void;
-
   initializeApp(): Promise<void>;
 }
 
+// アプリケーション起動時の初期化およびローディング状態を管理するスライスを生成する。
 export const createInitSlice: StateCreator<
   AppState,
   [["zustand/immer", never]],
@@ -109,6 +97,7 @@ export const createInitSlice: StateCreator<
    * Loader
    * ========================= */
 
+  // 初期化完了後に遅延を入れてローダー画面を非表示にするタイマーを予約する。
   const scheduleLoaderClose = (): void => {
     const { initStatus, isInitialLoaded, showAppLoader } = get();
 
@@ -126,60 +115,44 @@ export const createInitSlice: StateCreator<
 
       set((state) => {
         state.isInitialLoaded = true;
-
         state.showAppLoader = false;
       });
     }, APP_LOADER_DELAY_MS);
   };
 
   /* =========================
-   * IPC Listeners
+   * Initialization Completion
    * ========================= */
 
-  const setupThemeListener = (): (() => void) => {
-    return window.electronAPI.on(
-      IPC_CHANNELS.SYSTEM.THEME_CHANGED,
-      (theme: unknown) => {
-        if (theme === "dark" || theme === "light") {
-          get().setTheme?.(theme);
-        }
-      },
-    );
+  // 全項目の初期化完了を確認しローダーの終了をスケジュールする。
+  const markInitializationCompleted = (): void => {
+    const { initStatus } = get();
+
+    if (!isInitStatusSettled(initStatus)) {
+      console.warn(
+        "[InitSlice] Initialization completion requested before all startup tasks settled.",
+        initStatus,
+      );
+
+      return;
+    }
+
+    scheduleLoaderClose();
   };
 
-  const setupOperationStatusListener = (): (() => void) => {
-    return window.electronAPI.on(
-      IPC_CHANNELS.OPERATION.STATUS_UPDATED,
-      (value: unknown) => {
-        if (!value) {
-          return;
-        }
+  // 初期化失敗時に未完了項目をNGとし未認証状態へフォールバックする。
+  const markInitializationFailed = (error: unknown): void => {
+    const message = error instanceof Error ? error.message : String(error);
 
-        // 単一オブジェクトで届いた場合は配列にラップして正規化
-        const updates: OperationStatusState[] = Array.isArray(value)
-          ? (value as OperationStatusState[])
-          : [value as OperationStatusState];
+    console.error("[InitSlice] Failed to initialize app:", message);
 
-        if (updates.length === 0) {
-          return;
-        }
+    const failed = getUnsettledStatus(get().initStatus);
 
-        for (const update of updates) {
-          handleStatusToastNotification(update);
-        }
+    set((state) => {
+      state.isAuthenticated = false;
+    });
 
-        get().applyOperationStatusUpdates(updates);
-      },
-    );
-  };
-  const setupPollingListener = (): (() => void) => {
-    return window.electronAPI.on(
-      IPC_CHANNELS.OPERATION.POLLING_CYCLE_COMPLETE,
-      () => {
-        get().updateLastPollTime?.();
-        usePollingToastStore.getState().markPollingCycleCompleted();
-      },
-    );
+    get().setInitStatus(failed);
   };
 
   /* =========================
@@ -195,36 +168,11 @@ export const createInitSlice: StateCreator<
 
     initStatus: INITIAL_INIT_STATUS,
 
-    isIpcListenersSetup: false,
-
-    /* =========================
-     * Loader State
-     * ========================= */
-
-    setIsInitialLoaded: (value) => {
-      if (value) {
-        clearLoaderTimeout();
-      }
-
-      set((state) => {
-        state.isInitialLoaded = value;
-      });
-    },
-
-    setShowAppLoader: (value) => {
-      if (!value) {
-        clearLoaderTimeout();
-      }
-
-      set((state) => {
-        state.showAppLoader = value;
-      });
-    },
-
     /* =========================
      * Initialization Status
      * ========================= */
 
+    // 各機能の初期化状態を更新し、完了状況に応じてローダー表示を制御する。
     setInitStatus: (update) => {
       set((state) => {
         const next =
@@ -242,67 +190,11 @@ export const createInitSlice: StateCreator<
       }
     },
 
-    markInitializationCompleted: () => {
-      const { initStatus } = get();
-
-      if (!isInitStatusSettled(initStatus)) {
-        console.warn(
-          "[InitSlice] Initialization completion requested before all startup tasks settled.",
-          initStatus,
-        );
-
-        return;
-      }
-
-      scheduleLoaderClose();
-    },
-
-    markInitializationFailed: (error) => {
-      const message = error instanceof Error ? error.message : String(error);
-
-      console.error("[InitSlice] Failed to initialize app:", message);
-
-      const failed = getUnsettledStatus(get().initStatus);
-
-      set((state) => {
-        state.isAuthenticated = false;
-      });
-
-      get().setInitStatus(failed);
-    },
-
-    /* =========================
-     * IPC Setup
-     * ========================= */
-
-    setupIpcListeners: () => {
-      if (get().isIpcListenersSetup) {
-        return;
-      }
-
-      cleanupIpcListeners?.();
-
-      const unbindTheme = setupThemeListener();
-      const unbindStatus = setupOperationStatusListener();
-      const unbindPolling = setupPollingListener();
-
-      cleanupIpcListeners = () => {
-        unbindTheme();
-        unbindStatus();
-        unbindPolling();
-
-        cleanupIpcListeners = null;
-      };
-
-      set((state) => {
-        state.isIpcListenersSetup = true;
-      });
-    },
-
     /* =========================
      * Application Initialization
      * ========================= */
 
+    // IPCリスナー登録とアプリ初期マスタデータのロードを実行する。
     initializeApp: async () => {
       const { isInitializing, isInitialLoaded } = get();
 
@@ -322,13 +214,13 @@ export const createInitSlice: StateCreator<
       });
 
       try {
-        get().setupIpcListeners();
+        setupInitIpcListeners(get);
 
         await appService.initializeAppData();
 
-        get().markInitializationCompleted();
+        markInitializationCompleted();
       } catch (error) {
-        get().markInitializationFailed(error);
+        markInitializationFailed(error);
       } finally {
         set((state) => {
           state.isInitializing = false;

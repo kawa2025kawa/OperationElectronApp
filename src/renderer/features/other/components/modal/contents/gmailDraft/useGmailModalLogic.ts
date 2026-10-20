@@ -1,26 +1,39 @@
-import { useCallback, useEffect, type ChangeEvent } from "react";
+// src/renderer/features/other/components/modal/contents/gmailDraft/useGmailModalLogic.ts
+
+import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 import { useShallow } from "zustand/shallow";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftTypes";
 import type {
   EmailTemplateKey,
   GmailDraftFormValues,
 } from "@renderer/features/other/types/gmailDraftTypes";
 import { useAppStore } from "@renderer/store";
+import { otherIpcService } from "@renderer/services/otherIpcService";
 
+export interface GmailMessage {
+  text: string;
+  type: "info" | "success" | "error" | "warning";
+}
+
+const DEFAULT_GMAIL_MESSAGE: GmailMessage = {
+  text: "Gmail下書き作成用の宛先・件名・本文を入力してください。",
+  type: "info",
+};
+
+// フォームの初期値を生成する。
+const createInitialFormValues = (): GmailDraftFormValues => ({
+  to: "",
+  cc: "",
+  subject: "",
+  body: "",
+});
+
+// Gmail下書き作成モーダルのローカルフォーム状態および作成ロジックを管理するフック。
 export function useGmailModalLogic() {
   const {
     isAuthenticated,
     familyName,
     userEmail,
-    templateKey,
-    formValues,
-    isProcessing,
-    infoMessage,
-    updateGmailDraftForm,
-    setGmailDraft,
-    setGmailDraftProcessing,
-    setGmailDraftMessage,
     updateModalConfig,
     closeGlobalModal,
   } = useAppStore(
@@ -28,38 +41,40 @@ export function useGmailModalLogic() {
       isAuthenticated: state.isAuthenticated,
       familyName: state.familyName,
       userEmail: state.userEmail,
-      templateKey: state.gmailDraft.templateKey,
-      formValues: state.gmailDraft.formValues,
-      isProcessing: state.gmailDraft.isProcessing,
-      infoMessage: state.gmailDraft.infoMessage,
-      updateGmailDraftForm: state.updateGmailDraftForm,
-      setGmailDraft: state.setGmailDraft,
-      setGmailDraftProcessing: state.setGmailDraftProcessing,
-      setGmailDraftMessage: state.setGmailDraftMessage,
       updateModalConfig: state.updateModalConfig,
       closeGlobalModal: state.closeGlobalModal,
     })),
   );
 
+  const [templateKey, setTemplateKey] = useState<EmailTemplateKey | null>(null);
+  const [formValues, setFormValues] = useState<GmailDraftFormValues>(
+    createInitialFormValues,
+  );
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [infoMessage, setInfoMessage] = useState<GmailMessage>(
+    DEFAULT_GMAIL_MESSAGE,
+  );
+
+  // フォーム各項目の入力変更をローカル状態に反映する。
   const handleInputChange = useCallback(
     (field: keyof GmailDraftFormValues) =>
       (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        updateGmailDraftForm({
+        setFormValues((prev) => ({
+          ...prev,
           [field]: event.target.value,
-        });
+        }));
       },
-    [updateGmailDraftForm],
+    [],
   );
 
+  // 選択されたテンプレートに基づき下書きテンプレートを取得してフォームに設定する。
   const handleTemplateChange = useCallback(
     async (event: ChangeEvent<HTMLSelectElement>) => {
       const value = event.target.value;
       if (!value) {
-        setGmailDraft({
-          templateKey: null,
-          formValues: { to: "", cc: "", subject: "", body: "" },
-        });
-        setGmailDraftMessage({
+        setTemplateKey(null);
+        setFormValues(createInitialFormValues());
+        setInfoMessage({
           text: "Gmail下書き作成用の宛先・件名・本文を入力してください。",
           type: "info",
         });
@@ -71,21 +86,20 @@ export function useGmailModalLogic() {
 
       const key: EmailTemplateKey = option.key;
       try {
-        const draft = (await window.electronAPI.invoke(
-          IPC_CHANNELS.GMAIL.GENERATE_DRAFT_TEMPLATE,
-          { templateKey: key, familyName: familyName ?? "" },
-        )) as GmailDraftFormValues;
-        setGmailDraft({
+        const draft = await otherIpcService.generateDraftTemplate({
           templateKey: key,
-          formValues: draft,
+          familyName: familyName ?? "",
         });
-        setGmailDraftMessage({
+
+        setTemplateKey(key);
+        setFormValues(draft);
+        setInfoMessage({
           text: `テンプレート (${option.label}) を読み込みました。`,
           type: "info",
         });
       } catch (error) {
         console.error("[useGmailModalLogic] Failed to create template:", error);
-        setGmailDraftMessage({
+        setInfoMessage({
           text:
             error instanceof Error
               ? error.message
@@ -94,36 +108,34 @@ export function useGmailModalLogic() {
         });
       }
     },
-    [familyName, setGmailDraft, setGmailDraftMessage],
+    [familyName],
   );
 
+  // バックエンドのGmail下書き作成APIを呼び出して下書きを作成する。
   const handleExecute = useCallback(async () => {
     if (!formValues.to.trim()) {
-      setGmailDraftMessage({
+      setInfoMessage({
         text: "送信先 (To) を入力してください。",
         type: "warning",
       });
       return;
     }
 
-    setGmailDraftProcessing(true);
-    setGmailDraftMessage({
+    setIsProcessing(true);
+    setInfoMessage({
       text: "Gmail下書きを作成しています...",
       type: "info",
     });
 
     try {
-      await window.electronAPI.invoke(
-        IPC_CHANNELS.GMAIL.CREATE_DRAFT,
-        formValues,
-      );
-      setGmailDraftMessage({
+      await otherIpcService.createGmailDraft(formValues);
+      setInfoMessage({
         text: "Gmailの下書きを正常に作成しました。",
         type: "success",
       });
     } catch (error) {
       console.error("[useGmailModalLogic] Failed to create draft:", error);
-      setGmailDraftMessage({
+      setInfoMessage({
         text:
           error instanceof Error
             ? error.message
@@ -131,9 +143,9 @@ export function useGmailModalLogic() {
         type: "error",
       });
     } finally {
-      setGmailDraftProcessing(false);
+      setIsProcessing(false);
     }
-  }, [formValues, setGmailDraftProcessing, setGmailDraftMessage]);
+  }, [formValues]);
 
   useEffect(() => {
     updateModalConfig({

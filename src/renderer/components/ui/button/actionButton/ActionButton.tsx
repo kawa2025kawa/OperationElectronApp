@@ -1,4 +1,4 @@
-﻿// src/renderer/components/ui/button/actionButton/ActionButton.tsx
+// src/renderer/components/ui/button/actionButton/ActionButton.tsx
 
 import { memo, type ButtonHTMLAttributes } from "react";
 import * as styles from "./actionButton.css";

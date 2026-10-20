@@ -1,4 +1,4 @@
-﻿// electron/features/operation/persistence/statusStorage.ts
+// electron/features/operation/persistence/statusStorage.ts
 
 import path from "node:path";
 

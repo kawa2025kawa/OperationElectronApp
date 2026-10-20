@@ -1,4 +1,5 @@
 // src/renderer/components/ui/statusSummary/statusSummary.css.ts
+
 import { style, styleVariants, type StyleRule } from "@vanilla-extract/css";
 import { themeTransition, tokens } from "@renderer/styles/tokens";
 import { getStatusTheme } from "@renderer/styles/statusTheme";
@@ -13,6 +14,11 @@ export const container = style([
     width: "100%",
     flex: 1,
     minWidth: 0,
+
+    // 🎯 描写隔離（ホバー時の Glow 効果による全域ペイント波及の遮断）
+    position: "relative",
+    isolation: "isolate",
+    transform: "translateZ(0)",
   },
 ]);
 
@@ -22,7 +28,7 @@ export const statusItem = style({
   alignItems: "center",
   gap: tokens.space.xs,
   flex: 1,
-  minWidth: 0,
+  minWidth: "max-content", // 🎯 コンテンツ（ラベル・バッジ）の最小幅以下への潰れを防止
   background: "none",
   border: "none",
   padding: 0,
@@ -48,11 +54,12 @@ export const valueBadge = style([
 ]);
 
 export const label = style({
-  fontSize: "0.80rem",
+  fontSize: tokens.font.size.xs,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.base,
   textTransform: "uppercase",
   letterSpacing: "0.05em",
+  whiteSpace: "nowrap", // 🎯 ラベル文字列のテキスト折り返しを防止
   transition: `color ${tokens.transition.ease}`,
   selectors: {
     [`${statusItem}:hover &`]: {

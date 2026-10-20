@@ -18,6 +18,9 @@ export const overlay = style({
   justifyContent: "center",
   padding: tokens.space.md,
   boxSizing: "border-box",
+
+  // 🎯 描画隔離
+  isolation: "isolate",
 });
 
 // ============================================================
@@ -40,6 +43,10 @@ export const modalWindow = style([
     flexGrow: 0,
     maxHeight: "90vh",
     maxWidth: "92vw",
+
+    // 🎯 描画隔離（モーダル内部操作時の背景ビューへのRepaint波及を完全遮断）
+    isolation: "isolate",
+    transform: "translateZ(0)",
   },
 ]);
 
@@ -123,7 +130,7 @@ export const footerRight = style({
 export const footerLeftButton = style({
   flex: 1,
   minWidth: 0,
-  padding: "8px 12px",
+  padding: `${tokens.space.xs} ${tokens.space.sm}`,
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",

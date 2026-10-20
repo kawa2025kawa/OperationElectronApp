@@ -13,6 +13,11 @@ export const content = style({
   border: `2px solid ${tokens.color.border.subtle}`,
   boxShadow: tokens.shadow.raised.high,
   zIndex: tokens.zIndex.contextMenu,
+
+  // 🎯 描画隔離（コンテキストメニュー開閉時の背景テーブル領域への不要なRepaint遮断）
+  position: "relative",
+  isolation: "isolate",
+  transform: "translateZ(0)",
 });
 
 export const header = style({

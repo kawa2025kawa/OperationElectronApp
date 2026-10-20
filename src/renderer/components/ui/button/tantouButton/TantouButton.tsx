@@ -1,10 +1,10 @@
-﻿// src/renderer/components/ui/button/tantouButton/TantouButton.tsx
+// src/renderer/components/ui/button/tantouButton/TantouButton.tsx
 
 import { memo } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
-import { selectTantouMasters } from "@renderer/features/spreadSheet/store/spreadsheetSelectors";
+import { selectTantouMasters } from "@renderer/store/selectors/spreadsheetSelectors";
 import { TantouModalContent } from "@renderer/features/spreadSheet/tantou/modal/TantouModalContent";
 
 import * as styles from "./tantouButton.css";

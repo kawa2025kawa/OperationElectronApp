@@ -1,4 +1,4 @@
-﻿// src/renderer/features/auth/configs/authViewConfig.ts
+// src/renderer/features/auth/configs/authViewConfig.ts
 
 import {
   APP_VIEW_IDS,

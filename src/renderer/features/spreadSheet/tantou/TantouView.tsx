@@ -1,4 +1,4 @@
-﻿import { memo, useCallback } from "react";
+import { memo, useCallback } from "react";
 import type { Tantou } from "@shared/types/spreadsheet/tantou";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 import {

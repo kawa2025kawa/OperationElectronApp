@@ -1,4 +1,4 @@
-﻿// src/renderer/utils/toastUtils.ts
+// src/renderer/utils/toastUtils.ts
 
 import {
   usePollingToastStore,

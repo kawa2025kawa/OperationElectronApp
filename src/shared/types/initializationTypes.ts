@@ -1,4 +1,4 @@
-﻿// src/shared/types/initializationTypes.ts
+// src/shared/types/initializationTypes.ts
 
 type InitStatusValue =
   | "LOADING"

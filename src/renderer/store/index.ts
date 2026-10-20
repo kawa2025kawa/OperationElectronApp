@@ -5,74 +5,35 @@ import { subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
 // ============================================================================
-// Feature Slices
+// Slices
 // ============================================================================
 
-import {
-  createAuthSlice,
-  type AuthSlice,
-} from "@renderer/features/auth/store/authSlice";
-
+import { createAuthSlice, type AuthSlice } from "./slices/authSlice";
 import {
   createOperationStatusSlice,
   type OperationStatusSlice,
-} from "@renderer/features/operation/store/operationStatusSlice";
-
+} from "./slices/operationStatusSlice";
 import {
   createStatusSummarySlice,
   type StatusSummarySlice,
-} from "@renderer/features/operation/store/statusSummarySlice";
-
+} from "./slices/statusSummarySlice";
 import {
   createPollingSlice,
   type PollingSlice,
-} from "@renderer/features/operation/store/pollingSlice";
-
-import {
-  createPdfUploadSlice,
-  type PdfUploadSlice,
-} from "@renderer/features/other/store/pdfUploadSlice";
-
-import {
-  createGiftMdSlice,
-  type GiftMdSlice,
-} from "@renderer/features/other/store/giftMdSlice";
-
-import {
-  createGmailDraftSlice,
-  type GmailDraftSlice,
-} from "@renderer/features/other/store/gmailDraftSlice";
-
-import {
-  createRdpSlice,
-  type RdpSlice,
-} from "@renderer/features/remoteDesktop/store/rdpSlice";
-
+} from "./slices/pollingSlice";
+import { createCenterSlice, type CenterSlice } from "./slices/centerSlice";
+import { createRdpSlice, type RdpSlice } from "./slices/rdpSlice";
 import {
   createSpreadSheetSlice,
   type SpreadSheetSlice,
-} from "@renderer/features/spreadSheet/store/spreadsheetSlice";
-
-// ============================================================================
-// Global Slices
-// ============================================================================
-
-import {
-  createCenterSlice,
-  type CenterSlice,
-} from "@renderer/features/operation/store/centerSlice";
-
+} from "./slices/spreadsheetSlice";
 import { createInitSlice, type InitSlice } from "./slices/initSlice";
-
 import { createModalSlice, type ModalSlice } from "./slices/modalSlice";
-
 import {
   createNavigationSlice,
   type NavigationSlice,
 } from "./slices/navigationSlice";
-
 import { createOverlaySlice, type OverlaySlice } from "./slices/overlaySlice";
-
 import { createThemeSlice, type ThemeSlice } from "./slices/themeSlice";
 
 // ============================================================================
@@ -90,36 +51,31 @@ export type AppState = AuthSlice &
   OverlaySlice &
   ModalSlice &
   InitSlice &
-  PdfUploadSlice &
-  GiftMdSlice &
-  GmailDraftSlice &
   CenterSlice;
 
 // ============================================================================
 // Store
 // ============================================================================
 
+// アプリケーション全体のグローバルステートを管理する Zustand ストアを生成・公開する。
 export const useAppStore = create<AppState>()(
   subscribeWithSelector(
     immer((...args) => ({
-      // Feature Slices
+      // Domain Slices
       ...createAuthSlice(...args),
       ...createStatusSummarySlice(...args),
       ...createOperationStatusSlice(...args),
       ...createPollingSlice(...args),
       ...createRdpSlice(...args),
       ...createSpreadSheetSlice(...args),
-      ...createPdfUploadSlice(...args),
-      ...createGiftMdSlice(...args),
-      ...createGmailDraftSlice(...args),
+      ...createCenterSlice(...args),
 
-      // Global Slices
+      // UI / Global Slices
       ...createThemeSlice(...args),
       ...createNavigationSlice(...args),
       ...createOverlaySlice(...args),
       ...createModalSlice(...args),
       ...createInitSlice(...args),
-      ...createCenterSlice(...args),
     })),
   ),
 );

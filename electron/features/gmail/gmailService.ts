@@ -1,12 +1,11 @@
-﻿import { authService } from "@electron/features/auth/authService";
+// electron/features/gmail/gmailService.ts
 
+import { authService } from "@electron/features/auth/authService";
 import type {
-  EmailTemplateKey,
   GenerateDraftTemplateParams,
   GmailSendAsResponse,
 } from "./gmailTypes";
-
-import { createEmailTemplate } from "./templates";
+import { createEmailTemplate } from "./templates/templateFactory";
 import {
   buildRawMessage,
   formatEmailAddresses,
@@ -23,11 +22,8 @@ const GMAIL_DRAFT_URL = "https://gmail.googleapis.com/gmail/v1/users/me/drafts";
  */
 export async function fetchPrimarySignature(): Promise<string> {
   try {
-    const response = await authService.request(GMAIL_SIGNATURE_URL);
-
-    if (!response.ok) return "";
-
-    const data = (await response.json()) as GmailSendAsResponse;
+    const data =
+      await authService.getJson<GmailSendAsResponse>(GMAIL_SIGNATURE_URL);
     const primary = data.sendAs?.find((item) => item.isPrimary);
 
     return primary?.signature ?? "";
@@ -73,7 +69,7 @@ export async function createGmailDraft(params: {
   subject?: string;
   body?: string;
   raw?: string;
-}) {
+}): Promise<unknown> {
   let rawMessage = params.raw;
 
   if (!rawMessage) {
@@ -98,7 +94,7 @@ export async function createGmailDraft(params: {
     });
   }
 
-  const response = await authService.request(GMAIL_DRAFT_URL, {
+  return authService.getJson<unknown>(GMAIL_DRAFT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -109,12 +105,4 @@ export async function createGmailDraft(params: {
       },
     }),
   });
-
-  const responseText = await response.text();
-
-  if (!response.ok) {
-    throw new Error(`Gmail API Error (${response.status}): ${responseText}`);
-  }
-
-  return JSON.parse(responseText);
 }

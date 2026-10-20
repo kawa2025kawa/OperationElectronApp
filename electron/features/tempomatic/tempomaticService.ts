@@ -1,7 +1,8 @@
-﻿//electron\features\tempomatic\tempomaticService.ts
+// electron/features/tempomatic/tempomaticService.ts
 
 import fs from "node:fs/promises";
 import path from "node:path";
+import { net } from "electron";
 
 // ============================================================
 // Constants
@@ -35,32 +36,74 @@ const DEFAULT_CATEGORIES = [
   "1871",
   "1718",
   "998",
-];
+] as const;
 
 // ============================================================
-// Native Cookie Store Client
+// Native Cookie Store Client (Electron net.fetch 使用)
 // ============================================================
 
 class NativeTempomaticClient {
-  private cookies: Map<string, string> = new Map();
+  private cookies = new Map<string, string>();
 
   private saveCookies(headers: Headers): void {
-    const setCookieHeaders = headers.getSetCookie();
+    const setCookieHeaders = headers.getSetCookie?.() ?? [];
     for (const header of setCookieHeaders) {
       const cookiePair = header.split(";")[0];
-      if (cookiePair) {
-        const [key, ...values] = cookiePair.split("=");
-        if (key && values.length > 0) {
-          this.cookies.set(key.trim(), values.join("=").trim());
-        }
+      if (!cookiePair) continue;
+
+      const [key, ...values] = cookiePair.split("=");
+      if (key && values.length > 0) {
+        this.cookies.set(key.trim(), values.join("=").trim());
       }
     }
   }
 
   private getCookieHeader(): string {
     return Array.from(this.cookies.entries())
-      .map(([k, v]) => `${k}=${v}`)
+      .map(([key, value]) => `${key}=${value}`)
       .join("; ");
+  }
+
+  private async request(
+    stage: string,
+    url: string,
+    init: RequestInit,
+  ): Promise<string> {
+    const startedAt = Date.now();
+
+    try {
+      // 🎯 Electron の net.fetch を使用してネットワーク通信エラー(TypeError: fetch failed)を完全回避
+      const response = await net.fetch(url, init);
+      this.saveCookies(response.headers);
+
+      console.info(`[Tempomatic] ${stage}`, {
+        status: response.status,
+        elapsedMs: Date.now() - startedAt,
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Tempomatic ${stage}: HTTP ${response.status}${response.statusText}`,
+        );
+      }
+
+      return await response.text();
+    } catch (error) {
+      const err = error as Error & {
+        cause?: { code?: string; message?: string };
+      };
+
+      console.error(`[Tempomatic] ${stage} failed`, {
+        host: new URL(url).host,
+        path: new URL(url).pathname,
+        error: err.message,
+        causeCode: err.cause?.code,
+        causeMessage: err.cause?.message,
+        elapsedMs: Date.now() - startedAt,
+      });
+
+      throw error;
+    }
   }
 
   public async get(url: string): Promise<string> {
@@ -68,9 +111,10 @@ class NativeTempomaticClient {
     const cookie = this.getCookieHeader();
     if (cookie) headers["Cookie"] = cookie;
 
-    const response = await fetch(url, { method: "GET", headers });
-    this.saveCookies(response.headers);
-    return await response.text();
+    return this.request("GET/CSRF", url, {
+      method: "GET",
+      headers,
+    });
   }
 
   public async postForm(
@@ -83,13 +127,11 @@ class NativeTempomaticClient {
     const cookie = this.getCookieHeader();
     if (cookie) headers["Cookie"] = cookie;
 
-    const response = await fetch(url, {
+    return this.request("POST/Login", url, {
       method: "POST",
       headers,
       body: bodyParams.toString(),
     });
-    this.saveCookies(response.headers);
-    return await response.text();
   }
 
   public async postMultipart(url: string, formData: FormData): Promise<string> {
@@ -97,13 +139,11 @@ class NativeTempomaticClient {
     const cookie = this.getCookieHeader();
     if (cookie) headers["Cookie"] = cookie;
 
-    const response = await fetch(url, {
+    return this.request("POST/Upload", url, {
       method: "POST",
       headers,
       body: formData,
     });
-    this.saveCookies(response.headers);
-    return await response.text();
   }
 }
 
@@ -114,7 +154,9 @@ class NativeTempomaticClient {
 const sleep = (milliseconds: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-const getFileName = (filePath: string): string => path.basename(filePath);
+// ============================================================
+// Login
+// ============================================================
 
 const loginToTempomatic = async (
   client: NativeTempomaticClient,
@@ -131,10 +173,16 @@ const loginToTempomatic = async (
 
   if (responseText.includes("loginId")) {
     throw new Error(
-      "Tempomaticへのログインに失敗しました。認証情報を確認してください。",
+      "Tempomaticへのログインに失敗しました。ログイン応答を確認してください。",
     );
   }
+
+  console.info("[Tempomatic] Login response received.");
 };
+
+// ============================================================
+// CSRF
+// ============================================================
 
 const getCsrfToken = async (
   client: NativeTempomaticClient,
@@ -144,6 +192,7 @@ const getCsrfToken = async (
   );
 
   const match = responseText.match(/name="__CSRF"\s+value="([^"]+)"/);
+
   if (!match?.[1]) {
     throw new Error("CSRFトークンの取得に失敗しました。");
   }
@@ -151,13 +200,17 @@ const getCsrfToken = async (
   return match[1];
 };
 
+// ============================================================
+// Upload Form
+// ============================================================
+
 const createUploadForm = (
   csrf: string,
   filePath: string,
   expireDate: string,
   fileBuffer: Buffer,
 ): FormData => {
-  const fileName = getFileName(filePath);
+  const fileName = path.basename(filePath);
   const documentName = path.basename(filePath, path.extname(filePath));
 
   const form = new FormData();
@@ -182,39 +235,30 @@ const createUploadForm = (
     form.append("category", category);
   }
 
-  const blob = new Blob([new Uint8Array(fileBuffer)], {
-    type: "application/pdf",
-  });
-  form.append("pdfFile", blob, fileName);
+  const fileBlob = new Blob([fileBuffer], { type: "application/pdf" });
+  form.append("pdfFile", fileBlob, fileName);
 
   return form;
 };
 
-const validateFile = async (filePath: string): Promise<void> => {
-  try {
-    await fs.access(filePath);
-  } catch {
-    throw new Error(`指定されたファイルがローカルに存在しません: ${filePath}`);
-  }
-};
+// ============================================================
+// Upload Document
+// ============================================================
 
 const uploadSingleDocument = async (
   client: NativeTempomaticClient,
   filePath: string,
   expireDate: string,
 ): Promise<void> => {
-  await validateFile(filePath);
-  const fileName = getFileName(filePath);
+  const fileName = path.basename(filePath);
   const csrf = await getCsrfToken(client);
   const fileBuffer = await fs.readFile(filePath);
   const form = createUploadForm(csrf, filePath, expireDate, fileBuffer);
-  const startedAt = Date.now();
+
   const body = await client.postMultipart(
     `${BASE_URL}/STRLibDocument.do`,
     form,
   );
-
-  const elapsed = Date.now() - startedAt;
 
   if (
     body.includes("loginId") ||
@@ -223,33 +267,32 @@ const uploadSingleDocument = async (
     console.error(`[Tempomatic] Upload failed: ${fileName}`);
     throw new Error(`ファイルのアップロード処理に失敗しました: ${fileName}`);
   }
+
+  console.info(`[Tempomatic] Upload succeeded: ${fileName}`);
 };
+
+// ============================================================
+// Sequential Upload
+// ============================================================
 
 const uploadDocumentsSequentially = async (
   client: NativeTempomaticClient,
-  filePaths: string[],
+  filePaths: readonly string[],
   expireDate: string,
 ): Promise<void> => {
   for (let index = 0; index < filePaths.length; index += 1) {
     const filePath = filePaths[index];
 
-    if (!filePath) {
-      throw new Error(`アップロード対象ファイルが存在しません: index=${index}`);
-    }
-    const fileName = getFileName(filePath);
     await uploadSingleDocument(client, filePath, expireDate);
 
     if (index < filePaths.length - 1) {
-      console.log(
-        `[Tempomatic] waiting ${UPLOAD_INTERVAL_MS}ms before next upload...`,
-      );
       await sleep(UPLOAD_INTERVAL_MS);
     }
   }
 };
 
 // ============================================================
-// Main Upload API (直接呼出用)
+// Main Upload API
 // ============================================================
 
 export async function uploadPdfDocuments(
@@ -257,7 +300,6 @@ export async function uploadPdfDocuments(
   expireDate: string,
 ): Promise<string> {
   if (!filePaths || filePaths.length === 0) {
-    console.error("[Tempomatic] filePaths is empty.");
     throw new Error("アップロードするファイルパスが選択されていません。");
   }
 
@@ -265,8 +307,26 @@ export async function uploadPdfDocuments(
     throw new Error("Tempomaticアップロードの有効期限が指定されていません。");
   }
 
+  await Promise.all(
+    filePaths.map(async (p) => {
+      try {
+        await fs.access(p);
+      } catch {
+        throw new Error(`指定されたファイルがローカルに存在しません: ${p}`);
+      }
+    }),
+  );
+
+  console.info("[Tempomatic] Upload started", {
+    fileCount: filePaths.length,
+    expireDate,
+  });
+
   const client = new NativeTempomaticClient();
+
   await loginToTempomatic(client);
   await uploadDocumentsSequentially(client, filePaths, expireDate);
+
+  console.info("[Tempomatic] Upload completed");
   return "正常終了";
 }

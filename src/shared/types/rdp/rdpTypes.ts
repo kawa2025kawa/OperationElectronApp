@@ -1,4 +1,4 @@
-﻿// src/shared/types/rdp/rdpTypes.ts
+// src/shared/types/rdp/rdpTypes.ts
 
 /**
  * RDP マスターデータ

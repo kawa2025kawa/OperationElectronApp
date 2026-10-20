@@ -4,25 +4,22 @@ import { memo } from "react";
 import { clsx } from "clsx";
 
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
-import { getValueByPath } from "@shared/utils/getValueByPath";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Column } from "@shared/types/table/tableType";
-import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes"; // 新しい型をインポート
+import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes";
 
 import { useSummaryModalContent } from "./useSummaryModalContent";
 import * as styles from "./summaryModalContent.css";
 
 interface SummaryModalContentProps {
-  items: SummaryDetailRow[]; // SummaryRow から SummaryDetailRow へ変更
+  items?: SummaryDetailRow[];
 }
 
-interface TableColGroupProps<T extends object> {
-  columns: readonly Column<T>[];
+interface TableColGroupProps {
+  columns: readonly Column<SummaryDetailRow>[];
 }
 
-const TableColGroup = <T extends object>({
-  columns,
-}: TableColGroupProps<T>) => (
+const TableColGroup = ({ columns }: TableColGroupProps) => (
   <colgroup>
     {columns.map((column) => (
       <col key={String(column.key)} style={{ width: column.width }} />
@@ -30,51 +27,59 @@ const TableColGroup = <T extends object>({
   </colgroup>
 );
 
-interface TableRowProps<T extends object> {
-  item: T;
-  columns: readonly Column<T>[];
+interface TableRowProps {
+  item: SummaryDetailRow;
+  columns: readonly Column<SummaryDetailRow>[];
   isSelected: boolean;
-  onRowClick?: (item: T) => void;
+  onRowClick?: (item: SummaryDetailRow) => void;
 }
 
-const TableRowInner = <T extends object>({
+function getSummaryCellValue(item: SummaryDetailRow, key: string): unknown {
+  switch (key) {
+    case "kanriNo":
+      return item.kanriNo;
+    case "workName":
+      return item.workName;
+    case "jobId":
+      return item.jobId;
+    case "status":
+      return item.status;
+    case "comment":
+      return item.comment;
+    default:
+      return undefined;
+  }
+}
+
+const TableRowInner = ({
   item,
   columns,
   isSelected,
   onRowClick,
-}: TableRowProps<T>) => {
+}: TableRowProps) => {
   const rowState = isSelected ? "selected" : onRowClick ? "clickable" : "idle";
-
-  const handleClick = () => {
-    onRowClick?.(item);
-  };
 
   return (
     <tr
-      onClick={handleClick}
+      onClick={() => onRowClick?.(item)}
       className={clsx(styles.tableRowBase, styles.tableRowStates[rowState])}
     >
       {columns.map((column) => {
         const key = String(column.key);
         const align = column.align ?? "left";
-        const value = column.render
-          ? column.render(item)
-          : getValueByPath(item as unknown as Record<string, unknown>, key);
-        const title =
-          typeof value === "string" || typeof value === "number"
-            ? String(value)
-            : undefined;
+        const alignClass =
+          styles.alignVariants[align] ?? styles.alignVariants.left;
+        const rendered = column.render ? column.render(item) : null;
+        const rawValue = getSummaryCellValue(item, key);
+        const displayValue =
+          rendered ?? (rawValue != null ? String(rawValue) : "-");
 
         return (
-          <td
-            key={key}
-            title={title}
-            className={clsx(styles.tdBase, styles.tdAlignVariants[align])}
-          >
-            {column.render ? (
-              value
+          <td key={key} className={clsx(styles.tdBase, alignClass)}>
+            {rendered ? (
+              displayValue
             ) : (
-              <span className={styles.cellText}>{String(value ?? "-")}</span>
+              <span className={styles.cellText}>{displayValue}</span>
             )}
           </td>
         );
@@ -89,13 +94,16 @@ const TableRow = memo(
     prev.isSelected === next.isSelected &&
     prev.item === next.item &&
     prev.onRowClick === next.onRowClick,
-) as typeof TableRowInner;
+);
+
+TableRow.displayName = "SummaryTableRow";
 
 export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps> =
-  memo(({ items }) => {
+  memo((props) => {
+    const items = props?.items ?? [];
     const { state } = useSummaryModalContent(items);
 
-    if (state.items.length === 0) {
+    if (state.isEmpty) {
       return (
         <div className={styles.container}>
           <EmptyState />
@@ -113,13 +121,13 @@ export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps>
                 <tr>
                   {state.columns.map((column) => {
                     const align = column.align ?? "left";
+                    const alignClass =
+                      styles.alignVariants[align] ?? styles.alignVariants.left;
+
                     return (
                       <th
                         key={String(column.key)}
-                        className={clsx(
-                          styles.thBase,
-                          styles.thAlignVariants[align],
-                        )}
+                        className={clsx(styles.thBase, alignClass)}
                       >
                         {column.label}
                       </th>
@@ -135,10 +143,7 @@ export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps>
               <TableColGroup columns={state.columns} />
               <tbody>
                 {state.items.map((item, index) => {
-                  const key =
-                    "kanriNo" in item && item.kanriNo
-                      ? String(item.kanriNo)
-                      : String(index);
+                  const key = item.kanriNo || String(index);
 
                   return (
                     <TableRow
@@ -156,3 +161,5 @@ export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps>
       </div>
     );
   });
+
+SummaryModalContent.displayName = "SummaryModalContent";

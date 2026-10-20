@@ -1,4 +1,4 @@
-﻿// src/shared/types/registry/viewDefinition.ts
+// src/shared/types/registry/viewDefinition.ts
 
 import type { ComponentType, ReactNode } from "react";
 import type { Column } from "@shared/types/table/tableType";
