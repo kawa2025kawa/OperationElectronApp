@@ -7,12 +7,14 @@ import {
   generateDraftTemplate,
 } from "@electron/features/gmail/gmailService";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import type { IpcChannelMap } from "@shared/types/electron/ipcTypes";
 
-// Gmail署名取得・テンプレート生成・下書き作成に関するIPCハンドラーを登録する。
 export function registerGmailIpc(): void {
   ipcMain.handle(
     IPC_CHANNELS.GMAIL.GET_SIGNATURE,
-    async (): Promise<string> => {
+    async (): Promise<
+      IpcChannelMap[typeof IPC_CHANNELS.GMAIL.GET_SIGNATURE]["return"]
+    > => {
       return fetchPrimarySignature();
     },
   );
@@ -21,12 +23,10 @@ export function registerGmailIpc(): void {
     IPC_CHANNELS.GMAIL.GENERATE_DRAFT_TEMPLATE,
     async (
       _event,
-      params: {
-        templateKey: "E8" | "E9" | "E10";
-        familyName?: string;
-        links?: Record<string, string> | null;
-      },
-    ) => {
+      params: IpcChannelMap[typeof IPC_CHANNELS.GMAIL.GENERATE_DRAFT_TEMPLATE]["args"][0],
+    ): Promise<
+      IpcChannelMap[typeof IPC_CHANNELS.GMAIL.GENERATE_DRAFT_TEMPLATE]["return"]
+    > => {
       return generateDraftTemplate(params);
     },
   );
@@ -35,14 +35,10 @@ export function registerGmailIpc(): void {
     IPC_CHANNELS.GMAIL.CREATE_DRAFT,
     async (
       _event,
-      params: {
-        to?: string;
-        cc?: string;
-        subject?: string;
-        body?: string;
-        raw?: string;
-      },
-    ) => {
+      params: IpcChannelMap[typeof IPC_CHANNELS.GMAIL.CREATE_DRAFT]["args"][0],
+    ): Promise<
+      IpcChannelMap[typeof IPC_CHANNELS.GMAIL.CREATE_DRAFT]["return"]
+    > => {
       return createGmailDraft(params);
     },
   );

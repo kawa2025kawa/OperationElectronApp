@@ -1,15 +1,11 @@
 // src/renderer/store/selectors/operationSelectors.ts
 
-import type { AppState } from "@renderer/store";
 import {
   JOB_STATUS,
   type JobStatus,
   type OperationViewItem,
   type SelectedOperationItem,
 } from "@shared/types/operation/operationTypes";
-
-// ストアから現在の表示モード（operation/irregular/today）を取得する。
-export const selectCurrentMode = (state: AppState) => state.currentMode;
 
 // 行データ（管理No、業務名、ジョブID、備考）に検索文字列が含まれるか判定する。
 function matchesSearchTerm(
@@ -78,4 +74,3 @@ export function selectActiveItemStatusFlags(
     isReady: status === JOB_STATUS.READY,
   };
 }
-

@@ -1,7 +1,5 @@
 // src/shared/types/constants/ipcChannelsTypes.ts
 
-import type { IpcChannelMap } from "../electron/ipcTypes";
-
 export const IPC_CHANNELS = {
   AUTH: {
     LOGIN: "googleAuth:login",
@@ -56,5 +54,3 @@ export const IPC_CHANNELS = {
     POLLING_CYCLE_COMPLETE: "polling-cycle-complete",
   },
 } as const;
-
-export type IpcChannel = keyof IpcChannelMap;

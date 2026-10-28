@@ -1,3 +1,5 @@
+// src/renderer/App.tsx
+
 import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 
@@ -10,7 +12,6 @@ import {
   ProcessingLoader,
 } from "@renderer/components/ui/overlay/LoadingOverlay";
 import { MainView } from "@renderer/layout/MainView";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes"; // ← 追加
 
 export const App = () => {
   const { theme, showAppLoader, initializeApp } = useAppStore(

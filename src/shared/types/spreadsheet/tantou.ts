@@ -1,9 +1,9 @@
 // src/shared/types/spreadsheet/tantou.ts
 
 /**
- * 1. 各フィールドの「キー」と「日本語ラベル」を一元管理
+ * 各フィールドのキーと日本語ラベルを一元管理
  */
-const TANTOU_FIELD_LABELS = {
+export const TANTOU_FIELD_LABELS = {
   id: "ID",
 
   // 本日（today）
@@ -31,8 +31,5 @@ const TANTOU_FIELD_LABELS = {
   tomorrowPmAttendanceRate: "明日 PM出勤率",
 } as const;
 
-/**
- * 2. オブジェクトのキーから Tantou 型を自動生成
- */
 export type TantouKey = keyof typeof TANTOU_FIELD_LABELS;
 export type Tantou = Record<TantouKey, string>;

@@ -1,82 +1,35 @@
-// src/renderer/features/operation/OperationView.tsx
-
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
-import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { OperationTable } from "@renderer/features/operation/components/table/OperationTable";
-import type { JobStatus } from "@shared/types/operation/operationTypes";
-import type { ViewMode } from "@renderer/registry/appRegistry";
 
-import {
-  MODES,
-  type InfoRowData,
-  useOperationViewLogic,
-} from "./useOperationViewLogic";
+import { useOperationViewLogic } from "./useOperationViewLogic";
+import { createInfoRows } from "./operationViewDisplayUtils";
+import { OperationModeSwitcher } from "./components/OperationModeSwitcher";
+import { OperationInfoRow } from "./components/OperationInfoRow";
 import * as styles from "./operationView.css";
 
-// -----------------------------------------------------------------------------
-// Sub Components
-// -----------------------------------------------------------------------------
-
-interface ModeSwitcherProps {
-  currentMode: ViewMode;
-  onModeChange: (mode: ViewMode) => void;
-}
-
-const ModeSwitcher = memo(
-  ({ currentMode, onModeChange }: ModeSwitcherProps) => (
-    <div className={styles.modeToggleContainer} data-mode={currentMode}>
-      <div className={styles.modeToggleSlider} />
-
-      {MODES.map((mode) => (
-        <button
-          key={mode}
-          type="button"
-          className={styles.modeToggleButton}
-          data-active={currentMode === mode}
-          onClick={() => onModeChange(mode)}
-        >
-          {mode.charAt(0).toUpperCase() + mode.slice(1)}
-        </button>
-      ))}
-    </div>
-  ),
-);
-
-ModeSwitcher.displayName = "ModeSwitcher";
-
-interface InfoRowProps extends InfoRowData {}
-
-const InfoRow = memo(({ label, value, type }: InfoRowProps) => (
-  <div className={styles.row} data-remarks={type === "remarks"}>
-    <span>{label}</span>
-
-    <span className={styles.resultValue}>
-      {type === "status" && value ? (
-        <StatusBadge status={value as JobStatus} />
-      ) : (
-        value || "-"
-      )}
-    </span>
-  </div>
-));
-
-InfoRow.displayName = "InfoRow";
-
-// -----------------------------------------------------------------------------
-// Main Component
-// -----------------------------------------------------------------------------
-
-export const OperationView = memo(() => {
+export const OperationView = memo(function OperationView() {
   const {
     currentMode,
+    selectedItem,
+    status,
     activeActions,
-    infoRows,
     isMenuVisible,
     setMode,
     executeAction,
   } = useOperationViewLogic();
+
+  const infoRows = useMemo(
+    () => createInfoRows(currentMode, selectedItem, status),
+    [currentMode, selectedItem, status],
+  );
+
+  const handleActionSelect = (key: string): void => {
+    requestAnimationFrame(() => {
+      void executeAction(key);
+    });
+  };
 
   return (
     <div className={styles.container}>
@@ -89,7 +42,10 @@ export const OperationView = memo(() => {
       <aside className={styles.panelArea}>
         <div className={styles.panelContainer}>
           <div className={styles.topControls}>
-            <ModeSwitcher currentMode={currentMode} onModeChange={setMode} />
+            <OperationModeSwitcher
+              currentMode={currentMode}
+              onModeChange={setMode}
+            />
 
             {isMenuVisible && (
               <DropdownMenu.Root>
@@ -109,12 +65,7 @@ export const OperationView = memo(() => {
                       <DropdownMenu.Item
                         key={action.key}
                         className={styles.menuItem}
-                        onSelect={() => {
-                          // 🎯 Radix UI Dropdown 閉鎖イベントとの干渉を防ぐため非同期化
-                          requestAnimationFrame(() => {
-                            void executeAction(action.key);
-                          });
-                        }}
+                        onSelect={() => handleActionSelect(action.key)}
                       >
                         {action.label}
                       </DropdownMenu.Item>
@@ -127,7 +78,7 @@ export const OperationView = memo(() => {
 
           <div className={styles.infoList}>
             {infoRows.map((row) => (
-              <InfoRow key={row.field} {...row} />
+              <OperationInfoRow key={row.field} {...row} />
             ))}
           </div>
         </div>

@@ -1,79 +1,188 @@
 // electron/features/operation/jobs/scripts/numeric/job_64.ts
 
+// 戻り値を JobResult に統一して、要対応判定が scriptRunner.ts で失われないようにする。
+
+import fs from "fs-extra";
 import path from "node:path";
 import { format } from "date-fns";
-import fs from "fs-extra";
 import iconv from "iconv-lite";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
-  baseDir: "\\\\172.25.101.51\\if\\LOG\\DCMMD",
+  //baseDir: "\\\\172.25.101.51\\if\\LOG\\DCMMD",
+  baseDir: "C:\\Users\\C3088091\\Desktop\\test",
   systemId: "C1088241",
   encoding: "Shift_JIS",
+  pluEncoding: "EUC-JP",
   excludedStatuses: new Set(["8", "9"]),
   syohinTypes: new Set(["11", "12", "13", "14", "21"]),
   tokusyoTypes: new Set(["31", "32", "41", "42"]),
+  pluDuplicatePrefix: "ＰＬＵ重複",
+  skuKeyword: "ＳＫＵ",
+  shelfPrefix: "棚",
   processedDir: "対応済",
   excludedDir: "対応不要",
 } as const;
 
+const OUTPUT_TARGET_CONFIG = [
+  { type: "syohin", prefix: "Syohin_toMD_N_", label: "商品DAT" },
+  { type: "tokusyo", prefix: "Tokusyo_toMD_N_MD_", label: "特商DAT" },
+] as const;
+
+type OutputType = "syohin" | "tokusyo";
+
 interface CheckResult {
   pluNg: boolean;
   skuNg: boolean;
-  syohinLines: string[];
-  tokusyoLines: string[];
+  syohinNg: boolean;
+  tokusyoNg: boolean;
 }
 
-interface MoveTarget {
-  filePath: string;
+interface JobContext {
+  targetDir: string;
+  date: string;
+  result: CheckResult;
+}
+
+interface OutputTarget {
+  type: OutputType;
+  fileName: string;
+}
+
+interface ProcessedFileResult {
   processed: boolean;
+  lastOutputType: OutputType | null;
 }
 
-function getDateKey(date = new Date(), pattern = "yyyyMMdd"): string {
-  return format(date, pattern);
-}
-
-async function directoryExists(dirPath: string): Promise<boolean> {
-  try {
-    return (await fs.stat(dirPath)).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-async function findFiles(dirPath: string): Promise<string[]> {
-  const entries = await fs.readdir(dirPath, { withFileTypes: true });
-  return entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => path.join(dirPath, entry.name));
-}
-
-async function getFileInfo(filePath: string) {
-  const stats = await fs.stat(filePath);
+function createJobContext(now: Date): JobContext {
   return {
-    fileName: path.basename(filePath),
-    mtime: stats.mtime,
+    targetDir: path.join(CONFIG.baseDir, format(now, "yyyyMMdd")),
+    date: format(now, "yyyyMMdd"),
+    result: {
+      pluNg: false,
+      skuNg: false,
+      syohinNg: false,
+      tokusyoNg: false,
+    },
   };
+}
+
+function getOutputType(type: string): OutputType | null {
+  if (CONFIG.syohinTypes.has(type)) return "syohin";
+  if (CONFIG.tokusyoTypes.has(type)) return "tokusyo";
+  return null;
+}
+
+function getDmyPath(datPath: string): string {
+  return datPath.replace(/\.dat$/i, ".dmy");
+}
+
+function isOutputFile(fileName: string): boolean {
+  return OUTPUT_TARGET_CONFIG.some(
+    ({ prefix }) =>
+      fileName.startsWith(`${prefix}${CONFIG.systemId}_`) &&
+      /\.(dat|dmy)$/i.test(fileName),
+  );
+}
+
+async function getInputFilePaths(targetDir: string): Promise<string[]> {
+  const entries = await fs.readdir(targetDir, { withFileTypes: true });
+
+  return entries
+    .filter((entry) => entry.isFile() && !isOutputFile(entry.name))
+    .map((entry) => path.join(targetDir, entry.name));
+}
+
+async function createOutputTarget(
+  targetDir: string,
+  date: string,
+  type: OutputType,
+  prefix: string,
+): Promise<OutputTarget> {
+  for (let sequence = 0; sequence <= 999999; sequence += 1) {
+    const timestamp = `${date}${String(sequence).padStart(6, "0")}`;
+    const fileName = `${prefix}${CONFIG.systemId}_${timestamp}.dat`;
+    const datPath = path.join(targetDir, fileName);
+
+    if (
+      !(await fs.pathExists(datPath)) &&
+      !(await fs.pathExists(getDmyPath(datPath)))
+    ) {
+      return { type, fileName };
+    }
+  }
+
+  throw new Error(`${prefix}の出力可能な連番がありません`);
+}
+
+async function createOutputTargets(
+  targetDir: string,
+  date: string,
+): Promise<OutputTarget[]> {
+  return Promise.all(
+    OUTPUT_TARGET_CONFIG.map(({ type, prefix }) =>
+      createOutputTarget(targetDir, date, type, prefix),
+    ),
+  );
 }
 
 async function moveFile(
   filePath: string,
-  destinationDir: string,
-): Promise<void> {
+  targetDir: string,
+  directoryName: string,
+): Promise<boolean> {
+  const destinationDir = path.join(targetDir, directoryName);
+  const destinationPath = path.join(destinationDir, path.basename(filePath));
+
   await fs.ensureDir(destinationDir);
-  await fs.move(filePath, path.join(destinationDir, path.basename(filePath)));
+
+  if (await fs.pathExists(destinationPath)) return false;
+
+  await fs.move(filePath, destinationPath);
+  return true;
 }
 
-function isPluDuplicateFile(name: string): boolean {
-  return name.normalize("NFKC").includes("PLU重複");
+async function processPluFile(
+  filePath: string,
+  context: JobContext,
+): Promise<void> {
+  const buffer = await fs.readFile(filePath);
+  const text = iconv.decode(buffer, CONFIG.pluEncoding);
+
+  context.result.pluNg = text.length !== 12;
 }
 
-async function readShiftJis(filePath: string): Promise<string> {
-  return iconv.decode(await fs.readFile(filePath), CONFIG.encoding);
+function extractOutputLine(line: string): string {
+  let position = 0;
+
+  for (let count = 0; count < 4; count += 1) {
+    const commaPosition = line.indexOf(",", position);
+    if (commaPosition < 0) return line;
+    position = commaPosition + 1;
+  }
+
+  return line.slice(position);
 }
 
-function processDataText(text: string, result: CheckResult): boolean {
-  let hasProcessableRow = false;
+async function appendOutputLine(
+  targetDir: string,
+  target: OutputTarget,
+  line: string,
+): Promise<void> {
+  const outputPath = path.join(targetDir, target.fileName);
+  await fs.appendFile(outputPath, iconv.encode(`${line}\r\n`, CONFIG.encoding));
+}
+
+async function processTextFile(
+  filePath: string,
+  context: JobContext,
+  outputTargets: OutputTarget[],
+): Promise<ProcessedFileResult> {
+  const buffer = await fs.readFile(filePath);
+  const text = iconv.decode(buffer, CONFIG.encoding);
+  let processed = false;
+  let lastOutputType: OutputType | null = null;
 
   for (const line of text.split(/\r?\n/)) {
     if (!line.trim()) continue;
@@ -81,173 +190,180 @@ function processDataText(text: string, result: CheckResult): boolean {
     const columns = line.split(",");
     if (columns.length < 6) continue;
 
-    const type = columns[4]?.trim();
-    const status = columns[5]?.trim();
+    const type = columns[4]?.trim() ?? "";
+    const status = columns[5]?.trim() ?? "";
 
     if (CONFIG.excludedStatuses.has(status)) continue;
 
-    hasProcessableRow = true;
-    const output = columns.slice(4).join(",");
+    const outputType = getOutputType(type);
+    if (outputType === null) continue;
 
-    if (CONFIG.syohinTypes.has(type)) {
-      result.syohinLines.push(output);
-    } else if (CONFIG.tokusyoTypes.has(type)) {
-      result.tokusyoLines.push(output);
+    const outputTarget = outputTargets.find(
+      (target) => target.type === outputType,
+    );
+    if (!outputTarget) continue;
+
+    await appendOutputLine(
+      context.targetDir,
+      outputTarget,
+      extractOutputLine(line),
+    );
+
+    processed = true;
+    lastOutputType = outputType;
+
+    if (outputType === "syohin") {
+      context.result.syohinNg = true;
+    } else {
+      context.result.tokusyoNg = true;
     }
   }
 
-  return hasProcessableRow;
+  return { processed, lastOutputType };
 }
 
-async function writeOutput(
-  targetDir: string,
-  fileName: string,
-  lines: string[],
-): Promise<boolean> {
-  if (lines.length === 0) return false;
-
-  const datPath = path.join(targetDir, fileName);
-  await fs.writeFile(
-    datPath,
-    iconv.encode(lines.join("\r\n"), CONFIG.encoding),
-  );
-
-  const dmyPath = datPath.replace(/\.dat$/, ".dmy");
-  if (!(await fs.pathExists(dmyPath))) {
-    await fs.copy(datPath, dmyPath);
-  }
-
-  return true;
-}
-
-async function moveProcessedFiles(
-  targetDir: string,
-  targets: MoveTarget[],
+async function finalizeTextFile(
+  filePath: string,
+  context: JobContext,
+  outputTargets: OutputTarget[],
+  fileResult: ProcessedFileResult,
 ): Promise<void> {
-  for (const { filePath, processed } of targets) {
-    const fileName = path.basename(filePath);
-    if (isPluDuplicateFile(fileName)) continue;
+  await moveFile(
+    filePath,
+    context.targetDir,
+    fileResult.processed ? CONFIG.processedDir : CONFIG.excludedDir,
+  );
 
-    const destinationDir = path.join(
-      targetDir,
-      processed ? CONFIG.processedDir : CONFIG.excludedDir,
-    );
-    const destinationPath = path.join(destinationDir, fileName);
+  if (!fileResult.processed || fileResult.lastOutputType === null) return;
 
-    if (await fs.pathExists(destinationPath)) continue;
+  const outputTarget = outputTargets.find(
+    (target) => target.type === fileResult.lastOutputType,
+  );
+  if (!outputTarget) return;
 
-    await moveFile(filePath, destinationDir);
+  const datPath = path.join(context.targetDir, outputTarget.fileName);
+
+  if (await fs.pathExists(datPath)) {
+    await fs.copy(datPath, getDmyPath(datPath), { overwrite: true });
   }
 }
 
-export async function runJob64(): Promise<string> {
-  const now = new Date();
-  const today = getDateKey(now);
-  const timestamp = getDateKey(now, "yyyyMMddHHmmss");
-  const targetDir = path.join(CONFIG.baseDir, today);
-  const logger = new JobLogger();
+async function processFile(
+  filePath: string,
+  context: JobContext,
+  outputTargets: OutputTarget[],
+): Promise<void> {
+  const fileName = path.basename(filePath);
 
-  logger.log(`監視フォルダ: ${targetDir}`);
-
-  if (!(await directoryExists(targetDir))) {
-    throw logger.fail(`本日分のDCMMDフォルダが存在しません: ${targetDir}`);
+  if (fileName.startsWith(CONFIG.pluDuplicatePrefix)) {
+    await processPluFile(filePath, context);
+    return;
   }
 
-  const result: CheckResult = {
-    pluNg: false,
-    skuNg: false,
-    syohinLines: [],
-    tokusyoLines: [],
+  if (fileName.includes(CONFIG.skuKeyword)) {
+    context.result.skuNg = true;
+    return;
+  }
+
+  if (fileName.startsWith(CONFIG.shelfPrefix)) {
+    await moveFile(filePath, context.targetDir, CONFIG.excludedDir);
+    return;
+  }
+
+  const fileResult = await processTextFile(filePath, context, outputTargets);
+
+  await finalizeTextFile(filePath, context, outputTargets, fileResult);
+}
+
+function createSuccessResult(logger: JobLogger, summary?: string): JobResult {
+  return {
+    success: true,
+    kind: "success",
+    message: logger.complete(summary),
   };
-  const moveTargets: MoveTarget[] = [];
-  const entries = await findFiles(targetDir);
+}
 
-  logger.log(`検出ファイル数: 計 ${entries.length} 件`);
+function createNeedsActionResult(
+  logger: JobLogger,
+  summary: string,
+): JobResult {
+  return {
+    success: true,
+    kind: "needsAction",
+    message: logger.needsAction(summary),
+  };
+}
 
-  for (const filePath of entries) {
-    const { fileName, mtime } = await getFileInfo(filePath);
+function createFinalResult(logger: JobLogger, context: JobContext): JobResult {
+  const { pluNg, skuNg, syohinNg, tokusyoNg } = context.result;
 
-    logger.log(`対象ファイル: ${fileName}`);
+  return pluNg || skuNg || syohinNg || tokusyoNg
+    ? createNeedsActionResult(logger, "")
+    : createSuccessResult(logger);
+}
 
-    if (fileName.startsWith("PLU")) {
-      const isNg = (await readShiftJis(filePath)).trim().length !== 12;
-      result.pluNg ||= isNg;
-      logger.log(`判定: PLUチェック -> ${isNg ? "NG (桁数不備)" : "OK"}`);
-      continue;
-    }
+async function executeJob(
+  logger: JobLogger,
+  context: JobContext,
+): Promise<JobResult> {
+  logger.log(`監視フォルダ: ${context.targetDir}`);
 
-    const hasProcessableRow = processDataText(
-      await readShiftJis(filePath),
-      result,
+  if (!(await fs.pathExists(context.targetDir))) {
+    return createNeedsActionResult(
+      logger,
+      `本日分のDCMMDフォルダが存在しません: ${context.targetDir}`,
     );
-
-    if (fileName.includes("SKU")) {
-      result.skuNg ||= hasProcessableRow;
-      logger.log(
-        `判定: SKUチェック -> ${hasProcessableRow ? "NG (処理対象行あり)" : "OK"}`,
-      );
-    }
-
-    if (isPluDuplicateFile(fileName)) {
-      logger.log("PLU重複ファイルのため移動スキップ");
-      continue;
-    }
-
-    moveTargets.push({ filePath, processed: hasProcessableRow });
   }
 
-  logger.section("出力ファイル生成結果");
+  const stats = await fs.stat(context.targetDir);
+  if (!stats.isDirectory()) {
+    return createNeedsActionResult(
+      logger,
+      `本日分のDCMMDフォルダが存在しません: ${context.targetDir}`,
+    );
+  }
 
-  const outputs = [
-    {
-      label: "商品DAT",
-      fileName: `Syohin_toMD_N_${CONFIG.systemId}_${timestamp}.dat`,
-      lines: result.syohinLines,
-    },
-    {
-      label: "特商DAT",
-      fileName: `Tokusyo_toMD_N_MD_${CONFIG.systemId}_${timestamp}.dat`,
-      lines: result.tokusyoLines,
-    },
-  ];
+  const filePaths = await getInputFilePaths(context.targetDir);
+  logger.log(`検出ファイル数: 計 ${filePaths.length} 件`);
 
-  for (const output of outputs) {
-    const created = await writeOutput(targetDir, output.fileName, output.lines);
+  if (filePaths.length === 0) {
+    return createNeedsActionResult(logger, "ファイルがありません");
+  }
+
+  const outputTargets = await createOutputTargets(
+    context.targetDir,
+    context.date,
+  );
+
+  for (const filePath of filePaths) {
+    await processFile(filePath, context, outputTargets);
+  }
+
+  for (const target of outputTargets) {
+    if (!(await fs.pathExists(path.join(context.targetDir, target.fileName)))) {
+      continue;
+    }
+
+    const targetConfig = OUTPUT_TARGET_CONFIG.find(
+      (item) => item.type === target.type,
+    );
+
     logger.log(
-      created
-        ? `[${output.label}] 生成完了: ${output.fileName} (${output.lines.length} 行)`
-        : `[${output.label}] スキップ (対象行なし)`,
+      `[${targetConfig?.label ?? target.type}] 生成完了: ${target.fileName}`,
     );
   }
 
-  await moveProcessedFiles(targetDir, moveTargets);
+  return createFinalResult(logger, context);
+}
 
-  const syohinNg = result.syohinLines.length > 0;
-  const tokusyoNg = result.tokusyoLines.length > 0;
-  const nma8100Required = result.pluNg || result.skuNg || syohinNg || tokusyoNg;
+export async function runJob64(): Promise<JobResult> {
+  const logger = new JobLogger();
+  const context = createJobContext(new Date());
 
-  logger.section("判定サマリー");
-  logger.log(`PLU判定: ${result.pluNg ? "NG" : "OK"}`);
-  logger.log(`SKU判定: ${result.skuNg ? "NG" : "OK"}`);
-  logger.log(
-    `商品判定: ${syohinNg ? "NG" : "OK"} (${result.syohinLines.length} 行)`,
-  );
-  logger.log(
-    `特商判定: ${tokusyoNg ? "NG" : "OK"} (${result.tokusyoLines.length} 行)`,
-  );
-  logger.log(`修正: ${nma8100Required ? "必要" : "不要"}`);
-
-  if (moveTargets.length > 0) {
-    logger.section("移動処理実績");
-
-    for (const { filePath, processed } of moveTargets) {
-      logger.log(
-        `${path.basename(filePath)} -> ${
-          processed ? CONFIG.processedDir : CONFIG.excludedDir
-        }/`,
-      );
-    }
+  try {
+    return await executeJob(logger, context);
+  } catch (error: unknown) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw logger.fail(`システムエラーが発生しました: ${detail}`);
   }
-
-  return logger.complete();
 }

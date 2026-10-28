@@ -13,7 +13,6 @@ export * from "./eseries/job_e9";
 
 // Nシリーズ
 export * from "./nseries/job_n12";
-export * from "./nseries/job_n20";
 export * from "./nseries/job_n25";
 export * from "./nseries/job_n31";
 export * from "./nseries/job_n33";
@@ -29,5 +28,5 @@ export * from "./numeric/job_39";
 export * from "./numeric/job_56";
 export * from "./numeric/job_62";
 export * from "./numeric/job_64";
-export * from "./numeric/job_66";
+export * from "./numeric/job_6066";
 export * from "./numeric/job_80";

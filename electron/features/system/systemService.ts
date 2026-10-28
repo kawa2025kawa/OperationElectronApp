@@ -1,17 +1,13 @@
 // electron/features/system/systemService.ts
 
-import {
-  app,
-  BrowserWindow,
-  dialog,
-  shell,
-  type OpenDialogOptions,
-} from "electron";
+import { BrowserWindow, shell } from "electron";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { UpdateInfo } from "@shared/types/system";
 
-const UPDATE_DIRECTORY = "\\\\S0088210\\共有\\OperationApp";
+const UPDATE_DIRECTORY =
+  "\\\\192.88.1.210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp";
+
 const UPDATE_INFO_PATH = path.join(
   UPDATE_DIRECTORY,
   "OperationElectronApp_update.json",
@@ -58,7 +54,9 @@ export async function readUpdateInfo(): Promise<UpdateInfo | null> {
       return data as UpdateInfo;
     }
     return null;
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[systemService] Failed to read update info: ${message}`);
     return null;
   }
 }

@@ -19,6 +19,7 @@ import type {
   OperationStatusState,
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
+import type { ViewMode } from "@shared/types/registry/viewDefinition";
 
 // 全ターゲットのステータスを集計し、サマリーデータ（各件数・進捗率）を算出する。
 export function getStatusSummary(): StatusSummary {
@@ -120,14 +121,14 @@ function enrichItem(
 }
 
 // 表示モードに応じた運用テーブル行データ一覧を取得して返す。
-export function getOperationTableData(
-  mode: "operation" | "irregular" | "today",
-): OperationViewItem[] {
+export function getOperationTableData(mode: ViewMode): OperationViewItem[] {
   switch (mode) {
     case "operation":
       return getStatusTargetItems("operation");
+
     case "today":
       return getStatusTargetItems("today");
+
     case "irregular":
       return getIrregularItems();
   }

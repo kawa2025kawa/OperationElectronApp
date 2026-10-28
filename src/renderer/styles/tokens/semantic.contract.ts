@@ -78,6 +78,9 @@ export const tokens = createGlobalThemeContract(
 
         /** Neon pink */
         neonPink: null,
+
+        /** Neon white */
+        neonWhite: null,
       },
 
       status: {
@@ -85,6 +88,7 @@ export const tokens = createGlobalThemeContract(
         success: null,
         running: null,
         ready: null,
+        needsAction: null,
         waiting: null,
         scheduled: null,
         error: null,
@@ -185,6 +189,7 @@ export const tokens = createGlobalThemeContract(
         success: null,
         running: null,
         waiting: null,
+        needsAction: null,
         ready: null,
         scheduled: null,
       },

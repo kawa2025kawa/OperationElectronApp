@@ -72,7 +72,7 @@ class NativeTempomaticClient {
     const startedAt = Date.now();
 
     try {
-      // 🎯 Electron の net.fetch を使用してネットワーク通信エラー(TypeError: fetch failed)を完全回避
+      // 🎯 Electron の net.fetch を使用してネットワーク通信エラー(TypeError: fetch failed)を回避
       const response = await net.fetch(url, init);
       this.saveCookies(response.headers);
 
@@ -235,7 +235,10 @@ const createUploadForm = (
     form.append("category", category);
   }
 
-  const fileBlob = new Blob([fileBuffer], { type: "application/pdf" });
+  // 🎯 Uint8Array に変換して TypeScript の BlobPart 型エラーを解決
+  const fileBlob = new Blob([new Uint8Array(fileBuffer)], {
+    type: "application/pdf",
+  });
   form.append("pdfFile", fileBlob, fileName);
 
   return form;

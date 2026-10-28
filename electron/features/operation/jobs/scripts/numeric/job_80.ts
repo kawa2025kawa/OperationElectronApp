@@ -3,134 +3,150 @@
 import path from "node:path";
 import { format } from "date-fns";
 import fs from "fs-extra";
+import type { JobResult } from "@shared/types/operation/operationTypes";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
-const TARGET_DIR = "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV";
-
-const REQUIRED_FILES = ["Okurikomi_toMD_JIZEN", "htsf0060_JIZEN"] as const;
+const CONFIG = {
+  targetDir: "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV",
+  requiredFiles: ["Okurikomi_toMD_JIZEN", "htsf0060_JIZEN"],
+} as const;
 
 interface MatchedFile {
-  target: string;
   fileName: string;
   filePath: string;
   mtime: Date;
+}
+
+interface FileCheckResult {
+  files: (MatchedFile | null)[];
+  missing: string[];
 }
 
 function getDateKey(date = new Date()): string {
   return format(date, "yyyyMMdd");
 }
 
-async function directoryExists(dirPath: string): Promise<boolean> {
+function formatModifiedTime(date: Date): string {
+  return format(date, "yyyy/MM/dd HH:mm:ss");
+}
+
+async function validateTargetDirectory(): Promise<void> {
   try {
-    return (await fs.stat(dirPath)).isDirectory();
+    if ((await fs.stat(CONFIG.targetDir)).isDirectory()) {
+      return;
+    }
   } catch {
-    return false;
+    // ディレクトリ不存在・アクセス失敗を下記で統一する
   }
+
+  throw new Error(`フォルダが存在しません: ${CONFIG.targetDir}`);
 }
 
-async function findFiles(dirPath: string, prefix: string): Promise<string[]> {
-  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+async function findMatchedFile(prefix: string): Promise<MatchedFile | null> {
+  const entries = await fs.readdir(CONFIG.targetDir, {
+    withFileTypes: true,
+  });
+  const entry = entries.find(
+    (item) => item.isFile() && item.name.startsWith(prefix),
+  );
 
-  return entries
-    .filter((entry) => entry.isFile() && entry.name.startsWith(prefix))
-    .map((entry) => path.join(dirPath, entry.name));
-}
+  if (!entry) {
+    return null;
+  }
 
-async function getFileInfo(filePath: string): Promise<MatchedFile> {
+  const filePath = path.join(CONFIG.targetDir, entry.name);
   const stat = await fs.stat(filePath);
 
   return {
-    target: "",
-    fileName: path.basename(filePath),
+    fileName: entry.name,
     filePath,
     mtime: stat.mtime,
   };
 }
 
-async function findMatchedFile(
-  target: string,
-  prefix: string,
-): Promise<MatchedFile | null> {
-  const [filePath] = await findFiles(TARGET_DIR, prefix);
+async function findRequiredFiles(
+  prefixes: readonly string[],
+): Promise<(MatchedFile | null)[]> {
+  return Promise.all(prefixes.map(findMatchedFile));
+}
 
-  if (!filePath) {
-    return null;
+function logMatchedFile(logger: JobLogger, file: MatchedFile): void {
+  logger.log(`  ${file.fileName}`);
+  logger.log(`    更新日時 : ${formatModifiedTime(file.mtime)}`);
+}
+
+function logFiles(logger: JobLogger, files: (MatchedFile | null)[]): void {
+  logger.log("検出ファイル");
+
+  for (let index = 0; index < CONFIG.requiredFiles.length; index += 1) {
+    const file = files[index];
+
+    if (file) {
+      logMatchedFile(logger, file);
+    } else {
+      logger.log(`  [${CONFIG.requiredFiles[index]}] ファイルが見つかりません`);
+    }
+  }
+}
+
+async function checkRequiredFiles(): Promise<FileCheckResult> {
+  await validateTargetDirectory();
+
+  const fixedFiles = await findRequiredFiles(CONFIG.requiredFiles);
+
+  if (fixedFiles.every((file) => file !== null)) {
+    return {
+      files: fixedFiles,
+      missing: [],
+    };
   }
 
-  const info = await getFileInfo(filePath);
+  const datedFiles = await findRequiredFiles(
+    CONFIG.requiredFiles.map((target) => `${target}_${getDateKey()}`),
+  );
 
-  return { ...info, target };
+  return {
+    files: datedFiles,
+    missing: CONFIG.requiredFiles.filter(
+      (_, index) => datedFiles[index] === null,
+    ),
+  };
 }
 
-function formatModifiedTime(date: Date): string {
-  return date.toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+async function executeJob(logger: JobLogger): Promise<JobResult> {
+  logger.log(`対象フォルダ : ${CONFIG.targetDir}`);
+
+  const result = await checkRequiredFiles();
+
+  logFiles(logger, result.files);
+
+  if (result.missing.length > 0) {
+    return {
+      success: true,
+      kind: "needsAction",
+      message: logger.needsAction(""),
+    };
+  }
+
+  return {
+    success: true,
+    kind: "success",
+    message: logger.complete(),
+  };
 }
 
-function logMatchedFile(logger: JobLogger, item: MatchedFile): void {
-  logger.log(`  ${item.fileName}`);
-  logger.log(`    更新日時 : ${formatModifiedTime(item.mtime)}`);
-}
-
-export async function runJob80(): Promise<string> {
-  const today = getDateKey();
+export async function runJob80(): Promise<JobResult> {
   const logger = new JobLogger();
 
-  logger.log(`監視ディレクトリ : ${TARGET_DIR}`);
-
-  if (!(await directoryExists(TARGET_DIR))) {
-    throw logger.fail(`ディレクトリが存在しません: ${TARGET_DIR}`);
-  }
-
-  const fixedFiles = await Promise.all(
-    REQUIRED_FILES.map((target) => findMatchedFile(target, target)),
-  );
-
-  if (fixedFiles.every((item) => item !== null)) {
-    logger.log("固定名ファイルを検出しました");
-
-    for (const item of fixedFiles) {
-      if (item) {
-        logMatchedFile(logger, item);
-      }
+  try {
+    return await executeJob(logger);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
+      throw error;
     }
 
-    return logger.complete("固定名ファイル確認完了");
+    const detail = error instanceof Error ? ` (${error.message})` : "";
+
+    throw logger.fail(`ファイル確認に失敗しました${detail}`);
   }
-
-  logger.log(`本日日付 (${today}) のファイルを検索中...`);
-
-  const datedFiles = await Promise.all(
-    REQUIRED_FILES.map((target) =>
-      findMatchedFile(target, `${target}_${today}`),
-    ),
-  );
-
-  const missing: string[] = [];
-
-  for (let i = 0; i < REQUIRED_FILES.length; i++) {
-    const target = REQUIRED_FILES[i];
-    const item = datedFiles[i];
-
-    if (item) {
-      logger.log(`  検出 : ${item.fileName}`);
-      logger.log(`    更新日時 : ${formatModifiedTime(item.mtime)}`);
-    } else {
-      missing.push(target);
-      logger.log(`  未検出 : [${target}] ファイルが見つかりません`);
-    }
-  }
-
-  if (missing.length > 0) {
-    throw logger.fail(`未受信ファイルあり (対象: ${missing.join(", ")})`);
-  }
-
-  return logger.complete("日付付きファイル確認完了");
 }

@@ -40,7 +40,7 @@ export const contentFlexContainer = style({
   height: "100%",
   gap: "1.5vmin",
   minHeight: 0,
-  overflow: "hidden", // グローバルModal自体にスクロールバーを出さない
+  overflow: "hidden",
   boxSizing: "border-box",
 });
 
@@ -81,6 +81,15 @@ export const infoBoxVariants = styleVariants({
       backgroundColor: "rgba(74, 222, 128, 0.1)",
       color: tokens.color.status?.success ?? "#4ade80",
       border: `1px solid ${tokens.color.status?.success ?? "#4ade80"}`,
+      boxShadow: tokens.shadow.pressed.low,
+    },
+  ],
+  warning: [
+    infoBoxBase,
+    {
+      backgroundColor: "rgba(250, 204, 21, 0.1)",
+      color: "#facc15",
+      border: "1px solid #facc15",
       boxShadow: tokens.shadow.pressed.low,
     },
   ],

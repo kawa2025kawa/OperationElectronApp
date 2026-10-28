@@ -7,25 +7,44 @@ import { selectFilteredSheetRows } from "@renderer/store/selectors/spreadsheetSe
 import type { SheetId } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { AppViewDefinition } from "@shared/types/registry/viewDefinition";
 
+type SheetSearchConfig = {
+  sheetId: SheetId;
+  search?: AppViewDefinition["search"];
+};
+
 /**
- * sheetId -> ViewConfig のルックアップ用マップキャッシュ
+ * sheetId -> 検索設定のルックアップ用マップキャッシュ
  */
-let sheetConfigMapCache: Map<SheetId, AppViewDefinition<any>> | null = null;
+let sheetConfigMapCache: Map<SheetId, SheetSearchConfig> | null = null;
 
 /**
  * 初回フック実行時に遅延生成することで、循環参照(TDZ)による未初期化エラーを回避
  */
-function getSheetConfigMap(): Map<SheetId, AppViewDefinition<any>> {
+function getSheetConfigMap(): Map<SheetId, SheetSearchConfig> {
   if (!sheetConfigMapCache) {
-    sheetConfigMapCache = new Map<SheetId, AppViewDefinition<any>>(
-      Object.values(APP_REGISTRY)
-        .filter(
-          (config): config is AppViewDefinition<any> & { sheetId: SheetId } =>
-            Boolean(config.sheetId),
-        )
-        .map((config) => [config.sheetId, config]),
-    );
+    const entries: Array<[SheetId, SheetSearchConfig]> = Object.values(
+      APP_REGISTRY,
+    ).flatMap((config): Array<[SheetId, SheetSearchConfig]> => {
+      if (!config.sheetId) {
+        return [];
+      }
+
+      const sheetId = config.sheetId as SheetId;
+
+      return [
+        [
+          sheetId,
+          {
+            sheetId,
+            search: config.search,
+          },
+        ],
+      ];
+    });
+
+    sheetConfigMapCache = new Map(entries);
   }
+
   return sheetConfigMapCache;
 }
 

@@ -1,8 +1,11 @@
+// electron/features/operation/jobs/scripts/nseries/job_n33.ts
+
 import { Client } from "basic-ftp";
 import iconv from "iconv-lite";
 import { format } from "date-fns";
-import { PassThrough, type Readable } from "stream";
-import readline from "readline";
+import { PassThrough, type Readable } from "node:stream";
+import readline from "node:readline";
+
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
 const FTP_CONFIG = {
@@ -13,20 +16,18 @@ const FTP_CONFIG = {
 } as const;
 
 const FTP_DIR = "/fep/chkcount/";
+const TARGET_CODES = ["S330", "S332"] as const;
 
-/** チェック対象外とする店番 */
-const EXCLUDE_STORE_CODES = new Set([
+const EXCLUDE_STORE_CODES = [
   "24",
   "43",
   "51",
   "57",
   "59",
   "88",
-  "700",
-  "881",
-  "882",
-  "883",
-]);
+  "88*",
+  "7**",
+] as const;
 
 interface UnassignedDetail {
   code: string;
@@ -34,67 +35,110 @@ interface UnassignedDetail {
 }
 
 interface FileCheckResult {
-  codeName: string;
   processedRows: number;
   unassignedItems: UnassignedDetail[];
 }
 
-async function processCsvStream(
-  inputStream: Readable,
+function isExcludedStoreCode(code: string): boolean {
+  return EXCLUDE_STORE_CODES.some((pattern) =>
+    pattern.includes("*")
+      ? code.length === pattern.length &&
+        code.startsWith(pattern.slice(0, pattern.indexOf("*")))
+      : code === pattern,
+  );
+}
+
+function findTargetFile(
+  files: Awaited<ReturnType<Client["list"]>>,
   codeName: string,
-): Promise<FileCheckResult> {
-  const rl = readline.createInterface({
-    input: inputStream.pipe(iconv.decodeStream("Shift_JIS")),
+  today: string,
+) {
+  return files
+    .filter(
+      ({ name }) =>
+        name.includes(`_${codeName}_${today}`) && name.endsWith(".csv"),
+    )
+    .sort((a, b) => b.name.localeCompare(a.name))[0];
+}
+
+async function processCsvStream(stream: Readable): Promise<FileCheckResult> {
+  const reader = readline.createInterface({
+    input: stream.pipe(iconv.decodeStream("Shift_JIS")),
     crlfDelay: Infinity,
   });
 
-  let rowIndex = 0;
+  let isHeader = true;
   let processedRows = 0;
   const unassignedItems: UnassignedDetail[] = [];
 
   try {
-    for await (const line of rl) {
-      rowIndex++;
+    for await (const line of reader) {
+      if (isHeader) {
+        isHeader = false;
+        continue;
+      }
 
-      if (rowIndex === 1) continue;
-
-      const trimmedLine = line.trim();
-
-      if (!trimmedLine) continue;
+      if (!line.trim()) continue;
 
       processedRows++;
 
-      const [, status = "", rawCode = "", rawDetail = ""] = trimmedLine
+      const [, status = "", rawCode = "", detail = ""] = line
+        .trim()
         .split(",")
         .map((column) => column.trim());
 
-      const normalizedCode = rawCode.replace(/^0+/, "");
+      const code = rawCode.replace(/^0+/, "");
 
-      if (EXCLUDE_STORE_CODES.has(normalizedCode)) continue;
+      if (status !== "未格納" || isExcludedStoreCode(code)) continue;
 
-      if (status === "未格納") {
-        unassignedItems.push({
-          code: normalizedCode,
-          detail: rawDetail,
-        });
-      }
+      unassignedItems.push({ code, detail });
     }
   } finally {
-    rl.close();
+    reader.close();
   }
 
-  return {
-    codeName,
-    processedRows,
-    unassignedItems,
-  };
+  return { processedRows, unassignedItems };
+}
+
+async function checkFile(
+  client: Client,
+  files: Awaited<ReturnType<Client["list"]>>,
+  codeName: string,
+  today: string,
+  logger: JobLogger,
+): Promise<boolean> {
+  const file = findTargetFile(files, codeName, today);
+
+  if (!file) {
+    throw new Error(`[${codeName}] 当日CSV (${today}) が見つかりません`);
+  }
+
+  logger.log(`[${codeName}] 対象ファイル : ${file.name}`);
+
+  const stream = new PassThrough();
+  const parsePromise = processCsvStream(stream);
+
+  await client.downloadTo(stream, file.name);
+  const result = await parsePromise;
+
+  logger.log(`[${codeName}] 処理行数 : ${result.processedRows}行`);
+  logger.log(`[${codeName}] 未格納件数 : ${result.unassignedItems.length}件`);
+
+  if (result.unassignedItems.length === 0) return false;
+
+  logger.log(`[${codeName}] 未格納データ詳細`);
+
+  for (const item of result.unassignedItems) {
+    logger.log(`${item.code}:${item.detail}`);
+  }
+
+  return true;
 }
 
 export async function runJobN33(): Promise<string> {
   const client = new Client();
-  const today = format(new Date(), "yyyyMMdd");
   const logger = new JobLogger();
-
+  const today = format(new Date(), "yyyyMMdd");
   let hasUnassigned = false;
 
   try {
@@ -107,55 +151,18 @@ export async function runJobN33(): Promise<string> {
 
     const files = await client.list();
 
-    const checkFile = async (codeName: string): Promise<void> => {
-      const matchedFiles = files
-        .filter(
-          (file) =>
-            file.name.includes(`_${codeName}_${today}`) &&
-            file.name.endsWith(".csv"),
-        )
-        .sort((a, b) => b.name.localeCompare(a.name));
-
-      const file = matchedFiles[0];
-
-      if (!file) {
-        throw new Error(`[${codeName}] 当日CSV (${today}) が見つかりません`);
-      }
-
-      logger.log(`[${codeName}] 対象ファイル : ${file.name}`);
-
-      const passThroughStream = new PassThrough();
-
-      const downloadPromise = client.downloadTo(passThroughStream, file.name);
-
-      const parsePromise = processCsvStream(passThroughStream, codeName);
-
-      const [, result] = await Promise.all([downloadPromise, parsePromise]);
-
-      logger.log(`[${codeName}] 処理行数 : ${result.processedRows}行`);
-      logger.log(
-        `[${codeName}] 未格納件数 : ${result.unassignedItems.length}件`,
-      );
-
-      if (result.unassignedItems.length === 0) return;
-
-      hasUnassigned = true;
-      logger.log(`[${codeName}] 未格納データ詳細`);
-
-      for (const item of result.unassignedItems) {
-        logger.log(`${item.code}:${item.detail}`);
-      }
-    };
-
-    await checkFile("S330");
-    await checkFile("S332");
+    for (const codeName of TARGET_CODES) {
+      hasUnassigned =
+        (await checkFile(client, files, codeName, today, logger)) ||
+        hasUnassigned;
+    }
 
     if (hasUnassigned) {
       throw new Error("未格納データを検出しました");
     }
 
     return logger.complete("完了");
-  } catch (error) {
+  } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
 
     throw logger.fail(

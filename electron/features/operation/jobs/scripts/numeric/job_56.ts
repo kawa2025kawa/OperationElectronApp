@@ -1,4 +1,6 @@
-// electron/features/operation/jobs/scripts/numeric/job_56.ts
+/**
+ * electron/features/operation/jobs/scripts/numeric/job_56.ts
+ */
 
 import { format } from "date-fns";
 import fs from "fs-extra";
@@ -14,54 +16,12 @@ const CONFIG = {
   validCharRegex: /^[AD0-9 ]+$/,
 } as const;
 
-// timeUtils の getDateKey をローカル実装
-function getDateKey(date = new Date()): string {
-  return format(date, "yyyyMMdd");
-}
-
-// folderUtils の directoryExists をローカル実装
-async function directoryExists(dirPath: string): Promise<boolean> {
-  try {
-    return (await fs.stat(dirPath)).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-// fileUtils の findFiles をローカル実装
-async function findFiles(
-  dirPath: string,
-  options: { prefix?: string; suffix?: string; includes?: string[] } = {},
-): Promise<string[]> {
-  const entries = await fs.readdir(dirPath, { withFileTypes: true });
-  const includes = options.includes ?? [];
-
-  return entries
-    .filter((entry) => {
-      if (!entry.isFile()) return false;
-      if (options.prefix && !entry.name.startsWith(options.prefix)) {
-        return false;
-      }
-      if (options.suffix && !entry.name.endsWith(options.suffix)) {
-        return false;
-      }
-      return includes.every((keyword) => entry.name.includes(keyword));
-    })
-    .map((entry) => path.join(dirPath, entry.name));
-}
-
-// fileUtils の getFileInfo をローカル実装
-async function getFileInfo(filePath: string): Promise<{
+type ValidationResult = {
   fileName: string;
+  lineCount: number;
   mtime: Date;
-}> {
-  const stats = await fs.stat(filePath);
-
-  return {
-    fileName: path.basename(filePath),
-    mtime: stats.mtime,
-  };
-}
+  errors: string[];
+};
 
 function validateLine(
   line: string,
@@ -70,6 +30,7 @@ function validateLine(
 ): string[] {
   const errors: string[] = [];
   const trimmed = line.replace(/[\s\u00A0]+$/g, "");
+  const lineBuffer = iconv.encode(line, CONFIG.encoding);
 
   if (trimmed.length > 0 && !CONFIG.validCharRegex.test(trimmed)) {
     errors.push(
@@ -77,15 +38,16 @@ function validateLine(
     );
   }
 
-  const lineBuf = iconv.encode(line, CONFIG.encoding);
-
-  if (lineBuf.length > CONFIG.maxByteLength) {
+  if (lineBuffer.length > CONFIG.maxByteLength) {
     errors.push(
-      `${fileName} (${lineNum}行目): レコード長超過 (${lineBuf.length}バイト / 最大256バイト)`,
+      `${fileName} (${lineNum}行目): レコード長超過 (${lineBuffer.length}バイト / 最大${CONFIG.maxByteLength}バイト)`,
     );
   }
 
-  if (lineBuf.length >= 3 && lineBuf.subarray(2).includes(CONFIG.charAByte)) {
+  if (
+    lineBuffer.length >= 3 &&
+    lineBuffer.subarray(2).includes(CONFIG.charAByte)
+  ) {
     errors.push(
       `${fileName} (${lineNum}行目): 3バイト目以降に "A" が含まれています`,
     );
@@ -94,82 +56,79 @@ function validateLine(
   return errors;
 }
 
-async function validateFile(filePath: string): Promise<{
-  fileName: string;
-  errors: string[];
-  lineCount: number;
-  mtime: Date;
-}> {
-  const [fileInfo, rawBuf] = await Promise.all([
-    getFileInfo(filePath),
+async function validateFile(filePath: string): Promise<ValidationResult> {
+  const [stats, buffer] = await Promise.all([
+    fs.stat(filePath),
     fs.readFile(filePath),
   ]);
-
-  const lines = iconv.decode(rawBuf, CONFIG.encoding).split(/\r?\n/);
-
-  const errors = lines.flatMap((line, index) => {
-    if (index === lines.length - 1 && line.length === 0) {
-      return [];
-    }
-
-    return validateLine(line, fileInfo.fileName, index + 1);
-  });
+  const fileName = path.basename(filePath);
+  const lines = iconv.decode(buffer, CONFIG.encoding).split(/\r?\n/);
 
   return {
-    fileName: fileInfo.fileName,
-    errors,
+    fileName,
     lineCount: lines.length,
-    mtime: fileInfo.mtime,
+    mtime: stats.mtime,
+    errors: lines.flatMap((line, index) =>
+      index === lines.length - 1 && line.length === 0
+        ? []
+        : validateLine(line, fileName, index + 1),
+    ),
   };
 }
 
 export async function runJob56(): Promise<string> {
-  const today = getDateKey(new Date());
-  const filePrefix = `SEIKYUDT_${today}`;
   const logger = new JobLogger();
+  const today = format(new Date(), "yyyyMMdd");
+  const filePrefix = `SEIKYUDT_${today}`;
 
   logger.log(`監視ディレクトリ : ${CONFIG.targetDir}`);
-  logger.log(`検索対象プレフィックス : ${filePrefix}*`);
 
-  if (!(await directoryExists(CONFIG.targetDir))) {
-    throw logger.fail(`ディレクトリが存在しません: ${CONFIG.targetDir}`);
-  }
+  try {
+    const dirStats = await fs.stat(CONFIG.targetDir);
 
-  const targetFiles = await findFiles(CONFIG.targetDir, {
-    prefix: filePrefix,
-  });
-
-  if (targetFiles.length === 0) {
-    logger.log(`対象ファイルなし (${filePrefix}*)`);
-    return logger.complete("対象ファイルなし");
-  }
-
-  logger.log(`検出ファイル数 : ${targetFiles.length} 件`);
-
-  const results = await Promise.all(
-    targetFiles.map((filePath) => validateFile(filePath)),
-  );
-
-  const allErrors: string[] = [];
-
-  for (const item of results) {
-    logger.log(`  ${item.fileName} (${item.lineCount} 行)`);
-    logger.log(`    更新日時 : ${format(item.mtime, "yyyy/MM/dd HH:mm:ss")}`);
-
-    if (item.errors.length > 0) {
-      allErrors.push(...item.errors);
-
-      for (const error of item.errors) {
-        logger.log(`      [エラー] ${error}`);
-      }
+    if (!dirStats.isDirectory()) {
+      throw new Error(`ディレクトリではありません: ${CONFIG.targetDir}`);
     }
-  }
 
-  if (allErrors.length > 0) {
-    throw logger.fail(
-      `データ不正 (${allErrors.length} 件のエラー):\n${allErrors.join("\n")}`,
-    );
-  }
+    const targetFiles = (
+      await fs.readdir(CONFIG.targetDir, {
+        withFileTypes: true,
+      })
+    )
+      .filter((entry) => entry.isFile() && entry.name.startsWith(filePrefix))
+      .map((entry) => path.join(CONFIG.targetDir, entry.name));
 
-  return logger.complete(`対象 ${targetFiles.length} ファイル検証完了`);
+    if (targetFiles.length === 0) {
+      logger.log(`対象ファイルなし (${filePrefix}*)`);
+      return logger.complete();
+    }
+
+    logger.log(`検出ファイル数 : ${targetFiles.length} 件`);
+
+    const results = await Promise.all(targetFiles.map(validateFile));
+    const allErrors: string[] = [];
+
+    for (const result of results) {
+      logger.log(`${result.fileName}`);
+      logger.log(
+        `    更新日時 : ${format(result.mtime, "yyyy/MM/dd HH:mm:ss")}`,
+      );
+
+      result.errors.forEach((error) => {
+        allErrors.push(error);
+        logger.log(`      [エラー] ${error}`);
+      });
+    }
+
+    return allErrors.length > 0
+      ? logger.needsAction(
+          `データ不正 (${allErrors.length} 件のエラー):\n${allErrors.join("\n")}`,
+        )
+      : logger.complete(`対象 ${targetFiles.length} ファイル検証完了`);
+  } catch (error: unknown) {
+    const detail =
+      error instanceof Error ? ` (${error.message})` : ` (${String(error)})`;
+
+    throw logger.fail(`システムエラーが発生しました${detail}`);
+  }
 }

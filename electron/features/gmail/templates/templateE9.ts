@@ -2,10 +2,7 @@
 
 import type { GmailDraft } from "../gmailTypes";
 
-export function createTemplateE9(
-  _familyName = "",
-  _links?: Record<string, string> | null,
-): GmailDraft {
+export function createTemplateE9(): GmailDraft {
   return {
     to: "belc@taiyosha-insatsu.co.jp",
     cc: "ml-sec-digisui-all@belc.co.jp",

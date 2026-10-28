@@ -1,9 +1,9 @@
 // src/shared/types/spreadsheet/jugyoin.ts
 
 /**
- * 1. 各フィールドの「キー」と「日本語ラベル」を一元管理
+ * 各フィールドのキーと日本語ラベルを一元管理
  */
-const JUGYOIN_FIELD_LABELS = {
+export const JUGYOIN_FIELD_LABELS = {
   id: "ID",
   bumon: "部門",
   bumonKana: "部門カナ",
@@ -25,8 +25,5 @@ const JUGYOIN_FIELD_LABELS = {
   email: "メールアドレス",
 } as const;
 
-/**
- * 2. オブジェクトのキーから Jugyoin 型を自動生成
- */
 export type JugyoinKey = keyof typeof JUGYOIN_FIELD_LABELS;
 export type Jugyoin = Record<JugyoinKey, string>;

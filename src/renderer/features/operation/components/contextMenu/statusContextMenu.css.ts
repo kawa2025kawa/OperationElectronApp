@@ -14,7 +14,7 @@ export const content = style({
   boxShadow: tokens.shadow.raised.high,
   zIndex: tokens.zIndex.contextMenu,
 
-  // 🎯 描画隔離（コンテキストメニュー開閉時の背景テーブル領域への不要なRepaint遮断）
+  // 描画隔離（コンテキストメニュー開閉時の背景テーブル領域への不要なRepaint遮断）
   position: "relative",
   isolation: "isolate",
   transform: "translateZ(0)",
@@ -79,6 +79,9 @@ export const itemVariants = styleVariants({
   },
   WAITING: {
     color: tokens.color.status.waiting,
+  },
+  NEEDSACTION: {
+    color: tokens.color.status.needsAction,
   },
   ERROR: {
     color: tokens.color.status.error,

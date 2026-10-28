@@ -1,27 +1,12 @@
-// src/renderer/features/spreadsheet/kokyuhyo/modal/useKokyuhyoModalContent.ts
+// src/renderer/features/spreadSheet/kokyuhyo/modal/useKokyuhyoModalContent.ts
 
 import { useCallback } from "react";
-import { addDays, format, getDay } from "date-fns";
-import { ja } from "date-fns/locale/ja";
 import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
 import { systemIpcService } from "@renderer/services/systemIpcService";
-
-const formatDateWithDay = (date: Date) => {
-  const mmdd = format(date, "MM/dd");
-  const dayOfWeek = format(date, "EEE", { locale: ja });
-  const dayNum = getDay(date);
-
-  let dayColor = "inherit";
-
-  if (dayNum === 6) dayColor = "#0077ff";
-  if (dayNum === 0) dayColor = "#ff3333";
-
-  return {
-    text: mmdd,
-    dayText: `(${dayOfWeek})`,
-    dayStyle: { color: dayColor },
-  };
-};
+import {
+  formatDateWithDay,
+  getOffsetDate,
+} from "../../utils/spreadsheetDateUtils";
 
 export function useKokyuhyoModalContent(data: Kokyuhyo) {
   const scheduleLink =
@@ -56,7 +41,7 @@ export function useKokyuhyoModalContent(data: Kokyuhyo) {
     },
     {
       label: "明日",
-      date: formatDateWithDay(addDays(now, 1)),
+      date: formatDateWithDay(getOffsetDate(1, now)),
       amStatus: data.tomorrowAmStatus,
       amDetail: data.tomorrowAmDetail,
       pmStatus: data.tomorrowPmStatus,

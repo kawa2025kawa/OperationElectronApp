@@ -4,12 +4,14 @@ import { memo, useCallback } from "react";
 import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
 import type { Column } from "@shared/types/table/tableType";
 import { SpreadSheetBaseTable } from "../../components/table/SpreadSheetBaseTable";
-import { KOKYUHYO_COLUMNS } from "../KokyuhyoView";
+import { KOKYUHYO_COLUMNS } from "../kokyuhyoColumns";
 import * as styles from "@renderer/styles/global/table.css";
 
 const checkIsHolidayText = (value: unknown): boolean => {
   if (value == null || typeof value === "object") return false;
+
   const text = String(value);
+
   return (
     text.includes("公休") ||
     text.includes("有休") ||
@@ -29,6 +31,7 @@ export const KokyuhyoTable = memo(
     const renderCell = useCallback(
       (_row: Kokyuhyo, _col: Column<Kokyuhyo>, value: unknown) => {
         const isHoliday = checkIsHolidayText(value);
+
         return (
           <span
             className={`${styles.cellText} ${isHoliday ? styles.cellTextHoliday : ""}`}

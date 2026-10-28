@@ -3,41 +3,29 @@
 import fs from "fs-extra";
 import path from "node:path";
 import iconv from "iconv-lite";
+
 import { parseCsvLine } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
 const INPUT_FILE_NAME = "TENF0140.csv";
 const OUTPUT_DIR = "\\\\C0088150\\nec\\ftp";
-const OUTPUT_FILE1 = "TENF0140.dat";
-const OUTPUT_FILE2 = "TENF0140.dmy";
+const OUTPUT_FILES = ["TENF0140.dat", "TENF0140.dmy"] as const;
 const ENCODING = "Windows-31J";
 
-function resolveInputFilePath(inputFilePath?: string | string[]): string {
-  const filePaths = Array.isArray(inputFilePath)
-    ? inputFilePath
-    : inputFilePath
-      ? [inputFilePath]
-      : [];
+async function resolveInputFilePath(
+  inputFilePath?: string | string[],
+): Promise<string> {
+  const filePath = Array.isArray(inputFilePath)
+    ? inputFilePath[0]
+    : inputFilePath;
 
-  if (filePaths.length !== 1 || !filePaths[0]) {
-    throw new Error(
-      `処理対象のファイルは${INPUT_FILE_NAME}の1ファイルのみ指定してください。`,
-    );
-  }
-
-  const filePath = filePaths[0];
-  const fileName = path.basename(filePath);
-
-  if (path.extname(filePath).toLowerCase() !== ".csv") {
-    throw new Error(
-      `CSVファイル (.csv) のみ処理可能です。指定されたファイル: ${fileName}`,
-    );
-  }
-
-  if (fileName !== INPUT_FILE_NAME) {
-    throw new Error(
-      `処理対象ファイルは${INPUT_FILE_NAME}のみです。指定されたファイル: ${fileName}`,
-    );
+  if (
+    !filePath ||
+    (Array.isArray(inputFilePath) && inputFilePath.length !== 1) ||
+    path.basename(filePath).toLowerCase() !== INPUT_FILE_NAME.toLowerCase() ||
+    path.extname(filePath).toLowerCase() !== ".csv"
+  ) {
+    throw new Error(`${INPUT_FILE_NAME}の1ファイルのみ指定してください`);
   }
 
   return filePath;
@@ -45,100 +33,87 @@ function resolveInputFilePath(inputFilePath?: string | string[]): string {
 
 function normalizeCode(value: string, digits: number): string {
   const text = value.trim();
-  const num = Number(text);
 
-  return text && Number.isFinite(num)
-    ? String(num).padStart(digits, "0")
-    : text;
+  if (!text) {
+    return text;
+  }
+
+  const number = Number(text);
+
+  return Number.isFinite(number) ? String(number).padStart(digits, "0") : text;
 }
 
 function transformCsv(text: string): string[][] {
-  const lines = text.split(/\r?\n/).filter((line) => line.trim() !== "");
+  const lines = text.split(/\r?\n/).filter((line) => line.trim());
 
   if (lines.length <= 1) {
     throw new Error("CSVに有効なデータ行がありません。");
   }
 
-  const shapedRows = lines.slice(1).flatMap((line) => {
-    const cols = parseCsvLine(line);
+  const rows: string[][] = [];
 
-    if (cols.length < 11) {
-      return [];
+  for (const line of lines.slice(1)) {
+    const columns = parseCsvLine(line);
+
+    if (columns.length < 11) {
+      continue;
     }
 
-    return [
-      [
-        normalizeCode(cols[2], 2),
-        normalizeCode(cols[6], 3),
-        cols[8],
-        cols[9],
-        cols[10],
-        cols[4],
-        cols[5],
-      ],
-    ];
-  });
+    rows.push([
+      normalizeCode(columns[2], 2),
+      normalizeCode(columns[6], 3),
+      columns[8],
+      columns[9],
+      columns[10],
+      columns[4],
+      columns[5],
+    ]);
+  }
 
-  if (shapedRows.length === 0) {
+  if (rows.length === 0) {
     throw new Error("CSVに処理可能なデータ行がありません。");
   }
 
-  return shapedRows;
+  return rows;
 }
 
+async function readCsvRows(filePath: string): Promise<string[][]> {
+  const buffer = await fs.readFile(filePath);
+  return transformCsv(iconv.decode(buffer, ENCODING));
+}
+
+async function writeOutputFiles(rows: string[][]): Promise<string[]> {
+  const outputText = `${rows.map((row) => row.join(",")).join("\r\n")}\r\n`;
+  const outputBuffer = iconv.encode(outputText, ENCODING);
+
+  await fs.ensureDir(OUTPUT_DIR);
+
+  const outputPaths = OUTPUT_FILES.map((fileName) =>
+    path.join(OUTPUT_DIR, fileName),
+  );
+
+  await fs.writeFile(outputPaths[0], outputBuffer);
+  await fs.writeFile(outputPaths[1], outputBuffer);
+
+  return outputPaths;
+}
 export async function runJobE5(
   inputFilePath?: string | string[],
 ): Promise<string> {
   const logger = new JobLogger();
 
   try {
-    const csvFilePath = resolveInputFilePath(inputFilePath);
-
+    const csvFilePath = await resolveInputFilePath(inputFilePath);
     logger.log(`入力ファイル : ${csvFilePath}`);
 
-    const stat = await fs.stat(csvFilePath);
+    const rows = await readCsvRows(csvFilePath);
+    const outputPaths = await writeOutputFiles(rows);
 
-    if (!stat.isFile()) {
-      throw new Error(
-        `処理対象のファイル (${INPUT_FILE_NAME}) がファイルではありません。`,
-      );
+    for (const outputPath of outputPaths) {
+      logger.log(`出力ファイル : ${outputPath}`);
     }
-
-    if (stat.size === 0) {
-      throw new Error(
-        `処理対象のファイル (${INPUT_FILE_NAME}) が空 (0バイト) です。`,
-      );
-    }
-
-    const rawBuffer = await fs.readFile(csvFilePath);
-    const decodedText = iconv.decode(rawBuffer, ENCODING);
-    const shapedRows = transformCsv(decodedText);
-
-    logger.log(`変換件数 : ${shapedRows.length}件`);
-
-    // 旧型システム・通信端末向けの改行コード (CRLF) に統一
-    const outputText =
-      shapedRows.map((row) => row.join(",")).join("\r\n") + "\r\n";
-    const outputBuffer = iconv.encode(outputText, ENCODING);
-
-    await fs.ensureDir(OUTPUT_DIR);
-
-    const outputPath1 = path.join(OUTPUT_DIR, OUTPUT_FILE1);
-    const outputPath2 = path.join(OUTPUT_DIR, OUTPUT_FILE2);
-
-    await Promise.all([
-      fs.writeFile(outputPath1, outputBuffer),
-      fs.writeFile(outputPath2, outputBuffer),
-    ]);
-
-    logger.log(`出力ファイル : ${outputPath1}`);
-    logger.log(`出力ファイル : ${outputPath2}`);
-    logger.complete("TENF0140変換完了");
-
-    return "JACOS端末で「140」を送信して下さい";
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    throw logger.fail(errorMessage);
+    return logger.complete("JACOS端末で「140」を送信して下さい");
+  } catch (error: unknown) {
+    throw logger.fail(error instanceof Error ? error.message : String(error));
   }
 }

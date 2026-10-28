@@ -1,11 +1,6 @@
 // electron/features/operation/application/statusManager.ts
 
 import {
-  clearJsonMasterDataCache,
-  getJsonMasterData,
-} from "@electron/features/masterData/application/jsonMasterDataManager";
-import { clearSpreadsheetMasterDataCache } from "@electron/features/masterData/application/spreadsheetMasterDataManager";
-import {
   getActiveFlags,
   setActiveFlags,
 } from "@electron/features/operation/application/activeFlagsManager";
@@ -139,13 +134,12 @@ export function recalculateTargetStatus(
   );
 }
 
-// 全ターゲットのステータスを一括で再計算・判定する
+// 全ターゲットのステータスを一括で再計算・判定する。
 export function recalculateAllStatuses(
   activeFlags: ActiveFlags = getActiveFlags(),
 ): void {
-  for (const kanriNo of targets.keys()) {
-    recalculateTargetStatus(kanriNo, activeFlags);
-  }
+  propagator.enqueueAllRecalculableTargets(statuses, targets);
+  processPropagation(activeFlags);
 }
 
 // キューに入った依存ターゲットの再計算を順次処理する。
@@ -238,22 +232,35 @@ export async function resetAllStatusesAndTargets(): Promise<void> {
   await deleteStatusFile();
 }
 
-// マスターデータに基づきターゲットリストを登録し、初期依存関係を構築する。
+// マスターデータに基づきターゲットとステータスを同期し、依存関係を再構築する。
 export function registerTargets(
   targetList: StatusTarget[],
   masterData: JsonMasterData,
 ): void {
-  dependencyMasters = {
-    operationMasters: masterData.operations,
-    irregularMasters: masterData.irregulars,
-    todayIrregularMasters: masterData.todayIrregulars,
-  };
+  const nextTargets = new Map<string, StatusTarget>();
 
   for (const target of targetList) {
     const kanriNo = normalizeKanriNo(target.kanriNo);
     if (!kanriNo) {
       continue;
     }
+
+    nextTargets.set(kanriNo, {
+      ...target,
+      kanriNo,
+    });
+  }
+
+  // マスターから除外された管理番号のステータスを削除する。
+  for (const kanriNo of targets.keys()) {
+    if (!nextTargets.has(kanriNo)) {
+      statuses.delete(kanriNo);
+    }
+  }
+
+  // ターゲット一覧を最新のマスターに置き換える。
+  targets.clear();
+  for (const [kanriNo, target] of nextTargets) {
     targets.set(kanriNo, target);
 
     if (!statuses.has(kanriNo)) {
@@ -261,7 +268,15 @@ export function registerTargets(
     }
   }
 
+  dependencyMasters = {
+    operationMasters: masterData.operations,
+    irregularMasters: masterData.irregulars,
+    todayIrregularMasters: masterData.todayIrregulars,
+  };
+
+  // 古い依存関係を残さず、最新のターゲットから再構築する。
   propagator.rebuildDependencyIndex(targets.values());
+
   recalculateAllStatuses(getActiveFlags());
   persistStatusesDebounced(statuses);
 }
@@ -274,6 +289,7 @@ export async function initializeStatuses(): Promise<
   statuses.clear();
 
   let recoveredRunningStatus = false;
+
   for (const [kanriNo, status] of Object.entries(persistedStatuses)) {
     const normalizedKanriNo = normalizeKanriNo(kanriNo);
     if (!normalizedKanriNo) {
@@ -339,41 +355,6 @@ export async function deleteAllStatuses(): Promise<void> {
 // センターフラグに依存するジョブのステータス再計算をトリガーする。
 export function refreshDependencyStatuses(): void {
   recalculateAllStatuses(getActiveFlags());
-}
-
-// -----------------------------------------------------------------------------
-// コマンド操作（旧 operationCommandService から統合）
-// -----------------------------------------------------------------------------
-
-// Google Driveマスターから運用ターゲットを構築して登録する。
-export async function registerOperationTargets(): Promise<void> {
-  const masterData = await getJsonMasterData();
-
-  const targetList: StatusTarget[] = [
-    ...masterData.operations.map((target) => ({
-      ...target,
-      targetType: "operation" as const,
-    })),
-    ...masterData.todayIrregulars.map((target) => ({
-      ...target,
-      targetType: "today" as const,
-    })),
-  ];
-
-  registerTargets(targetList, masterData);
-}
-
-// 全キャッシュとステータスを破棄し、マスター再取得および初期ステータス構築を実行する。
-export async function resetOperationStatuses(): Promise<
-  Record<string, OperationStatusState>
-> {
-  await clearJsonMasterDataCache();
-  await clearSpreadsheetMasterDataCache();
-  await resetAllStatusesAndTargets();
-  await registerOperationTargets();
-  saveStatusesImmediately();
-
-  return getAllStatuses();
 }
 
 // センターフラグを更新し、関連する依存ステータスの再計算をトリガーする。

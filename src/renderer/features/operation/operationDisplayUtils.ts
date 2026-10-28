@@ -1,10 +1,11 @@
 ﻿// src/renderer/features/operation/operationDisplayUtils.ts
 
-const INVALID_VALUE_SET = new Set(["", "-", " ", "null", "undefined"]);
+const MISSING_PROPERTY_VALUE = "‐";
+
 const ISO_DATE_TIME_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
-const japanDateFormatter = new Intl.DateTimeFormat("ja-JP", {
+const JAPAN_DATE_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
   timeZone: "Asia/Tokyo",
   year: "numeric",
   month: "2-digit",
@@ -16,25 +17,34 @@ const japanDateFormatter = new Intl.DateTimeFormat("ja-JP", {
 });
 
 function formatJapanDateTime(date: Date): string {
-  return japanDateFormatter.format(date);
+  return JAPAN_DATE_FORMATTER.format(date);
 }
 
+function isValidDate(date: Date): boolean {
+  return !Number.isNaN(date.getTime());
+}
+
+/**
+ * プロパティが存在しない場合の表示値を返す。
+ */
+export function toMissingPropertyDisplayValue(): string {
+  return MISSING_PROPERTY_VALUE;
+}
+
+/**
+ * 存在するプロパティの値を表示用文字列に変換する。
+ * 値の欠損判定や文字列の正規化は行わない。
+ */
 export function toDisplayValue(value: unknown): string {
-  if (value == null) {
-    return "-";
-  }
   if (value instanceof Date) {
-    return formatJapanDateTime(value);
+    return isValidDate(value) ? formatJapanDateTime(value) : String(value);
   }
-  const text = String(value).trim();
-  if (INVALID_VALUE_SET.has(text)) {
-    return "-";
+
+  if (typeof value === "string" && ISO_DATE_TIME_PATTERN.test(value)) {
+    const date = new Date(value);
+
+    return isValidDate(date) ? formatJapanDateTime(date) : value;
   }
-  if (ISO_DATE_TIME_PATTERN.test(text)) {
-    const date = new Date(text);
-    if (!Number.isNaN(date.getTime())) {
-      return formatJapanDateTime(date);
-    }
-  }
-  return text;
+
+  return String(value);
 }

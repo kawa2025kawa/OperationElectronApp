@@ -33,7 +33,6 @@ export function openScriptModal(
   openGlobalModal: OpenGlobalModal,
   item: OperationViewItem,
   scriptKey?: string,
-  label?: string,
 ): void {
   if (!scriptKey && item.isPdfUpload) {
     openGlobalModal(

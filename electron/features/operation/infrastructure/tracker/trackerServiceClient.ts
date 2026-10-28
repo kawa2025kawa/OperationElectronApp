@@ -3,17 +3,13 @@
 import {
   addKanshiTime,
   buildTrackerUrl,
-  getJobId,
   getTargetTime,
   normalizeItem,
   type TrackerApiResponse,
   type TrackerApiResponseItem,
 } from "@electron/features/operation/infrastructure/tracker/trackerHelper";
 
-import {
-  type OperationMaster,
-  type OperationStatusState,
-} from "@shared/types/operation/operationTypes";
+import { type OperationStatusState } from "@shared/types/operation/operationTypes";
 
 const FETCH_TIMEOUT_MS = 30_000;
 
@@ -79,7 +75,7 @@ async function fetchTrackerData(
       try {
         responseBody = await response.text();
       } catch (error) {
-        responseBody = `レスポンス本文の取得失敗: ${String(error)}`;
+        responseBody = `繝ｬ繧ｹ繝昴Φ繧ｹ譛ｬ譁・・蜿門ｾ怜､ｱ謨・ ${String(error)}`;
       }
 
       console.error(
@@ -215,7 +211,7 @@ export async function fetchTrackerStatusByJobId(
 
   /*
    * Raw Tracker API ->
-   * OperationStatusState の唯一の変換境界。
+   * OperationStatusState 縺ｮ蜚ｯ荳縺ｮ螟画鋤蠅・阜縲・
    */
   return normalizeItem(kanriNo, item);
 }

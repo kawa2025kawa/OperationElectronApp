@@ -1,4 +1,4 @@
-﻿//electron\features\gmail\templates\templateFactory.ts
+﻿// electron/features/gmail/templates/templateFactory.ts
 
 import type { EmailTemplateKey, GmailDraft } from "../gmailTypes";
 
@@ -16,10 +16,10 @@ interface TemplateParams {
 type TemplateFactory = (params: TemplateParams) => GmailDraft;
 
 const templateFactories: Record<EmailTemplateKey, TemplateFactory> = {
-  E8: ({ familyName, links }) => createTemplateE8(familyName, links),
-  E9: ({ familyName, links }) => createTemplateE9(familyName, links),
-  E10: ({ familyName, links }) => createTemplateE10(familyName, links),
-  E88: ({ familyName, links, ym }) => createTemplateE88(familyName, links, ym),
+  E8: () => createTemplateE8(),
+  E9: () => createTemplateE9(),
+  E10: ({ familyName }) => createTemplateE10(familyName),
+  E88: ({ familyName }) => createTemplateE88(familyName),
 };
 
 export function createEmailTemplate(

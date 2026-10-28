@@ -10,6 +10,10 @@ import {
   type SheetDataState,
   type SheetId,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
+import {
+  createInitStatusPatch,
+  INIT_STATUS_GROUPS,
+} from "@shared/types/initializationTypes";
 import { spreadsheetIpcService } from "@renderer/services/spreadsheetIpcService";
 
 const SHEET_IDS = Object.values(SHEETS).map(
@@ -82,16 +86,9 @@ export const createSpreadSheetSlice: StateCreator<
       // Spreadsheet由来のデータのみをZustandへ反映する
       applyMasterData(masterData);
 
-      get().setInitStatus({
-        operation: "OK",
-        irregular: "OK",
-        store: "OK",
-        jugyoin: "OK",
-        kokyuhyo: "OK",
-        tantou: "OK",
-        update: "OK",
-      });
-
+      get().setInitStatus(
+        createInitStatusPatch(INIT_STATUS_GROUPS.spreadsheetData, "OK"),
+      );
       return masterData;
     } catch (error: unknown) {
       console.error("[SpreadSheetSlice] fetchMasterData エラー詳細:", error);
@@ -101,15 +98,9 @@ export const createSpreadSheetSlice: StateCreator<
           ? error.message
           : "マスターデータの取得に失敗しました";
 
-      get().setInitStatus({
-        operation: "NG",
-        irregular: "NG",
-        store: "NG",
-        jugyoin: "NG",
-        kokyuhyo: "NG",
-        tantou: "NG",
-        update: "NG",
-      });
+      get().setInitStatus(
+        createInitStatusPatch(INIT_STATUS_GROUPS.spreadsheetData, "NG"),
+      );
 
       toast.error(message);
       return null;

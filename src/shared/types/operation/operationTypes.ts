@@ -1,5 +1,19 @@
 // src/shared/types/operation/operationTypes.ts
 
+export interface StatusUpdatedEvent {
+  type: "updated";
+  update: OperationStatusState;
+}
+
+export interface StatusClearedEvent {
+  type: "cleared";
+  kanriNo: string;
+}
+
+export type OperationStatusNotification =
+  | StatusUpdatedEvent
+  | StatusClearedEvent;
+
 export interface OperationLink {
   label: string;
   path: string;
@@ -33,6 +47,7 @@ export interface IrregularMaster {
   kanriNo: string;
   workName: string;
   scheduledTime?: string;
+  jobId?: string;
   cycle?: string;
   dependsOn?: string;
 
@@ -93,6 +108,7 @@ export const JOB_STATUS = {
   SUCCESS: "success",
   READY: "ready",
   WAITING: "waiting",
+  NEEDS_ACTION: "needsAction",
   ERROR: "error",
 } as const;
 
@@ -105,6 +121,7 @@ export const JOB_STATUS_VALUES = [
   JOB_STATUS.SUCCESS,
   JOB_STATUS.READY,
   JOB_STATUS.WAITING,
+  JOB_STATUS.NEEDS_ACTION,
   JOB_STATUS.ERROR,
 ] as const satisfies readonly JobStatus[];
 
@@ -115,6 +132,7 @@ export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
   [JOB_STATUS.SUCCESS]: "完了",
   [JOB_STATUS.READY]: "実行可能",
   [JOB_STATUS.WAITING]: "待機",
+  [JOB_STATUS.NEEDS_ACTION]: "要対応",
   [JOB_STATUS.ERROR]: "エラー",
 };
 
@@ -130,7 +148,7 @@ export interface JobArtifact {
   size?: number;
 }
 
-export type JobResultKind = "success" | "difference" | "error";
+export type JobResultKind = "success" | "difference" | "needsAction" | "error";
 
 export interface JobResult {
   message: string;

@@ -2,11 +2,9 @@
 
 import { memo } from "react";
 import { useShallow } from "zustand/react/shallow";
-
 import { useAppStore } from "@renderer/store";
 import { selectTantouMasters } from "@renderer/store/selectors/spreadsheetSelectors";
-import { TantouModalContent } from "@renderer/features/spreadSheet/tantou/modal/TantouModalContent";
-
+import { TantouDetailContent } from "@renderer/features/spreadSheet/tantou/modal/TantouDetailContent";
 import * as styles from "./tantouButton.css";
 
 export const TantouButton = memo(() => {
@@ -24,7 +22,7 @@ export const TantouButton = memo(() => {
       return;
     }
 
-    openGlobalModal(<TantouModalContent data={firstRow} />, {
+    openGlobalModal(<TantouDetailContent data={firstRow} />, {
       title: "担当表",
     });
   };

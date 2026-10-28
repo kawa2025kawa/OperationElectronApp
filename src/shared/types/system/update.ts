@@ -1,3 +1,5 @@
+//src\shared\types\system\update.ts
+
 export interface UpdateInfo {
   version: string;
   notes?: string;

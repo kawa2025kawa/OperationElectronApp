@@ -1,6 +1,6 @@
 {
   "name": "operationelectronapp",
-  "version": "0.0.35",
+  "version": "0.0.37",
   "private": true,
   "type": "module",
   "main": "dist-electron/main.js",
@@ -35,7 +35,7 @@
     "@radix-ui/react-context-menu": "^2.3.7",
     "@types/archiver": "^7.0.0",
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vanilla-extract/css": "^1.21.2",

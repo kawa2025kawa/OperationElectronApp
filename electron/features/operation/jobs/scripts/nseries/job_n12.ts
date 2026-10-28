@@ -1,21 +1,15 @@
 // electron/features/operation/jobs/scripts/nseries/job_n12.ts
 
 import path from "node:path";
-import { format } from "date-fns";
 import fs from "fs-extra";
+
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import {
-  getStatuses,
-  getTargets,
-} from "@electron/features/operation/application/statusManager";
+import { getStatus } from "@electron/features/operation/application/statusManager";
 import { JOB_STATUS } from "@shared/types/operation/operationTypes";
 
 const TARGET_DIR1 = "\\\\172.25.101.51\\if\\WMSSLIP\\RCV\\SV";
 const TARGET_DIR2 = "\\\\172.25.101.51\\if\\WMSSLIP\\RCV";
-
-/** 分岐判断の対象とする Job ID */
-const REF_JOB_ID = "DSI8020";
-
+const REF_KANRI_NO = "49";
 const KEYWORDS = [
   "098_FTRDCSND",
   "982_FTRDCSND",
@@ -23,100 +17,80 @@ const KEYWORDS = [
   "FTRDCSNDSD",
 ] as const;
 
-/**
- * 特定の Job ID (DSI8020) のステータスを参照し、監視ディレクトリを取得する
- */
+interface FileInfo {
+  fileName: string;
+  mtime: number;
+}
+
 function resolveTargetDir(): string {
-  const targets = getTargets();
-  const statuses = getStatuses();
+  const status = getStatus(REF_KANRI_NO)?.status;
 
-  let refKanriNo: string | undefined;
+  console.log("[job_n12] DSI8020 status", {
+    kanriNo: REF_KANRI_NO,
+    status,
+  });
 
-  // 1. 指定された jobId (DSI8020) に対応する kanriNo を検索
-  for (const [kanriNo, target] of targets) {
-    if ("jobId" in target && String(target.jobId) === REF_JOB_ID) {
-      refKanriNo = kanriNo;
-      break;
+  return status === JOB_STATUS.READY || status === JOB_STATUS.WAITING
+    ? TARGET_DIR2
+    : TARGET_DIR1;
+}
+
+async function findLatestFile(
+  directory: string,
+  files: string[],
+  keyword: string,
+): Promise<FileInfo | undefined> {
+  let latest: FileInfo | undefined;
+
+  for (const fileName of files) {
+    if (!fileName.includes(keyword)) continue;
+
+    const stat = await fs.stat(path.join(directory, fileName));
+
+    if (stat.isFile() && (!latest || stat.mtimeMs > latest.mtime)) {
+      latest = { fileName, mtime: stat.mtimeMs };
     }
   }
 
-  // 2. 対応するステータスを取得
-  const currentStatus = refKanriNo
-    ? statuses.get(refKanriNo)?.status
-    : undefined;
-
-  // 3. READY または WAITING の場合は TARGET_DIR2、それ以外は TARGET_DIR1
-  if (
-    currentStatus === JOB_STATUS.READY ||
-    currentStatus === JOB_STATUS.WAITING
-  ) {
-    return TARGET_DIR2;
-  }
-
-  return TARGET_DIR1;
+  return latest;
 }
 
 export async function runJobN12(): Promise<string> {
   const logger = new JobLogger();
-  const today = format(new Date(), "yyyyMMdd");
-  const TARGET_DIR = resolveTargetDir();
 
   try {
-    logger.log(`処理日 : ${today}`);
-    logger.log(`監視ディレクトリ : ${TARGET_DIR}`);
+    const targetDir = resolveTargetDir();
+    logger.log(`対象フォルダ : ${targetDir}`);
 
-    if (!(await fs.pathExists(TARGET_DIR))) {
-      throw new Error(`ディレクトリが存在しません: ${TARGET_DIR}`);
+    if (!(await fs.pathExists(targetDir))) {
+      throw new Error(`ディレクトリが存在しません: ${targetDir}`);
     }
 
-    const files = await fs.readdir(TARGET_DIR);
+    const files = await fs.readdir(targetDir);
     const missing: string[] = [];
 
     for (const keyword of KEYWORDS) {
-      const matchedFiles = files.filter((fileName) =>
-        fileName.includes(keyword),
-      );
+      const latest = await findLatestFile(targetDir, files, keyword);
 
-      if (matchedFiles.length === 0) {
+      if (latest) {
+        logger.log(latest.fileName);
+      } else {
         missing.push(keyword);
-        logger.log(`[${keyword}] 未検出`);
-        continue;
+        logger.log(`[${keyword}] ファイルが見つかりません`);
       }
-
-      const fileWithStats = await Promise.all(
-        matchedFiles.map(async (fileName) => {
-          const filePath = path.join(TARGET_DIR, fileName);
-          const stat = await fs.stat(filePath);
-
-          return {
-            fileName,
-            mtime: stat.mtime,
-            isFile: stat.isFile(),
-          };
-        }),
-      );
-
-      const latest = fileWithStats
-        .filter((file) => file.isFile)
-        .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())[0];
-
-      if (!latest) {
-        missing.push(keyword);
-        logger.log(`[${keyword}] ファイル情報取得失敗`);
-        continue;
-      }
-
-      logger.log(`${latest.fileName}`);
     }
 
-    if (missing.length > 0) {
-      throw new Error(`未受信ファイルあり (対象: ${missing.join(", ")})`);
+    if (missing.length) {
+      logger.log(`未検出ファイルあり (対象: ${missing.join(", ")})`);
+      return logger.needsAction("");
     }
 
-    return logger.complete("全ファイル確認完了");
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    return logger.complete();
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
+      throw error;
+    }
 
-    throw logger.fail(errorMessage);
+    throw logger.fail(error instanceof Error ? error.message : String(error));
   }
 }

@@ -1,75 +1,16 @@
-// src/renderer/features/spreadsheet/jugyoin/JugyoinView.tsx
+﻿// src/renderer/features/spreadSheet/jugyoin/JugyoinView.tsx
 
 import { memo, useCallback } from "react";
 import { AuthView } from "@renderer/features/auth/AuthView";
-import {
-  APP_VIEW_IDS,
-  type AppViewDefinition,
-} from "@shared/types/registry/viewDefinition";
 import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
-import type { Column } from "@shared/types/table/tableType";
 
 import { useSpreadSheetDomainLogic } from "../hooks/useSpreadSheetDomainLogic";
-import { DATE_LABELS } from "../utils/spreadsheetDateUtils";
 import { JugyoinModalContent } from "./modal/JugyoinModalContent";
 import { JugyoinTable } from "./table/JugyoinTable";
-import * as styles from "./JugyoinView.css";
+import * as styles from "../kokyuhyo/spreadSheetView.css";
 
-export const JUGYOIN_COLUMNS: readonly Column<Jugyoin>[] = [
-  { key: "bumon", label: "部門", width: "15%" },
-  { key: "name", label: "氏名", width: "15%" },
-  {
-    key: "todayAmStatus",
-    label: "区分",
-    width: "7%",
-    headerGroup: { groupKey: "today", label: DATE_LABELS.today },
-  },
-  {
-    key: "todayAmDetail",
-    label: "午前",
-    width: "10.5%",
-    headerGroup: { groupKey: "today", label: DATE_LABELS.today },
-  },
-  {
-    key: "todayPmStatus",
-    label: "区分",
-    width: "7%",
-    headerGroup: { groupKey: "today", label: DATE_LABELS.today },
-  },
-  {
-    key: "todayPmDetail",
-    label: "午後",
-    width: "10.5%",
-    headerGroup: { groupKey: "today", label: DATE_LABELS.today },
-  },
-  {
-    key: "tomorrowAmStatus",
-    label: "区分",
-    width: "7%",
-    headerGroup: { groupKey: "tomorrow", label: DATE_LABELS.tomorrow },
-  },
-  {
-    key: "tomorrowAmDetail",
-    label: "午前",
-    width: "10.5%",
-    headerGroup: { groupKey: "tomorrow", label: DATE_LABELS.tomorrow },
-  },
-  {
-    key: "tomorrowPmStatus",
-    label: "区分",
-    width: "7%",
-    headerGroup: { groupKey: "tomorrow", label: DATE_LABELS.tomorrow },
-  },
-  {
-    key: "tomorrowPmDetail",
-    label: "午後",
-    width: "10.5%",
-    headerGroup: { groupKey: "tomorrow", label: DATE_LABELS.tomorrow },
-  },
-] as const;
-
-const JugyoinView = memo(() => {
+export const JugyoinView = memo(function JugyoinView() {
   const { isAuthenticated, data, openGlobalModal } =
     useSpreadSheetDomainLogic<Jugyoin>(SHEETS.JUGYOIN.sheetName);
 
@@ -98,26 +39,3 @@ const JugyoinView = memo(() => {
     </div>
   );
 });
-
-JugyoinView.displayName = "JugyoinView";
-
-export const jugyoinViewConfig: AppViewDefinition<Jugyoin> = {
-  id: APP_VIEW_IDS.JUGYOIN,
-  title: "従業員情報",
-  component: JugyoinView,
-  isProtected: true,
-
-  sidebarMenu: {
-    show: true,
-    order: 3,
-  },
-
-  sheetId: SHEETS.JUGYOIN.sheetName,
-
-  search: {
-    placeholder: "部門、名前で検索...",
-    searchKeys: ["bumon", "bumonKana", "name", "nameKana"],
-  },
-
-  columns: JUGYOIN_COLUMNS,
-};

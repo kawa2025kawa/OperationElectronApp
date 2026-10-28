@@ -6,6 +6,7 @@ import fs from "fs-extra";
 import path from "node:path";
 import { uploadPdfDocuments } from "@electron/features/tempomatic/tempomaticService";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import type { IpcChannelMap } from "@shared/types/electron/ipcTypes";
 
 // 指定日数後の有効期限日付文字列（yyyy/MM/dd）を算出する。
 function calculateExpireDate(offsetDays = 7): string {
@@ -19,14 +20,14 @@ export function registerTempomaticIpc(): void {
     IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT,
     async (
       _event,
-      params: {
-        filePaths: string[];
-        expireDate?: string;
-      },
-    ): Promise<string> => {
+      params: IpcChannelMap[typeof IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT]["args"][0],
+    ): Promise<
+      IpcChannelMap[typeof IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT]["return"]
+    > => {
       const uniquePaths = Array.from(
         new Set(params.filePaths.map((p) => p.trim())),
       ).filter(Boolean);
+
       const validPdfPaths = uniquePaths.filter((p) =>
         p.toLowerCase().endsWith(".pdf"),
       );

@@ -1,3 +1,5 @@
+//electron\features\operation\jobs\scripts\eseries\job_e14.//
+
 import path from "node:path";
 import fs from "fs-extra";
 import { stat } from "node:fs/promises";

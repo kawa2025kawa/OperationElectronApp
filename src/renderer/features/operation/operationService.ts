@@ -1,4 +1,4 @@
-﻿// src/renderer/services/operationService.ts
+// src/renderer/features/operation/operationService.ts
 
 import { toast } from "sonner";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
@@ -14,7 +14,7 @@ import type {
   StatusSummary,
   SummaryDetailRow,
 } from "@shared/types/statusSummary/statusSummaryTypes";
-import type { AppState } from "@renderer/store";
+import { useAppStore } from "@renderer/store";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
 
 export interface ExecuteScriptParams {
@@ -31,8 +31,22 @@ export interface UpdateJobStatusParams {
   comment?: string;
 }
 
+/** ジョブ実行時のエラーをトースト通知し、エラーを再送出する */
+async function withJobErrorToast<T>(
+  errorPrefix: string,
+  execute: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await execute();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    toast.error(`${errorPrefix}: ${message}`);
+    throw error;
+  }
+}
+
 /**
- * Operation 関連の通信およびジョブ実行オーケストレーションを集約するサービス
+ * Operation 関連の IPC 通信およびジョブ実行オーケストレーションを集約するサービス
  */
 export const operationService = {
   // ==========================================================================
@@ -86,77 +100,55 @@ export const operationService = {
     window.electronAPI.invoke(IPC_CHANNELS.OPERATION.INITIALIZE_STATUS),
 
   // ==========================================================================
-  // ジョブ実行オーケストレーション (UIローディング + 通信 + トースト通知)
+  // ジョブ実行オーケストレーション
   // ==========================================================================
 
-  /**
-   * JC ジョブのステータス取得・反映を実行する
-   */
-  executeJcJob: async (
-    state: AppState,
-    kanriNoInput: string,
-  ): Promise<void> => {
+  /** JC ジョブのステータス取得・反映を実行する */
+  executeJcJob: async (kanriNoInput: string): Promise<void> => {
     const kanriNo = kanriNoInput.trim();
 
-    await runJobWithGlobalProcessing(
-      state,
-      "JC 実行中...",
-      kanriNo,
-      async () => {
-        try {
-          const result = await window.electronAPI.invoke(
-            IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS,
-            { kanriNo },
-          );
+    await runJobWithGlobalProcessing("JC 実行中...", kanriNo, () =>
+      withJobErrorToast("JC 実行エラー", async () => {
+        const result = await window.electronAPI.invoke(
+          IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS,
+          { kanriNo },
+        );
 
-          if (!result) {
-            throw new Error(`No.${kanriNo} のステータス取得に失敗しました`);
-          }
-
-          toast.info(`No.${kanriNo} JCステータスを更新しました`);
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          toast.error(`JC 実行エラー: ${message}`);
-          throw error;
+        if (!result) {
+          throw new Error(`No.${kanriNo} のステータス取得に失敗しました`);
         }
-      },
+
+        const store = useAppStore.getState();
+        await store.fetchTableData(store.currentMode);
+
+        toast.info(`No.${kanriNo} JCステータスを更新しました`);
+      }),
     );
   },
 
-  /**
-   * スクリプトジョブを実行し、結果を返す
-   */
-  executeScriptJob: async (
-    state: AppState,
-    params: ExecuteScriptParams,
-  ): Promise<JobResult> => {
+  /** スクリプトジョブを実行し、結果を返す */
+  executeScriptJob: async (params: ExecuteScriptParams): Promise<JobResult> => {
     const kanriNo = params.kanriNo.trim();
     const scriptKey = params.scriptKey?.trim() || kanriNo;
     const targetLabel = params.targetName || scriptKey;
 
-    return runJobWithGlobalProcessing(
-      state,
-      "処理実行中...",
-      targetLabel,
-      async (): Promise<JobResult> => {
-        try {
-          return await window.electronAPI.invoke(
-            IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT,
-            {
-              kanriNo,
-              scriptKey,
-              filePath: params.filePath,
-              ignoreDependencies: params.ignoreDependencies,
-            },
-          );
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          toast.error(`実行エラー: ${message}`);
-          throw error;
-        }
-      },
+    return runJobWithGlobalProcessing("処理実行中...", targetLabel, () =>
+      withJobErrorToast("実行エラー", async () => {
+        const result = await window.electronAPI.invoke(
+          IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT,
+          {
+            kanriNo,
+            scriptKey,
+            filePath: params.filePath,
+            ignoreDependencies: params.ignoreDependencies,
+          },
+        );
+
+        const store = useAppStore.getState();
+        await store.fetchTableData(store.currentMode);
+
+        return result;
+      }),
     );
   },
 };

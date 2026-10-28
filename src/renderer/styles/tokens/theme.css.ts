@@ -1,3 +1,5 @@
+// src/renderer/styles/tokens/theme.css.ts
+
 import { createTheme, style } from "@vanilla-extract/css";
 import { tokens } from "./semantic.contract.js";
 
@@ -18,7 +20,6 @@ const commonValues = {
       xl: "1.25rem",
     },
 
-    // ★ 実際の clamp 値を定義
     fluid: {
       sm: "clamp(12px, 1.8vmin, 14px)",
       md: "clamp(16px, 2.2vmin, 20px)",
@@ -67,7 +68,59 @@ const commonValues = {
     tooltip: "1200",
     globalOverlay: "1300",
   },
-};
+} as const;
+
+/* ============================================================
+ * Status Colors
+ * ============================================================ */
+
+const darkStatusColors = {
+  total: "rgba(255, 255, 255, 1)",
+  success: "rgba(74, 222, 128, 1)",
+  running: "rgba(250, 204, 21, 1)",
+  needsAction: "rgba(255, 136, 0, 1)",
+  ready: "rgba(226, 53, 140, 1)",
+  waiting: "rgba(96, 165, 250, 1)",
+  scheduled: "rgba(148, 163, 184, 1)",
+  error: "rgba(248, 113, 113, 1)",
+} as const;
+
+const lightStatusColors = {
+  total: "rgba(60, 64, 67, 1)",
+  success: "rgba(34, 197, 94, 1)",
+  running: "rgba(234, 179, 8, 1)",
+  needsAction: "rgba(234, 88, 12, 1)",
+  ready: "rgba(236, 72, 153, 1)",
+  waiting: "rgba(59, 130, 246, 1)",
+  scheduled: "rgba(100, 116, 139, 1)",
+  error: "rgba(239, 68, 68, 1)",
+} as const;
+
+/* ============================================================
+ * Status Glow
+ * ============================================================ */
+
+const darkStatusGlow = {
+  total: "0 0 12px rgba(255, 255, 255, 0.5)",
+  error: "0 0 12px rgba(255, 80, 80, 0.5)",
+  success: "0 0 12px rgba(74, 222, 128, 0.5)",
+  needsAction: "0 0 14px rgba(255, 115, 0, 0.8)",
+  running: "0 0 12px rgba(250, 204, 21, 0.5)",
+  ready: "0 0 12px rgba(226, 53, 140, 0.5)",
+  waiting: "0 0 12px rgba(96, 165, 250, 0.5)",
+  scheduled: "0 0 12px rgba(148, 163, 184, 0.5)",
+} as const;
+
+const lightStatusGlow = {
+  total: "0 0 10px rgba(60, 64, 67, 0.4)",
+  error: "0 0 10px rgba(255, 80, 80, 0.4)",
+  success: "0 0 10px rgba(34, 197, 94, 0.4)",
+  needsAction: "0 0 10px rgba(234, 88, 12, 0.45)",
+  running: "0 0 10px rgba(234, 179, 8, 0.4)",
+  ready: "0 0 10px rgba(236, 72, 153, 0.4)",
+  waiting: "0 0 10px rgba(59, 130, 246, 0.4)",
+  scheduled: "0 0 10px rgba(100, 116, 139, 0.4)",
+} as const;
 
 /* ============================================================
  * Theme Transition
@@ -111,60 +164,36 @@ export const darkThemeClass = createTheme(
         default: "rgba(255, 255, 255, 0.08)",
         subtle: "rgba(0, 0, 0, 0.6)",
         accent: "rgba(0, 200, 180, 1)",
-        // ★ ハイライト時の内側枠線用に追加
         highlight: "rgba(255, 255, 255, 0.08)",
       },
 
       accent: {
         base: "rgba(0, 200, 180, 1)",
         hover: "rgba(0, 180, 160, 1)",
-
         neonCyan: "rgba(0, 220, 255, 1)",
         neonPink: "rgba(255, 60, 200, 1)",
+        neonWhite: "rgba(255, 255, 255, 1)",
       },
 
-      status: {
-        total: "rgba(255, 255, 255, 1)",
-        success: "rgba(74, 222, 128, 1)",
-        running: "rgba(250, 204, 21, 1)",
-        ready: "rgba(226, 53, 140, 1)",
-        waiting: "rgba(96, 165, 250, 1)",
-        scheduled: "rgba(148, 163, 184, 1)",
-        error: "rgba(248, 113, 113, 1)",
-      },
+      status: darkStatusColors,
     },
-
-    /* ========================================================
-     * Glass
-     * ======================================================== */
 
     glass: {
       surface: "rgba(20, 20, 25, 0.6)",
       surfaceSubtle: "rgba(0, 0, 0, 0.28)",
-
       border: "rgba(255, 255, 255, 0.08)",
       borderStrong: "rgba(255, 255, 255, 0.14)",
-
       blur: "18px",
       blurStrong: "28px",
       saturation: "140%",
     },
-
-    /* ========================================================
-     * Gradient
-     * ======================================================== */
 
     gradient: {
       brand:
         "linear-gradient(90deg, rgba(12, 235, 235, 1), rgba(32, 227, 178, 1), rgba(41, 255, 198, 1))",
     },
 
-    /* ========================================================
-     * Shadow
-     * ======================================================== */
-
     shadow: {
-      // ★ ハイライト時の外側の影（または内側の影と組み合わせたプリセット）を追加
       highlight: [
         "inset 0 0 0 1px rgba(255, 255, 255, 0.08)",
         "0 2px 8px rgba(0, 0, 0, 0.12)",
@@ -208,14 +237,7 @@ export const darkThemeClass = createTheme(
         brand: "0 0 12px rgba(0, 200, 180, 0.5)",
         cyan: "0 0 15px rgba(0, 220, 255, 0.6)",
         white: "0 0 14px rgba(255, 255, 255, 0.8)",
-
-        total: "0 0 12px rgba(255, 255, 255, 0.5)",
-        error: "0 0 12px rgba(255, 80, 80, 0.5)",
-        success: "0 0 12px rgba(74, 222, 128, 0.5)",
-        running: "0 0 12px rgba(250, 204, 21, 0.5)",
-        ready: "0 0 12px rgba(226, 53, 140, 0.5)",
-        waiting: "0 0 12px rgba(96, 165, 250, 0.5)",
-        scheduled: "0 0 12px rgba(148, 163, 184, 0.5)",
+        ...darkStatusGlow,
       },
     },
   },
@@ -235,7 +257,6 @@ export const lightThemeClass = createTheme(
       bg: {
         base: "rgba(236, 240, 243, 1)",
         header: "rgba(242, 245, 248, 0.8)",
-        // ★ ライトモード用に明るい反転値で調整
         frostedGlass: "rgba(0, 0, 0, 0.05)",
       },
 
@@ -249,60 +270,36 @@ export const lightThemeClass = createTheme(
         default: "rgba(0, 0, 0, 0.08)",
         subtle: "rgba(0, 0, 0, 0.15)",
         accent: "rgba(0, 200, 180, 1)",
-        // ★ ライトモード用の枠線
         highlight: "rgba(0, 0, 0, 0.06)",
       },
 
       accent: {
         base: "rgba(0, 200, 180, 1)",
         hover: "rgba(0, 180, 160, 1)",
-
         neonCyan: "rgba(0, 200, 255, 1)",
         neonPink: "rgba(255, 60, 200, 1)",
+        neonWhite: "rgba(255, 255, 255, 1)",
       },
 
-      status: {
-        total: "rgba(60, 64, 67, 1)",
-        success: "rgba(34, 197, 94, 1)",
-        running: "rgba(234, 179, 8, 1)",
-        ready: "rgba(236, 72, 153, 1)",
-        waiting: "rgba(59, 130, 246, 1)",
-        scheduled: "rgba(100, 116, 139, 1)",
-        error: "rgba(239, 68, 68, 1)",
-      },
+      status: lightStatusColors,
     },
-
-    /* ========================================================
-     * Glass
-     * ======================================================== */
 
     glass: {
       surface: "rgba(255, 255, 255, 0.65)",
       surfaceSubtle: "rgba(255, 255, 255, 0.45)",
-
       border: "rgba(255, 255, 255, 0.55)",
       borderStrong: "rgba(255, 255, 255, 0.8)",
-
       blur: "18px",
       blurStrong: "28px",
       saturation: "140%",
     },
-
-    /* ========================================================
-     * Gradient
-     * ======================================================== */
 
     gradient: {
       brand:
         "linear-gradient(135deg, rgba(0, 242, 254, 1) 0%, rgb(47, 156, 252) 100%)",
     },
 
-    /* ========================================================
-     * Shadow
-     * ======================================================== */
-
     shadow: {
-      // ★ ライトモード用のハイライト影定義
       highlight: [
         "inset 0 0 0 1px rgba(0, 0, 0, 0.06)",
         "0 2px 8px rgba(0, 0, 0, 0.08)",
@@ -346,14 +343,7 @@ export const lightThemeClass = createTheme(
         brand: "0 0 10px rgba(0, 200, 180, 0.4)",
         cyan: "0 0 12px rgba(0, 200, 255, 0.4)",
         white: "0 0 14px rgba(255, 255, 255, 0.8)",
-
-        total: "0 0 10px rgba(60, 64, 67, 0.4)",
-        error: "0 0 10px rgba(255, 80, 80, 0.4)",
-        success: "0 0 10px rgba(34, 197, 94, 0.4)",
-        running: "0 0 10px rgba(234, 179, 8, 0.4)",
-        ready: "0 0 10px rgba(236, 72, 153, 0.4)",
-        waiting: "0 0 10px rgba(59, 130, 246, 0.4)",
-        scheduled: "0 0 10px rgba(100, 116, 139, 0.4)",
+        ...lightStatusGlow,
       },
     },
   },

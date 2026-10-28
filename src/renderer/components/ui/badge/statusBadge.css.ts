@@ -1,11 +1,9 @@
-/* src/renderer/components/ui/badge/statusBadge.css.ts */
+// src/renderer/components/ui/badge/statusBadge.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { themeTransition, tokens } from "@renderer/styles/tokens";
-
-/* =========================
-   Base
-========================= */
+import { getStatusTheme } from "@renderer/styles/statusTheme";
+import type { JobStatus } from "@shared/types/operation/operationTypes";
 
 export const badge = style([
   themeTransition,
@@ -24,53 +22,30 @@ export const badge = style([
     letterSpacing: "0.05em",
     backgroundColor: tokens.color.bg.base,
     border: "2px solid currentcolor",
-
-    // 🎯 描画分離（Glow影による親セル・行へのペイント浸食を遮断）
     position: "relative",
     isolation: "isolate",
     transform: "translateZ(0)",
   },
 ]);
 
-/* =========================
-   Tone
-========================= */
+const createTone = (status: JobStatus) => {
+  const theme = getStatusTheme(status);
+
+  return {
+    color: theme.color,
+    boxShadow: `${tokens.shadow.raised.low}, ${theme.glow}`,
+  };
+};
 
 export const tone = styleVariants({
-  success: {
-    color: tokens.color.status.success,
-    boxShadow: `${tokens.shadow.raised.low}, ${tokens.shadow.glow.success}`,
-  },
-
-  running: {
-    color: tokens.color.status.running,
-    boxShadow: `${tokens.shadow.raised.low}, ${tokens.shadow.glow.running}`,
-  },
-
-  ready: {
-    color: tokens.color.status.ready,
-    boxShadow: `${tokens.shadow.raised.low}, ${tokens.shadow.glow.ready}`,
-  },
-
-  waiting: {
-    color: tokens.color.status.waiting,
-    boxShadow: `${tokens.shadow.raised.low}, ${tokens.shadow.glow.waiting}`,
-  },
-
-  scriptRunning: {
-    color: tokens.color.status.running,
-    boxShadow: `${tokens.shadow.raised.low}, ${tokens.shadow.glow.running}`,
-  },
-
-  scheduled: {
-    color: tokens.color.status.scheduled,
-    boxShadow: `${tokens.shadow.raised.low}, ${tokens.shadow.glow.scheduled}`,
-  },
-
-  error: {
-    color: tokens.color.status.error,
-    boxShadow: `${tokens.shadow.raised.low}, ${tokens.shadow.glow.error}`,
-  },
+  success: createTone("success"),
+  running: createTone("running"),
+  scriptRunning: createTone("scriptRunning"),
+  ready: createTone("ready"),
+  waiting: createTone("waiting"),
+  scheduled: createTone("scheduled"),
+  needsAction: createTone("needsAction"),
+  error: createTone("error"),
 
   neutral: {
     color: tokens.color.text.base,

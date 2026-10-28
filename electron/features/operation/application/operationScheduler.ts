@@ -61,6 +61,7 @@ async function executeScript(
 }
 
 // READY状態のジョブに紐づく自動実行スクリプトを順次実行する。
+// エラーまたは要対応の結果が発生した場合は後続スクリプトを実行しない。
 async function executeReadyJob(item: OperationViewItem): Promise<void> {
   const kanriNo = item.kanriNo;
 
@@ -87,7 +88,8 @@ async function executeReadyJob(item: OperationViewItem): Promise<void> {
   try {
     for (const scriptKey of scriptKeys) {
       const result = await executeScript(kanriNo, scriptKey);
-      if (result.success === false) {
+
+      if (result.success === false || result.kind === "needsAction") {
         return;
       }
     }

@@ -1,9 +1,10 @@
-// electron/features/operation/jobs/scripts/numeric/job_28.ts
+/**
+ * electron/features/operation/jobs/scripts/numeric/job_28.ts
+ */
 
-import path from "node:path";
 import fs from "fs-extra";
-import { format, subDays } from "date-fns";
-
+import path from "node:path";
+import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   readCsv,
@@ -13,6 +14,7 @@ import {
   type CsvRow,
   type ParsedCsv,
 } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
+import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
   baseDir: "\\\\172.25.101.51\\if\\LOG\\DCMEOB1",
@@ -20,259 +22,286 @@ const CONFIG = {
   targetExtension: ".csv",
   encoding: "Shift_JIS",
   directories: {
-    needAction: "要対応",
     request: "対応依頼",
     ignore: "対応不要",
     completed: "対応済",
   },
-
   departmentNames: {
     "1": "青果部",
-    "21": "青果部",
     "3": "海産部",
-    "23": "海産部",
     "4": "精肉部",
-    "12": "精肉部",
-    "24": "精肉部",
     "5": "デリカ部",
-    "25": "デリカ部",
     "6": "菓子部",
     "7": "食品部",
+    "9": "雑貨部",
+    "12": "精肉部",
+    "13": "酒部",
+    "14": "精肉部",
+    "16": "ベーカリー",
+    "17": "食品部",
+    "19": "食品部",
+    "21": "青果部",
+    "23": "海産部",
+    "24": "精肉部",
+    "25": "デリカ部",
+    "29": "催事",
+    "30": "ジョイテック",
   } as Record<string, string>,
 } as const;
 
-type CreateRequestCsvResult = {
-  createdFiles: string[];
-  hasUnknown: boolean;
+type RequestGroup = {
+  departmentName: string;
+  originalFileName: string;
+  header: string;
+  rows: CsvRow[];
+  seenRows: Set<string>;
 };
 
-// timeUtils の getDateKey をローカル実装
-function getDateKey(date = new Date()): string {
-  return format(date, "yyyyMMdd");
-}
+type SourceFile = {
+  filePath: string;
+  hasProblemRows: boolean;
+};
 
-// timeUtils の formatDateTime をローカル実装
-function formatDateTime(date: Date): string {
-  return format(date, "yyyy/MM/dd HH:mm:ss");
-}
+const getDateKey = (): string => format(new Date(), "yyyyMMdd");
 
-// fileUtils の findFiles をローカル実装
-async function findFiles(
-  dirPath: string,
-  options: { prefix?: string; suffix?: string } = {},
-): Promise<string[]> {
-  if (!(await fs.pathExists(dirPath))) {
-    return [];
-  }
-
-  const entries = await fs.readdir(dirPath, { withFileTypes: true });
-
-  return entries
-    .filter((entry) => {
-      if (!entry.isFile()) return false;
-      if (options.prefix && !entry.name.startsWith(options.prefix)) {
-        return false;
-      }
-      if (options.suffix && !entry.name.endsWith(options.suffix)) {
-        return false;
-      }
-      return true;
-    })
-    .map((entry) => path.join(dirPath, entry.name));
-}
-
-// fileUtils の getFilesInfo をローカル実装
-async function getFilesInfo(
-  filePaths: string[],
-): Promise<{ fileName: string; filePath: string; mtime: Date }[]> {
-  return Promise.all(
-    filePaths.map(async (filePath) => {
-      const stats = await fs.stat(filePath);
-
-      return {
-        fileName: path.basename(filePath),
-        filePath,
-        mtime: stats.mtime,
-      };
-    }),
-  );
-}
-
-// fileUtils の moveFile をローカル実装
-async function moveFile(
-  filePath: string,
-  destinationDir: string,
-): Promise<void> {
-  await fs.ensureDir(destinationDir);
-
-  const destinationPath = path.join(destinationDir, path.basename(filePath));
-
-  await fs.move(filePath, destinationPath);
-}
-
-// 対象CSVファイルを取得
-function getTargetCsvFiles(dir: string): Promise<string[]> {
-  return findFiles(dir, {
-    prefix: CONFIG.targetPrefix,
-    suffix: CONFIG.targetExtension,
-  });
-}
-
-// 対応対象の行か判定
-function isProblemRow(row: CsvRow, today: string): boolean {
-  return (
-    row.columns[4]?.trim() === today && Number(row.columns[6]?.trim()) >= 1
-  );
-}
-
-// 部門名を取得
 function getDepartmentName(row: CsvRow): string {
   const rawCode = row.columns[1]?.trim() ?? "";
-  const code = Number.isNaN(Number(rawCode))
-    ? rawCode
-    : String(Number(rawCode));
+  const number = Number(rawCode);
+  const code = Number.isNaN(number) ? rawCode : String(number);
 
   return CONFIG.departmentNames[code] ?? "不明";
 }
 
-// 部門別の対応依頼CSVを作成
-async function createRequestCsvs(
-  filePath: string,
-  parsedCsv: ParsedCsv,
-  problemRows: CsvRow[],
+function isProblemRow(row: CsvRow, today: string): boolean {
+  const count = Number(row.columns[6]?.trim());
+
+  return row.columns[4]?.trim() === today && !Number.isNaN(count) && count >= 1;
+}
+
+function getOriginalFileName(filePath: string, isRequestFile: boolean): string {
+  const fileName = path.basename(filePath);
+
+  if (!isRequestFile) return fileName;
+
+  const prefixes = [
+    ...new Set([...Object.values(CONFIG.departmentNames), "不明"]),
+  ].sort((a, b) => b.length - a.length);
+
+  const prefix = prefixes.find((name) => fileName.startsWith(`${name}_`));
+
+  return prefix ? fileName.slice(prefix.length + 1) : fileName;
+}
+
+function aggregateRows(
+  groups: Map<string, RequestGroup>,
+  csv: ParsedCsv,
+  rows: CsvRow[],
+  originalFileName: string,
+): void {
+  for (const [departmentName, departmentRows] of groupCsvRowsBy(
+    rows,
+    getDepartmentName,
+  )) {
+    const key = JSON.stringify([departmentName, originalFileName]);
+    let group = groups.get(key);
+
+    if (!group) {
+      group = {
+        departmentName,
+        originalFileName,
+        header: csv.header,
+        rows: [],
+        seenRows: new Set(),
+      };
+      groups.set(key, group);
+    }
+
+    for (const row of departmentRows) {
+      const rowKey = JSON.stringify(row.columns);
+      if (group.seenRows.has(rowKey)) continue;
+
+      group.seenRows.add(rowKey);
+      group.rows.push(row);
+    }
+  }
+}
+
+async function findCsvFiles(dir: string): Promise<string[]> {
+  if (!(await fs.pathExists(dir))) return [];
+
+  const files: string[] = [];
+
+  for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+    const filePath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      if (
+        entry.name === CONFIG.directories.completed ||
+        entry.name === CONFIG.directories.ignore
+      )
+        continue;
+
+      files.push(...(await findCsvFiles(filePath)));
+      continue;
+    }
+
+    if (
+      entry.isFile() &&
+      entry.name.startsWith(CONFIG.targetPrefix) &&
+      entry.name.endsWith(CONFIG.targetExtension)
+    ) {
+      files.push(filePath);
+    }
+  }
+
+  return files;
+}
+
+async function writeRequestFiles(
   requestDir: string,
-): Promise<CreateRequestCsvResult> {
-  const groups = groupCsvRowsBy(problemRows, getDepartmentName);
-  const originalFileName = path.basename(filePath);
+  groups: Map<string, RequestGroup>,
+): Promise<string[]> {
   const createdFiles: string[] = [];
 
-  for (const [departmentName, rows] of groups) {
-    const fileName = `${departmentName}_${originalFileName}`;
+  for (const group of groups.values()) {
+    const fileName = `${group.departmentName}_${group.originalFileName}`;
 
     await writeCsvRows(
       path.join(requestDir, fileName),
-      parsedCsv.header,
-      rows,
+      group.header,
+      group.rows,
       { encoding: CONFIG.encoding },
     );
 
     createdFiles.push(fileName);
   }
 
-  return {
-    createdFiles,
-    hasUnknown: groups.has("不明"),
-  };
+  return createdFiles;
 }
 
-// メイン処理
-export async function runJob28(): Promise<string> {
+export async function runJob28(): Promise<JobResult> {
+  const logger = new JobLogger();
   const today = getDateKey();
   const todayDir = path.join(CONFIG.baseDir, today);
-  const logger = new JobLogger();
-
-  logger.log(`対象フォルダ : ${todayDir}`);
-
-  if (!(await fs.pathExists(todayDir))) {
-    logger.log(`当日フォルダが存在しません (${today})`);
-    return logger.complete("処理対象なしで終了");
-  }
-
-  const needActionDir = path.join(todayDir, CONFIG.directories.needAction);
-
-  const [rootFiles, needActionFiles] = await Promise.all([
-    getTargetCsvFiles(todayDir),
-    getTargetCsvFiles(needActionDir),
-  ]);
-
-  const rootFileNames = new Set(rootFiles.map((file) => path.basename(file)));
-
-  const csvFiles = [
-    ...rootFiles,
-    ...needActionFiles.filter(
-      (file) => !rootFileNames.has(path.basename(file)),
-    ),
-  ];
-
-  if (csvFiles.length === 0) {
-    logger.log("検出対象の CSV ファイルはありませんでした");
-    return logger.complete("完了 (処理件数: 0)");
-  }
-
-  logger.log(`対象ファイル検出 : ${csvFiles.length}件`);
-
-  const fileInfos = await getFilesInfo(csvFiles);
-
-  for (const info of fileInfos) {
-    logger.log(`ファイル名 : ${info.fileName}`);
-    logger.log(`更新日時 : ${formatDateTime(info.mtime)}`);
-  }
-
   const requestDir = path.join(todayDir, CONFIG.directories.request);
   const ignoreDir = path.join(todayDir, CONFIG.directories.ignore);
   const completedDir = path.join(todayDir, CONFIG.directories.completed);
 
-  const createdFiles: string[] = [];
-  let unknownCount = 0;
-  let ignoredCount = 0;
-  let processedCount = 0;
+  logger.log(`対象フォルダ : ${todayDir}`);
 
-  for (const filePath of csvFiles) {
-    const parsedCsv = await readCsv(filePath, CONFIG.encoding);
-    const problemRows = filterCsvRows(parsedCsv.rows, (row) =>
-      isProblemRow(row, today),
-    );
-
-    if (problemRows.length === 0) {
-      await moveFile(filePath, ignoreDir);
-      ignoredCount++;
-      continue;
+  try {
+    if (!(await fs.pathExists(todayDir))) {
+      logger.log(`当日フォルダが存在しません (${today})`);
+      return {
+        success: true,
+        kind: "success",
+        message: logger.complete("処理対象なしで終了"),
+      };
     }
 
-    const result = await createRequestCsvs(
-      filePath,
-      parsedCsv,
-      problemRows,
-      requestDir,
-    );
+    const files = await findCsvFiles(todayDir);
 
-    createdFiles.push(...result.createdFiles);
-
-    if (result.hasUnknown) {
-      unknownCount++;
+    if (files.length === 0) {
+      logger.log("検出対象の CSV ファイルはありませんでした");
+      return {
+        success: true,
+        kind: "success",
+        message: logger.complete("完了 (処理件数: 0)"),
+      };
     }
 
-    await moveFile(filePath, completedDir);
-    processedCount++;
-  }
+    logger.log(`対象CSVファイル : ${files.length}件`);
 
-  logger.section("処理サマリー");
-  logger.log(`対応不要（振り分け移動） : ${ignoredCount}件`);
-  logger.log(`対応要（分割処理・完了） : ${processedCount}件`);
+    const requestGroups = new Map<string, RequestGroup>();
+    const sourceFiles: SourceFile[] = [];
+    let unknownCount = 0;
 
-  if (createdFiles.length > 0) {
-    logger.log("作成された対応依頼ファイル");
+    for (const filePath of files) {
+      const relative = path.relative(
+        path.resolve(requestDir),
+        path.resolve(filePath),
+      );
+      const isRequestFile =
+        relative === "" ||
+        (relative !== ".." &&
+          !relative.startsWith(`..${path.sep}`) &&
+          !path.isAbsolute(relative));
 
-    for (const fileName of createdFiles) {
-      logger.log(fileName);
+      const csv = await readCsv(filePath, CONFIG.encoding);
+      const problemRows = filterCsvRows(csv.rows, (row) =>
+        isProblemRow(row, today),
+      );
+
+      if (!isRequestFile) {
+        sourceFiles.push({ filePath, hasProblemRows: problemRows.length > 0 });
+      }
+
+      if (problemRows.length === 0) continue;
+
+      aggregateRows(
+        requestGroups,
+        csv,
+        problemRows,
+        getOriginalFileName(filePath, isRequestFile),
+      );
+
+      if (problemRows.some((row) => getDepartmentName(row) === "不明")) {
+        unknownCount++;
+      }
+
+      logger.log(`ファイル名 : ${path.basename(filePath)}`);
     }
-  }
 
-  if (unknownCount > 0) {
-    logger.log(`未定義の部門コードが含まれるファイル : ${unknownCount}件`);
-  }
+    const createdFiles = await writeRequestFiles(requestDir, requestGroups);
+    let completedCount = 0;
+    let ignoredCount = 0;
 
-  const remainingFiles = await getTargetCsvFiles(needActionDir);
+    for (const file of sourceFiles) {
+      const destinationDir = file.hasProblemRows ? completedDir : ignoreDir;
 
-  if (remainingFiles.length > 0) {
-    logger.log("要対応フォルダ内残存ファイル");
+      await fs.ensureDir(destinationDir);
+      await fs.move(
+        file.filePath,
+        path.join(destinationDir, path.basename(file.filePath)),
+        { overwrite: true },
+      );
 
-    const remainingInfos = await getFilesInfo(remainingFiles);
-
-    for (const info of remainingInfos) {
-      logger.log(`${info.fileName} (${formatDateTime(info.mtime)})`);
+      completedCount += Number(file.hasProblemRows);
+      ignoredCount += Number(!file.hasProblemRows);
     }
-  }
 
-  return logger.complete("正常終了");
+    logger.log(`対応不要（移動） : ${ignoredCount}件`);
+    logger.log(`対応要（分割処理・移動完了） : ${completedCount}件`);
+
+    if (createdFiles.length > 0) {
+      logger.section("作成された対応依頼ファイル");
+      createdFiles.forEach((fileName) => logger.log(fileName));
+    }
+
+    const summaries = [
+      ...(createdFiles.length > 0
+        ? [`対応依頼ファイル作成: ${createdFiles.length}件`]
+        : []),
+      ...(unknownCount > 0
+        ? [`未定義の部門コードが含まれるファイル: ${unknownCount}件`]
+        : []),
+    ];
+
+    return summaries.length > 0
+      ? {
+          success: true,
+          kind: "needsAction",
+          message: logger.needsAction(summaries.join("、")),
+        }
+      : {
+          success: true,
+          kind: "success",
+          message: logger.complete("正常終了"),
+        };
+  } catch (error: unknown) {
+    const detail =
+      error instanceof Error ? ` (${error.message})` : ` (${String(error)})`;
+
+    throw logger.fail(`システムエラーが発生しました${detail}`);
+  }
 }

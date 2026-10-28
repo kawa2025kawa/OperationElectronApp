@@ -27,7 +27,6 @@ const SCRIPT_JOBS: Record<string, JobRunnerFn> = {
 
   // --- Nシリーズ ---
   N12: jobs.runJobN12,
-  N20: jobs.runJobN20,
   N25: jobs.runJobN25,
   N31: jobs.runJobN31,
   N33: jobs.runJobN33,
@@ -43,29 +42,48 @@ const SCRIPT_JOBS: Record<string, JobRunnerFn> = {
   "34": jobs.runJob34,
   "39": jobs.runJob39,
   "56": jobs.runJob56,
+  "60": jobs.runJob6066,
   "62": jobs.runJob62,
   "64": jobs.runJob64,
-  "66": jobs.runJob66,
+  "66": jobs.runJob6066,
   "80": jobs.runJob80,
 };
 
 function cleanErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === "string")
-    return error.replace(/\x1B\[[0-9;]*[mK]/g, "").trim();
-  return String(error ?? "不明なエラーが発生しました");
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : String(error ?? "不明なエラーが発生しました");
+
+  return message.trim();
 }
 
 function toJobResult(result: string | JobResult): JobResult {
   if (typeof result === "string") {
-    return { success: true, kind: "success", message: result || "正常終了" };
+    return {
+      success: true,
+      kind: "success",
+      message: result || "正常終了",
+    };
   }
+
   const success = result.success !== false;
+
   return {
     ...result,
     success,
     kind: result.kind ?? (success ? "success" : "error"),
     message: result.message || (success ? "正常終了" : "エラー"),
+  };
+}
+
+function createErrorResult(error: unknown): JobResult {
+  return {
+    success: false,
+    kind: "error",
+    message: `エラー: ${cleanErrorMessage(error)}`,
   };
 }
 
@@ -85,24 +103,15 @@ export async function executeSingleScriptJob(
     };
   }
 
-  // 1. ローカルコード（Node/Playwright等）のマップから targetKey / kanriNo で検索
-  const runner = SCRIPT_JOBS[cleanKey] ?? SCRIPT_JOBS[cleanKanriNo];
-
   try {
+    const runner = SCRIPT_JOBS[cleanKey] ?? SCRIPT_JOBS[cleanKanriNo];
+
     if (typeof runner === "function") {
-      const result = await runner(cleanKanriNo, filePath);
-      return toJobResult(result);
+      return toJobResult(await runner(cleanKanriNo, filePath));
     }
 
-    // 2. ローカルコードに登録がない場合は、targetKey ("WEBEDI_DB" や "WEBEDI") をそのまま RDP マスタの name として接続
-    const rdpMessage = await startRdpSession(cleanKey);
-    return toJobResult(rdpMessage);
+    return toJobResult(await startRdpSession(cleanKey));
   } catch (error: unknown) {
-    const errorDetail = cleanErrorMessage(error);
-    return {
-      success: false,
-      kind: "error",
-      message: `エラー: ${errorDetail}`,
-    };
+    return createErrorResult(error);
   }
 }

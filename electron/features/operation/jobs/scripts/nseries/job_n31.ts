@@ -1,89 +1,98 @@
+// electron/features/operation/jobs/scripts/nseries/job_n31.ts
+
 import { chromium, type Page } from "playwright";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
-const TOP_URL = "https://www2.belc.co.jp:8002/webedi/belcwebedi.html";
-const USER_ID = "09803";
-const PASSWORD = "09803";
+const CONFIG = {
+  url: "https://www2.belc.co.jp:8002/webedi/belcwebedi.html",
+  userId: "09803",
+  password: "09803",
+  supplierCode: "029560:",
+  departmentCode: "3",
+  selectors: {
+    entry: "img[name='botan_img1_01']",
+    userId: "#TANTCD",
+    password: "#PASSWORD",
+    login: "#submit_btn",
+    orderMenu: "#menu_btn1",
+    orderList: "#menu_btn9",
+    orderDate: "#HAT_DATE",
+    departmentCode: "#BMN_CD_0",
+    supplier: "#SIR_CD_0",
+    execute: "#fkey_12",
+  },
+} as const;
 
-const getToday = (): string =>
-  new Intl.DateTimeFormat("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  })
-    .format(new Date())
-    .replaceAll("-", "/");
+function getToday(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
 
-async function executeN31(page: Page): Promise<void> {
-  await page.goto(TOP_URL);
+  return `${year}/${month}/${day}`;
+}
 
-  await page.locator("img[name='botan_img1_01']").click();
-  await page.locator("#TANTCD").fill(USER_ID);
-  await page.locator("#PASSWORD").fill(PASSWORD);
-  await page.locator("#submit_btn").click();
-  await page.waitForLoadState("networkidle");
+async function selectSupplier(page: Page): Promise<void> {
+  const supplier = page.locator(CONFIG.selectors.supplier);
+  const value = await supplier
+    .locator("option")
+    .evaluateAll(
+      (options, code) =>
+        options
+          .map((option) => (option as HTMLOptionElement).value)
+          .find((optionValue) => optionValue.startsWith(code as string)) ?? "",
+      CONFIG.supplierCode,
+    );
 
-  const frame = page.frames().find((item) => item.name() === "contentFrame");
-
-  if (!frame) {
-    throw new Error("contentFrame not found");
+  if (!value) {
+    throw new Error(
+      `仕入先コード ${CONFIG.supplierCode} に一致する選択肢がありません`,
+    );
   }
 
-  await frame.locator("#menu_btn1").click();
-  await page.waitForTimeout(2000);
+  await supplier.selectOption(value);
+}
 
-  await frame.locator("#menu_btn9").click();
-  await page.waitForTimeout(3000);
+async function executeN31(page: Page): Promise<void> {
+  const { selectors } = CONFIG;
 
-  await frame.locator("#HAT_DATE").fill(getToday());
-  await frame.locator("#BMN_CD_0").fill("3");
+  await page.goto(CONFIG.url);
+  await page.locator(selectors.entry).click();
+  await page.locator(selectors.userId).fill(CONFIG.userId);
+  await page.locator(selectors.password).fill(CONFIG.password);
+  await page.locator(selectors.login).click();
+  await page.waitForLoadState("networkidle");
 
-  await frame.evaluate(() => {
-    const element = document.querySelector(
-      "#SIR_CD_0",
-    ) as HTMLInputElement | null;
+  await page.locator(selectors.orderMenu).click();
+  await page.locator(selectors.orderList).click();
+  await page.locator(selectors.orderDate).fill(getToday());
+  await page.locator(selectors.departmentCode).fill(CONFIG.departmentCode);
 
-    if (!element) {
-      throw new Error("SIR_CD_0 not found");
-    }
+  await selectSupplier(page);
 
-    element.value = "029560:";
-    element.dispatchEvent(new Event("change", { bubbles: true }));
-  });
-
-  await page.waitForTimeout(1000);
-  await frame.locator("#fkey_12").click();
-  await page.waitForTimeout(5000);
+  await page.locator(selectors.execute).click();
+  await page.waitForLoadState("networkidle");
 }
 
 export async function runJobN31(): Promise<string> {
   const logger = new JobLogger();
 
-  let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
-
   try {
-    logger.log(`対象URL : ${TOP_URL}`);
+    logger.log(`対象URL : ${CONFIG.url}`);
     logger.log("WEB-EDI 自動操作を開始します");
 
-    browser = await chromium.launch({
+    const browser = await chromium.launch({
       headless: false,
       channel: "chrome",
     });
 
-    const page = await browser.newPage();
-
-    await executeN31(page);
+    await executeN31(await browser.newPage());
 
     logger.log("WEB-EDI の自動操作が完了しました");
-
     return logger.complete("正常終了");
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    throw logger.fail(`WEB-EDI 操作失敗: ${errorMessage}`);
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
+  } catch (error: unknown) {
+    throw logger.fail(
+      `WEB-EDI 操作失敗: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }

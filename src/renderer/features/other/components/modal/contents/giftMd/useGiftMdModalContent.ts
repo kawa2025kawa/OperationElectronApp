@@ -2,20 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useShallow } from "zustand/shallow";
-import { useAppStore } from "@renderer/store";
-import { getFileName } from "@shared/utils/fileUtils";
+
 import type {
   GiftMdFile,
   GiftMessage,
 } from "@renderer/features/other/types/giftMdTypes";
 import { otherIpcService } from "@renderer/services/otherIpcService";
+import { useAppStore } from "@renderer/store";
+import { getFileName } from "@shared/utils/fileUtils";
 
 const DEFAULT_INFO_MESSAGE: GiftMessage = {
   text: "処理対象のギフトデータファイル (.txt, .DAT) をドラッグ＆ドロップしてください。",
   type: "info",
 };
 
-// ギフトMD処理モーダルのローカル状態および実行ロジックを管理するフック。
 export function useGiftMdModalContent() {
   const { updateModalConfig, closeGlobalModal } = useAppStore(
     useShallow((state) => ({
@@ -25,11 +25,9 @@ export function useGiftMdModalContent() {
   );
 
   const [giftFile, setGiftFile] = useState<GiftMdFile | null>(null);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [infoMessage, setInfoMessage] =
     useState<GiftMessage>(DEFAULT_INFO_MESSAGE);
 
-  // 選択されたファイル配列からギフトファイルパス・名前を抽出しローカル状態に保持する。
   const setGiftMdFileFromRaw = useCallback((rawFiles: File[]) => {
     if (rawFiles.length === 0) return;
     const file = rawFiles[0];
@@ -50,17 +48,10 @@ export function useGiftMdModalContent() {
     });
   }, []);
 
-  // ギフトMD処理をバックエンドに要求し進捗メッセージを更新する。
   const handleExecute = useCallback(async () => {
-    if (!giftFile) {
-      setInfoMessage({
-        text: "処理対象のファイルを選択してください。",
-        type: "warning",
-      });
-      return;
-    }
+    if (!giftFile) return;
 
-    setIsProcessing(true);
+    updateModalConfig({ isProcessing: true });
     setInfoMessage({
       text: "ギフトデータの処理を実行しています...",
       type: "info",
@@ -82,9 +73,9 @@ export function useGiftMdModalContent() {
         type: "error",
       });
     } finally {
-      setIsProcessing(false);
+      updateModalConfig({ isProcessing: false });
     }
-  }, [giftFile]);
+  }, [giftFile, updateModalConfig]);
 
   useEffect(() => {
     updateModalConfig({
@@ -94,13 +85,12 @@ export function useGiftMdModalContent() {
           id: "cancel",
           label: "キャンセル",
           onClick: closeGlobalModal,
-          disabled: isProcessing,
         },
         {
           id: "execute",
-          label: isProcessing ? "処理中..." : "実行",
+          label: "実行",
           onClick: handleExecute,
-          disabled: !giftFile || isProcessing,
+          disabled: !giftFile,
           variant: "default",
         },
       ],
@@ -108,17 +98,13 @@ export function useGiftMdModalContent() {
   }, [
     infoMessage,
     giftFile,
-    isProcessing,
     handleExecute,
     updateModalConfig,
     closeGlobalModal,
   ]);
 
-  const files = giftFile ? [giftFile] : [];
-
   return {
-    files,
-    isProcessing,
+    files: giftFile ? [giftFile] : [],
     setGiftMdFileFromRaw,
   };
 }

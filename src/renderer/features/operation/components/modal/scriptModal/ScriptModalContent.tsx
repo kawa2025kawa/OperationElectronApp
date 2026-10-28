@@ -89,6 +89,7 @@ export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
                     {state.executionResult.artifacts.map(
                       (artifact: JobArtifact, index: number) => {
                         if (!artifact.path) return null;
+
                         return (
                           <button
                             key={artifact.path || index}

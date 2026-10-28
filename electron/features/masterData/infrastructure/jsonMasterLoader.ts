@@ -29,7 +29,9 @@ async function fetchJsonWithLogging<T extends object>(
     console.error(`[JsonMasterLoader] ${fileName} の取得に失敗:`, err);
 
     const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`${fileName} の取得に失敗しました: ${message}`);
+    throw new Error(`${fileName} の取得に失敗しました: ${message}`, {
+      cause: err,
+    });
   }
 }
 

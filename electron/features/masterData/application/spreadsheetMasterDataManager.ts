@@ -6,6 +6,7 @@ import {
   loadMasterDataFileCache,
   saveMasterDataFileCache,
 } from "../infrastructure/masterDataFileCache";
+import { normalizeSpreadsheetMasterData } from "../infrastructure/spreadsheetDataNormalizer";
 import { loadSpreadsheetMasterData } from "../infrastructure/spreadsheetMasterLoader";
 import { createMasterDataCacheService } from "./masterDataCacheService";
 
@@ -20,6 +21,7 @@ function isSpreadsheetMasterData(
   }
 
   const data = value as Record<string, unknown>;
+
   return (
     Array.isArray(data.stores) &&
     Array.isArray(data.kokyuhyos) &&
@@ -28,27 +30,28 @@ function isSpreadsheetMasterData(
   );
 }
 
-function normalizeData(data: SpreadsheetMasterData): SpreadsheetMasterData {
-  return {
-    stores: data.stores ?? [],
-    kokyuhyos: data.kokyuhyos ?? [],
-    jugyoin: data.jugyoin ?? [],
-    kokyuhyoTantous: data.kokyuhyoTantous ?? [],
-  };
-}
-
 const spreadsheetMasterDataCache =
   createMasterDataCacheService<SpreadsheetMasterData>({
-    loadCache: () =>
-      loadMasterDataFileCache(
+    loadCache: async () => {
+      const cached = await loadMasterDataFileCache(
         CACHE_FILE_NAME,
         CACHE_VERSION,
         isSpreadsheetMasterData,
-      ),
+      );
+
+      if (!cached) {
+        return null;
+      }
+
+      return {
+        ...cached,
+        data: normalizeSpreadsheetMasterData(cached.data),
+      };
+    },
     saveCache: (data) =>
       saveMasterDataFileCache(CACHE_FILE_NAME, CACHE_VERSION, data),
     deleteCache: () => deleteMasterDataFileCache(CACHE_FILE_NAME),
-    loadFreshData: async () => normalizeData(await loadSpreadsheetMasterData()),
+    loadFreshData: loadSpreadsheetMasterData,
     logPrefix: "[SpreadsheetMasterDataManager]",
   });
 

@@ -1,4 +1,6 @@
-﻿import { style } from "@vanilla-extract/css";
+﻿// src/renderer/features/operation/components/modal/linkModal/linkModalContent.css.ts
+
+import { style } from "@vanilla-extract/css";
 import { tokens, themeTransition } from "@renderer/styles/tokens";
 
 const BADGE_WIDTH = "120px";
@@ -16,7 +18,6 @@ const rowBaseStyle = style({
   boxSizing: "border-box",
   border: "none",
   textAlign: "left",
-  cursor: "pointer",
 });
 
 /* ============================================================
@@ -43,11 +44,11 @@ export const terminalSection = style({
   gap: "8px",
   width: "100%",
   overflowY: "auto",
-  padding: tokens.space.xs, // 影の欠けを防ぐためのパディング
+  padding: tokens.space.xs,
 });
 
 /* ============================================================
- * Row & Cell Styles (Card & Text)
+ * Row & Cell Styles
  * ============================================================ */
 
 export const terminalRow = style([
@@ -57,19 +58,6 @@ export const terminalRow = style([
     backgroundColor: tokens.color.bg.base,
     borderRadius: tokens.radius.md,
     boxShadow: tokens.shadow.raised.low,
-    transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}, color ${tokens.transition.fast}`,
-    selectors: {
-      "&:hover, &:focus-visible": {
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-        color: tokens.color.text.hover,
-        transform: "translateY(-1px)",
-        outline: "none",
-      },
-      "&:active": {
-        boxShadow: tokens.shadow.pressed.low,
-        transform: "translateY(0px)",
-      },
-    },
   },
 ]);
 
@@ -78,29 +66,35 @@ const terminalBadge = style({
   alignItems: "center",
   justifyContent: "center",
   width: BADGE_WIDTH,
-  minHeight: "36px", // 🎯 height から minHeight に変更（折り返し時に高さを拡張）
+  minHeight: "36px",
   height: "auto",
-  paddingTop: "4px",
-  paddingBottom: "4px",
+  padding: `${tokens.space.xs} ${tokens.space.sm}`,
   flexShrink: 0,
   backgroundColor: tokens.color.bg.base,
   borderRadius: tokens.radius.sm,
   boxShadow: tokens.shadow.pressed.md,
   color: tokens.color.accent.base,
   fontWeight: tokens.font.weight.bold,
-  fontSize: tokens.font.size.xs, // 🎯 12px程度の小さめサイズに調整
+  fontSize: tokens.font.size.md,
   letterSpacing: "0.5px",
-  lineHeight: "1.2", // 🎯 折返し時の行間を詰める
-  wordBreak: "break-all", // 🎯 長い日本語・英字を枠内で安全に折り返す
+  lineHeight: "1.2",
+  wordBreak: "break-all",
+  cursor: "pointer",
+  selectors: {
+    "&:hover, &:focus-visible": {
+      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+
+      outline: "none",
+    },
+    "&:active": {
+      boxShadow: tokens.shadow.pressed.low,
+    },
+  },
 });
 
 export const nonTrBadge = style([
   terminalBadge,
   {
-    width: BADGE_WIDTH,
-    justifyContent: "flex-start",
-    paddingLeft: "12px",
-    paddingRight: "8px",
     boxSizing: "border-box",
   },
 ]);
@@ -117,9 +111,11 @@ export const cellValue = style({
   fontSize: tokens.font.fluid.md,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.base,
+  cursor: "text",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
+  userSelect: "text",
   transition: tokens.transition.fast,
   selectors: {
     [`${terminalRow}:hover &`]: {

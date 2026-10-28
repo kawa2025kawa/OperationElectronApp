@@ -2,6 +2,8 @@
 
 import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
+import { format } from "date-fns";
+
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
 const CONFIG = {
@@ -9,78 +11,60 @@ const CONFIG = {
   keywords: ["EOB_DSP_001"],
 } as const;
 
-async function directoryExists(dirPath: string): Promise<boolean> {
-  try {
-    return (await stat(dirPath)).isDirectory();
-  } catch {
-    return false;
+function getToday(): string {
+  return format(new Date(), "yyyy-MM-dd");
+}
+
+async function findTodayFile(
+  entries: import("node:fs").Dirent[],
+  keyword: string,
+): Promise<string | undefined> {
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.includes(keyword)) continue;
+
+    const { mtime } = await stat(path.join(CONFIG.targetDir, entry.name));
+
+    if (format(mtime, "yyyy-MM-dd") === getToday()) {
+      return entry.name;
+    }
   }
+
+  return undefined;
 }
 
 export async function runJobE1(): Promise<string> {
   const logger = new JobLogger();
+  const today = getToday();
 
-  // 本日の日付（ローカルタイム）
-  const now = new Date();
-  const today =
-    `${now.getFullYear()}-` +
-    `${String(now.getMonth() + 1).padStart(2, "0")}-` +
-    `${String(now.getDate()).padStart(2, "0")}`;
+  try {
+    logger.log(`対象ディレクトリ : ${CONFIG.targetDir}`);
+    logger.log(`検索日付 : ${today}`);
 
-  logger.log(`対象ディレクトリ : ${CONFIG.targetDir}`);
-  logger.log(`検索日付 : ${today}`);
+    const entries = await readdir(CONFIG.targetDir, {
+      withFileTypes: true,
+    });
+    const missingKeywords: string[] = [];
 
-  if (!(await directoryExists(CONFIG.targetDir))) {
-    throw logger.fail(`ディレクトリが存在しません: ${CONFIG.targetDir}`);
-  }
+    for (const keyword of CONFIG.keywords) {
+      const matchedFile = await findTodayFile(entries, keyword);
 
-  // ディレクトリ直下のファイル一覧を取得
-  const entries = await readdir(CONFIG.targetDir, {
-    withFileTypes: true,
-  });
-
-  const missingKeywords: string[] = [];
-
-  for (const keyword of CONFIG.keywords) {
-    let matchedFile: string | undefined;
-
-    for (const entry of entries) {
-      // フォルダは対象外
-      if (!entry.isFile()) continue;
-
-      // ファイル名にキーワードを含むものだけを対象にする
-      if (!entry.name.includes(keyword)) continue;
-
-      const filePath = path.join(CONFIG.targetDir, entry.name);
-      const fileStat = await stat(filePath);
-
-      // 更新日時が本日か確認（ローカルタイム）
-      const modified = fileStat.mtime;
-      const modifiedDate =
-        `${modified.getFullYear()}-` +
-        `${String(modified.getMonth() + 1).padStart(2, "0")}-` +
-        `${String(modified.getDate()).padStart(2, "0")}`;
-
-      if (modifiedDate === today) {
-        matchedFile = entry.name;
-        break;
+      if (!matchedFile) {
+        missingKeywords.push(keyword);
+        logger.log(`NG 対象なし（本日更新されたファイルなし） [${keyword}]`);
+        continue;
       }
+
+      logger.log(`OK 検出 [${keyword}] : ${matchedFile}`);
     }
 
-    if (!matchedFile) {
-      missingKeywords.push(keyword);
-      logger.log(`NG 対象なし（本日更新されたファイルなし） [${keyword}]`);
-      continue;
+    if (missingKeywords.length > 0) {
+      return logger.needsAction(
+        `未受信ファイルあり (対象: ${missingKeywords.join(", ")})`,
+      );
     }
 
-    logger.log(`OK 検出 [${keyword}] : ${matchedFile}`);
+    return logger.complete("全ファイル受信確認");
+  } catch (error: unknown) {
+    throw logger.fail(error instanceof Error ? error.message : String(error));
   }
-
-  if (missingKeywords.length > 0) {
-    throw logger.fail(
-      `未受信ファイルあり (対象: ${missingKeywords.join(", ")})`,
-    );
-  }
-
-  return logger.complete("全ファイル受信確認");
 }

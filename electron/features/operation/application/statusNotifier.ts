@@ -2,8 +2,9 @@
 
 import { BrowserWindow } from "electron";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
-import type { OperationStatusState } from "@shared/types/operation/operationTypes";
 import type {
+  OperationStatusNotification,
+  OperationStatusState,
   OperationMaster,
   TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
@@ -18,46 +19,39 @@ export type StatusTarget =
 
 export type ReadyStatusListener = (target: StatusTarget) => void;
 
-type StatusClearPayload = {
-  kanriNo: string;
-  status: undefined;
-  comment: string;
-};
-
-type StatusNotification = OperationStatusState | StatusClearPayload;
-
 const readyStatusListeners = new Set<ReadyStatusListener>();
 
-// レンダラープロセスの全ウィンドウへステータス通知メッセージをブロードキャストする。
-function notifyRenderer(payload: StatusNotification): void {
+function notifyRenderer(notification: OperationStatusNotification): void {
   for (const window of BrowserWindow.getAllWindows()) {
-    if (window.isDestroyed() || window.webContents?.isDestroyed()) {
+    if (window.isDestroyed() || window.webContents.isDestroyed()) {
       continue;
     }
 
     try {
-      window.webContents.send(IPC_CHANNELS.OPERATION.STATUS_UPDATED, payload);
+      window.webContents.send(
+        IPC_CHANNELS.OPERATION.STATUS_UPDATED,
+        notification,
+      );
     } catch (error) {
       console.error("[StatusNotifier] 送信エラー:", error);
     }
   }
 }
 
-// ステータス更新内容をレンダラーへ通知する。
 export function notifyStatusUpdated(status: OperationStatusState): void {
-  notifyRenderer(status);
-}
-
-// 指定管理Noのステータスクリア通知をレンダラーへ送信する。
-export function notifyStatusCleared(kanriNo: string): void {
   notifyRenderer({
-    kanriNo,
-    status: undefined,
-    comment: "",
+    type: "updated",
+    update: status,
   });
 }
 
-// ジョブがREADY状態になったことを登録済みリスナーへ通知する。
+export function notifyStatusCleared(kanriNo: string): void {
+  notifyRenderer({
+    type: "cleared",
+    kanriNo,
+  });
+}
+
 export function notifyReady(target: StatusTarget): void {
   for (const listener of readyStatusListeners) {
     try {
@@ -68,7 +62,6 @@ export function notifyReady(target: StatusTarget): void {
   }
 }
 
-// READYステータス発生時のコールバックリスナーを登録し、解除関数を返す。
 export function onReadyStatus(listener: ReadyStatusListener): () => void {
   readyStatusListeners.add(listener);
 

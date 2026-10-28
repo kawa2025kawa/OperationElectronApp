@@ -66,16 +66,27 @@ function finalizeScriptStatus(
   });
 }
 
-// スクリプト実行結果オブジェクトに基づいて成功またはエラーステータスを記録する。
+// スクリプト実行結果に基づいて、正常・要対応・エラーのステータスを記録する。
 export function applyScriptExecutionResult(
   kanriNo: string,
   result: JobResult,
 ): void {
+  const status: JobStatus =
+    result.success === false || result.kind === "error"
+      ? JOB_STATUS.ERROR
+      : result.kind === "needsAction"
+        ? JOB_STATUS.NEEDS_ACTION
+        : JOB_STATUS.SUCCESS;
+
   finalizeScriptStatus(
     kanriNo,
-    result.success === false ? JOB_STATUS.ERROR : JOB_STATUS.SUCCESS,
+    status,
     result.message ||
-      (result.success === false ? "スクリプト実行失敗" : "スクリプト実行完了"),
+      (status === JOB_STATUS.ERROR
+        ? "スクリプト実行失敗"
+        : status === JOB_STATUS.NEEDS_ACTION
+          ? "要対応"
+          : "スクリプト実行完了"),
   );
 }
 

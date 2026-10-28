@@ -7,6 +7,10 @@ import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Column } from "@shared/types/table/tableType";
 import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes";
+import {
+  toDisplayValue,
+  toMissingPropertyDisplayValue,
+} from "@renderer/features/operation/operationDisplayUtils";
 
 import { useSummaryModalContent } from "./useSummaryModalContent";
 import * as styles from "./summaryModalContent.css";
@@ -34,21 +38,18 @@ interface TableRowProps {
   onRowClick?: (item: SummaryDetailRow) => void;
 }
 
-function getSummaryCellValue(item: SummaryDetailRow, key: string): unknown {
-  switch (key) {
-    case "kanriNo":
-      return item.kanriNo;
-    case "workName":
-      return item.workName;
-    case "jobId":
-      return item.jobId;
-    case "status":
-      return item.status;
-    case "comment":
-      return item.comment;
-    default:
-      return undefined;
+function getSummaryCellValue(
+  item: SummaryDetailRow,
+  key: string,
+): { exists: boolean; value: unknown } {
+  if (!Object.prototype.hasOwnProperty.call(item, key)) {
+    return { exists: false, value: undefined };
   }
+
+  return {
+    exists: true,
+    value: (item as unknown as Record<string, unknown>)[key],
+  };
 }
 
 const TableRowInner = ({
@@ -70,17 +71,23 @@ const TableRowInner = ({
         const alignClass =
           styles.alignVariants[align] ?? styles.alignVariants.left;
         const rendered = column.render ? column.render(item) : null;
-        const rawValue = getSummaryCellValue(item, key);
-        const displayValue =
-          rendered ?? (rawValue != null ? String(rawValue) : "-");
+
+        if (rendered != null) {
+          return (
+            <td key={key} className={clsx(styles.tdBase, alignClass)}>
+              {rendered}
+            </td>
+          );
+        }
+
+        const cell = getSummaryCellValue(item, key);
+        const displayValue = cell.exists
+          ? toDisplayValue(cell.value)
+          : toMissingPropertyDisplayValue();
 
         return (
           <td key={key} className={clsx(styles.tdBase, alignClass)}>
-            {rendered ? (
-              displayValue
-            ) : (
-              <span className={styles.cellText}>{displayValue}</span>
-            )}
+            <span className={styles.cellText}>{displayValue}</span>
           </td>
         );
       })}

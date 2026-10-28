@@ -31,39 +31,52 @@ export const useFooterLogic = () => {
     })),
   );
 
-  // Search State with React 19 Transition
-  const [inputValue, setInputValue] = useState(searchTerm);
+  const [searchInput, setSearchInput] = useState(() => ({
+    source: searchTerm,
+    value: searchTerm,
+  }));
+
+  if (searchTerm !== searchInput.source) {
+    setSearchInput({
+      source: searchTerm,
+      value: searchTerm,
+    });
+  }
+
   const [, startTransition] = useTransition();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setInputValue(searchTerm);
-  }, [searchTerm]);
-
-  useEffect(() => {
     return () => {
-      if (timerRef.current !== null) clearTimeout(timerRef.current);
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+      }
     };
   }, []);
 
   const handleSearchChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
-      setInputValue(value);
 
-      if (timerRef.current !== null) clearTimeout(timerRef.current);
+      setSearchInput({
+        source: searchTerm,
+        value,
+      });
+
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+      }
+
       timerRef.current = setTimeout(() => {
         startTransition(() => {
           setSearchTerm(value);
         });
       }, 200);
     },
-    [setSearchTerm],
+    [searchTerm, setSearchTerm],
   );
 
-  // Center Toggle Handler
   const handleToggleCenter = (id: CenterId) => toggleCenter(id);
-
   const currentViewDef = getAppViewConfig(currentView);
 
   return {
@@ -73,7 +86,7 @@ export const useFooterLogic = () => {
       "3C": is3CActive,
     },
     isOperationView: currentView === APP_VIEW_IDS.OPERATION,
-    searchTerm: inputValue,
+    searchTerm: searchInput.value,
     searchPlaceholder: currentViewDef?.search?.placeholder ?? null,
     handleSearchChange,
     handleToggleCenter,

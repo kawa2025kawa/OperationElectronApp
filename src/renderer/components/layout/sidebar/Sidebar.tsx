@@ -69,5 +69,3 @@ export const Sidebar = () => {
 };
 
 Sidebar.displayName = "Sidebar";
-
-Sidebar;

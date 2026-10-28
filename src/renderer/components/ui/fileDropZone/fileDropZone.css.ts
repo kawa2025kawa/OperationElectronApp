@@ -1,3 +1,5 @@
+// src/renderer/components/ui/fileDropZone/fileDropZone.css.ts
+
 import { style } from "@vanilla-extract/css";
 import { themeTransition, tokens } from "@renderer/styles/tokens";
 
@@ -16,7 +18,7 @@ const userSelectNone = style({
   userSelect: "none",
 });
 
-// カード形状の共通スタイル（リスト枠・Empty枠用）
+// 繧ｫ繝ｼ繝牙ｽ｢迥ｶ縺ｮ蜈ｱ騾壹せ繧ｿ繧､繝ｫ・医Μ繧ｹ繝域棧繝ｻEmpty譫逕ｨ・・
 const cardBaseStyle = style([
   themeTransition,
   {
@@ -36,8 +38,8 @@ export const container = style([
     display: "flex",
     flexDirection: "column",
     width: "100%",
-    // 👇 親コンテナの高さを指定（例: vhや100%など。呼び出し側に合わせる）
-    height: "100%", // または "50vh", "clamp(300px, 50vh, 800px)" など
+    // 燥 隕ｪ繧ｳ繝ｳ繝・リ縺ｮ鬮倥＆繧呈欠螳夲ｼ井ｾ・ vh繧・00%縺ｪ縺ｩ縲ょ他縺ｳ蜃ｺ縺怜・縺ｫ蜷医ｏ縺帙ｋ・・
+    height: "100%", // 縺ｾ縺溘・ "50vh", "clamp(300px, 50vh, 800px)" 縺ｪ縺ｩ
     gap: "1vmin",
   },
 ]);
@@ -45,9 +47,8 @@ export const container = style([
 export const dropZone = style([
   themeTransition,
   {
-    // 👇 高さを比率で管理するため flex を追加
     flex: 4,
-    minHeight: 0, // Flex子要素が溢れるのを防ぐCSSの決まり文句
+    minHeight: 0,
 
     display: "flex",
     alignItems: "center",
@@ -103,9 +104,8 @@ export const labelText = style([
 
 export const selectedFilesContainer = style([
   {
-    // 👇 高さを比率で管理するため flex を追加
     flex: 6,
-    minHeight: 0, // 内部のスクロールを正しく機能させるために必須
+    minHeight: 0,
     width: "100%",
     display: "flex",
     flexDirection: "column",
@@ -184,6 +184,17 @@ export const selectedFileRow = style([
   },
 ]);
 
+export const selectedFileRowDragging = style({
+  cursor: "grabbing",
+  opacity: 0.4,
+});
+
+export const selectedFileRowDropTarget = style({
+  borderColor: tokens.color.accent.neonCyan,
+  boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+  transform: "scale(1.01)",
+});
+
 export const selectedFileContent = style({
   display: "flex",
   flexDirection: "column",
@@ -218,7 +229,9 @@ export const selectedFileName = style([
     fontWeight: tokens.font.weight.bold,
     color: tokens.color.text.base,
     selectors: {
-      [`${selectedFileRow}:hover &`]: { color: tokens.color.text.hover },
+      [`${selectedFileRow}:hover &`]: {
+        color: tokens.color.text.hover,
+      },
     },
   },
 ]);
@@ -233,7 +246,9 @@ export const selectedFilePath = style([
     opacity: 0.7,
     fontFamily: "monospace",
     selectors: {
-      [`${selectedFileRow}:hover &`]: { color: tokens.color.text.hover },
+      [`${selectedFileRow}:hover &`]: {
+        color: tokens.color.text.hover,
+      },
     },
   },
 ]);

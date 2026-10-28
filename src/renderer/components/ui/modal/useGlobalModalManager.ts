@@ -1,3 +1,5 @@
+// src/renderer/components/ui/modal/useGlobalModalManager.ts
+
 import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 
@@ -51,27 +53,33 @@ export function useGlobalModalManager() {
   const width = config?.width ?? DEFAULT_MODAL_SIZE.width;
   const height = config?.height ?? DEFAULT_MODAL_SIZE.height;
 
+  const rightActions = config?.rightActions;
+  const confirmText = config?.confirmText;
+  const cancelText = config?.cancelText;
+  const isConfirmDisabled = config?.isConfirmDisabled;
+  const isProcessing = config?.isProcessing;
+
   const computedRightActions = useMemo<ModalAction[]>(() => {
-    if (config?.rightActions?.length) {
-      return config.rightActions;
+    if (rightActions?.length) {
+      return rightActions;
     }
 
-    if (config?.confirmText || config?.cancelText) {
+    if (confirmText || cancelText) {
       const actions: ModalAction[] = [
         {
           id: "cancel",
-          label: config.cancelText ?? "キャンセル",
+          label: cancelText ?? "キャンセル",
           onClick: handleCancel,
           variant: "default",
         },
       ];
 
-      if (config.confirmText) {
+      if (confirmText) {
         actions.push({
           id: "confirm",
-          label: config.isProcessing ? "処理中..." : config.confirmText,
+          label: isProcessing ? "処理中..." : confirmText,
           onClick: handleConfirm,
-          disabled: config.isConfirmDisabled || config.isProcessing,
+          disabled: isConfirmDisabled || isProcessing,
           variant: "default",
         });
       }
@@ -88,11 +96,11 @@ export function useGlobalModalManager() {
       },
     ];
   }, [
-    config?.rightActions,
-    config?.confirmText,
-    config?.cancelText,
-    config?.isConfirmDisabled,
-    config?.isProcessing,
+    rightActions,
+    confirmText,
+    cancelText,
+    isConfirmDisabled,
+    isProcessing,
     handleCancel,
     handleConfirm,
   ]);

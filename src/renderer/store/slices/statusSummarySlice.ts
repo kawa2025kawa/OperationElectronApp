@@ -1,42 +1,57 @@
 ﻿// src/renderer/store/slices/statusSummarySlice.ts
 
 import type { StateCreator } from "zustand";
+
+import { operationService } from "@renderer/features/operation/operationService";
 import type { AppState } from "@renderer/store";
 import {
   EMPTY_STATUS_SUMMARY,
   type StatusSummary,
 } from "@shared/types/statusSummary/statusSummaryTypes";
-import { operationService } from "@renderer/features/operation/operationService";
 
 export interface StatusSummarySlice {
   summary: StatusSummary;
-  fetchStatusSummary(): Promise<void>;
-  setStatusSummary(summary: StatusSummary): void;
+  fetchStatusSummary: () => Promise<void>;
+  setStatusSummary: (summary: StatusSummary) => void;
 }
 
-// 運用ジョブのステータス集計サマリーを管理するスライスを生成する。
 export const createStatusSummarySlice: StateCreator<
   AppState,
   [],
   [],
   StatusSummarySlice
-> = (set) => ({
-  summary: {
-    ...EMPTY_STATUS_SUMMARY,
-  },
+> = (set) => {
+  let requestId = 0;
 
-  // バックエンドから最新のステータス集計サマリーを取得してステートに反映する。
-  fetchStatusSummary: async () => {
-    try {
-      const summary = await operationService.getStatusSummary();
+  return {
+    summary: { ...EMPTY_STATUS_SUMMARY },
+
+    fetchStatusSummary: async () => {
+      const currentRequestId = ++requestId;
+
+      try {
+        const summary = await operationService.getStatusSummary();
+
+        if (currentRequestId !== requestId) {
+          return;
+        }
+
+        set({ summary });
+      } catch (error) {
+        if (currentRequestId === requestId) {
+          console.error(
+            "[StatusSummaryStore] fetchStatusSummary Error:",
+            error,
+          );
+        }
+      }
+    },
+
+    setStatusSummary: (summary) => {
+      // 進行中の取得結果が手動設定を上書きしないよう無効化する。
+      requestId += 1;
+
       set({ summary });
-    } catch (error) {
-      console.error("[StatusSummaryStore] fetchStatusSummary Error:", error);
-    }
-  },
-
-  // ステータス集計サマリーを直接ステートに設定する。
-  setStatusSummary: (summary) => {
-    set({ summary });
-  },
-});
+    },
+  };
+};

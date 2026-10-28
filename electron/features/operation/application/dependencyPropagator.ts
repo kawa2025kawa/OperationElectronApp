@@ -60,13 +60,18 @@ export class DependencyPropagator {
     }
   }
 
-  // 保護対象ではなく、登録済みターゲットに対応するステータスを再計算キューに追加する。
+  // 保護対象を除く登録済みターゲットを再計算キューに追加する。
   public enqueueAllRecalculableTargets(
     statuses: Map<string, OperationStatusState>,
     targets: Map<string, StatusTarget>,
   ): void {
-    for (const [kanriNo, status] of statuses) {
-      if (!targets.has(kanriNo) || isProtectedStatus(status.status)) continue;
+    for (const [kanriNo] of targets) {
+      const status = statuses.get(kanriNo);
+
+      if (isProtectedStatus(status?.status)) {
+        continue;
+      }
+
       this.propagationQueue.add(kanriNo);
     }
   }

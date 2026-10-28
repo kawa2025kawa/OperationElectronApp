@@ -1,4 +1,4 @@
-// electron/features/operation/application/operationStatusEvaluator.ts
+/* electron/features/operation/application/operationStatusEvaluator.ts */
 
 import { getActiveFlags } from "@electron/features/operation/application/activeFlagsManager";
 import {
@@ -26,16 +26,24 @@ import {
   checkJobDependencies,
   formatDependencyWaitingComment,
   type DependencyMasters,
-  type DependencyCheckResult,
 } from "@shared/utils/dependency/dependencyUtils";
 
 type OperationTarget = Extract<StatusTarget, { targetType: "operation" }>;
+type TrackerSyncContext = {
+  activeFlags: ActiveFlags;
+  dependencyMasters: DependencyMasters;
+};
+
+type TrackerSyncResult = {
+  target: OperationTarget;
+  status: OperationStatusState | undefined;
+};
 
 // Tracker連携対象であることを判定する。
 function hasTrackerTarget(target: StatusTarget): target is OperationTarget {
   return (
     target.targetType === "operation" &&
-    Boolean(target.kanriNo) &&
+    Boolean(normalizeKanriNo(target.kanriNo)) &&
     Boolean(getJobId(target))
   );
 }
@@ -60,7 +68,7 @@ export function evaluateTrackerStatus(
     return trackerStatus;
   }
 
-  const dependencyResult: DependencyCheckResult = checkJobDependencies(
+  const dependencyResult = checkJobDependencies(
     trackerStatus.kanriNo,
     dependencyMasters,
     getDependencyStatuses(),
@@ -93,12 +101,24 @@ export async function fetchTrackerStatus(
   return fetchTrackerStatusByJobId(jobId, target.scheduledTime, target.kanriNo);
 }
 
-/**
- * 管理番号を指定して Tracker のステータスを取得・反映する。
- */
-export async function fetchSingleTrackerStatus(
-  kanriNoInput: string,
-): Promise<OperationStatusState> {
+// Trackerの取得結果を評価して適用し、適用後の状態を返す。
+export function applyTrackerStatus(
+  trackerStatus: OperationStatusState,
+  activeFlags: ActiveFlags = getActiveFlags(),
+  dependencyMasters: DependencyMasters = getDependencyMasters(),
+): OperationStatusState {
+  const evaluatedStatus = evaluateTrackerStatus(
+    trackerStatus,
+    activeFlags,
+    dependencyMasters,
+  );
+
+  updateStatus(evaluatedStatus);
+  return evaluatedStatus;
+}
+
+// 管理番号からTracker対象を取得し、設定を検証する。
+function requireTrackerTarget(kanriNoInput: string): OperationTarget {
   const kanriNo = normalizeKanriNo(kanriNoInput);
   const target = getTargetByKanriNo(kanriNo);
 
@@ -112,6 +132,17 @@ export async function fetchSingleTrackerStatus(
     );
   }
 
+  return target;
+}
+
+/**
+ * 管理番号を指定して Tracker のステータスを取得・反映する。
+ */
+export async function fetchSingleTrackerStatus(
+  kanriNoInput: string,
+): Promise<OperationStatusState> {
+  const target = requireTrackerTarget(kanriNoInput);
+  const kanriNo = normalizeKanriNo(target.kanriNo);
   const trackerStatus = await fetchTrackerStatus(target);
 
   if (!trackerStatus) {
@@ -122,19 +153,7 @@ export async function fetchSingleTrackerStatus(
     };
   }
 
-  applyTrackerStatus(trackerStatus);
-  return trackerStatus;
-}
-
-// Trackerの取得結果を依存関係の判定後にステータスへ反映する。
-export function applyTrackerStatus(
-  trackerStatus: OperationStatusState,
-  activeFlags: ActiveFlags = getActiveFlags(),
-  dependencyMasters: DependencyMasters = getDependencyMasters(),
-): void {
-  updateStatus(
-    evaluateTrackerStatus(trackerStatus, activeFlags, dependencyMasters),
-  );
+  return applyTrackerStatus(trackerStatus);
 }
 
 // READY対象のTrackerステータスを取得し、必要に応じて反映する。
@@ -165,9 +184,8 @@ async function evaluateTrackerTarget(
   target: OperationTarget,
 ): Promise<OperationStatusState | undefined> {
   const kanriNo = normalizeKanriNo(target.kanriNo);
-  const currentStatus = getStatus(kanriNo);
 
-  if (!canSyncTrackerStatus(currentStatus?.status)) {
+  if (!canSyncTrackerStatus(getStatus(kanriNo)?.status)) {
     return undefined;
   }
 
@@ -182,41 +200,63 @@ async function evaluateTrackerTarget(
   }
 }
 
+// Tracker連携対象のステータス取得結果をまとめる。
+async function fetchTrackerResults(
+  targets: OperationTarget[],
+): Promise<TrackerSyncResult[]> {
+  return Promise.all(
+    targets.map(async (target) => ({
+      target,
+      status: await evaluateTrackerTarget(target),
+    })),
+  );
+}
+
+// Trackerの取得結果を反映し、取得失敗時はローカルで再計算する。
+function applyTrackerResults(
+  results: TrackerSyncResult[],
+  context: TrackerSyncContext,
+): void {
+  for (const { target, status } of results) {
+    if (status) {
+      applyTrackerStatus(
+        status,
+        context.activeFlags,
+        context.dependencyMasters,
+      );
+      continue;
+    }
+
+    recalculateTargetStatus(target.kanriNo, context.activeFlags);
+  }
+}
+
+// Tracker対象外のステータスをローカルで再計算する。
+function recalculateLocalTargets(
+  targets: StatusTarget[],
+  activeFlags: ActiveFlags,
+): void {
+  for (const target of targets) {
+    recalculateTargetStatus(target.kanriNo, activeFlags);
+  }
+}
+
 // Tracker連携対象とローカル対象のステータスを同期する。
 export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
   const trackerTargets: OperationTarget[] = [];
   const localTargets: StatusTarget[] = [];
 
   for (const target of targets) {
-    if (hasTrackerTarget(target)) {
-      trackerTargets.push(target);
-    } else {
-      localTargets.push(target);
-    }
+    (hasTrackerTarget(target) ? trackerTargets : localTargets).push(target);
   }
 
-  const activeFlags = getActiveFlags();
-  const dependencyMasters = getDependencyMasters();
+  const context: TrackerSyncContext = {
+    activeFlags: getActiveFlags(),
+    dependencyMasters: getDependencyMasters(),
+  };
 
-  // Tracker対象のステータスを並行して取得する。
-  const trackerResults = await Promise.all(
-    trackerTargets.map(async (target) => ({
-      target,
-      status: await evaluateTrackerTarget(target),
-    })),
-  );
+  const trackerResults = await fetchTrackerResults(trackerTargets);
 
-  // Trackerの取得結果を反映し、取得失敗時はローカルで再計算する。
-  for (const { target, status } of trackerResults) {
-    if (status) {
-      applyTrackerStatus(status, activeFlags, dependencyMasters);
-    } else {
-      recalculateTargetStatus(target.kanriNo, activeFlags);
-    }
-  }
-
-  // Tracker対象外のステータスをローカルで再計算する。
-  for (const target of localTargets) {
-    recalculateTargetStatus(target.kanriNo, activeFlags);
-  }
+  applyTrackerResults(trackerResults, context);
+  recalculateLocalTargets(localTargets, context.activeFlags);
 }

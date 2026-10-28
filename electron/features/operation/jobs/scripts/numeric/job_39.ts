@@ -1,4 +1,6 @@
-// electron/features/operation/jobs/scripts/numeric/job_39.ts
+/**
+ * electron/features/operation/jobs/scripts/numeric/job_39.ts
+ */
 
 import { format, isSameDay } from "date-fns";
 import path from "node:path";
@@ -12,160 +14,117 @@ const CONFIG = {
   maxFilesPerTarget: 2,
 } as const;
 
-interface FileCheckDetail {
+type FileCheckResult = {
   targetName: string;
-  foundNames?: string[];
-  mtime?: Date;
+  foundNames: string[];
   error?: string;
-}
-
-function getDateKey(date = new Date()): string {
-  return format(date, "yyyyMMdd");
-}
-
-async function directoryExists(dirPath: string): Promise<boolean> {
-  try {
-    return (await fs.stat(dirPath)).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-async function getFileInfo(filePath: string): Promise<{
-  fileName: string;
-  mtime: Date;
-}> {
-  const stats = await fs.stat(filePath);
-
-  if (!stats.isFile()) {
-    throw new Error(`ファイルではありません: ${filePath}`);
-  }
-
-  return {
-    fileName: path.basename(filePath),
-    mtime: stats.mtime,
-  };
-}
-
-async function checkBeforeNoonFile(
-  targetName: string,
-  now: Date,
-): Promise<FileCheckDetail> {
-  const filePath = path.join(CONFIG.beforeNoonDir, targetName);
-
-  try {
-    const info = await getFileInfo(filePath);
-
-    if (!isSameDay(info.mtime, now)) {
-      return {
-        targetName,
-        mtime: info.mtime,
-        error: "更新日が本日ではありません",
-      };
-    }
-
-    return {
-      targetName,
-      foundNames: [info.fileName],
-      mtime: info.mtime,
-    };
-  } catch {
-    return {
-      targetName,
-      error: "ファイルが存在しないか、読み取れません",
-    };
-  }
-}
-
-async function checkAfterNoonFile(
-  targetName: string,
-  today: string,
-): Promise<FileCheckDetail> {
-  let entries;
-
-  try {
-    entries = await fs.readdir(CONFIG.afterNoonDir, {
-      withFileTypes: true,
-    });
-  } catch {
-    return {
-      targetName,
-      error: `ディレクトリにアクセスできません: ${CONFIG.afterNoonDir}`,
-    };
-  }
-
-  const prefix = `${targetName}_${today}`;
-
-  const matches = entries.filter(
-    (entry) => entry.isFile() && entry.name.startsWith(prefix),
-  );
-
-  if (matches.length === 0) {
-    return {
-      targetName,
-      error: `${prefix}* (ファイルなし)`,
-    };
-  }
-
-  if (matches.length > CONFIG.maxFilesPerTarget) {
-    return {
-      targetName,
-      foundNames: matches.map((entry) => entry.name),
-      error: `対象ファイルが上限超過 (${matches.length}件 / 上限${CONFIG.maxFilesPerTarget}件)`,
-    };
-  }
-
-  return {
-    targetName,
-    foundNames: matches.map((entry) => entry.name),
-  };
-}
+};
 
 export async function runJob39(): Promise<string> {
+  const logger = new JobLogger();
   const now = new Date();
   const isBeforeNoon = now.getHours() < 12;
-  const today = getDateKey(now);
+  const today = format(now, "yyyyMMdd");
   const targetDir = isBeforeNoon ? CONFIG.beforeNoonDir : CONFIG.afterNoonDir;
-  const timePeriodText = isBeforeNoon ? "午前 (12時前)" : "午後 (12時以降)";
-  const logger = new JobLogger();
 
-  logger.log(`時間帯判定       : ${timePeriodText}`);
+  logger.log(
+    `時間帯判定       : ${isBeforeNoon ? "午前 (12時前)" : "午後 (12時以降)"}`,
+  );
   logger.log(`対象ディレクトリ : ${targetDir}`);
 
-  if (!(await directoryExists(targetDir))) {
-    throw logger.fail(`ディレクトリが存在しません: ${targetDir}`);
-  }
+  try {
+    const dirStat = await fs.stat(targetDir);
 
-  const results = await Promise.all(
-    CONFIG.targetFiles.map((name) =>
-      isBeforeNoon
-        ? checkBeforeNoonFile(name, now)
-        : checkAfterNoonFile(name, today),
-    ),
-  );
+    if (!dirStat.isDirectory()) {
+      throw new Error(`ディレクトリではありません: ${targetDir}`);
+    }
 
-  const errors: string[] = [];
+    const results: FileCheckResult[] = isBeforeNoon
+      ? await Promise.all(
+          CONFIG.targetFiles.map(async (targetName) => {
+            const filePath = path.join(targetDir, targetName);
 
-  for (const item of results) {
-    if (item.error) {
-      errors.push(`${item.targetName} (${item.error})`);
-      logger.log(`  [${item.targetName}] エラー : ${item.error}`);
+            try {
+              const stats = await fs.stat(filePath);
 
-      for (const name of item.foundNames ?? []) {
-        logger.log(`    ${name}`);
+              if (!stats.isFile()) {
+                return {
+                  targetName,
+                  foundNames: [],
+                  error: "ファイルではありません",
+                };
+              }
+
+              return {
+                targetName,
+                foundNames: isSameDay(stats.mtime, now)
+                  ? [path.basename(filePath)]
+                  : [],
+                error: isSameDay(stats.mtime, now)
+                  ? undefined
+                  : "更新日が本日ではありません",
+              };
+            } catch (error: unknown) {
+              if (
+                error instanceof Error &&
+                "code" in error &&
+                error.code === "ENOENT"
+              ) {
+                return {
+                  targetName,
+                  foundNames: [],
+                  error: "ファイルが存在しません",
+                };
+              }
+
+              throw error;
+            }
+          }),
+        )
+      : await (async () => {
+          const entries = await fs.readdir(targetDir, {
+            withFileTypes: true,
+          });
+
+          return CONFIG.targetFiles.map((targetName) => {
+            const prefix = `${targetName}_${today}`;
+            const foundNames = entries
+              .filter(
+                (entry) => entry.isFile() && entry.name.startsWith(prefix),
+              )
+              .map((entry) => entry.name);
+
+            return {
+              targetName,
+              foundNames,
+              error:
+                foundNames.length === 0
+                  ? `${prefix}* (ファイルなし)`
+                  : foundNames.length > CONFIG.maxFilesPerTarget
+                    ? `対象ファイルが上限超過 (${foundNames.length}件 / 上限${CONFIG.maxFilesPerTarget}件)`
+                    : undefined,
+            };
+          });
+        })();
+
+    const errors: string[] = [];
+
+    for (const result of results) {
+      if (result.error) {
+        errors.push(`${result.targetName} (${result.error})`);
+        logger.log(`  [${result.targetName}] エラー : ${result.error}`);
       }
 
-      continue;
+      result.foundNames.forEach((name) => logger.log(name));
     }
 
-    for (const name of item.foundNames ?? []) {
-      logger.log(name);
-    }
-  }
+    return errors.length > 0
+      ? logger.needsAction(`NG: ${errors.join(", ")}`)
+      : logger.complete();
+  } catch (error: unknown) {
+    const detail =
+      error instanceof Error ? ` (${error.message})` : ` (${String(error)})`;
 
-  if (errors.length > 0) {
-    throw logger.fail(`NG: ${errors.join(", ")}`);
+    throw logger.fail(`システムエラーが発生しました${detail}`);
   }
-
-  return logger.complete();
 }

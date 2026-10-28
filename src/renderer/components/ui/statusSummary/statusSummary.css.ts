@@ -3,6 +3,7 @@
 import { style, styleVariants, type StyleRule } from "@vanilla-extract/css";
 import { themeTransition, tokens } from "@renderer/styles/tokens";
 import { getStatusTheme } from "@renderer/styles/statusTheme";
+import type { JobStatus } from "@shared/types/operation/operationTypes";
 
 export const container = style([
   themeTransition,
@@ -82,49 +83,28 @@ const createVariantStyle = (
   },
 });
 
+const createStatusVariant = (status: JobStatus): StyleRule => {
+  const theme = getStatusTheme(status);
+
+  return createVariantStyle(theme.color, theme.glow);
+};
+
+const totalVariant = createVariantStyle(
+  tokens.color.status.total,
+  tokens.shadow.glow.total,
+);
+
 /** 🎯 各ステータスごとのバッジスタイルを小文字キーで定義 */
 export const valueBadgeVariants = styleVariants({
-  progress: createVariantStyle(
-    tokens.color.status.total,
-    tokens.shadow.glow.total,
-  ),
-  total: createVariantStyle(
-    tokens.color.status.total,
-    tokens.shadow.glow.total,
-  ),
+  progress: totalVariant,
+  total: totalVariant,
 
-  success: (() => {
-    const t = getStatusTheme("success");
-    return createVariantStyle(t.color, t.glow);
-  })(),
-
-  running: (() => {
-    const t = getStatusTheme("running");
-    return createVariantStyle(t.color, t.glow);
-  })(),
-
-  scriptRunning: (() => {
-    const t = getStatusTheme("scriptRunning");
-    return createVariantStyle(t.color, t.glow);
-  })(),
-
-  waiting: (() => {
-    const t = getStatusTheme("waiting");
-    return createVariantStyle(t.color, t.glow);
-  })(),
-
-  scheduled: (() => {
-    const t = getStatusTheme("scheduled");
-    return createVariantStyle(t.color, t.glow);
-  })(),
-
-  ready: (() => {
-    const t = getStatusTheme("ready");
-    return createVariantStyle(t.color, t.glow);
-  })(),
-
-  error: (() => {
-    const t = getStatusTheme("error");
-    return createVariantStyle(t.color, t.glow);
-  })(),
+  success: createStatusVariant("success"),
+  running: createStatusVariant("running"),
+  scriptRunning: createStatusVariant("scriptRunning"),
+  waiting: createStatusVariant("waiting"),
+  scheduled: createStatusVariant("scheduled"),
+  ready: createStatusVariant("ready"),
+  needsAction: createStatusVariant("needsAction"),
+  error: createStatusVariant("error"),
 });

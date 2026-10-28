@@ -1,4 +1,4 @@
-//src\renderer\components\ui\fileDropZone\FileDropZone.tsx
+// src/renderer/components/ui/fileDropZone/FileDropZone.tsx
 
 import { memo } from "react";
 import type { MouseEvent } from "react";
@@ -17,6 +17,8 @@ export const FileDropZone = memo<FileDropZoneProps>(
   }) => {
     const {
       isDragOver,
+      draggedFileIndex,
+      dragOverFileIndex,
       inputRef,
       handleDragOver,
       handleDragLeave,
@@ -24,8 +26,10 @@ export const FileDropZone = memo<FileDropZoneProps>(
       handleClick,
       handleKeyDown,
       handleInputChange,
-      handleMoveUp,
-      handleMoveDown,
+      handleFileDragStart,
+      handleFileDragOver,
+      handleFileDrop,
+      handleFileDragEnd,
       handleRemoveFile,
     } = useFileDropZone({
       files,
@@ -79,68 +83,71 @@ export const FileDropZone = memo<FileDropZoneProps>(
             </div>
           ) : (
             <div className={styles.selectedFilesList}>
-              {files.map((file, index) => (
-                <div
-                  key={`${file.path}-${index}`}
-                  className={styles.selectedFileRow}
-                >
-                  <div className={styles.selectedFileContent}>
-                    <div className={styles.selectedFileNameRow}>
-                      <span className={styles.selectedFileIndex}>
-                        {index + 1}.
-                      </span>
+              {files.map((file, index) => {
+                const isDragging = draggedFileIndex === index;
+                const isDropTarget = dragOverFileIndex === index;
+
+                const rowClassName = [
+                  styles.selectedFileRow,
+                  isDragging ? styles.selectedFileRowDragging : "",
+                  isDropTarget ? styles.selectedFileRowDropTarget : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+
+                return (
+                  <div
+                    key={`${file.path}-${index}`}
+                    className={rowClassName}
+                    draggable={!disabled && Boolean(onReorderFile)}
+                    onDragStart={(event) => handleFileDragStart(event, index)}
+                    onDragOver={(event) => handleFileDragOver(event, index)}
+                    onDrop={(event) => handleFileDrop(event, index)}
+                    onDragEnd={handleFileDragEnd}
+                    title={
+                      !disabled && onReorderFile
+                        ? "ドラッグして並び替え"
+                        : undefined
+                    }
+                  >
+                    <div className={styles.selectedFileContent}>
+                      <div className={styles.selectedFileNameRow}>
+                        <span className={styles.selectedFileIndex}>
+                          {index + 1}.
+                        </span>
+                        <span
+                          className={styles.selectedFileName}
+                          title={file.name}
+                        >
+                          {file.name}
+                        </span>
+                      </div>
                       <span
-                        className={styles.selectedFileName}
-                        title={file.name}
+                        className={styles.selectedFilePath}
+                        title={file.path}
                       >
-                        {file.name}
+                        {file.path}
                       </span>
                     </div>
-                    <span className={styles.selectedFilePath} title={file.path}>
-                      {file.path}
-                    </span>
-                  </div>
 
-                  {/* 操作ボタン群 */}
-                  {!disabled && (
-                    <div className={styles.actionButtonsRow}>
-                      {onReorderFile && (
-                        <>
-                          <button
-                            type="button"
-                            className={styles.iconButton}
-                            disabled={index === 0}
-                            onClick={stopAnd(() => handleMoveUp(index))}
-                            title="上に移動"
-                          >
-                            ▲
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.iconButton}
-                            disabled={index === files.length - 1}
-                            onClick={stopAnd(() => handleMoveDown(index))}
-                            title="下に移動"
-                          >
-                            ▼
-                          </button>
-                        </>
-                      )}
-                      {onRemoveFile && (
+                    {/* 操作ボタン群 */}
+                    {!disabled && onRemoveFile && (
+                      <div className={styles.actionButtonsRow}>
                         <button
                           type="button"
                           className={`${styles.iconButton} ${styles.removeFileButton}`}
                           onClick={stopAnd(() => handleRemoveFile(index))}
                           aria-label={`${file.name}を取り消す`}
                           title="削除"
+                          draggable={false}
                         >
                           ×
                         </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

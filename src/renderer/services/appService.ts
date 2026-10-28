@@ -1,114 +1,89 @@
-﻿// src/renderer/services/appService.ts
+// src/renderer/services/appService.ts
 
+import { operationService } from "@renderer/features/operation/operationService";
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
 import { updateService } from "@renderer/services/updateService";
 import { useAppStore } from "@renderer/store";
-import { operationService } from "@renderer/features/operation/operationService";
+import {
+  createInitStatusPatch,
+  INIT_STATUS_GROUPS,
+} from "@shared/types/initializationTypes";
+import { VIEW_MODES } from "@shared/types/registry/viewDefinition";
 
-/* =========================
- * Status Restore
- * ========================= */
+/** 運用データおよび不定期運用データの読み込みと初期化を行う */
+async function loadOperationData(): Promise<void> {
+  const store = useAppStore.getState();
 
-async function restorePersistedStatuses(): Promise<void> {
+  const markOperationDataFailed = (): void => {
+    store.setInitStatus(
+      createInitStatusPatch(INIT_STATUS_GROUPS.operationData, "NG"),
+    );
+  };
+
+  if (!(await store.fetchMasterData())) {
+    markOperationDataFailed();
+    return;
+  }
+
   try {
-    const savedStatuses = await operationService.initializeStatus();
-    const updates = Object.values(savedStatuses);
-
-    if (updates.length === 0) {
-      return;
-    }
-
-    useAppStore.getState().applyOperationStatusUpdates(updates);
+    await operationService.registerTargets();
+    await operationService.initializeStatus();
   } catch (error) {
+    console.error("[AppService] Failed to register operation targets:", error);
+    markOperationDataFailed();
+    return;
+  }
+
+  await store.fetchStatusSummary();
+
+  const [operationResult, irregularResult] = await Promise.allSettled([
+    store.fetchTableData(VIEW_MODES.OPERATION),
+    operationService.getTableData(VIEW_MODES.IRREGULAR),
+  ]);
+
+  store.setInitStatus({
+    operation: operationResult.status === "fulfilled" ? "OK" : "NG",
+    irregular: irregularResult.status === "fulfilled" ? "OK" : "NG",
+  });
+
+  if (operationResult.status === "rejected") {
     console.error(
-      "[AppService] Failed to restore persisted operation statuses:",
-      error,
+      "[AppService] Failed to fetch operation data:",
+      operationResult.reason,
+    );
+  }
+
+  if (irregularResult.status === "rejected") {
+    console.error(
+      "[AppService] Failed to fetch irregular data:",
+      irregularResult.reason,
     );
   }
 }
 
-/* =========================
- * Operation Initialization
- * ========================= */
-
-async function loadOperationData(): Promise<void> {
-  const store = useAppStore.getState();
-
-  // 1. スプレッドシートのマスタデータを取得
-  const masterData = await store.fetchMasterData();
-
-  if (!masterData) {
-    return;
-  }
-
-  // 2. JSON マスタから作業ターゲットを登録
-  await operationService.registerTargets();
-
-  // 3. 永続化されたステータスを復元
-  await restorePersistedStatuses();
-
-  // 4. サマリー集計
-  await store.fetchStatusSummary();
-
-  // 5. 初回のテーブル表示データを取得
-  await store.fetchTableData(store.currentMode);
-}
-
-/* =========================
- * Initialization Status
- * ========================= */
-
-function markAllTasksAsNg(): void {
-  useAppStore.getState().setInitStatus({
-    update: "NG",
-    operation: "NG",
-    irregular: "NG",
-    store: "NG",
-    jugyoin: "NG",
-    kokyuhyo: "NG",
-    tantou: "NG",
-  });
-}
-
-/* =========================
- * Application Initialization
- * ========================= */
-
+/** アプリケーション全体の初期化シーケンスを実行する */
 async function initializeAppData(): Promise<void> {
   const store = useAppStore.getState();
 
-  await updateService.check();
-
-  store.setInitStatus({
-    auth: "LOADING",
-  });
-
-  const isAuthenticated = await store.checkAuthStatus();
-
-  if (!isAuthenticated) {
-    store.setInitStatus({
-      auth: "NG",
-    });
-
-    markAllTasksAsNg();
-
-    store.setCurrentView(APP_VIEW_IDS.AUTH);
-
+  if (!(await updateService.check())) {
+    console.warn("[AppService] Update check failed; skipping initialization.");
+    store.settleUnsettledAsNg();
     return;
   }
 
-  store.setInitStatus({
-    auth: "OK",
-  });
+  store.setInitStatus({ auth: "LOADING" });
 
+  if (!(await store.checkAuthStatus())) {
+    store.settleUnsettledAsNg();
+    store.setCurrentView(APP_VIEW_IDS.AUTH);
+    return;
+  }
+
+  store.setInitStatus({ auth: "OK" });
   store.setCurrentView(APP_VIEW_IDS.OPERATION);
 
   await loadOperationData();
 }
-
-/* =========================
- * Service
- * ========================= */
 
 export const appService = {
   initializeAppData,

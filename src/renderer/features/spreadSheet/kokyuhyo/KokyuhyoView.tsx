@@ -1,76 +1,16 @@
-// src/renderer/features/spreadsheet/kokyuhyo/KokyuhyoView.tsx
+// src/renderer/features/spreadSheet/kokyuhyo/KokyuhyoView.tsx
 
 import { memo, useCallback } from "react";
 import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
-import type { Column } from "@shared/types/table/tableType";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
-import {
-  APP_VIEW_IDS,
-  type AppViewDefinition,
-} from "@shared/types/registry/viewDefinition";
 import { AuthView } from "@renderer/features/auth/AuthView";
 
 import { useSpreadSheetDomainLogic } from "../hooks/useSpreadSheetDomainLogic";
-import { DATE_LABELS } from "../utils/spreadsheetDateUtils";
 import { KokyuhyoTable } from "./table/KokyuhyoTable";
 import { KokyuhyoModalContent } from "./modal/KokyuhyoModalContent";
-import * as styles from "./KokyuhyoView.css";
+import * as styles from "./spreadSheetView.css";
 
-// --- テーブルカラム定義 ---
-export const KOKYUHYO_COLUMNS: readonly Column<Kokyuhyo>[] = [
-  { key: "name", label: "氏名", width: "20%" },
-  {
-    key: "todayAmStatus",
-    label: "区分",
-    width: "8%",
-    headerGroup: { groupKey: "today", label: DATE_LABELS.today },
-  },
-  {
-    key: "todayAmDetail",
-    label: "午前",
-    width: "12%",
-    headerGroup: { groupKey: "today", label: DATE_LABELS.today },
-  },
-  {
-    key: "todayPmStatus",
-    label: "区分",
-    width: "8%",
-    headerGroup: { groupKey: "today", label: DATE_LABELS.today },
-  },
-  {
-    key: "todayPmDetail",
-    label: "午後",
-    width: "12%",
-    headerGroup: { groupKey: "today", label: DATE_LABELS.today },
-  },
-  {
-    key: "tomorrowAmStatus",
-    label: "区分",
-    width: "8%",
-    headerGroup: { groupKey: "tomorrow", label: DATE_LABELS.tomorrow },
-  },
-  {
-    key: "tomorrowAmDetail",
-    label: "午前",
-    width: "12%",
-    headerGroup: { groupKey: "tomorrow", label: DATE_LABELS.tomorrow },
-  },
-  {
-    key: "tomorrowPmStatus",
-    label: "区分",
-    width: "8%",
-    headerGroup: { groupKey: "tomorrow", label: DATE_LABELS.tomorrow },
-  },
-  {
-    key: "tomorrowPmDetail",
-    label: "午後",
-    width: "12%",
-    headerGroup: { groupKey: "tomorrow", label: DATE_LABELS.tomorrow },
-  },
-] as const;
-
-// --- コンポーネント本体 ---
-const KokyuhyoView = memo(() => {
+export const KokyuhyoView = memo(function KokyuhyoView() {
   const { isAuthenticated, data, openGlobalModal } =
     useSpreadSheetDomainLogic<Kokyuhyo>(SHEETS.KOKYUHYO.sheetName);
 
@@ -103,25 +43,3 @@ const KokyuhyoView = memo(() => {
 });
 
 KokyuhyoView.displayName = "KokyuhyoView";
-
-// --- ビュー設定定義 ---
-export const kokyuhyoViewConfig: AppViewDefinition<Kokyuhyo> = {
-  id: APP_VIEW_IDS.KOKYUHYO,
-  title: "公休表",
-  component: KokyuhyoView,
-  isProtected: true,
-
-  sidebarMenu: {
-    show: true,
-    order: 2,
-  },
-
-  sheetId: SHEETS.KOKYUHYO.sheetName,
-
-  search: {
-    placeholder: "名前、名前カナで検索...",
-    searchKeys: ["name", "nameKana"],
-  },
-
-  columns: KOKYUHYO_COLUMNS,
-};

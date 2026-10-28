@@ -10,6 +10,20 @@ import type { OAuth2Client } from "google-auth-library";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const PROJECT_ROOT = path.resolve(__dirname, "../../../../../");
+const RESOURCES_DIR = path.join(PROJECT_ROOT, "resources");
+
+const SPREADSHEET_HEADERS = [
+  "name1",
+  "name2",
+  "nameKana1",
+  "nameKana2",
+  "department",
+  "position",
+  "email",
+  "phone",
+] as const;
+
 interface AppConfig {
   addressBookUrl: string;
   spreadsheetIds: string[];
@@ -45,6 +59,24 @@ interface ExtractedPerson {
   phone: string;
 }
 
+interface OAuthCredentialsFile {
+  installed?: OAuthClientConfig;
+  web?: OAuthClientConfig;
+}
+
+interface OAuthClientConfig {
+  client_id: string;
+  client_secret: string;
+  redirect_uris?: string[];
+}
+
+interface BrowserWindow extends Window {
+  decompress?: (value: string) => unknown;
+  AddressList?: {
+    data?: unknown;
+  };
+}
+
 const CONFIG: AppConfig = {
   addressBookUrl: "https://cloudstep-ab.appspot.com/a/belc.co.jp/v2/ab",
   spreadsheetIds: [
@@ -52,13 +84,55 @@ const CONFIG: AppConfig = {
     "1DdhzdvH-Z33sK6Zfk8_ZHBqVBmB0MxD9su0NVbge8gI",
   ],
   targetSheetName: "CloudStep",
-  credentialsPath: path.join(
-    __dirname,
-    "../../../../resources/google-oauth-credentials.json",
-  ),
-  tokenPath: path.join(__dirname, "../../../../resources/token.json"),
-  chromeUserDataDir: path.join(__dirname, "../../../../.chrome-profile"),
+  credentialsPath: path.join(RESOURCES_DIR, "google-oauth-credentials.json"),
+  tokenPath: path.join(RESOURCES_DIR, "token.json"),
+  chromeUserDataDir: path.join(PROJECT_ROOT, ".chrome-profile"),
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseOAuthCredentials(value: unknown): OAuthClientConfig {
+  if (!isRecord(value)) {
+    throw new Error("OAuth Credentials File Format Is Invalid");
+  }
+
+  const config: OAuthCredentialsFile = {
+    installed: isRecord(value.installed)
+      ? (value.installed as unknown as OAuthClientConfig)
+      : undefined,
+    web: isRecord(value.web)
+      ? (value.web as unknown as OAuthClientConfig)
+      : undefined,
+  };
+
+  const client = config.installed ?? config.web;
+
+  if (
+    !client ||
+    typeof client.client_id !== "string" ||
+    typeof client.client_secret !== "string"
+  ) {
+    throw new Error("OAuth Client Credentials Are Invalid");
+  }
+
+  if (
+    client.redirect_uris !== undefined &&
+    (!Array.isArray(client.redirect_uris) ||
+      !client.redirect_uris.every(
+        (uri: unknown): uri is string => typeof uri === "string",
+      ))
+  ) {
+    throw new Error("OAuth Redirect URIs Are Invalid");
+  }
+
+  return client;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 async function getOAuth2Client(): Promise<OAuth2Client> {
   if (!fs.existsSync(CONFIG.credentialsPath)) {
@@ -66,19 +140,30 @@ async function getOAuth2Client(): Promise<OAuth2Client> {
       `OAuth Credentials File Not Found: ${CONFIG.credentialsPath}`,
     );
   }
-  const keysContent = fs.readFileSync(CONFIG.credentialsPath, "utf-8");
-  const keys = JSON.parse(keysContent);
-  const { client_secret, client_id, redirect_uris } =
-    keys.installed || keys.web;
+
+  const credentialsContent = fs.readFileSync(CONFIG.credentialsPath, "utf-8");
+  const credentials = parseOAuthCredentials(
+    JSON.parse(credentialsContent) as unknown,
+  );
+
   const oAuth2Client = new google.auth.OAuth2(
-    client_id,
-    client_secret,
-    redirect_uris ? redirect_uris[0] : "http://localhost",
+    credentials.client_id,
+    credentials.client_secret,
+    credentials.redirect_uris?.[0] ?? "http://localhost",
   );
 
   if (fs.existsSync(CONFIG.tokenPath)) {
-    const token = fs.readFileSync(CONFIG.tokenPath, "utf-8");
-    oAuth2Client.setCredentials(JSON.parse(token));
+    const tokenContent = fs.readFileSync(CONFIG.tokenPath, "utf-8");
+    const token: unknown = JSON.parse(tokenContent);
+
+    if (!isRecord(token)) {
+      throw new Error("OAuth Token File Format Is Invalid");
+    }
+
+    oAuth2Client.setCredentials(
+      token as Parameters<OAuth2Client["setCredentials"]>[0],
+    );
+
     return oAuth2Client;
   }
 
@@ -86,29 +171,232 @@ async function getOAuth2Client(): Promise<OAuth2Client> {
     access_type: "offline",
     scope: ["https://www.googleapis.com/auth/spreadsheets"],
   });
+
   console.log("\nGoogle OAuth URL:\n" + authUrl + "\n");
 
-  const readline = await import("readline");
+  const readline = await import("node:readline");
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
 
   const code = await new Promise<string>((resolve) => {
-    rl.question("Enter Code: ", (answer) => {
+    rl.question("Enter Code: ", (answer: string) => {
       rl.close();
       resolve(answer.trim());
     });
   });
 
   const { tokens } = await oAuth2Client.getToken(code);
+
   oAuth2Client.setCredentials(tokens);
+
   fs.writeFileSync(CONFIG.tokenPath, JSON.stringify(tokens, null, 2), "utf-8");
+
   return oAuth2Client;
 }
 
-(async (): Promise<void> => {
+async function closePageSafely(page: Page): Promise<void> {
+  try {
+    await page.close();
+  } catch (error: unknown) {
+    console.warn(
+      "Failed to close existing browser page:",
+      getErrorMessage(error),
+    );
+  }
+}
+
+async function extractAddressBook(page: Page): Promise<ExtractedPerson[]> {
+  return page.evaluate((): ExtractedPerson[] => {
+    const rawRoleMap = localStorage.getItem(
+      "belc.co.jp/AddressList-1.00/roleMap",
+    );
+
+    let roleMap: Record<string, unknown> = {};
+
+    if (rawRoleMap) {
+      try {
+        const parsed: unknown = JSON.parse(rawRoleMap);
+
+        if (
+          typeof parsed === "object" &&
+          parsed !== null &&
+          !Array.isArray(parsed)
+        ) {
+          roleMap = parsed as Record<string, unknown>;
+        }
+      } catch {
+        roleMap = {};
+      }
+    }
+
+    const rawData = localStorage.getItem("belc.co.jp/AddressList-1.00/data");
+
+    if (!rawData) {
+      return [];
+    }
+
+    const browserWindow = window as BrowserWindow;
+    let parsedData: unknown;
+
+    if (typeof browserWindow.decompress === "function") {
+      parsedData = browserWindow.decompress(rawData);
+    } else if (browserWindow.AddressList?.data !== undefined) {
+      parsedData = browserWindow.AddressList.data;
+    } else {
+      try {
+        parsedData = JSON.parse(rawData);
+      } catch {
+        return [];
+      }
+    }
+
+    if (!Array.isArray(parsedData)) {
+      return [];
+    }
+
+    const items = parsedData.filter(
+      (item: unknown): item is AddressItem =>
+        typeof item === "object" && item !== null && !Array.isArray(item),
+    );
+
+    const emailToDepartment = new Map<string, string>();
+
+    items.forEach((item: AddressItem) => {
+      if (typeof item.name1 !== "string" || !item.members) {
+        return;
+      }
+
+      const department = item.name1.trim();
+
+      const members = Array.isArray(item.members)
+        ? item.members
+        : Array.isArray(item.members.values)
+          ? item.members.values
+          : [];
+
+      members.forEach((member: string) => {
+        if (typeof member === "string" && member.includes("@")) {
+          emailToDepartment.set(member.trim().toLowerCase(), department);
+        }
+      });
+    });
+
+    return items
+      .map((item: AddressItem): ExtractedPerson => {
+        const nameKana1 =
+          typeof item.nameKana1 === "string" ? item.nameKana1.trim() : "";
+        const nameKana2 =
+          typeof item.nameKana2 === "string" ? item.nameKana2.trim() : "";
+        const email = typeof item.email === "string" ? item.email : "";
+        const normalizedEmail = email.trim().toLowerCase();
+
+        let department =
+          typeof item.department === "string" ? item.department.trim() : "";
+
+        if (!department && normalizedEmail) {
+          department = emailToDepartment.get(normalizedEmail) ?? "";
+        }
+
+        let position =
+          typeof item.position === "string" ? item.position.trim() : "";
+
+        if (!position && typeof item.roleId === "string") {
+          const roleNames: string[] = [];
+
+          item.roleId.split(",").forEach((entry: string) => {
+            const parts = entry.trim().split("_");
+            const roleId = parts[parts.length - 1];
+
+            if (!roleId) {
+              return;
+            }
+
+            const role = roleMap[roleId];
+            let roleName = "";
+
+            if (typeof role === "string") {
+              roleName = role;
+            } else if (
+              typeof role === "object" &&
+              role !== null &&
+              !Array.isArray(role)
+            ) {
+              const roleRecord = role as Record<string, unknown>;
+
+              if (typeof roleRecord.name === "string") {
+                roleName = roleRecord.name;
+              } else if (typeof roleRecord.roleName === "string") {
+                roleName = roleRecord.roleName;
+              }
+            }
+
+            if (roleName && !roleNames.includes(roleName)) {
+              roleNames.push(roleName);
+            }
+          });
+
+          position = roleNames.join(" / ");
+        }
+
+        return {
+          nameKana1,
+          nameKana2,
+          name1: typeof item.name1 === "string" ? item.name1.trim() : "",
+          name2: typeof item.name2 === "string" ? item.name2.trim() : "",
+          department,
+          position,
+          email,
+          phone: typeof item.phone === "string" ? item.phone : "",
+        };
+      })
+      .filter(
+        (item: ExtractedPerson) =>
+          (item.nameKana1 !== "" || item.nameKana2 !== "") &&
+          item.position !== "" &&
+          (item.name1 !== "" || item.email !== ""),
+      );
+  });
+}
+
+function createSpreadsheetRows(people: ExtractedPerson[]): string[][] {
+  return [
+    [...SPREADSHEET_HEADERS],
+    ...people.map((person: ExtractedPerson) => [
+      person.name1,
+      person.name2,
+      person.nameKana1,
+      person.nameKana2,
+      person.department,
+      person.position,
+      person.email,
+      person.phone,
+    ]),
+  ];
+}
+
+async function updateSpreadsheet(
+  sheets: sheets_v4.Sheets,
+  spreadsheetId: string,
+  rows: string[][],
+): Promise<void> {
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId,
+    range: `${CONFIG.targetSheetName}!A:H`,
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${CONFIG.targetSheetName}!A1`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: rows },
+  });
+}
+
+async function runScrape(): Promise<void> {
   console.log("Starting Browser...");
+
   const browser = await puppeteer.launch({
     headless: false,
     userDataDir: CONFIG.chromeUserDataDir,
@@ -116,173 +404,47 @@ async function getOAuth2Client(): Promise<OAuth2Client> {
   });
 
   let shouldCloseBrowser = true;
+
   try {
-    const existingPages: Page[] = await browser.pages();
-    const page: Page = await browser.newPage();
+    const existingPages = await browser.pages();
+    const page = await browser.newPage();
+
     page.on("dialog", async (dialog: Dialog) => {
       await dialog.accept();
     });
 
-    for (const oldPage of existingPages) {
-      await oldPage.close().catch(() => {});
-    }
+    await Promise.all(existingPages.map(closePageSafely));
 
-    await page.goto(CONFIG.addressBookUrl, { waitUntil: "networkidle2" });
-
-    const extractedData = await page.evaluate((): ExtractedPerson[] => {
-      const rawRoleMap = localStorage.getItem(
-        "belc.co.jp/AddressList-1.00/roleMap",
-      );
-      let roleMapObj: Record<string, any> = {};
-      if (rawRoleMap) {
-        try {
-          roleMapObj = JSON.parse(rawRoleMap);
-        } catch (e) {}
-      }
-
-      const key = "belc.co.jp/AddressList-1.00/data";
-      const rawStr = localStorage.getItem(key);
-      if (!rawStr) return [];
-
-      let list: any[] = [];
-      const win = window as any;
-      if (typeof win.decompress === "function") {
-        list = win.decompress(rawStr);
-      } else if (
-        typeof win.AddressList !== "undefined" &&
-        win.AddressList.data
-      ) {
-        list = win.AddressList.data;
-      } else {
-        try {
-          list = JSON.parse(rawStr);
-        } catch (e) {
-          list = [];
-        }
-      }
-      if (!Array.isArray(list)) return [];
-
-      const emailToDeptMap = new Map<string, string>();
-      list.forEach((item: AddressItem) => {
-        if (item.name1 && item.members) {
-          const deptName = item.name1.trim();
-          let memberList: string[] = [];
-          if (Array.isArray(item.members)) {
-            memberList = item.members;
-          } else if (
-            item.members.values &&
-            Array.isArray(item.members.values)
-          ) {
-            memberList = item.members.values;
-          }
-          memberList.forEach((m) => {
-            if (typeof m === "string" && m.includes("@")) {
-              emailToDeptMap.set(m.trim().toLowerCase(), deptName);
-            }
-          });
-        }
-      });
-
-      return list
-        .map((item: AddressItem): ExtractedPerson => {
-          const k1 = (item.nameKana1 || "").trim();
-          const k2 = (item.nameKana2 || "").trim();
-          const mail = (item.email || "").trim().toLowerCase();
-
-          let dept = item.department ? item.department.trim() : "";
-          if (!dept && mail && emailToDeptMap.has(mail)) {
-            dept = emailToDeptMap.get(mail) || "";
-          }
-
-          let pos = item.position ? item.position.trim() : "";
-          if (!pos && item.roleId && roleMapObj) {
-            const roleNames: string[] = [];
-            const roleIdEntries = item.roleId.split(",");
-            roleIdEntries.forEach((entry) => {
-              const parts = entry.trim().split("_");
-              const singleRoleId = parts[parts.length - 1];
-              if (singleRoleId && roleMapObj[singleRoleId]) {
-                const rObj = roleMapObj[singleRoleId];
-                const rName =
-                  typeof rObj === "string"
-                    ? rObj
-                    : rObj.name || rObj.roleName || "";
-                if (rName && !roleNames.includes(rName)) {
-                  roleNames.push(rName);
-                }
-              }
-            });
-            pos = roleNames.join(" / ");
-          }
-          return {
-            nameKana1: k1,
-            nameKana2: k2,
-            name1: (item.name1 || "").trim(),
-            name2: (item.name2 || "").trim(),
-            department: dept,
-            position: pos,
-            email: item.email || "",
-            phone: item.phone || "",
-          };
-        })
-        .filter((item: ExtractedPerson) => {
-          const hasKana = item.nameKana1 !== "" || item.nameKana2 !== "";
-          const hasPosition = item.position !== "";
-          return (
-            hasKana && hasPosition && (item.name1 !== "" || item.email !== "")
-          );
-        });
+    await page.goto(CONFIG.addressBookUrl, {
+      waitUntil: "networkidle2",
     });
 
-    if (!extractedData || extractedData.length === 0) {
+    const extractedData = await extractAddressBook(page);
+
+    if (extractedData.length === 0) {
       throw new Error("Extracted Data is empty");
     }
 
-    const headers = [
-      "name1",
-      "name2",
-      "nameKana1",
-      "nameKana2",
-      "department",
-      "position",
-      "email",
-      "phone",
-    ];
-    const rows: string[][] = [headers];
-    extractedData.forEach((item: ExtractedPerson) => {
-      rows.push([
-        item.name1,
-        item.name2,
-        item.nameKana1,
-        item.nameKana2,
-        item.department,
-        item.position,
-        item.email,
-        item.phone,
-      ]);
-    });
-
+    const rows = createSpreadsheetRows(extractedData);
     const auth = await getOAuth2Client();
-    const sheets: sheets_v4.Sheets = google.sheets({ version: "v4", auth });
+    const sheets = google.sheets({ version: "v4", auth });
 
     for (const spreadsheetId of CONFIG.spreadsheetIds) {
-      await sheets.spreadsheets.values.clear({
-        spreadsheetId,
-        range: `${CONFIG.targetSheetName}!A:H`,
-      });
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: `${CONFIG.targetSheetName}!A1`,
-        valueInputOption: "USER_ENTERED",
-        requestBody: { values: rows },
-      });
+      await updateSpreadsheet(sheets, spreadsheetId, rows);
     }
-  } catch (error: any) {
-    console.error("Scrape Error:", error.message || error);
+
+    console.log(`Scrape completed: ${extractedData.length} records`);
+  } catch (error: unknown) {
+    console.error("Scrape Error:", getErrorMessage(error));
     shouldCloseBrowser = false;
   } finally {
     if (shouldCloseBrowser) {
       await browser.close();
     }
   }
-})();
+}
+
+void runScrape().catch((error: unknown) => {
+  console.error("Scrape Error:", getErrorMessage(error));
+  process.exitCode = 1;
+});

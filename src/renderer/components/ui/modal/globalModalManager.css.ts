@@ -156,9 +156,9 @@ export const messageBanner = style({
 export const messageTypes = styleVariants({
   info: {
     backgroundColor: tokens.color.bg.frostedGlass,
-    color: tokens.color.status.waiting,
-    border: `1px solid ${tokens.color.status.waiting}`,
-    boxShadow: tokens.shadow.glow.waiting,
+    color: tokens.color.accent.neonWhite,
+    border: `1px solid ${tokens.color.accent.neonWhite}`,
+    boxShadow: tokens.shadow.glow.white,
   },
   success: {
     backgroundColor: tokens.color.bg.frostedGlass,

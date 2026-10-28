@@ -3,10 +3,7 @@
 import type { GmailDraft } from "../gmailTypes";
 import { getPreviousYearMonth } from "../gmailUtils";
 
-export function createTemplateE10(
-  familyName = "",
-  _links?: Record<string, string> | null,
-): GmailDraft {
+export function createTemplateE10(familyName = ""): GmailDraft {
   const ym = getPreviousYearMonth();
 
   return {

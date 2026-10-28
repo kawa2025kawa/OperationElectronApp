@@ -3,86 +3,39 @@
 import { tokens } from "@renderer/styles/tokens";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 
-/* =====================================================
- * 🎯 Theme型
- ===================================================== */
-
-export type StatusTheme = {
+export interface StatusTheme {
   color: string;
   glow: string;
-};
-
-/* =====================================================
- * 🎯 ベーステーマ（純UI層）
- ===================================================== */
-
-const baseThemes = {
-  success: {
-    color: tokens.color.status.success,
-    glow: tokens.shadow.glow.success,
-  },
-  running: {
-    color: tokens.color.status.running,
-    glow: tokens.shadow.glow.running,
-  },
-  waiting: {
-    // 🎯 修正: pending から waiting に統一
-    color: tokens.color.status.waiting,
-    glow: tokens.shadow.glow.waiting,
-  },
-  scheduled: {
-    color: tokens.color.status.scheduled,
-    glow: tokens.shadow.glow.scheduled,
-  },
-  ready: {
-    // 🎯 修正: scheduled の使い回しをやめ、本来の ready 用スタイルに完全分離！
-    color: tokens.color.status.ready,
-    glow: tokens.shadow.glow.ready,
-  },
-  error: {
-    color: tokens.color.status.error,
-    glow: tokens.shadow.glow.error,
-  },
-  total: {
-    color: tokens.color.status.total,
-    glow: tokens.shadow.glow.total,
-  },
-} as const;
-
-/* =====================================================
- * 🎯 JobStatus → UIテーママッピング
- * ===================================================== */
-
-function resolveTheme(status: JobStatus): keyof typeof baseThemes {
-  switch (status) {
-    case "success":
-      return "success";
-
-    case "running":
-      return "running";
-
-    case "waiting":
-      return "waiting";
-
-    case "scheduled":
-      return "scheduled";
-
-    case "ready":
-      return "ready";
-
-    case "error":
-      return "error";
-
-    default:
-      return "total";
-  }
 }
 
-/* =====================================================
- * 🎯 公開API（安全版）
- * ===================================================== */
+const createTheme = (color: string, glow: string): StatusTheme => ({
+  color,
+  glow,
+});
 
-export const getStatusTheme = (status: JobStatus): StatusTheme => {
-  const key = resolveTheme(status);
-  return baseThemes[key];
+/**
+ * ステータスごとの色・発光を一元管理する。
+ * 各 UI はこの定義を参照し、独自の色を持たない。
+ */
+const statusThemes: Record<JobStatus, StatusTheme> = {
+  success: createTheme(tokens.color.status.success, tokens.shadow.glow.success),
+  running: createTheme(tokens.color.status.running, tokens.shadow.glow.running),
+  scriptRunning: createTheme(
+    tokens.color.status.running,
+    tokens.shadow.glow.running,
+  ),
+  waiting: createTheme(tokens.color.status.waiting, tokens.shadow.glow.waiting),
+  scheduled: createTheme(
+    tokens.color.status.scheduled,
+    tokens.shadow.glow.scheduled,
+  ),
+  ready: createTheme(tokens.color.status.ready, tokens.shadow.glow.ready),
+  needsAction: createTheme(
+    tokens.color.status.needsAction,
+    tokens.shadow.glow.needsAction,
+  ),
+  error: createTheme(tokens.color.status.error, tokens.shadow.glow.error),
 };
+
+export const getStatusTheme = (status: JobStatus): StatusTheme =>
+  statusThemes[status];

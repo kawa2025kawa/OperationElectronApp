@@ -1,9 +1,9 @@
 // src/shared/types/spreadsheet/kokyuhyo.ts
 
 /**
- * 1. 各フィールドの「キー」と「日本語ラベル」を一元管理
+ * 各フィールドのキーと日本語ラベルを一元管理
  */
-const KOKYUHYO_FIELD_LABELS = {
+export const KOKYUHYO_FIELD_LABELS = {
   id: "ID",
   name: "氏名",
   nameKana: "氏名カナ",
@@ -23,8 +23,5 @@ const KOKYUHYO_FIELD_LABELS = {
   email: "メールアドレス",
 } as const;
 
-/**
- * 2. オブジェクトのキーから Kokyuhyo 型を自動生成
- */
 export type KokyuhyoKey = keyof typeof KOKYUHYO_FIELD_LABELS;
 export type Kokyuhyo = Record<KokyuhyoKey, string>;

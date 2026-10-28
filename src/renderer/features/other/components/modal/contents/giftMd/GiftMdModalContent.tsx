@@ -3,19 +3,17 @@
 import { memo } from "react";
 
 import { FileDropZone } from "@renderer/components/ui/fileDropZone/FileDropZone";
+import { useGiftMdModalContent } from "@renderer/features/other/components/modal/contents/giftMd/useGiftMdModalContent";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 
-import { useGiftMdModalContent } from "./useGiftMdModalContent";
-
 export const GiftMdModalContent: GlobalModalComponent = memo(() => {
-  const { files, isProcessing, setGiftMdFileFromRaw } = useGiftMdModalContent();
+  const { files, setGiftMdFileFromRaw } = useGiftMdModalContent();
 
   return (
     <FileDropZone
       files={files}
       accept=".txt,.DAT,text/plain"
-      label="エラーログファイルをドラッグ＆ドロップ または クリックして選択"
-      disabled={isProcessing}
+      label="ギフトデータファイルをドラッグ＆ドロップ または クリックして選択"
       onFileSelect={setGiftMdFileFromRaw}
     />
   );

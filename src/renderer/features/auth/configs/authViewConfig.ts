@@ -4,10 +4,12 @@ import {
   APP_VIEW_IDS,
   type AppViewDefinition,
 } from "@shared/types/registry/viewDefinition";
+import { AuthView } from "@renderer/features/auth/AuthView";
 
 export const authViewConfig: AppViewDefinition = {
   id: APP_VIEW_IDS.AUTH,
   title: "Account",
+  component: AuthView,
   isProtected: false,
   sidebarMenu: { show: true, order: 7 },
 };

@@ -27,11 +27,18 @@ export const LinkModalContent: GlobalModalComponent<LinkModalContentProps> =
                 key={item.key}
                 type="button"
                 className={styles.terminalRow}
-                onClick={() => void actions.handleOpenUrl(item.url)}
               >
-                <div className={styles.nonTrBadge}>{item.key}</div>
+                <button
+                  type="button"
+                  className={styles.nonTrBadge}
+                  onClick={() => void actions.handleOpenUrl(item.url)}
+                >
+                  {item.key}
+                </button>
                 <div className={styles.flexCell}>
-                  <div className={styles.cellValue}>{item.url}</div>
+                  <div className={styles.cellValue} title={item.url}>
+                    {item.url}
+                  </div>
                 </div>
               </button>
             ))

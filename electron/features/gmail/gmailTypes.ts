@@ -1,7 +1,6 @@
-import type {
-  EmailTemplateKey,
-  GmailDraft,
-} from "@shared/types/gmail/gmailDraftTypes";
+// electron/features/gmail/gmailTypes.ts
+
+import type { EmailTemplateKey } from "@shared/types/gmail/gmailDraftTypes";
 
 export type {
   EmailTemplateKey,

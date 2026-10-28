@@ -5,6 +5,7 @@ import fs from "fs-extra";
 import archiver from "archiver";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 export interface CreateZipOptions {
   /** 圧縮対象のファイルパス一覧 */
@@ -35,17 +36,6 @@ async function directoryExists(dirPath: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-/**
- * 日付キーを取得する（ローカルタイム）
- */
-function getDateKey(date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}${month}${day}`;
 }
 
 /**

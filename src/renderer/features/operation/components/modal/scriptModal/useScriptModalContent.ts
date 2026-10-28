@@ -1,4 +1,4 @@
-﻿// src/renderer/features/operation/components/modal/scriptModal/useScriptModalContent.ts
+// src/renderer/features/operation/components/modal/scriptModal/useScriptModalContent.ts
 
 import { useCallback, useState } from "react";
 import type {
@@ -13,17 +13,18 @@ interface ScriptFileItem {
   path: string;
 }
 
-type ExecutionState = "idle" | "completed" | "error";
+type ExecutionState = "idle" | "completed" | "needsAction" | "error";
 
 export interface InfoBoxMessage {
   text: string;
-  type: "info" | "success" | "error";
+  type: "info" | "success" | "warning" | "error";
 }
 
 function getFilePath(file: File): string {
   if ("path" in file && typeof file.path === "string") {
     return file.path;
   }
+
   return window.electronAPI.getFilePath(file) || file.name;
 }
 
@@ -40,6 +41,60 @@ function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function getExecutionState(result: JobResult): ExecutionState {
+  if (result.success === false || result.kind === "error") {
+    return "error";
+  }
+
+  if (result.kind === "needsAction") {
+    return "needsAction";
+  }
+
+  return "completed";
+}
+
+function getInfoMessage(
+  executionState: ExecutionState,
+  executionResult: JobResult | null,
+  workName: string | undefined,
+  scriptKey: string,
+): InfoBoxMessage {
+  switch (executionState) {
+    case "error":
+      return {
+        text: "エラーが発生しました",
+        type: "error",
+      };
+
+    case "needsAction":
+      return {
+        text: "要対応",
+        type: "warning",
+      };
+
+    case "completed":
+      if (executionResult?.kind === "difference") {
+        return {
+          text: "差分あり",
+          type: "error",
+        };
+      }
+
+      return {
+        text: "正常終了しました",
+        type: "success",
+      };
+
+    case "idle":
+      return {
+        text: workName
+          ? `${workName} (${scriptKey})`
+          : `スクリプト実行 (${scriptKey})`,
+        type: "info",
+      };
+  }
+}
+
 export function useScriptModalContent(
   item: OperationViewItem | null | undefined,
   scriptKey: string,
@@ -54,11 +109,13 @@ export function useScriptModalContent(
   const [isExecuting, setIsExecuting] = useState(false);
 
   const matchedKey = item?.ScriptKeys?.find(
-    (k) => k.key.trim().toLowerCase() === scriptKey.trim().toLowerCase(),
+    (key) => key.key.trim().toLowerCase() === scriptKey.trim().toLowerCase(),
   );
   const isFileSelectionRequired = Boolean(matchedKey?.requiresFileSelection);
 
   const kanriNo = String(item?.kanriNo ?? "");
+  const targetName = item?.workName;
+
   const isFinished = executionState !== "idle";
   const isDropZoneVisible = !isFinished && isFileSelectionRequired;
   const isExecutable =
@@ -68,28 +125,20 @@ export function useScriptModalContent(
     Boolean(scriptKey) &&
     (!isFileSelectionRequired || selectedFiles.length > 0);
 
-  const infoMessage: InfoBoxMessage = (() => {
-    if (executionState === "error") {
-      return { text: "エラーが発生しました", type: "error" };
-    }
-    if (executionState === "completed") {
-      const isDifference = executionResult?.kind === "difference";
-      return {
-        text: isDifference ? "差分あり" : "正常終了しました",
-        type: isDifference ? "error" : "success",
-      };
-    }
-    return {
-      text: item?.workName
-        ? `${item.workName} (${scriptKey})`
-        : `スクリプト実行 (${scriptKey})`,
-      type: "info",
-    };
-  })();
+  const infoMessage = getInfoMessage(
+    executionState,
+    executionResult,
+    targetName,
+    scriptKey,
+  );
 
   const handleFileSelect = useCallback((files: File[]) => {
     const items = toScriptFileItems(files);
-    if (items.length === 0) return;
+
+    if (items.length === 0) {
+      return;
+    }
+
     setSelectedFiles((current) => [...current, ...items]);
     setExecutionState("idle");
     setExecutionResult(null);
@@ -105,7 +154,9 @@ export function useScriptModalContent(
     if (!kanriNo || !scriptKey || isExecuting) {
       return;
     }
+
     const filePaths = selectedFiles.map(({ path }) => path).filter(Boolean);
+
     if (isFileSelectionRequired && filePaths.length === 0) {
       return;
     }
@@ -113,20 +164,20 @@ export function useScriptModalContent(
     setIsExecuting(true);
 
     try {
-      const result = await operationService.executeScriptJob(
-        useAppStore.getState(),
-        {
-          kanriNo,
-          scriptKey,
-          targetName: item?.workName,
-          filePath: filePaths.length > 0 ? filePaths : undefined,
-        },
-      );
+      const result = await operationService.executeScriptJob({
+        kanriNo,
+        scriptKey,
+        targetName,
+        filePath: filePaths.length > 0 ? filePaths : undefined,
+        ignoreDependencies: true,
+      });
+
       setExecutionResult(result);
-      setExecutionState(result.success === false ? "error" : "completed");
+      setExecutionState(getExecutionState(result));
       setSelectedFiles([]);
     } catch (error) {
       const message = toErrorMessage(error);
+
       setExecutionResult({
         success: false,
         kind: "error",
@@ -142,7 +193,7 @@ export function useScriptModalContent(
     isExecuting,
     isFileSelectionRequired,
     selectedFiles,
-    item?.workName,
+    targetName,
   ]);
 
   return {

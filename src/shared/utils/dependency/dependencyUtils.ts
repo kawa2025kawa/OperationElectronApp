@@ -49,11 +49,6 @@ export interface DependencyStatuses {
   statuses: Record<string, OperationStatusState>;
 }
 
-const DEFAULT_JOB_EXECUTION_OPTIONS: Readonly<JobExecutionOptions> = {
-  ignoreDependencies: false,
-  silent: true,
-};
-
 const CENTER_DEPENDENCY_KEYS: Readonly<Record<string, keyof ActiveFlags>> = {
   "1C": "is1CActive",
   "2C": "is2CActive",

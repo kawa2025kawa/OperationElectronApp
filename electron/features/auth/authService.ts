@@ -95,7 +95,9 @@ class AuthService {
     init: GoogleApiRequestOptions = {},
   ): Promise<Response> {
     const retryOnUnauthorized = init.retryOnUnauthorized ?? true;
-    const { retryOnUnauthorized: _retry, ...requestInit } = init;
+    const requestInit = { ...init };
+
+    delete requestInit.retryOnUnauthorized;
 
     let session = await this.getValidSession();
 

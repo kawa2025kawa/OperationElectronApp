@@ -1,27 +1,12 @@
-// src/renderer/features/spreadsheet/jugyoin/modal/useJugyoinModalContent.ts
+// src/renderer/features/spreadSheet/jugyoin/modal/useJugyoinModalContent.ts
 
 import { useCallback } from "react";
-import { addDays, format, getDay } from "date-fns";
-import { ja } from "date-fns/locale/ja";
 import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
 import { systemIpcService } from "@renderer/services/systemIpcService";
-
-const formatDateWithDay = (date: Date) => {
-  const mmdd = format(date, "MM/dd");
-  const dayOfWeek = format(date, "EEE", { locale: ja });
-  const dayNum = getDay(date);
-
-  let dayColor = "inherit";
-
-  if (dayNum === 6) dayColor = "#0077ff";
-  if (dayNum === 0) dayColor = "#ff3333";
-
-  return {
-    text: mmdd,
-    dayText: `(${dayOfWeek})`,
-    dayStyle: { color: dayColor },
-  };
-};
+import {
+  formatDateWithDay,
+  getOffsetDate,
+} from "../../utils/spreadsheetDateUtils";
 
 export function useJugyoinModalContent(data: Jugyoin) {
   const scheduleLink =
@@ -43,10 +28,12 @@ export function useJugyoinModalContent(data: Jugyoin) {
     mobile: data?.contactMobile || "-",
   };
 
+  const now = new Date();
+
   const schedules = [
     {
       label: "本日",
-      date: formatDateWithDay(new Date()),
+      date: formatDateWithDay(now),
       amStatus: data?.todayAmStatus || "-",
       amDetail: data?.todayAmDetail || "-",
       pmStatus: data?.todayPmStatus || "-",
@@ -54,7 +41,7 @@ export function useJugyoinModalContent(data: Jugyoin) {
     },
     {
       label: "明日",
-      date: formatDateWithDay(addDays(new Date(), 1)),
+      date: formatDateWithDay(getOffsetDate(1, now)),
       amStatus: data?.tomorrowAmStatus || "-",
       amDetail: data?.tomorrowAmDetail || "-",
       pmStatus: data?.tomorrowPmStatus || "-",

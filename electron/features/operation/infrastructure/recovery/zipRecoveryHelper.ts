@@ -14,6 +14,7 @@ import type { JobResult } from "@shared/types/operation/operationTypes";
 function extractZipPath(error: unknown): string | null {
   const message = error instanceof Error ? error.message : String(error);
   const match = message.match(/([A-Z]:\\[^\r\n]+\.zip)/i);
+
   return match?.[1] ?? null;
 }
 
@@ -30,7 +31,29 @@ function confirmZipRecovery(zipPath: string): boolean {
     message: "破損したZIPファイルを削除して再作成しますか？",
     detail: zipPath,
   });
+
   return response === 0;
+}
+
+/**
+ * ZIPファイルを削除する。
+ * すでに削除されている場合のみ、そのまま処理を継続する。
+ */
+async function removeCorruptedZip(zipPath: string): Promise<void> {
+  try {
+    await fs.unlink(zipPath);
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return;
+    }
+
+    throw error;
+  }
 }
 
 /**
@@ -45,13 +68,12 @@ export async function runScriptWithZipRecovery(
     return await executeSingleScriptJob(kanriNo, scriptKey, filePath);
   } catch (error: unknown) {
     const zipPath = extractZipPath(error);
+
     if (!zipPath || !confirmZipRecovery(zipPath)) {
       throw error;
     }
 
-    try {
-      await fs.unlink(zipPath);
-    } catch {}
+    await removeCorruptedZip(zipPath);
 
     return executeSingleScriptJob(kanriNo, scriptKey, filePath);
   }

@@ -25,7 +25,7 @@ export interface Column<T = unknown> {
 export interface SpreadSheetTableProps<T extends object = object> {
   data: T[];
   columns: readonly Column<T>[];
-  rowKey?: keyof T | string | ((record: T) => string); // 🎯 関数型とオプショナル(?)を許容
+  rowKey?: keyof T | string | ((record: T) => string);
   onRowClick?: (item: T) => void;
   selectedId?: string | number | null;
 }
@@ -35,7 +35,7 @@ export interface SpreadSheetTableProps<T extends object = object> {
  */
 export interface TableRowProps<T extends object = Record<string, unknown>> {
   item: T;
-  columns: readonly Column<any>[];
+  columns: readonly Column<T>[];
   isSelected: boolean;
   onRowClick?: (item: T) => void;
   measureRef?: (element: HTMLElement | null) => void;
