@@ -28,19 +28,26 @@ export interface OperationMaster {
   workName: string;
   scheduledTime?: string;
   jobId?: string;
-  dependsOn?: string;
+  dependsOn?: string | string[] | null;
 
   /** Manual ボタンの表示判定・起動先 */
   manualUrl?: string;
 
   /** AutoManual ボタンの表示判定・起動先 */
   autoManualUrl?: string;
-
+  gmail?: boolean;
   ScriptKeys?: OperationScriptKey[];
   links?: OperationLink[];
 
-  other1?: string;
-  other2?: string;
+  /** スプレッドシートのリンク先パス */
+  link1?: string;
+  link2?: string;
+  link3?: string;
+
+  /** スプレッドシートのリンクボタン用ラベル */
+  link1Label?: string;
+  link2Label?: string;
+  link3Label?: string;
 }
 
 export interface IrregularMaster {
@@ -49,19 +56,28 @@ export interface IrregularMaster {
   scheduledTime?: string;
   jobId?: string;
   cycle?: string;
-  dependsOn?: string;
+  cycle1?: string;
+  cycle2?: string;
+  dependsOn?: string | string[] | null;
 
   /** Manual ボタンの表示判定・起動先 */
   manualUrl?: string;
 
   /** AutoManual ボタンの表示判定・起動先 */
   autoManualUrl?: string;
-
+  gmail?: boolean;
   ScriptKeys?: OperationScriptKey[];
   links?: OperationLink[];
 
-  other1?: string;
-  other2?: string;
+  /** スプレッドシートのリンク先パス */
+  link1?: string;
+  link2?: string;
+  link3?: string;
+
+  /** スプレッドシートのリンクボタン用ラベル */
+  link1Label?: string;
+  link2Label?: string;
+  link3Label?: string;
 }
 
 export type TodayIrregularMaster = IrregularMaster;
@@ -77,6 +93,19 @@ export interface OperationScriptKey {
   label?: string;
   executionTypes?: ScriptExecutionType[];
   requiresFileSelection?: boolean;
+}
+
+export type ScriptFilePath = string | string[];
+
+export interface ScriptExecutionRequirement {
+  requiresFileSelection: boolean;
+}
+
+export interface ManualScriptExecutionInput {
+  kanriNo: string;
+  scriptKey?: string;
+  filePath?: ScriptFilePath;
+  ignoreDependencies?: boolean;
 }
 
 /* =========================

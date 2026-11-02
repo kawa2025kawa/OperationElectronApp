@@ -5,7 +5,10 @@ import fs from "fs-extra";
 import archiver from "archiver";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import {
+  directoryExists,
+  getDateKey,
+} from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 export interface CreateZipOptions {
   /** 圧縮対象のファイルパス一覧 */
@@ -28,17 +31,6 @@ interface ZipSourceFile {
 }
 
 /**
- * ディレクトリが存在するか確認する
- */
-async function directoryExists(dirPath: string): Promise<boolean> {
-  try {
-    return (await fs.stat(dirPath)).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-/**
  * ZIP圧縮を実行する。
  *
  * - ZIP内のファイル名は元ファイルの basename を使用する
@@ -54,7 +46,6 @@ async function compressFiles(
     throw new Error("ZIPに含めるファイルが指定されていません。");
   }
 
-  // 出力ZIPが圧縮対象自身と同じパスの場合、入力ファイルを破壊するため拒否する。
   const resolvedOutputPath = path.resolve(outputZipPath);
 
   for (const file of files) {
@@ -81,10 +72,7 @@ async function compressFiles(
     let settled = false;
 
     const fail = (error: Error): void => {
-      if (settled) {
-        return;
-      }
-
+      if (settled) return;
       settled = true;
       archive.destroy();
       output.destroy();
@@ -92,18 +80,13 @@ async function compressFiles(
     };
 
     output.on("close", () => {
-      if (settled) {
-        return;
-      }
-
+      if (settled) return;
       settled = true;
       resolve();
     });
 
     output.on("error", fail);
     archive.on("error", fail);
-
-    // 指定したファイルを完全に圧縮できない場合は失敗として扱う。
     archive.on("warning", fail);
 
     archive.pipe(output);
@@ -131,8 +114,6 @@ async function compressFiles(
 
 /**
  * 指定されたファイル群を、日付入りのZIPアーカイブとして作成する。
- *
- * @returns 作成したZIPファイル名と対象件数を含むメッセージ
  */
 export async function createZipArchive(
   options: CreateZipOptions,
@@ -154,7 +135,6 @@ export async function createZipArchive(
 
   const files: ZipSourceFile[] = [];
 
-  // 圧縮対象の検証とログ出力をまとめて行う。
   for (const filePath of filePaths) {
     const stat = await fs.stat(filePath);
 
@@ -194,7 +174,6 @@ export async function createZipArchive(
     message += `\n\n${fileList}`;
 
     logger.log("圧縮対象ファイル一覧 :");
-
     files.forEach((file, index) => {
       logger.log(`  ${index + 1}. ${file.fileName}`);
     });

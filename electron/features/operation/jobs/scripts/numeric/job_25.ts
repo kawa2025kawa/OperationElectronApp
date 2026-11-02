@@ -15,7 +15,7 @@ type KeywordResult = {
   fileNames: string[];
 };
 
-type JobResult = {
+type Job25CheckResult = {
   targetDir: string;
   results: KeywordResult[];
   missingFiles: KeywordResult[];
@@ -56,7 +56,7 @@ export async function runJob25(): Promise<string> {
 /**
  * 当日分の対象ファイルを検索し、キーワードごとに分類する。
  */
-async function findTargetFiles(): Promise<JobResult> {
+async function findTargetFiles(): Promise<Job25CheckResult> {
   const today = format(new Date(), "yyyyMMdd");
 
   const entries = await fs.readdir(CONFIG.targetDir, {
@@ -88,7 +88,7 @@ async function findTargetFiles(): Promise<JobResult> {
 /**
  * 検索結果と不足ファイルをログに出力する。
  */
-function writeResultLog(logger: JobLogger, result: JobResult): string {
+function writeResultLog(logger: JobLogger, result: Job25CheckResult): string {
   logger.log(`対象ディレクトリ : ${result.targetDir}`);
 
   logger.section("検索結果");

@@ -39,10 +39,16 @@ export const actionButton = style([
 ]);
 
 // バリアントスタイル定義
+// src/renderer/components/ui/button/actionButton/actionButton.css.ts
+
+// ...（ベーススタイルは既存のまま）
+
+// バリアントスタイル定義
 export const variants = styleVariants({
   default: {
-    padding: "1vmin 2.5vmin",
+    padding: "1.2vmin 3vmin",
     minWidth: "120px",
+    minHeight: "44px", // 🎯 下部ボタンの高さをしっかり確保
     borderRadius: tokens.radius.md,
     fontSize: tokens.font.fluid.sm,
     backgroundColor: tokens.color.bg.base,

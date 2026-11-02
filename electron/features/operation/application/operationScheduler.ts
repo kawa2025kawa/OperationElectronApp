@@ -1,6 +1,7 @@
 // electron/features/operation/application/operationScheduler.ts
 
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
+import { getScriptKeysForOperation } from "@electron/features/operation/runners/operationScriptRegistry";
 import {
   getRegisteredTargets,
   getStatus,
@@ -9,10 +10,7 @@ import {
   updateStatus,
   type StatusTarget,
 } from "@electron/features/operation/application/statusManager";
-import {
-  applyScriptExecutionError,
-  applyScriptExecutionResult,
-} from "@electron/features/operation/application/scriptExecutionService";
+import { executeScriptAndApplyStatus } from "@electron/features/operation/application/scriptExecutionService";
 import { executeSingleScriptJob } from "@electron/features/operation/runners/scriptRunner";
 import {
   JOB_STATUS,
@@ -50,14 +48,9 @@ async function executeScript(
     startTime: new Date().toISOString(),
   });
 
-  try {
-    const result = await executeSingleScriptJob(kanriNo, scriptKey);
-    applyScriptExecutionResult(kanriNo, result);
-    return result;
-  } catch (error) {
-    applyScriptExecutionError(kanriNo, error);
-    throw error;
-  }
+  return executeScriptAndApplyStatus(kanriNo, () =>
+    executeSingleScriptJob(kanriNo, scriptKey),
+  );
 }
 
 // READY状態のジョブに紐づく自動実行スクリプトを順次実行する。
@@ -69,11 +62,10 @@ async function executeReadyJob(item: OperationViewItem): Promise<void> {
     return;
   }
 
-  const scriptKeys = Array.isArray(item.ScriptKeys)
-    ? item.ScriptKeys.filter((entry) => entry.executionTypes?.includes("auto"))
-        .map((entry) => entry.key.trim())
-        .filter(Boolean)
-    : [];
+  const scriptKeys = getScriptKeysForOperation(kanriNo, item.ScriptKeys)
+    .filter((entry) => entry.executionTypes?.includes("auto"))
+    .map((entry) => entry.key.trim())
+    .filter(Boolean);
 
   if (scriptKeys.length === 0) {
     return;
@@ -127,9 +119,11 @@ async function processReadyQueue(): Promise<void> {
       const target = readyQueue.shift()!;
       const kanriNo = normalizeKanriNo(target.kanriNo);
       queuedKanriNos.delete(kanriNo);
+
       if (!kanriNo) {
         continue;
       }
+
       try {
         await processReadyTarget(target);
       } catch (error) {

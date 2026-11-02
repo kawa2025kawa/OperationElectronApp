@@ -6,9 +6,11 @@ import type {
   ActiveFlags,
   JobResult,
   JobStatus,
+  ManualScriptExecutionInput,
   OperationStatusNotification,
   OperationStatusState,
   OperationViewItem,
+  ScriptExecutionRequirement,
 } from "@shared/types/operation/operationTypes";
 import type { RdpMaster } from "@shared/types/rdp/rdpTypes";
 import type { SpreadsheetMasterData } from "@shared/types/masterData/spreadsheetMasterDataTypes";
@@ -17,7 +19,10 @@ import type {
   StatusSummary,
   SummaryDetailRow,
 } from "@shared/types/statusSummary/statusSummaryTypes";
-import type { EmailTemplateKey } from "@renderer/features/other/types/gmailDraftTypes";
+import type {
+  EmailTemplateKey,
+  GmailDraftFormValues,
+} from "@renderer/features/other/types/gmailDraftTypes";
 
 export interface IpcEventMap {
   [IPC_CHANNELS.SYSTEM.THEME_CHANGED]: [theme: "light" | "dark" | "system"];
@@ -25,6 +30,11 @@ export interface IpcEventMap {
     notification: OperationStatusNotification,
   ];
   [IPC_CHANNELS.OPERATION.POLLING_CYCLE_COMPLETE]: [];
+}
+
+export interface TempomaticUploadTargetFile {
+  path: string;
+  name?: string;
 }
 
 export interface IpcChannelMap {
@@ -56,7 +66,7 @@ export interface IpcChannelMap {
     return: null;
   };
   [IPC_CHANNELS.SYSTEM.OPEN_MANUAL]: {
-    args: [{ target: string }];
+    args: [{ target: string; isAuto?: boolean }];
     return: null;
   };
   [IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL]: {
@@ -95,12 +105,7 @@ export interface IpcChannelMap {
         links?: Record<string, string> | null;
       },
     ];
-    return: {
-      to: string;
-      cc: string;
-      subject: string;
-      body: string;
-    };
+    return: GmailDraftFormValues;
   };
   [IPC_CHANNELS.GMAIL.CREATE_DRAFT]: {
     args: [
@@ -133,7 +138,13 @@ export interface IpcChannelMap {
 
   // Tempomatic
   [IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT]: {
-    args: [{ filePaths: string[]; expireDate?: string }];
+    args: [
+      {
+        filePaths?: string[];
+        files?: TempomaticUploadTargetFile[];
+        expireDate?: string;
+      },
+    ];
     return: string;
   };
 
@@ -144,6 +155,10 @@ export interface IpcChannelMap {
   };
 
   // Operation
+  [IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS]: {
+    args: [];
+    return: ActiveFlags;
+  };
   [IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY]: {
     args: [];
     return: StatusSummary;
@@ -158,7 +173,7 @@ export interface IpcChannelMap {
   };
   [IPC_CHANNELS.OPERATION.GET_SCRIPT_EXECUTION_REQUIREMENT]: {
     args: [{ scriptKey: string }];
-    return: { requiresFileSelection: boolean };
+    return: ScriptExecutionRequirement;
   };
   [IPC_CHANNELS.OPERATION.RESET_STATUSES]: {
     args: [];
@@ -199,14 +214,7 @@ export interface IpcChannelMap {
     return: void;
   };
   [IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT]: {
-    args: [
-      {
-        kanriNo: string;
-        scriptKey?: string;
-        filePath?: string | string[];
-        ignoreDependencies?: boolean;
-      },
-    ];
+    args: [ManualScriptExecutionInput];
     return: JobResult;
   };
   [IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS]: {

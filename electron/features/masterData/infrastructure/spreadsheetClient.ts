@@ -18,6 +18,15 @@ export interface FetchSheetResult<TSheetId extends SheetId> {
 export type SheetDataResult<TSheetId extends SheetId> =
   FetchSheetResult<TSheetId>;
 
+// シートの列名をアプリケーション側のプロパティ名に合わせる。
+function normalizeHeader(header: string): string {
+  if (header === "AutoManualUrl") {
+    return "autoManualUrl";
+  }
+
+  return header.trim();
+}
+
 // ヘッダーとデータ行からレコードを生成する。
 function parseSheetRows<T>(rows: string[][]): T[] {
   if (rows.length <= 1) {
@@ -25,13 +34,14 @@ function parseSheetRows<T>(rows: string[][]): T[] {
   }
 
   const [headers, ...dataRows] = rows;
+  const normalizedHeaders = headers.map(normalizeHeader);
 
   return dataRows
     .filter((row) => row.some((value) => value !== ""))
     .map((row) => {
       const item: Record<string, string> = {};
 
-      headers.forEach((header, index) => {
+      normalizedHeaders.forEach((header, index) => {
         if (header) {
           item[header] = row[index] ?? "";
         }

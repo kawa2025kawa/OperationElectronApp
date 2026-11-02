@@ -28,7 +28,6 @@ export interface PkceChallenge {
   challenge: string;
 }
 
-// OAuth の PKCE 認証に使用する verifier と SHA-256 challenge を生成する。
 export function createPkce(): PkceChallenge {
   const verifier = randomBytes(32).toString("hex");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
@@ -36,12 +35,10 @@ export function createPkce(): PkceChallenge {
   return { verifier, challenge };
 }
 
-// OAuth コールバックの CSRF 対策に使用する state を生成する。
 export function generateState(): string {
   return randomBytes(32).toString("hex");
 }
 
-// Google OAuth の認証 URL を、既存のスコープと PKCE パラメーターを使って生成する。
 export function generateAuthUrl(
   clientId: string,
   redirectUri: string,
@@ -63,7 +60,6 @@ export function generateAuthUrl(
   return `${AUTH_URL}?${params.toString()}`;
 }
 
-// 認可コードと PKCE verifier を Google のアクセストークンに交換する。
 export async function exchangeToken(
   clientId: string,
   clientSecret: string | undefined,
@@ -71,63 +67,60 @@ export async function exchangeToken(
   redirectUri: string,
   verifier: string,
 ): Promise<OAuthToken> {
-  const body = new URLSearchParams({
-    client_id: clientId,
-    code,
-    grant_type: "authorization_code",
-    redirect_uri: redirectUri,
-    code_verifier: verifier,
-  });
-
-  if (clientSecret) {
-    body.set("client_secret", clientSecret);
-  }
-
-  return sendTokenRequest(body, "Google token exchange failed");
+  return sendTokenRequest(
+    {
+      client_id: clientId,
+      code,
+      grant_type: "authorization_code",
+      redirect_uri: redirectUri,
+      code_verifier: verifier,
+    },
+    clientSecret,
+    "Google token exchange failed",
+  );
 }
 
-// 保存済み refresh token を使って Google のアクセストークンを更新する。
 export async function refreshToken(
   clientId: string,
   clientSecret: string | undefined,
   refreshTokenValue: string,
 ): Promise<OAuthToken> {
-  const body = new URLSearchParams({
-    client_id: clientId,
-    refresh_token: refreshTokenValue,
-    grant_type: "refresh_token",
-  });
+  return sendTokenRequest(
+    {
+      client_id: clientId,
+      refresh_token: refreshTokenValue,
+      grant_type: "refresh_token",
+    },
+    clientSecret,
+    "Google token refresh failed",
+  );
+}
+
+function getOptionalString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  return value.trim() || null;
+}
+
+function getOptionalNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : null;
+}
+
+async function sendTokenRequest(
+  parameters: Record<string, string>,
+  clientSecret: string | undefined,
+  errorMessagePrefix: string,
+): Promise<OAuthToken> {
+  const body = new URLSearchParams(parameters);
 
   if (clientSecret) {
     body.set("client_secret", clientSecret);
   }
 
-  return sendTokenRequest(body, "Google token refresh failed");
-}
-
-// API レスポンスの値を検証し、空文字列や文字列以外を null に変換する。
-function getOptionalString(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-
-  const trimmed = value.trim();
-
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-// API レスポンスの数値が有限かつ非負の場合だけ採用する。
-function getOptionalNumber(value: unknown): number | null {
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
-    return null;
-  }
-
-  return value;
-}
-
-// Google Token API を呼び出し、レスポンスを OAuthToken 型に変換する。
-async function sendTokenRequest(
-  body: URLSearchParams,
-  errorMessagePrefix: string,
-): Promise<OAuthToken> {
   let response: Response;
 
   try {

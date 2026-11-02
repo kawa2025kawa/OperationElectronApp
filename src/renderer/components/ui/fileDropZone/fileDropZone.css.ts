@@ -3,10 +3,6 @@
 import { style } from "@vanilla-extract/css";
 import { themeTransition, tokens } from "@renderer/styles/tokens";
 
-// ============================================================
-// Shared Base Styles
-// ============================================================
-
 const textEllipsis = style({
   minWidth: 0,
   overflow: "hidden",
@@ -18,7 +14,6 @@ const userSelectNone = style({
   userSelect: "none",
 });
 
-// 繧ｫ繝ｼ繝牙ｽ｢迥ｶ縺ｮ蜈ｱ騾壹せ繧ｿ繧､繝ｫ・医Μ繧ｹ繝域棧繝ｻEmpty譫逕ｨ・・
 const cardBaseStyle = style([
   themeTransition,
   {
@@ -29,89 +24,30 @@ const cardBaseStyle = style([
   },
 ]);
 
-// ============================================================
-// Container & Drop Zone
-// ============================================================
+const glassSurface = {
+  backgroundColor: tokens.glass.surface,
+  backdropFilter: "blur(12px) saturate(180%)",
+  WebkitBackdropFilter: "blur(12px) saturate(180%)",
+} as const;
 
-export const container = style([
-  {
-    display: "flex",
-    flexDirection: "column",
-    width: "100%",
-    // 燥 隕ｪ繧ｳ繝ｳ繝・リ縺ｮ鬮倥＆繧呈欠螳夲ｼ井ｾ・ vh繧・00%縺ｪ縺ｩ縲ょ他縺ｳ蜃ｺ縺怜・縺ｫ蜷医ｏ縺帙ｋ・・
-    height: "100%", // 縺ｾ縺溘・ "50vh", "clamp(300px, 50vh, 800px)" 縺ｪ縺ｩ
-    gap: "1vmin",
-  },
-]);
-
-export const dropZone = style([
-  themeTransition,
-  {
-    flex: 4,
-    minHeight: 0,
-
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    border: `2px dashed ${tokens.color.border.subtle}`,
-    borderRadius: tokens.radius.lg,
-    padding: tokens.space.md,
-    textAlign: "center",
-    cursor: "pointer",
-    backgroundColor: "transparent",
-
-    selectors: {
-      "&:hover:not([aria-disabled='true'])": {
-        borderColor: tokens.color.accent.neonCyan,
-        backgroundColor: "rgba(0, 122, 204, 0.05)",
-        boxShadow: tokens.shadow.glow.cyan,
-      },
-      "&:focus-visible": {
-        outline: "none",
-        borderColor: tokens.color.accent.neonCyan,
-        backgroundColor: "rgba(0, 122, 204, 0.05)",
-      },
-    },
-  },
-]);
-
-export const dropZoneActive = style({
+const fileRowHighlight = {
   borderColor: tokens.color.accent.neonCyan,
-  backgroundColor: "rgba(0, 122, 204, 0.05)",
-  boxShadow: tokens.shadow.glow.cyan,
+  boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+} as const;
+
+export const hiddenInput = style({
+  display: "none",
 });
 
-export const dropZoneDisabled = style({
-  cursor: "not-allowed",
-  opacity: 0.5,
-  pointerEvents: "none",
+export const container = style({
+  display: "flex",
+  flexDirection: "column",
+  width: "100%",
+  height: "100%",
+  minHeight: 0,
+  gap: tokens.space.xs,
+  boxSizing: "border-box",
 });
-
-export const hiddenInput = style({ display: "none" });
-
-export const labelText = style([
-  userSelectNone,
-  {
-    margin: 0,
-    fontSize: tokens.font.size.sm,
-    color: tokens.color.text.base,
-  },
-]);
-
-// ============================================================
-// Selected Files List & Empty State
-// ============================================================
-
-export const selectedFilesContainer = style([
-  {
-    flex: 6,
-    minHeight: 0,
-    width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    gap: tokens.space.xs,
-  },
-]);
 
 export const selectedFilesHeader = style([
   userSelectNone,
@@ -122,44 +58,81 @@ export const selectedFilesHeader = style([
   },
 ]);
 
-export const selectedFilesList = style([
+export const unifiedFilesList = style([
   cardBaseStyle,
   {
-    width: "100%",
-    maxHeight: "200px",
-    overflowY: "auto",
     display: "flex",
     flexDirection: "column",
+    flex: 1,
+    minHeight: 0,
+    width: "100%",
     gap: tokens.space.xs,
     padding: tokens.space.xs,
+    overflowY: "auto",
+    boxSizing: "border-box",
+    selectors: {
+      "&:focus-visible": {
+        outline: "none",
+        borderColor: tokens.color.accent.neonCyan,
+      },
+    },
   },
 ]);
 
-export const emptyFileContainer = style([
+export const unifiedFilesListActive = style({
+  borderColor: tokens.color.accent.neonCyan,
+  backgroundColor: "rgba(0, 122, 204, 0.05)",
+  boxShadow: tokens.shadow.glow.cyan,
+});
+
+export const unifiedEmptyDropArea = style([
   cardBaseStyle,
   {
     display: "flex",
+    flexDirection: "column",
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: "70px",
-    padding: tokens.space.sm,
+    width: "100%",
+    minHeight: "160px",
+    padding: tokens.space.lg,
+    boxSizing: "border-box",
+    cursor: "pointer",
+    border: `2px dashed ${tokens.color.border.subtle}`,
+    selectors: {
+      "&:hover:not([aria-disabled='true'])": {
+        borderColor: tokens.color.accent.neonCyan,
+        backgroundColor: "rgba(0, 122, 204, 0.05)",
+        boxShadow: tokens.shadow.glow.cyan,
+      },
+    },
   },
 ]);
 
-export const emptyFileText = style([
+export const unifiedEmptyDropAreaActive = style({
+  borderColor: tokens.color.accent.neonCyan,
+  backgroundColor: "rgba(0, 122, 204, 0.08)",
+  boxShadow: tokens.shadow.glow.cyan,
+});
+
+export const emptyFilePrimaryText = style([
+  userSelectNone,
+  {
+    marginBottom: tokens.space.xs,
+    fontSize: tokens.font.size.sm,
+    color: tokens.color.text.hover,
+    fontWeight: tokens.font.weight.bold,
+  },
+]);
+
+export const emptyFileSubText = style([
   userSelectNone,
   {
     fontSize: tokens.font.size.xs,
-    fontWeight: tokens.font.weight.bold,
-    letterSpacing: "0.08em",
     color: tokens.color.text.base,
-    opacity: 0.25,
+    opacity: 0.6,
   },
 ]);
-
-// ============================================================
-// Selected File Row & Content
-// ============================================================
 
 export const selectedFileRow = style([
   themeTransition,
@@ -174,12 +147,9 @@ export const selectedFileRow = style([
     backgroundColor: tokens.color.bg.base,
     border: `1px solid ${tokens.color.border.subtle}`,
     boxShadow: tokens.shadow.raised.low,
-
+    boxSizing: "border-box",
     selectors: {
-      "&:hover": {
-        borderColor: tokens.color.accent.neonCyan,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-      },
+      "&:hover": fileRowHighlight,
     },
   },
 ]);
@@ -190,8 +160,7 @@ export const selectedFileRowDragging = style({
 });
 
 export const selectedFileRowDropTarget = style({
-  borderColor: tokens.color.accent.neonCyan,
-  boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+  ...fileRowHighlight,
   transform: "scale(1.01)",
 });
 
@@ -228,11 +197,6 @@ export const selectedFileName = style([
     fontSize: tokens.font.size.sm,
     fontWeight: tokens.font.weight.bold,
     color: tokens.color.text.base,
-    selectors: {
-      [`${selectedFileRow}:hover &`]: {
-        color: tokens.color.text.hover,
-      },
-    },
   },
 ]);
 
@@ -245,64 +209,164 @@ export const selectedFilePath = style([
     color: tokens.color.text.base,
     opacity: 0.7,
     fontFamily: "monospace",
+  },
+]);
+
+export const rowActions = style({
+  display: "flex",
+  alignItems: "center",
+  gap: tokens.space.sm,
+  flexShrink: 0,
+});
+
+export const dropdownWrapper = style({
+  position: "relative",
+  display: "inline-block",
+  width: "180px",
+});
+
+export const dropdownTrigger = style([
+  themeTransition,
+  {
+    appearance: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: tokens.space.xs,
+    width: "100%",
+    height: "32px",
+    padding: `0 ${tokens.space.sm}`,
+    borderRadius: tokens.radius.sm,
+    ...glassSurface,
+    border: `1px solid ${tokens.color.border.subtle}`,
+    boxShadow: tokens.shadow.raised.low,
+    color: tokens.color.text.base,
+    fontSize: tokens.font.size.xs,
+    fontWeight: tokens.font.weight.bold,
+    outline: "none",
+    cursor: "pointer",
+    boxSizing: "border-box",
     selectors: {
-      [`${selectedFileRow}:hover &`]: {
+      "&:hover": {
+        borderColor: tokens.color.accent.neonCyan,
+        boxShadow: tokens.shadow.highlight,
         color: tokens.color.text.hover,
+      },
+      "&:focus-visible": {
+        borderColor: tokens.color.accent.neonCyan,
+        boxShadow: tokens.shadow.highlight,
       },
     },
   },
 ]);
 
-// ============================================================
-// Action Buttons
-// ============================================================
-
-export const actionButtonsRow = style({
-  display: "flex",
-  alignItems: "center",
-  gap: tokens.space.xs,
-  flexShrink: 0,
+export const dropdownArrow = style({
+  fontSize: "8px",
+  color: tokens.color.text.base,
+  opacity: 0.7,
+  pointerEvents: "none",
 });
 
-export const iconButton = style([
+export const dropdownMenu = style({
+  position: "absolute",
+  top: "calc(100% + 4px)",
+  left: 0,
+  right: 0,
+  width: "100%",
+  padding: tokens.space.xs,
+  borderRadius: tokens.radius.lg,
+  ...glassSurface,
+  border: `2px solid ${tokens.color.border.subtle}`,
+  boxShadow: tokens.shadow.raised.high,
+  zIndex: tokens.zIndex.contextMenu,
+  isolation: "isolate",
+  transform: "translateZ(0)",
+  display: "flex",
+  flexDirection: "column",
+  boxSizing: "border-box",
+});
+
+export const dropdownList = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2px",
+  maxHeight: "200px",
+  overflowY: "auto",
+});
+
+export const dropdownItem = style([
+  themeTransition,
+  {
+    appearance: "none",
+    display: "flex",
+    alignItems: "center",
+    width: "100%",
+    padding: `${tokens.space.xs} ${tokens.space.sm}`,
+    border: "none",
+    borderRadius: tokens.radius.sm,
+    outline: "none",
+    background: "none",
+    color: tokens.color.text.hover,
+    fontSize: tokens.font.size.xs,
+    fontWeight: tokens.font.weight.bold,
+    textAlign: "left",
+    whiteSpace: "nowrap",
+    cursor: "pointer",
+    boxSizing: "border-box",
+    selectors: {
+      "&:hover": {
+        backgroundColor: tokens.color.bg.frostedGlass,
+        boxShadow: tokens.shadow.highlight,
+        color: tokens.color.accent.neonCyan,
+      },
+      "&:focus-visible": {
+        backgroundColor: tokens.color.bg.frostedGlass,
+        boxShadow: tokens.shadow.highlight,
+      },
+    },
+  },
+]);
+
+// 既存互換用スタイル
+export const rowRenameSelect = style([
+  themeTransition,
+  {
+    height: "32px",
+    padding: "0 12px",
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.glass.surface,
+    color: tokens.color.text.hover,
+    border: `1px solid ${tokens.color.border.default}`,
+    fontSize: tokens.font.size.xs,
+    fontWeight: tokens.font.weight.bold,
+    outline: "none",
+    cursor: "pointer",
+    boxSizing: "border-box",
+  },
+]);
+
+export const removeFileButton = style([
   themeTransition,
   {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    width: "26px",
-    height: "26px",
-    padding: 0,
+    width: "32px",
+    height: "32px",
     borderRadius: tokens.radius.sm,
     border: `1px solid ${tokens.color.border.subtle}`,
     backgroundColor: tokens.color.bg.base,
     color: tokens.color.text.base,
-    fontSize: "11px",
     cursor: "pointer",
-
+    fontSize: "16px",
+    lineHeight: 1,
+    boxSizing: "border-box",
     selectors: {
-      "&:hover:not(:disabled)": {
-        borderColor: tokens.color.accent.neonCyan,
-        color: tokens.color.text.hover,
-        boxShadow: tokens.shadow.glow.cyan,
-      },
-      "&:disabled": {
-        opacity: 0.25,
-        cursor: "not-allowed",
-      },
-      "&:active:not(:disabled)": {
-        transform: "scale(0.95)",
+      "&:hover": {
+        borderColor: "#ff4d4f",
+        color: "#ff4d4f",
+        boxShadow: "0 0 8px rgba(255, 77, 79, 0.4)",
       },
     },
   },
 ]);
-
-export const removeFileButton = style({
-  selectors: {
-    "&:hover:not(:disabled)": {
-      borderColor: "#ff4d4f",
-      color: "#ff4d4f",
-      boxShadow: "0 0 8px rgba(255, 77, 79, 0.4)",
-    },
-  },
-});

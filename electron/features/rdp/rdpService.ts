@@ -2,14 +2,14 @@
 
 import { execFile } from "node:child_process";
 import util from "node:util";
-import { getJsonMasterData } from "@electron/features/masterData/application/jsonMasterDataManager";
+import { getSpreadsheetMasterData } from "@electron/features/masterData/application/spreadsheetMasterDataManager";
 import type { RdpMaster } from "@shared/types/rdp/rdpTypes";
 
 const execFilePromise = util.promisify(execFile);
 
-// JSONマスタからRDP接続先端末の一覧を取得して返す。
+// スプレッドシートからRDP接続先端末の一覧を取得して返す。
 export async function getRdpTargets(): Promise<RdpMaster[]> {
-  const masterData = await getJsonMasterData();
+  const masterData = await getSpreadsheetMasterData();
   return masterData.rdps;
 }
 
@@ -72,5 +72,6 @@ export async function startRdpSession(name: string): Promise<string> {
     userName: target.userName,
     password: target.password,
   });
+
   return `${target.name} への RDP 接続を開始しました`;
 }

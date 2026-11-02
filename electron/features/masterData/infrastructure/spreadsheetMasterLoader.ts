@@ -10,23 +10,44 @@ import { fetchSheet } from "./spreadsheetClient";
 async function loadSheetData<TSheetId extends SheetId>(sheetId: TSheetId) {
   const result = await fetchSheet(sheetId);
 
-  if (result.success) return result.data;
-  if (result.unauthorized)
+  if (result.success) {
+    return result.data;
+  }
+
+  if (result.unauthorized) {
     throw new Error(`${sheetId} の取得失敗: Google 認証が必要です`);
+  }
+
   throw new Error(`${sheetId} の取得失敗: ${result.error ?? "不明なエラー"}`);
 }
 
 export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData> {
-  const sheetDefinitions = Object.values(SHEETS);
-
-  const results = await Promise.all(
-    sheetDefinitions.map((def) => loadSheetData(def.sheetName)),
-  );
+  const [
+    stores,
+    kokyuhyos,
+    jugyoin,
+    kokyuhyoTantous,
+    operations,
+    irregulars,
+    rdps,
+  ] = await Promise.all([
+    loadSheetData(SHEETS.STORE.sheetName),
+    loadSheetData(SHEETS.KOKYUHYO.sheetName),
+    loadSheetData(SHEETS.JUGYOIN.sheetName),
+    loadSheetData(SHEETS.KOKYUHYO_TANTOU.sheetName),
+    loadSheetData(SHEETS.OPERATION.sheetName),
+    loadSheetData(SHEETS.IRREGULAR.sheetName),
+    loadSheetData(SHEETS.RDP.sheetName),
+  ]);
 
   return {
-    stores: results[0] as SpreadsheetMasterData["stores"],
-    kokyuhyos: results[1] as SpreadsheetMasterData["kokyuhyos"],
-    jugyoin: results[2] as SpreadsheetMasterData["jugyoin"],
-    kokyuhyoTantous: results[3] as SpreadsheetMasterData["kokyuhyoTantous"],
+    stores,
+    kokyuhyos,
+    jugyoin,
+    kokyuhyoTantous,
+    operations,
+    irregulars,
+    todayIrregulars: [],
+    rdps,
   };
 }

@@ -1,8 +1,11 @@
 // electron/features/operation/application/operationQueryService.ts
 
-import { isPdfUploadJob } from "@electron/features/operation/domain/operationRules";
-import { isRunningStatus } from "@electron/features/operation/domain/statusRules";
-import { getScriptExecutionRequirement } from "./scriptExecutionRequirements";
+import { isRunningStatus } from "@electron/features/operation/domain/operationRules";
+import {
+  getScriptExecutionRequirement,
+  getScriptKeysForOperation,
+  isPdfUploadOperation,
+} from "@electron/features/operation/runners/operationScriptRegistry";
 import {
   getDependencyMasters,
   getStatuses,
@@ -21,6 +24,11 @@ import type {
 } from "@shared/types/operation/operationTypes";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
 
+// 作業名が未設定の場合の代替表示値を取得する。
+function getWorkName(workName: string | undefined, kanriNo: string): string {
+  return workName || `No.${kanriNo}`;
+}
+
 // 全ターゲットのステータスを集計し、サマリーデータ（各件数・進捗率）を算出する。
 export function getStatusSummary(): StatusSummary {
   const targets = getTargets();
@@ -33,9 +41,11 @@ export function getStatusSummary(): StatusSummary {
 
   for (const [kanriNo] of targets) {
     const status = statuses.get(kanriNo)?.status;
+
     if (!status || !(status in summary)) {
       continue;
     }
+
     summary[status] += 1;
   }
 
@@ -62,7 +72,7 @@ export function getSummaryDetails(filterKey: string): SummaryDetailRow[] {
 
     const row: SummaryDetailRow = {
       kanriNo: target.kanriNo,
-      workName: target.workName || `No.${target.kanriNo}`,
+      workName: getWorkName(target.workName, target.kanriNo),
       status: currentStatus,
       comment: statusState?.comment ?? undefined,
       ...("jobId" in target && target.jobId !== undefined
@@ -97,20 +107,22 @@ function enrichItem(
   target: OperationViewItem,
   statusState?: OperationStatusState,
 ): OperationViewItem {
-  const scriptKeys: OperationScriptKey[] | undefined = Array.isArray(
+  const rawScriptKeys = getScriptKeysForOperation(
+    target.kanriNo,
     target.ScriptKeys,
-  )
-    ? target.ScriptKeys.map((scriptKey) => ({
-        ...scriptKey,
-        requiresFileSelection: getScriptExecutionRequirement(scriptKey.key)
-          .requiresFileSelection,
-      }))
-    : target.ScriptKeys;
+  );
+
+  const scriptKeys: OperationScriptKey[] = rawScriptKeys.map((scriptKey) => ({
+    ...scriptKey,
+    requiresFileSelection: getScriptExecutionRequirement(scriptKey.key)
+      .requiresFileSelection,
+  }));
 
   return {
     ...target,
+    workName: getWorkName(target.workName, target.kanriNo),
     ScriptKeys: scriptKeys,
-    isPdfUpload: isPdfUploadJob(target.kanriNo),
+    isPdfUpload: isPdfUploadOperation(target.kanriNo, rawScriptKeys),
     ...(statusState?.status !== undefined && { status: statusState.status }),
     ...(statusState?.comment !== undefined && { comment: statusState.comment }),
     ...(statusState?.startTime !== undefined && {

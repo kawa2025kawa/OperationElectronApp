@@ -1,4 +1,4 @@
-//src\renderer\features\other\OtherView.tsx
+// src/renderer/features/other/OtherView.tsx
 
 import { memo } from "react";
 import { clsx } from "clsx";
@@ -12,6 +12,7 @@ export const OtherView = memo(() => {
     handleOpenGmailModal,
     handleOpenGiftMdModal,
     handleResetStatuses,
+    handleOpenOKIURL,
   } = useOtherViewLogic();
 
   return (
@@ -24,6 +25,7 @@ export const OtherView = memo(() => {
         >
           Tempomatic PDF
         </button>
+
         <button
           className={styles.card}
           onClick={handleOpenGmailModal}
@@ -31,6 +33,7 @@ export const OtherView = memo(() => {
         >
           Gmail
         </button>
+
         <button
           className={styles.card}
           onClick={handleOpenGiftMdModal}
@@ -39,13 +42,20 @@ export const OtherView = memo(() => {
           ギフトMD処理
         </button>
 
-        {/* ▼ 新規追加: ステータス全リセットボタン */}
         <button
           className={styles.card}
           onClick={handleResetStatuses}
           type="button"
         >
           ステータス全リセット
+        </button>
+
+        <button
+          className={styles.card}
+          onClick={handleOpenOKIURL}
+          type="button"
+        >
+          OKI/Aqwo000292
         </button>
       </div>
     </div>

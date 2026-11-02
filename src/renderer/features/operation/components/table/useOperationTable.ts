@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
 
 import { useAppStore } from "@renderer/store";
-import { selectFilteredTableRows } from "@renderer/store/selectors/operationSelectors";
+import {
+  OPERATION_TABLE_SEARCH_KEYS,
+  selectFilteredTableRows,
+} from "@renderer/store/selectors/operationSelectors";
 import { JOB_STATUS } from "@shared/types/operation/operationTypes";
 
 /**
@@ -44,7 +47,12 @@ export function useOperationTable() {
   }, [currentMode, tableRowsMode, fetchTableData]);
 
   const rows = useMemo(
-    () => selectFilteredTableRows(tableRows, searchTerm),
+    () =>
+      selectFilteredTableRows(
+        tableRows,
+        searchTerm,
+        OPERATION_TABLE_SEARCH_KEYS,
+      ),
     [tableRows, searchTerm],
   );
 

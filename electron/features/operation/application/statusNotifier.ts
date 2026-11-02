@@ -1,57 +1,52 @@
-// electron/features/operation/application/statusNotifier.ts
+﻿// electron/features/operation/application/statusNotifier.ts
 
 import { BrowserWindow } from "electron";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type {
   OperationStatusNotification,
   OperationStatusState,
-  OperationMaster,
-  TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
+import type { ReadyStatusListener, StatusTarget } from "./statusTypes";
 
-export type StatusTarget =
-  | (OperationMaster & {
-      targetType: "operation";
-    })
-  | (TodayIrregularMaster & {
-      targetType: "today";
-    });
-
-export type ReadyStatusListener = (target: StatusTarget) => void;
+export type { ReadyStatusListener };
 
 const readyStatusListeners = new Set<ReadyStatusListener>();
 
-function notifyRenderer(notification: OperationStatusNotification): void {
-  for (const window of BrowserWindow.getAllWindows()) {
-    if (window.isDestroyed() || window.webContents.isDestroyed()) {
-      continue;
-    }
+// 全ウィンドウの有効なレンダラーへステータス通知を送信する。
+function broadcast(notification: OperationStatusNotification): void {
+  const windows = BrowserWindow.getAllWindows();
 
-    try {
-      window.webContents.send(
-        IPC_CHANNELS.OPERATION.STATUS_UPDATED,
-        notification,
-      );
-    } catch (error) {
-      console.error("[StatusNotifier] 送信エラー:", error);
+  for (const window of windows) {
+    if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
+      try {
+        window.webContents.send(
+          IPC_CHANNELS.OPERATION.STATUS_UPDATED,
+          notification,
+        );
+      } catch (error) {
+        console.error("[StatusNotifier] 送信エラー:", error);
+      }
     }
   }
 }
 
+// ステータス更新通知をレンダラーへ配信する。
 export function notifyStatusUpdated(status: OperationStatusState): void {
-  notifyRenderer({
+  broadcast({
     type: "updated",
     update: status,
   });
 }
 
+// ステータスクリア通知をレンダラーへ配信する。
 export function notifyStatusCleared(kanriNo: string): void {
-  notifyRenderer({
+  broadcast({
     type: "cleared",
     kanriNo,
   });
 }
 
+// READY状態に遷移したターゲットをリスナーへ通知する。
 export function notifyReady(target: StatusTarget): void {
   for (const listener of readyStatusListeners) {
     try {
@@ -62,6 +57,7 @@ export function notifyReady(target: StatusTarget): void {
   }
 }
 
+// READY状態遷移リスナーを登録し、解除関数を返す。
 export function onReadyStatus(listener: ReadyStatusListener): () => void {
   readyStatusListeners.add(listener);
 

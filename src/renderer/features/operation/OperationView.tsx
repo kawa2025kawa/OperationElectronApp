@@ -4,7 +4,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { OperationTable } from "@renderer/features/operation/components/table/OperationTable";
 
 import { useOperationViewLogic } from "./useOperationViewLogic";
-import { createInfoRows } from "./operationViewDisplayUtils";
+import { createInfoRows } from "./operationDisplayUtils";
 import { OperationModeSwitcher } from "./components/OperationModeSwitcher";
 import { OperationInfoRow } from "./components/OperationInfoRow";
 import * as styles from "./operationView.css";

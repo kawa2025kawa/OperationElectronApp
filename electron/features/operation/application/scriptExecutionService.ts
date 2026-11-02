@@ -1,33 +1,104 @@
-// electron/features/operation/application/scriptExecutionService.ts
+﻿// electron/features/operation/application/scriptExecutionService.ts
 
-import { getActiveFlags } from "@electron/features/operation/application/activeFlagsManager";
+import fs from "node:fs/promises";
+import { dialog } from "electron";
 import {
+  getActiveFlags,
   getDependencyMasters,
   getDependencyStatuses,
   updateStatus,
 } from "@electron/features/operation/application/statusManager";
-import { validateScriptExecutionInput } from "@electron/features/operation/application/scriptExecutionRequirements";
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
-import { runScriptWithZipRecovery } from "@electron/features/operation/infrastructure/recovery/zipRecoveryHelper";
+import { getScriptExecutionRequirement } from "@electron/features/operation/runners/operationScriptRegistry";
+import { executeSingleScriptJob } from "@electron/features/operation/runners/scriptRunner";
 import {
   JOB_STATUS,
   type JobResult,
   type JobStatus,
+  type ManualScriptExecutionInput,
+  type ScriptExecutionRequirement,
+  type ScriptFilePath,
 } from "@shared/types/operation/operationTypes";
 import {
   checkJobDependencies,
   formatMissingKanriNos,
-} from "@shared/utils/dependency/dependencyUtils";
+} from "@electron/features/operation/domain/dependencyUtils";
 
-export interface ManualScriptExecutionInput {
-  kanriNo: string;
-  scriptKey?: string;
-  filePath?: string | string[];
-  ignoreDependencies?: boolean;
+export type {
+  ManualScriptExecutionInput,
+  ScriptExecutionRequirement,
+  ScriptFilePath,
+};
+export { getScriptExecutionRequirement };
+
+// エラーメッセージからZIPパスを抽出
+function extractZipPath(error: unknown): string | null {
+  const message = error instanceof Error ? error.message : String(error);
+  const patterns = [
+    /(?:^|\r?\n)[ \t]*(?:出力ZIP|ZIP出力先)[ \t]*:[ \t]*((?:[A-Z]:\\|\\\\)[^\r\n]*?\.zip)[ \t]*(?=\r?$|\r?\n)/im,
+    /(?:^|\r?\n)[ \t]*((?:[A-Z]:\\|\\\\)[^\r\n]*?\.zip)[ \t]*(?=\r?$|\r?\n)/im,
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match?.[1]) return match[1].trim();
+  }
+  return null;
 }
 
-// 前提作業の完了状況を検証する。
-// 未完了前作業がある場合はステータスを変更（ERROR更新）せず、例外のみを送出する。
+// 既存ZIPの削除と再実行確認
+async function confirmAndRemoveZip(zipPath: string): Promise<boolean> {
+  const response = dialog.showMessageBoxSync({
+    type: "question",
+    buttons: ["削除して再実行", "キャンセル"],
+    defaultId: 0,
+    cancelId: 1,
+    title: "ZIPファイル検出",
+    message: "対象のZIPファイルを削除して再実行しますか？",
+    detail: zipPath,
+  });
+
+  if (response !== 0) return false;
+
+  try {
+    await fs.unlink(zipPath);
+    return true;
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "ENOENT"
+    ) {
+      return true;
+    }
+    throw error;
+  }
+}
+
+// ファイル選択必須スクリプトの入力検証
+export function validateScriptExecutionInput(
+  scriptKey: string,
+  filePath?: ScriptFilePath,
+): void {
+  const requirement = getScriptExecutionRequirement(scriptKey);
+  if (!requirement.requiresFileSelection) return;
+
+  const rawPaths = Array.isArray(filePath)
+    ? filePath
+    : typeof filePath === "string"
+      ? [filePath]
+      : [];
+
+  const validPaths = rawPaths.map((p) => p.trim()).filter(Boolean);
+  if (validPaths.length === 0) {
+    throw new Error(
+      `スクリプト ${scriptKey} の実行にはファイルの選択が必要です。`,
+    );
+  }
+}
+
+// 前提依存関係の検証
 function validateJobDependencies(kanriNo: string): void {
   const dependencyResult = checkJobDependencies(
     kanriNo,
@@ -36,23 +107,19 @@ function validateJobDependencies(kanriNo: string): void {
     getActiveFlags(),
   );
 
-  if (dependencyResult.ok) {
-    return;
-  }
+  if (dependencyResult.ok) return;
 
   const missingNos = formatMissingKanriNos(
     dependencyResult.missingDependencies,
   );
-
-  const message =
+  throw new Error(
     missingNos.length > 0
       ? `未完了前作業 (No.${missingNos})`
-      : "未完了前作業あり";
-
-  throw new Error(message);
+      : "未完了前作業あり",
+  );
 }
 
-// 終了時刻と指定されたステータス・コメントを反映してスクリプトステータスを確定する。
+// ステータスと終了時刻を確定記録
 function finalizeScriptStatus(
   kanriNo: string,
   status: JobStatus,
@@ -66,7 +133,7 @@ function finalizeScriptStatus(
   });
 }
 
-// スクリプト実行結果に基づいて、正常・要対応・エラーのステータスを記録する。
+// 実行結果に応じたステータス確定
 export function applyScriptExecutionResult(
   kanriNo: string,
   result: JobResult,
@@ -90,50 +157,51 @@ export function applyScriptExecutionResult(
   );
 }
 
-// スクリプト実行中に発生した例外エラーをエラーステータスとして確定記録する。
-export function applyScriptExecutionError(
+// 実行パイプライン（ZIP競合リカバリ・結果記録・例外ハンドリングを一括管理）
+export async function executeScriptAndApplyStatus(
   kanriNo: string,
-  error: unknown,
-): void {
-  const message = error instanceof Error ? error.message : String(error);
+  execute: () => Promise<JobResult>,
+): Promise<JobResult> {
+  try {
+    let result = await execute();
 
-  finalizeScriptStatus(kanriNo, JOB_STATUS.ERROR, `実行エラー: ${message}`);
+    // ZIP競合によるエラーの場合はリカバリ確認
+    if (result.success === false || result.kind === "error") {
+      const zipPath = extractZipPath(result.message);
+      if (zipPath && (await confirmAndRemoveZip(zipPath))) {
+        result = await execute();
+      }
+    }
+
+    applyScriptExecutionResult(kanriNo, result);
+    return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    finalizeScriptStatus(kanriNo, JOB_STATUS.ERROR, `実行エラー: ${message}`);
+    throw error;
+  }
 }
 
-// 前提依存関係および引数を検証し、手動スクリプトを実行して結果を反映する。
+// 手動スクリプト実行エントリーポイント
 export async function executeManualScript(
   input: ManualScriptExecutionInput,
 ): Promise<JobResult> {
   const kanriNo = normalizeKanriNo(input.kanriNo);
   const scriptKey = input.scriptKey?.trim() || kanriNo;
 
-  // 1. 依存関係のチェック（未達なら例外を送出し、ステータス変更を行わない）
   if (!input.ignoreDependencies) {
     validateJobDependencies(kanriNo);
   }
 
-  // 2. 引数バリデーション
   validateScriptExecutionInput(scriptKey, input.filePath);
 
-  // 3. 実行開始ステータス（SCRIPT_RUNNING）を即時通知
   updateStatus({
     kanriNo,
     status: JOB_STATUS.SCRIPT_RUNNING,
     startTime: new Date().toISOString(),
   });
 
-  // 4. スクリプト実行と結果の確定
-  try {
-    const result = await runScriptWithZipRecovery(
-      kanriNo,
-      scriptKey,
-      input.filePath,
-    );
-
-    applyScriptExecutionResult(kanriNo, result);
-    return result;
-  } catch (error: unknown) {
-    applyScriptExecutionError(kanriNo, error);
-    throw error;
-  }
+  return executeScriptAndApplyStatus(kanriNo, () =>
+    executeSingleScriptJob(kanriNo, scriptKey, input.filePath),
+  );
 }

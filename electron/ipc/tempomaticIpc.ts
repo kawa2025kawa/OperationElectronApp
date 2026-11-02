@@ -4,7 +4,10 @@ import { ipcMain } from "electron";
 import { addDays, format } from "date-fns";
 import fs from "fs-extra";
 import path from "node:path";
-import { uploadPdfDocuments } from "@electron/features/tempomatic/tempomaticService";
+import {
+  uploadPdfDocuments,
+  type TempomaticTargetFile,
+} from "@electron/features/tempomatic/tempomaticService";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { IpcChannelMap } from "@shared/types/electron/ipcTypes";
 
@@ -24,24 +27,55 @@ export function registerTempomaticIpc(): void {
     ): Promise<
       IpcChannelMap[typeof IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT]["return"]
     > => {
-      const uniquePaths = Array.from(
-        new Set(params.filePaths.map((p) => p.trim())),
-      ).filter(Boolean);
+      const rawTargets: TempomaticTargetFile[] = [];
 
-      const validPdfPaths = uniquePaths.filter((p) =>
-        p.toLowerCase().endsWith(".pdf"),
+      // files が渡された場合
+      if (params.files && Array.isArray(params.files)) {
+        for (const item of params.files) {
+          if (item?.path?.trim()) {
+            rawTargets.push({
+              path: item.path.trim(),
+              name: item.name?.trim(),
+            });
+          }
+        }
+      }
+      // 従来の filePaths が渡された場合のフォールバック
+      else if (params.filePaths && Array.isArray(params.filePaths)) {
+        for (const p of params.filePaths) {
+          if (p?.trim()) {
+            rawTargets.push({
+              path: p.trim(),
+            });
+          }
+        }
+      }
+
+      // パスの重複排除
+      const visitedPaths = new Set<string>();
+      const uniqueTargets = rawTargets.filter((item) => {
+        if (visitedPaths.has(item.path)) {
+          return false;
+        }
+        visitedPaths.add(item.path);
+        return true;
+      });
+
+      const validPdfTargets = uniqueTargets.filter((item) =>
+        item.path.toLowerCase().endsWith(".pdf"),
       );
 
-      if (validPdfPaths.length === 0) {
+      if (validPdfTargets.length === 0) {
         throw new Error(
           "アップロード対象に有効なPDFファイル (.pdf) が含まれていません",
         );
       }
 
-      for (const filePath of validPdfPaths) {
-        if (!(await fs.pathExists(filePath))) {
+      // ローカルディスク上のファイル存在確認（元ファイルが存在するか）
+      for (const target of validPdfTargets) {
+        if (!(await fs.pathExists(target.path))) {
           throw new Error(
-            `指定されたファイルが存在しません: ${path.basename(filePath)}`,
+            `指定されたファイルが存在しません: ${path.basename(target.path)}`,
           );
         }
       }
@@ -50,7 +84,7 @@ export function registerTempomaticIpc(): void {
         ? params.expireDate.trim()
         : calculateExpireDate();
 
-      return uploadPdfDocuments(validPdfPaths, expireDate);
+      return uploadPdfDocuments(validPdfTargets, expireDate);
     },
   );
 }

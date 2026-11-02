@@ -1,4 +1,4 @@
-// src/renderer/features/operation/operationService.ts
+﻿// src/renderer/features/operation/operationService.ts
 
 import { toast } from "sonner";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
@@ -14,6 +14,7 @@ import type {
   StatusSummary,
   SummaryDetailRow,
 } from "@shared/types/statusSummary/statusSummaryTypes";
+import { normalizeKanriNo } from "@shared/utils/statusUtils";
 import { useAppStore } from "@renderer/store";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
 
@@ -60,7 +61,7 @@ export const operationService = {
   /** ジョブのステータス更新を要求する */
   updateJobStatus: (params: UpdateJobStatusParams): Promise<void> =>
     window.electronAPI.invoke(IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS, {
-      kanriNo: params.kanriNo.trim(),
+      kanriNo: normalizeKanriNo(params.kanriNo),
       status: params.status,
       comment: params.comment ?? "",
     }),
@@ -68,6 +69,10 @@ export const operationService = {
   /** 全ステータスを初期化しマスターを再読み込みする */
   resetStatuses: (): Promise<Record<string, OperationStatusState>> =>
     window.electronAPI.invoke(IPC_CHANNELS.OPERATION.RESET_STATUSES),
+
+  /** 保存済みセンターフラグを取得する */
+  getActiveFlags: (): Promise<ActiveFlags> =>
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS),
 
   /** センターフラグを設定する */
   setActiveFlags: (flags: Partial<ActiveFlags>): Promise<void> =>
@@ -105,7 +110,7 @@ export const operationService = {
 
   /** JC ジョブのステータス取得・反映を実行する */
   executeJcJob: async (kanriNoInput: string): Promise<void> => {
-    const kanriNo = kanriNoInput.trim();
+    const kanriNo = normalizeKanriNo(kanriNoInput);
 
     await runJobWithGlobalProcessing("JC 実行中...", kanriNo, () =>
       withJobErrorToast("JC 実行エラー", async () => {
@@ -128,7 +133,7 @@ export const operationService = {
 
   /** スクリプトジョブを実行し、結果を返す */
   executeScriptJob: async (params: ExecuteScriptParams): Promise<JobResult> => {
-    const kanriNo = params.kanriNo.trim();
+    const kanriNo = normalizeKanriNo(params.kanriNo);
     const scriptKey = params.scriptKey?.trim() || kanriNo;
     const targetLabel = params.targetName || scriptKey;
 

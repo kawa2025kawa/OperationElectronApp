@@ -1,6 +1,11 @@
-﻿// src/renderer/features/operation/components/table/operationTable.config.ts
+// src/renderer/features/operation/components/table/operationTableConfig.ts
 
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
+import {
+  toDisplayValue,
+  toMissingPropertyDisplayValue,
+} from "@renderer/features/operation/operationDisplayUtils";
+import type { OperationViewItem } from "@shared/types/operation/operationTypes";
 import * as styles from "./operationTable.css";
 
 export interface OperationColumnMeta {
@@ -47,3 +52,44 @@ export const VISIBLE_OPERATION_COLUMNS = {
 } as const satisfies Record<ViewMode, readonly OperationColumn[]>;
 
 export const EMPTY_OPERATION_ROWS = [] as const;
+
+type AlignmentVariant = keyof typeof styles.alignVariants;
+
+/** 表示モードに対応する列を取得する。 */
+export function getVisibleOperationColumns(
+  mode: ViewMode,
+): readonly OperationColumn[] {
+  return VISIBLE_OPERATION_COLUMNS[mode];
+}
+
+/** 列のメタデータを取得する。 */
+export function getOperationColumnMeta(
+  column: OperationColumn,
+): OperationColumnMeta {
+  return OPERATION_COLUMN_CONFIG[column];
+}
+
+/** 列の配置に対応する CSS クラスを取得する。 */
+export function getOperationColumnAlignment(column: OperationColumn): string {
+  const alignment: AlignmentVariant =
+    getOperationColumnMeta(column).align ?? "left";
+
+  return styles.alignVariants[alignment] ?? styles.alignVariants.left;
+}
+
+/**
+ * セルの表示値を取得する。
+ * プロパティが存在しない場合に限り、欠損プレースホルダーを返す。
+ */
+export function getOperationCellDisplayValue(
+  row: OperationViewItem,
+  column: OperationColumn,
+): string {
+  if (!Object.prototype.hasOwnProperty.call(row, column)) {
+    return toMissingPropertyDisplayValue();
+  }
+
+  const value = (row as unknown as Record<string, unknown>)[column];
+
+  return toDisplayValue(value);
+}

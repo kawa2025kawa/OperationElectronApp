@@ -4,6 +4,7 @@ import type {
   IrregularMaster,
   TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
+import { getJstDateParts } from "./jstDate";
 
 // CSVなどのレコードのキーと文字列値を正規化する。
 function normalizeRecord(record: IrregularMaster): IrregularMaster {
@@ -15,41 +16,6 @@ function normalizeRecord(record: IrregularMaster): IrregularMaster {
   }
 
   return normalized as unknown as IrregularMaster;
-}
-
-// 指定日時から日本時間の年月日・曜日・月末日を取得する。
-function getJstDateParts(now: Date) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    weekday: "short",
-  }).formatToParts(now);
-
-  const getPart = (type: string) =>
-    parts.find((part) => part.type === type)?.value ?? "";
-
-  const year = Number(getPart("year"));
-  const month = Number(getPart("month"));
-  const day = Number(getPart("day"));
-
-  const weekdayMap: Record<string, string> = {
-    Mon: "月",
-    Tue: "火",
-    Wed: "水",
-    Thu: "木",
-    Fri: "金",
-    Sat: "土",
-    Sun: "日",
-  };
-
-  return {
-    month,
-    day,
-    weekday: weekdayMap[getPart("weekday")] ?? "",
-    lastDay: new Date(Date.UTC(year, month, 0)).getUTCDate(),
-  };
 }
 
 // 周期指定が月日・週・曜日・奇数月・偶数月などの条件に一致するか判定する。

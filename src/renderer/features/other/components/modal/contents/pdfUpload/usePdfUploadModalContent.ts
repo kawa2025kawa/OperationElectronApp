@@ -6,11 +6,7 @@ import { toast } from "sonner";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
 import { otherIpcService } from "@renderer/services/otherIpcService";
 import { useAppStore } from "@renderer/store";
-
-interface ValidatedPdf {
-  name: string;
-  path: string;
-}
+import type { FileDropZoneItem } from "@renderer/components/ui/fileDropZone/fileDropZone.types";
 
 interface PdfMessage {
   text: string;
@@ -23,7 +19,7 @@ const INITIAL_MESSAGE: PdfMessage = {
 };
 
 export function usePdfUploadModalContent() {
-  const [files, setFiles] = useState<ValidatedPdf[]>([]);
+  const [files, setFiles] = useState<FileDropZoneItem[]>([]);
   const [infoMessage, setInfoMessage] = useState<PdfMessage>(INITIAL_MESSAGE);
 
   const updateModalConfig = useAppStore((state) => state.updateModalConfig);
@@ -52,11 +48,11 @@ export function usePdfUploadModalContent() {
             : file.name);
         if (!filePath) return null;
         return {
-          name: filePath.split(/[/\\]/).pop() ?? filePath,
+          name: file.name || filePath.split(/[/\\]/).pop() || filePath,
           path: filePath,
         };
       })
-      .filter((file): file is ValidatedPdf => file !== null);
+      .filter((file): file is FileDropZoneItem => file !== null);
 
     setFiles((currentFiles) => {
       const existingPaths = new Set(currentFiles.map((file) => file.path));
@@ -77,6 +73,21 @@ export function usePdfUploadModalContent() {
           type: "info",
         });
       }
+      return nextFiles;
+    });
+  }, []);
+
+  const handleRenameFile = useCallback((index: number, newName: string) => {
+    setFiles((currentFiles) => {
+      if (index < 0 || index >= currentFiles.length) return currentFiles;
+      const target = currentFiles[index];
+      if (!target) return currentFiles;
+
+      const nextFiles = [...currentFiles];
+      nextFiles[index] = {
+        ...target,
+        name: newName,
+      };
       return nextFiles;
     });
   }, []);
@@ -129,7 +140,10 @@ export function usePdfUploadModalContent() {
         "Tempomatic PDF",
         async () => {
           await otherIpcService.uploadTempomaticPdf({
-            filePaths: filesToUpload.map((file) => file.path),
+            files: filesToUpload.map((file) => ({
+              path: file.path,
+              name: file.name,
+            })),
           });
         },
       );
@@ -150,6 +164,7 @@ export function usePdfUploadModalContent() {
     }
   }, [files]);
 
+  // モーダルのヘッダーメッセージおよびフッターボタンの同期
   useEffect(() => {
     updateModalConfig({
       message: infoMessage,
@@ -181,6 +196,7 @@ export function usePdfUploadModalContent() {
   return {
     files,
     addPdfFiles,
+    handleRenameFile,
     handleFileReorder,
     handleRemoveFile,
   };

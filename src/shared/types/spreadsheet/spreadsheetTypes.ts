@@ -4,6 +4,11 @@ import type { Jugyoin } from "./jugyoin";
 import type { Kokyuhyo } from "./kokyuhyo";
 import type { Shop } from "./shop";
 import type { Tantou } from "./tantou";
+import type {
+  IrregularMaster,
+  OperationMaster,
+} from "@shared/types/operation/operationTypes";
+import type { RdpMaster } from "@shared/types/rdp/rdpTypes";
 
 /* =========================
  * Spreadsheet ID
@@ -34,6 +39,18 @@ export const SHEETS = {
     sheetName: "KokyuhyoTantouMasterData",
     spreadsheetId: SPREADSHEET_ID.MASTER,
   },
+  OPERATION: {
+    sheetName: "OperationMasterData",
+    spreadsheetId: SPREADSHEET_ID.MASTER,
+  },
+  IRREGULAR: {
+    sheetName: "IrregularMasterData",
+    spreadsheetId: SPREADSHEET_ID.MASTER,
+  },
+  RDP: {
+    sheetName: "RdpMasterData",
+    spreadsheetId: SPREADSHEET_ID.MASTER,
+  },
 } as const;
 
 /* =========================
@@ -49,6 +66,9 @@ type SheetRowMap = {
   [SHEETS.KOKYUHYO.sheetName]: Kokyuhyo;
   [SHEETS.JUGYOIN.sheetName]: Jugyoin;
   [SHEETS.KOKYUHYO_TANTOU.sheetName]: Tantou;
+  [SHEETS.OPERATION.sheetName]: OperationMaster;
+  [SHEETS.IRREGULAR.sheetName]: IrregularMaster;
+  [SHEETS.RDP.sheetName]: RdpMaster;
 };
 
 export type SheetRow<TSheetId extends SheetId> = SheetRowMap[TSheetId];

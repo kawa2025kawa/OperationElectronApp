@@ -1,8 +1,9 @@
-﻿// src/renderer/features/spreadsheet/components/table/SpreadSheetBaseTable.tsx
+﻿// src/renderer/features/spreadSheet/components/table/SpreadSheetBaseTable.tsx
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, useLayoutEffect, useRef } from "react";
 import type { Column } from "@shared/types/table/tableType";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
+import { useAppStore } from "@renderer/store";
 
 export interface SpreadSheetTableStyles {
   container: string;
@@ -41,6 +42,24 @@ interface TableRowProps<T> {
   styles: SpreadSheetTableStyles;
 }
 
+function getCellValue<T>(row: T, column: Column<T>): unknown {
+  return (row as Record<string, unknown>)[column.key as string];
+}
+
+function getCellText(value: unknown): string {
+  return value == null || value === "" ? "-" : String(value);
+}
+
+function renderColumnGroup<T>(columns: readonly Column<T>[]) {
+  return (
+    <colgroup>
+      {columns.map((column) => (
+        <col key={String(column.key)} style={{ width: column.width }} />
+      ))}
+    </colgroup>
+  );
+}
+
 function SpreadSheetBaseTableRowInner<T>({
   row,
   columns,
@@ -60,23 +79,21 @@ function SpreadSheetBaseTableRowInner<T>({
       className={`${styles.tableRowBase} ${styles.tableRowStates[state]}`}
       onClick={handleClick}
     >
-      {columns.map((col) => {
-        const value = (row as Record<string, unknown>)[col.key as string];
+      {columns.map((column) => {
+        const value = getCellValue(row, column);
         const alignClass =
-          styles.alignVariants[col.align ?? "left"] ??
+          styles.alignVariants[column.align ?? "left"] ??
           styles.alignVariants.left;
 
         return (
           <td
-            key={String(col.key)}
+            key={String(column.key)}
             className={`${styles.tdBase} ${alignClass}`}
           >
             {renderCell ? (
-              renderCell(row, col, value)
+              renderCell(row, column, value)
             ) : (
-              <span className={styles.cellText}>
-                {value == null || value === "" ? "-" : String(value)}
-              </span>
+              <span className={styles.cellText}>{getCellText(value)}</span>
             )}
           </td>
         );
@@ -98,6 +115,51 @@ export function SpreadSheetBaseTable<T>({
   renderCell,
   styles,
 }: SpreadSheetBaseTableProps<T>) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const restoredScrollKeyRef = useRef<string | null>(null);
+
+  const currentView = useAppStore((state) => state.currentView);
+  const setScrollPosition = useAppStore((state) => state.setScrollPosition);
+
+  const scrollKey = currentView;
+
+  // データが表示可能になったタイミングで保存位置を復元する
+  useLayoutEffect(() => {
+    if (restoredScrollKeyRef.current === scrollKey) {
+      return;
+    }
+
+    if (rows.length === 0) {
+      return;
+    }
+
+    const container = containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const savedPosition = useAppStore.getState().scrollPositions[scrollKey];
+
+    container.scrollTop = savedPosition?.top ?? 0;
+    container.scrollLeft = savedPosition?.left ?? 0;
+
+    restoredScrollKeyRef.current = scrollKey;
+  }, [scrollKey, rows.length]);
+
+  // スクロール位置を画面ID単位で保存する
+  const handleScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      const container = event.currentTarget;
+
+      setScrollPosition(scrollKey, {
+        top: container.scrollTop,
+        left: container.scrollLeft,
+      });
+    },
+    [scrollKey, setScrollPosition],
+  );
+
   if (rows.length === 0) {
     return <EmptyState />;
   }
@@ -106,24 +168,20 @@ export function SpreadSheetBaseTable<T>({
     <div className={styles.container}>
       <div className={styles.headerWrapper}>
         <table className={styles.headerTable}>
-          <colgroup>
-            {columns.map((col) => (
-              <col key={String(col.key)} style={{ width: col.width }} />
-            ))}
-          </colgroup>
+          {renderColumnGroup(columns)}
           <thead>
             <tr>
-              {columns.map((col) => {
+              {columns.map((column) => {
                 const alignClass =
-                  styles.alignVariants[col.align ?? "left"] ??
+                  styles.alignVariants[column.align ?? "left"] ??
                   styles.alignVariants.left;
 
                 return (
                   <th
-                    key={String(col.key)}
+                    key={String(column.key)}
                     className={`${styles.thBase} ${alignClass}`}
                   >
-                    {col.label}
+                    {column.label}
                   </th>
                 );
               })}
@@ -132,24 +190,23 @@ export function SpreadSheetBaseTable<T>({
         </table>
       </div>
 
-      <div className={styles.bodyWrapper}>
+      <div
+        ref={containerRef}
+        className={styles.bodyWrapper}
+        onScroll={handleScroll}
+      >
         <table className={styles.bodyTable}>
-          <colgroup>
-            {columns.map((col) => (
-              <col key={String(col.key)} style={{ width: col.width }} />
-            ))}
-          </colgroup>
+          {renderColumnGroup(columns)}
           <tbody>
             {rows.map((row, index) => {
               const idKey = getRowId ? getRowId(row, index) : String(index);
-              const isSelected = selectedId === idKey;
 
               return (
                 <SpreadSheetBaseTableRow
                   key={`${idKey}-${index}`}
                   row={row}
                   columns={columns}
-                  isSelected={isSelected}
+                  isSelected={selectedId === idKey}
                   onRowClick={onRowClick}
                   renderCell={renderCell}
                   styles={styles}

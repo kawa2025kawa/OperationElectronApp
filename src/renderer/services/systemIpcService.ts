@@ -20,8 +20,11 @@ export const systemIpcService = {
     window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.QUIT_APP),
 
   /** 指定された管理Noのマニュアルサイトを開く */
-  openManual: (target: string): Promise<null> =>
-    window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_MANUAL, { target }),
+  openManual: (target: string, isAuto = false): Promise<null> =>
+    window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_MANUAL, {
+      target,
+      isAuto,
+    }),
 
   /** 外部URLまたはローカルパスを既定のアプリケーションで開く */
   openExternal: (urlOrPath: string): Promise<null> =>

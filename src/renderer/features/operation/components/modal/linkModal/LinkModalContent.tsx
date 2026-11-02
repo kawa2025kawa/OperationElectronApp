@@ -1,14 +1,14 @@
-//src\renderer\features\operation\components\modal\linkModal\LinkModalContent.tsx
+// src/renderer/features/operation/components/modal/linkModal/LinkModalContent.tsx
 
 import { memo } from "react";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-import type { LinkConfig } from "@shared/types/operation/operationTypes"; // ★ インポート
+import type { LinkConfig } from "@shared/types/operation/operationTypes";
 import { useLinkModalContent } from "./useLinkModalContent";
 import * as styles from "./linkModalContent.css";
 
 interface LinkModalContentProps {
-  link?: LinkConfig[] | null; // ★ LinkConfig[] に変更
+  link?: LinkConfig[] | null;
 }
 
 export const LinkModalContent: GlobalModalComponent<LinkModalContentProps> =
@@ -23,11 +23,7 @@ export const LinkModalContent: GlobalModalComponent<LinkModalContentProps> =
             <EmptyState message="リンクがありません" />
           ) : (
             state.linkItems.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={styles.terminalRow}
-              >
+              <div key={item.key} className={styles.terminalRow}>
                 <button
                   type="button"
                   className={styles.nonTrBadge}
@@ -36,11 +32,15 @@ export const LinkModalContent: GlobalModalComponent<LinkModalContentProps> =
                   {item.key}
                 </button>
                 <div className={styles.flexCell}>
-                  <div className={styles.cellValue} title={item.url}>
+                  <div
+                    className={styles.cellValue}
+                    title={item.url}
+                    style={{ userSelect: "text" }}
+                  >
                     {item.url}
                   </div>
                 </div>
-              </button>
+              </div>
             ))
           )}
         </div>

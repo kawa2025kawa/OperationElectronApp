@@ -10,13 +10,12 @@ import type {
   JobStatus,
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
-import { JOB_STATUS } from "@shared/types/operation/operationTypes";
 
 import type { OperationColumn } from "./operationTableConfig";
 import {
   getOperationCellDisplayValue,
   getOperationColumnAlignment,
-} from "./operationTableUtils";
+} from "./operationTableConfig";
 import * as styles from "./operationTable.css";
 
 interface OperationTableRowProps {
@@ -26,10 +25,6 @@ interface OperationTableRowProps {
   readonly kanriNo: string;
   readonly onRowClick: (kanriNo: string) => void;
   readonly onMarkSuccess: (kanriNo: string) => void;
-}
-
-function isStatusChangeDisabled(status: JobStatus | undefined): boolean {
-  return status === JOB_STATUS.RUNNING || status === JOB_STATUS.SCRIPT_RUNNING;
 }
 
 export const OperationTableRow = memo(function OperationTableRow({
@@ -77,10 +72,7 @@ export const OperationTableRow = memo(function OperationTableRow({
           return (
             <td key={column} className={clsx(styles.tdBase, alignmentClass)}>
               <ContextMenu.Root>
-                <ContextMenu.Trigger
-                  asChild
-                  disabled={isStatusChangeDisabled(currentStatus)}
-                >
+                <ContextMenu.Trigger asChild>
                   <div className={styles.statusCellWrapper}>
                     <StatusBadge status={currentStatus} />
                   </div>

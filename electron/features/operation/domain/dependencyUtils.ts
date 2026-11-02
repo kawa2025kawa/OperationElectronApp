@@ -1,7 +1,6 @@
 // src/shared/utils/dependency/dependencyUtils.ts
 
 import {
-  JOB_STATUS,
   type ActiveFlags,
   type JobStatus,
   type OperationStatusState,
@@ -11,7 +10,7 @@ import type {
   IrregularMaster,
   TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
-import { isSuccessStatus } from "@shared/utils/statusUtils";
+import { isRunningStatus, isSuccessStatus } from "@shared/utils/statusUtils";
 
 export type MasterItem =
   | OperationMaster
@@ -26,17 +25,8 @@ export interface MissingDependency {
 
 export interface DependencyCheckResult {
   ok: boolean;
+  dependencies: string[];
   missingDependencies: MissingDependency[];
-}
-
-export interface JobExecutionOptions {
-  ignoreDependencies?: boolean;
-  silent?: boolean;
-}
-
-export interface ValidationResult {
-  ok: boolean;
-  message?: string;
 }
 
 export interface DependencyMasters {
@@ -46,7 +36,9 @@ export interface DependencyMasters {
 }
 
 export interface DependencyStatuses {
-  statuses: Record<string, OperationStatusState>;
+  statuses:
+    | Readonly<Record<string, OperationStatusState>>
+    | ReadonlyMap<string, OperationStatusState>;
 }
 
 const CENTER_DEPENDENCY_KEYS: Readonly<Record<string, keyof ActiveFlags>> = {
@@ -57,6 +49,7 @@ const CENTER_DEPENDENCY_KEYS: Readonly<Record<string, keyof ActiveFlags>> = {
 
 const EMPTY_CHECK_RESULT: DependencyCheckResult = {
   ok: true,
+  dependencies: [],
   missingDependencies: [],
 };
 
@@ -88,7 +81,14 @@ function findStatus(
   kanriNo: string,
   statuses: DependencyStatuses,
 ): OperationStatusState | undefined {
-  return statuses.statuses[kanriNo.trim()];
+  const key = kanriNo.trim();
+  const statusMap = statuses.statuses;
+
+  if (statusMap instanceof Map) {
+    return statusMap.get(key);
+  }
+
+  return (statusMap as Readonly<Record<string, OperationStatusState>>)[key];
 }
 
 function createMissingDependency(
@@ -122,11 +122,9 @@ function isDependencySatisfied(
   const depKey = depKanriNo.trim();
 
   // 特例: kanriNo 75 における kanriNo 67 の依存判定
-  // 「完了 (isSuccessStatus)」または「実行中 (JOB_STATUS.RUNNING)」で前提クリアとする
+  // 「完了 (isSuccessStatus)」または「実行中 (isRunningStatus)」で前提クリアとする
   if (targetKey === "75" && depKey === "67") {
-    return (
-      isSuccessStatus(currentStatus) || currentStatus === JOB_STATUS.RUNNING
-    );
+    return isSuccessStatus(currentStatus) || isRunningStatus(currentStatus);
   }
 
   return isSuccessStatus(currentStatus);
@@ -141,14 +139,24 @@ function checkDependency(
 ): MissingDependency | undefined {
   const activeKey = CENTER_DEPENDENCY_KEYS[dependency];
 
+  // =========================================================================
+  // 【重要・変更絶対禁止】
+  // 1C / 2C / 3C はフッターボタン（センター状態）を表す。
+  // ・ボタン ON (isActive === true)  : センター要件完了 → undefined（前提クリア）
+  // ・ボタン OFF (isActive === false) : センター要件未完了 → MissingDependency を返却（待機）
+  // ※OFF時に undefined を返すと未完了のまま「実施可」へ誤遷移するため、ロジックを絶対に変更しないこと。
+  // =========================================================================
   if (activeKey) {
-    // 該当センターが非アクティブ (OFF) の場合は、そのセンターの作業自体が不要なため前提クリア扱い
-    if (!activeFlags?.[activeKey]) {
+    const isActive = Boolean(activeFlags?.[activeKey]);
+    if (isActive) {
       return undefined;
     }
 
-    // センターがアクティブ (ON) の場合はフラグ条件クリア扱い
-    return undefined;
+    return {
+      kanriNo: dependency,
+      status: null,
+      comment: `前提 ${dependency} 未完了`,
+    };
   }
 
   const master = findMaster(dependency, masters);
@@ -169,7 +177,10 @@ function checkDependencies(
   activeFlags?: ActiveFlags,
 ): DependencyCheckResult {
   if (dependencies.length === 0) {
-    return EMPTY_CHECK_RESULT;
+    return {
+      ...EMPTY_CHECK_RESULT,
+      dependencies,
+    };
   }
 
   const missingDependencies = dependencies
@@ -188,6 +199,7 @@ function checkDependencies(
 
   return {
     ok: missingDependencies.length === 0,
+    dependencies,
     missingDependencies,
   };
 }
@@ -214,7 +226,7 @@ export function formatDependencyWaitingComment(
   if (!missingNos) {
     return "前提未完了";
   }
-  return `前提未完了(No.${missingNos})`;
+  return `前提未完了 (No.${missingNos})`;
 }
 
 /**
@@ -240,7 +252,7 @@ export function normalizeDependencies(
 
   const hasAll = rawList.some((v) => v.toLowerCase() === "all");
 
-  // "ALL" が指定されている場合は、自身を除く operationMasters と todayIrregularMasters の管理No群へ展開
+  // "ALL" が指定されている場合は、自身を除いた operationMasters と todayIrregularMasters の管理No群へ展開
   if (hasAll && masters) {
     const currentKey = currentKanriNo?.trim();
     const targetMasters = [

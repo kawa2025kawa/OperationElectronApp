@@ -5,6 +5,7 @@ import {
   type AppViewDefinition,
 } from "@shared/types/registry/viewDefinition";
 import { OperationView } from "@renderer/features/operation/OperationView";
+import { OPERATION_TABLE_SEARCH_KEYS } from "@renderer/store/selectors/operationSelectors";
 
 export const operationViewConfig: AppViewDefinition = {
   id: APP_VIEW_IDS.OPERATION,
@@ -14,6 +15,6 @@ export const operationViewConfig: AppViewDefinition = {
   sidebarMenu: { show: true, order: 1 },
   search: {
     placeholder: "検索...",
-    searchKeys: ["kanriNo", "workName", "jobId"],
+    searchKeys: OPERATION_TABLE_SEARCH_KEYS,
   },
 };

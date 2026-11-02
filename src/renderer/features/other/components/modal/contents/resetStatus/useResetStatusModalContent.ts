@@ -1,18 +1,14 @@
 ﻿// src/renderer/features/other/components/modal/contents/resetStatus/useResetStatusModalContent.ts
 
 import { useCallback, useEffect } from "react";
-import { useShallow } from "zustand/shallow";
 import { useAppStore } from "@renderer/store";
 
 export function useResetStatusModalContent() {
-  const { updateModalConfig, closeGlobalModal, resetAllOperationStatuses } =
-    useAppStore(
-      useShallow((state) => ({
-        updateModalConfig: state.updateModalConfig,
-        closeGlobalModal: state.closeGlobalModal,
-        resetAllOperationStatuses: state.resetAllOperationStatuses,
-      })),
-    );
+  const updateModalConfig = useAppStore((state) => state.updateModalConfig);
+  const closeGlobalModal = useAppStore((state) => state.closeGlobalModal);
+  const resetAllOperationStatuses = useAppStore(
+    (state) => state.resetAllOperationStatuses,
+  );
 
   const handleReset = useCallback(async () => {
     updateModalConfig({ isProcessing: true });
@@ -33,7 +29,7 @@ export function useResetStatusModalContent() {
 
   useEffect(() => {
     updateModalConfig({
-      message: undefined, // バナーメッセージをクリアして中央テキストに注力
+      message: undefined,
       rightActions: [
         {
           id: "cancel",

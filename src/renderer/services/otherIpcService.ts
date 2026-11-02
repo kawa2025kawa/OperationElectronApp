@@ -5,6 +5,7 @@ import type {
   EmailTemplateKey,
   GmailDraftFormValues,
 } from "@renderer/features/other/types/gmailDraftTypes";
+import type { TempomaticUploadTargetFile } from "@shared/types/electron/ipcTypes";
 
 export interface GenerateDraftTemplateParams {
   templateKey: EmailTemplateKey;
@@ -13,7 +14,8 @@ export interface GenerateDraftTemplateParams {
 }
 
 export interface UploadDocumentParams {
-  filePaths: string[];
+  filePaths?: string[];
+  files?: TempomaticUploadTargetFile[];
   expireDate?: string;
 }
 

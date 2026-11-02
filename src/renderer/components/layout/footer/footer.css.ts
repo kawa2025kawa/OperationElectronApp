@@ -9,21 +9,13 @@ export const footerContainer = style([
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-
     height: "4.5rem",
     padding: `0 ${tokens.space.lg}`,
-
     flexShrink: 0,
-
     backgroundColor: tokens.color.bg.base,
     boxShadow: tokens.shadow.raised.low,
     borderTop: `1px solid ${tokens.color.border.subtle}`,
-
-    // 🎯 描画分離（Paint Flashing 対策）
-    position: "relative",
     zIndex: 10,
-    isolation: "isolate",
-    transform: "translateZ(0)",
 
     "@media": {
       "screen and (min-width: 768px)": {
@@ -35,11 +27,9 @@ export const footerContainer = style([
 
 export const copyrightText = style({
   color: tokens.color.text.base,
-
   fontSize: tokens.font.size.xs,
   fontWeight: tokens.font.weight.medium,
   letterSpacing: "0.05em",
-
   opacity: 0.8,
 });
 
@@ -47,13 +37,11 @@ export const centerSearchWrapper = style({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-
   flex: "0 1 400px",
 });
 
 export const controlsContainer = style({
   display: "flex",
   alignItems: "center",
-
   gap: tokens.space.md,
 });

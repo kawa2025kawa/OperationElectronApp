@@ -1,6 +1,7 @@
 // electron/features/operation/jobs/scripts/nseries/job_n31.ts
 
 import { chromium, type Page } from "playwright";
+import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
 const CONFIG = {
@@ -21,17 +22,50 @@ const CONFIG = {
     supplier: "#SIR_CD_0",
     execute: "#fkey_12",
   },
+  completionMessage: "正常終了",
 } as const;
 
-function getToday(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+type JobResultData = {
+  orderDate: string;
+  departmentCode: string;
+  supplierCode: string;
+};
 
-  return `${year}/${month}/${day}`;
+/**
+ * ベルク WEB-EDI にログインし、本日日付の発注一覧照会処理を自動実行する。
+ *
+ * 接続先:
+ * - https://www2.belc.co.jp:8002/webedi/belcwebedi.html
+ *
+ * 業務上の要対応:
+ * - なし（自動操作完了後、正常終了）
+ *
+ * システムエラー:
+ * - ページ遷移失敗
+ * - ログイン・メニュー要素操作失敗
+ * - 仕入先コード不一致
+ */
+export async function runJobN31(): Promise<string> {
+  const logger = new JobLogger();
+
+  try {
+    const result = await executeWebEdiOrder();
+
+    return writeResultLog(logger, result);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
+      throw error;
+    }
+
+    const detail = error instanceof Error ? ` (${error.message})` : "";
+
+    throw logger.fail(`WEB-EDI操作に失敗しました${detail}`);
+  }
 }
 
+/**
+ * WEB-EDI画面上の仕入先セレクトボックスから指定コードに合致する値を選択する。
+ */
 async function selectSupplier(page: Page): Promise<void> {
   const supplier = page.locator(CONFIG.selectors.supplier);
   const value = await supplier
@@ -53,7 +87,17 @@ async function selectSupplier(page: Page): Promise<void> {
   await supplier.selectOption(value);
 }
 
-async function executeN31(page: Page): Promise<void> {
+/**
+ * ブラウザを起動し、WEB-EDIの発注操作シーケンスを実行する。
+ */
+async function executeWebEdiOrder(): Promise<JobResultData> {
+  const orderDate = format(new Date(), "yyyy/MM/dd");
+  const browser = await chromium.launch({
+    headless: false,
+    channel: "chrome",
+  });
+
+  const page = await browser.newPage();
   const { selectors } = CONFIG;
 
   await page.goto(CONFIG.url);
@@ -65,34 +109,30 @@ async function executeN31(page: Page): Promise<void> {
 
   await page.locator(selectors.orderMenu).click();
   await page.locator(selectors.orderList).click();
-  await page.locator(selectors.orderDate).fill(getToday());
+  await page.locator(selectors.orderDate).fill(orderDate);
   await page.locator(selectors.departmentCode).fill(CONFIG.departmentCode);
 
   await selectSupplier(page);
 
   await page.locator(selectors.execute).click();
   await page.waitForLoadState("networkidle");
+
+  return {
+    orderDate,
+    departmentCode: CONFIG.departmentCode,
+    supplierCode: CONFIG.supplierCode,
+  };
 }
 
-export async function runJobN31(): Promise<string> {
-  const logger = new JobLogger();
+/**
+ * 操作結果をログに出力し、完了メッセージを返却する。
+ */
+function writeResultLog(logger: JobLogger, result: JobResultData): string {
+  logger.section("WEB-EDI 操作情報");
+  logger.log(`接続先URL     : ${CONFIG.url}`);
+  logger.log(`発注日       : ${result.orderDate}`);
+  logger.log(`部門コード   : ${result.departmentCode}`);
+  logger.log(`仕入先コード : ${result.supplierCode}`);
 
-  try {
-    logger.log(`対象URL : ${CONFIG.url}`);
-    logger.log("WEB-EDI 自動操作を開始します");
-
-    const browser = await chromium.launch({
-      headless: false,
-      channel: "chrome",
-    });
-
-    await executeN31(await browser.newPage());
-
-    logger.log("WEB-EDI の自動操作が完了しました");
-    return logger.complete("正常終了");
-  } catch (error: unknown) {
-    throw logger.fail(
-      `WEB-EDI 操作失敗: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
+  return logger.complete(CONFIG.completionMessage);
 }

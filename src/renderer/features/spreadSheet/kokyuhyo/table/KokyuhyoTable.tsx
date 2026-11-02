@@ -7,8 +7,20 @@ import { SpreadSheetBaseTable } from "../../components/table/SpreadSheetBaseTabl
 import { KOKYUHYO_COLUMNS } from "../kokyuhyoColumns";
 import * as styles from "@renderer/styles/global/table.css";
 
-const checkIsHolidayText = (value: unknown): boolean => {
-  if (value == null || typeof value === "object") return false;
+export interface KokyuhyoTableProps {
+  rows: readonly Kokyuhyo[];
+  selectedId?: string;
+  onRowClick?: (item: Kokyuhyo) => void;
+}
+
+function getCellText(value: unknown): string {
+  return value == null || value === "" ? "-" : String(value);
+}
+
+function checkIsHolidayText(value: unknown): boolean {
+  if (value == null || typeof value === "object") {
+    return false;
+  }
 
   const text = String(value);
 
@@ -18,28 +30,20 @@ const checkIsHolidayText = (value: unknown): boolean => {
     text.includes("特休") ||
     text.includes("休")
   );
-};
-
-export interface KokyuhyoTableProps {
-  rows: readonly Kokyuhyo[];
-  selectedId?: string;
-  onRowClick?: (item: Kokyuhyo) => void;
 }
 
 export const KokyuhyoTable = memo(
   ({ rows, selectedId, onRowClick }: KokyuhyoTableProps) => {
     const renderCell = useCallback(
-      (_row: Kokyuhyo, _col: Column<Kokyuhyo>, value: unknown) => {
-        const isHoliday = checkIsHolidayText(value);
-
-        return (
-          <span
-            className={`${styles.cellText} ${isHoliday ? styles.cellTextHoliday : ""}`}
-          >
-            {value == null || value === "" ? "-" : String(value)}
-          </span>
-        );
-      },
+      (_row: Kokyuhyo, _col: Column<Kokyuhyo>, value: unknown) => (
+        <span
+          className={`${styles.cellText} ${
+            checkIsHolidayText(value) ? styles.cellTextHoliday : ""
+          }`}
+        >
+          {getCellText(value)}
+        </span>
+      ),
       [],
     );
 

@@ -6,8 +6,10 @@ import { AnimatePresence, m } from "framer-motion";
 import { useOperationTable } from "./useOperationTable";
 import { OperationTableHeader } from "./OperationTableHeader";
 import { OperationTableBody } from "./OperationTableBody";
-import { EMPTY_OPERATION_ROWS } from "./operationTableConfig";
-import { getVisibleOperationColumns } from "./operationTableUtils";
+import {
+  EMPTY_OPERATION_ROWS,
+  getVisibleOperationColumns,
+} from "./operationTableConfig";
 import * as styles from "./operationTable.css";
 
 export const OperationTable = memo(function OperationTable() {
@@ -47,6 +49,3 @@ export const OperationTable = memo(function OperationTable() {
 });
 
 OperationTable.displayName = "OperationTable";
-
-/** 既存コードとの後方互換性エイリアス */
-export const UnifiedTable = OperationTable;

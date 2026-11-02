@@ -3,17 +3,18 @@
 import { keyframes, style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens";
 
+const CYAN = "#00f0ff";
+
 const pulseAnimation = keyframes({
-  "0%": {
-    boxShadow: "0 0 0 0 rgba(0, 240, 255, 0.7)",
-  },
-  "70%": {
-    boxShadow: "0 0 0 6px rgba(0, 240, 255, 0)",
-  },
-  "100%": {
-    boxShadow: "0 0 0 0 rgba(0, 240, 255, 0)",
-  },
+  "0%": { boxShadow: "0 0 0 0 rgba(0, 240, 255, 0.7)" },
+  "70%": { boxShadow: "0 0 0 6px rgba(0, 240, 255, 0)" },
+  "100%": { boxShadow: "0 0 0 0 rgba(0, 240, 255, 0)" },
 });
+
+const dot = {
+  display: "block",
+  borderRadius: "50%",
+} as const;
 
 export const button = style({
   position: "relative",
@@ -27,24 +28,19 @@ export const button = style({
   cursor: "pointer",
   whiteSpace: "nowrap",
   overflow: "hidden",
-
   fontSize: tokens.font.size.md,
   fontWeight: tokens.font.weight.bold,
-
   transitionProperty:
     "background-color, border-color, color, box-shadow, transform",
   transitionDuration: tokens.transition.ease,
   transitionTimingFunction: "ease-in-out",
-
   backgroundColor: tokens.color.bg.base,
   color: tokens.color.text.base,
   boxShadow: tokens.shadow.raised.md,
-
   selectors: {
     "&:hover": {
       boxShadow: tokens.shadow.glow.cyan,
     },
-
     "&[aria-pressed='true']": {
       borderColor: "rgba(0, 240, 255, 0.4)",
       boxShadow: `${tokens.shadow.glow.cyan}, inset 0 0 0.75rem rgba(0, 240, 255, 0.15)`,
@@ -76,21 +72,19 @@ export const indicatorContainer = style({
 });
 
 export const onlineDot = style({
-  display: "block",
+  ...dot,
   width: "0.6em",
   height: "0.6em",
-  borderRadius: "50%",
-  backgroundColor: "#00f0ff",
-  boxShadow: "0 0 8px #00f0ff",
+  backgroundColor: CYAN,
+  boxShadow: `0 0 8px ${CYAN}`,
   animation: `${pulseAnimation} 2s infinite`,
 });
 
 export const offlineDot = style({
-  display: "block",
+  ...dot,
   width: "0.5em",
   height: "0.5em",
-  borderRadius: "50%",
-  backgroundColor: tokens.color.text.base ?? "#666",
+  backgroundColor: tokens.color.text.base,
   opacity: 0.5,
 });
 

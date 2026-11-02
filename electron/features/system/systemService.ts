@@ -14,8 +14,15 @@ const UPDATE_INFO_PATH = path.join(
 );
 
 // 対象管理Noに対応するWebマニュアルのURLを生成して返す。
-export function getManualUrl(target: string): string {
-  return `https://sites.google.com/belc.co.jp/operation-manual-${target}`;
+export function getManualUrl(target: string, isAuto = false): string {
+  const cleanTarget = target.trim();
+  const basePrefix = isAuto ? "operation-auto-manual" : "operation-manual";
+
+  if (!cleanTarget || cleanTarget.toLowerCase() === "true") {
+    return `https://sites.google.com/belc.co.jp/${basePrefix}`;
+  }
+
+  return `https://sites.google.com/belc.co.jp/${basePrefix}-${cleanTarget}`;
 }
 
 // 破棄されていないアクティブなメインウィンドウインスタンスを取得する。

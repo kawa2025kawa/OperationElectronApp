@@ -49,11 +49,12 @@ export function registerSystemIpc(): void {
       _event,
       {
         target,
+        isAuto,
       }: IpcChannelMap[typeof IPC_CHANNELS.SYSTEM.OPEN_MANUAL]["args"][0],
     ): Promise<
       IpcChannelMap[typeof IPC_CHANNELS.SYSTEM.OPEN_MANUAL]["return"]
     > => {
-      const url = getManualUrl(target);
+      const url = getManualUrl(target, isAuto);
       await shell.openExternal(url);
       return null;
     },

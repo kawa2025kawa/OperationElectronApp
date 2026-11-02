@@ -17,12 +17,8 @@ import {
   createStatusSummarySlice,
   type StatusSummarySlice,
 } from "./slices/statusSummarySlice";
-import {
-  createPollingSlice,
-  type PollingSlice,
-} from "./slices/pollingSlice";
+import { createPollingSlice, type PollingSlice } from "./slices/pollingSlice";
 import { createCenterSlice, type CenterSlice } from "./slices/centerSlice";
-import { createRdpSlice, type RdpSlice } from "./slices/rdpSlice";
 import {
   createSpreadSheetSlice,
   type SpreadSheetSlice,
@@ -44,7 +40,6 @@ export type AppState = AuthSlice &
   StatusSummarySlice &
   OperationStatusSlice &
   PollingSlice &
-  RdpSlice &
   SpreadSheetSlice &
   ThemeSlice &
   NavigationSlice &
@@ -66,7 +61,6 @@ export const useAppStore = create<AppState>()(
       ...createStatusSummarySlice(...args),
       ...createOperationStatusSlice(...args),
       ...createPollingSlice(...args),
-      ...createRdpSlice(...args),
       ...createSpreadSheetSlice(...args),
       ...createCenterSlice(...args),
 

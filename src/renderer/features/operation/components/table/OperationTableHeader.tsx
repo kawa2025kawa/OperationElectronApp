@@ -7,7 +7,7 @@ import type { OperationColumn } from "./operationTableConfig";
 import {
   getOperationColumnAlignment,
   getOperationColumnMeta,
-} from "./operationTableUtils";
+} from "./operationTableConfig";
 import * as styles from "./operationTable.css";
 
 interface OperationTableHeaderProps {

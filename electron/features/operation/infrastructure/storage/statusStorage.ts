@@ -1,24 +1,19 @@
-// electron/features/operation/persistence/statusStorage.ts
+// electron/features/operation/infrastructure/storage/statusStorage.ts
 
 import path from "node:path";
-
 import { app } from "electron";
-
 import { format } from "date-fns";
-
 import fs from "fs-extra";
-
 import type { OperationStatusState } from "@shared/types/operation/operationTypes";
 
 export type PersistedStatus = OperationStatusState;
 
 const STATUS_FILE_PREFIX = "operationStatuses_";
-
 const DEBOUNCE_DELAY_MS = 1000;
 
 let persistTimer: NodeJS.Timeout | null = null;
-
 let pendingMemoryStatuses: Map<string, PersistedStatus> | null = null;
+let isWriting = false;
 
 function getStatusFilePath(): string {
   return path.join(
@@ -27,27 +22,36 @@ function getStatusFilePath(): string {
   );
 }
 
-export function persistStatusesImmediately(
+export async function persistStatusesImmediately(
   memoryStatuses: Map<string, PersistedStatus>,
-): void {
-  if (persistTimer) {
+): Promise<void> {
+  if (persistTimer !== null) {
     clearTimeout(persistTimer);
-
     persistTimer = null;
   }
 
+  pendingMemoryStatuses = null;
+
+  if (isWriting) {
+    pendingMemoryStatuses = memoryStatuses;
+    return;
+  }
+
+  isWriting = true;
   try {
     const filePath = getStatusFilePath();
-
     const data = Object.fromEntries(memoryStatuses);
-
-    fs.writeJsonSync(filePath, data, {
-      spaces: 2,
-    });
+    await fs.ensureDir(path.dirname(filePath));
+    await fs.writeJson(filePath, data, { spaces: 2 });
   } catch (error) {
     console.error("[StatusStorage] Immediate write failed:", error);
   } finally {
-    pendingMemoryStatuses = null;
+    isWriting = false;
+    if (pendingMemoryStatuses !== null) {
+      const nextStatuses = pendingMemoryStatuses;
+      pendingMemoryStatuses = null;
+      void persistStatusesImmediately(nextStatuses);
+    }
   }
 }
 
@@ -56,15 +60,16 @@ export function persistStatusesDebounced(
 ): void {
   pendingMemoryStatuses = memoryStatuses;
 
-  if (persistTimer) {
+  if (persistTimer !== null) {
     return;
   }
 
   persistTimer = setTimeout(() => {
     persistTimer = null;
-
-    if (pendingMemoryStatuses) {
-      persistStatusesImmediately(pendingMemoryStatuses);
+    if (pendingMemoryStatuses !== null) {
+      const targetStatuses = pendingMemoryStatuses;
+      pendingMemoryStatuses = null;
+      void persistStatusesImmediately(targetStatuses);
     }
   }, DEBOUNCE_DELAY_MS);
 }
@@ -77,8 +82,8 @@ export async function loadStatusesFromFile(): Promise<
   const filePath = getStatusFilePath();
 
   try {
-    if (fs.existsSync(filePath)) {
-      return fs.readJsonSync(filePath) as Record<string, PersistedStatus>;
+    if (await fs.pathExists(filePath)) {
+      return (await fs.readJson(filePath)) as Record<string, PersistedStatus>;
     }
   } catch (error) {
     console.error("[StatusStorage] Read failed:", error);
@@ -90,11 +95,13 @@ export async function loadStatusesFromFile(): Promise<
 async function cleanupOldStatusFiles(): Promise<void> {
   try {
     const dir = app.getPath("userData");
-
     const todaySuffix = format(new Date(), "yyyyMMdd");
 
-    const files = await fs.readdir(dir);
+    if (!(await fs.pathExists(dir))) {
+      return;
+    }
 
+    const files = await fs.readdir(dir);
     const oldFiles = files.filter(
       (file) =>
         file.startsWith(STATUS_FILE_PREFIX) &&
@@ -104,18 +111,21 @@ async function cleanupOldStatusFiles(): Promise<void> {
 
     await Promise.all(oldFiles.map((file) => fs.remove(path.join(dir, file))));
   } catch {
-    // Cleanup failure does not block application startup.
+    // クリーンアップ失敗はアプリ起動・動作を妨げない
   }
 }
 
 export async function deleteStatusFile(): Promise<void> {
-  if (persistTimer) {
+  if (persistTimer !== null) {
     clearTimeout(persistTimer);
-
     persistTimer = null;
   }
 
   pendingMemoryStatuses = null;
 
-  await fs.remove(getStatusFilePath()).catch(() => {});
+  try {
+    await fs.remove(getStatusFilePath());
+  } catch {
+    // 削除失敗は無視
+  }
 }

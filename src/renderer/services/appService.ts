@@ -1,4 +1,4 @@
-// src/renderer/services/appService.ts
+﻿// src/renderer/services/appService.ts
 
 import { operationService } from "@renderer/features/operation/operationService";
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
@@ -10,7 +10,7 @@ import {
 } from "@shared/types/initializationTypes";
 import { VIEW_MODES } from "@shared/types/registry/viewDefinition";
 
-/** 運用データおよび不定期運用データの読み込みと初期化を行う */
+// 運用データおよび不定期運用データの読み込みと初期化を行う。
 async function loadOperationData(): Promise<void> {
   const store = useAppStore.getState();
 
@@ -20,16 +20,19 @@ async function loadOperationData(): Promise<void> {
     );
   };
 
-  if (!(await store.fetchMasterData())) {
-    markOperationDataFailed();
-    return;
-  }
-
   try {
-    await operationService.registerTargets();
+    const activeFlags = await operationService.getActiveFlags();
+    store.applyCenterFlags(activeFlags);
+
+    if (!(await store.fetchMasterData())) {
+      markOperationDataFailed();
+      return;
+    }
+
     await operationService.initializeStatus();
+    await operationService.registerTargets();
   } catch (error) {
-    console.error("[AppService] Failed to register operation targets:", error);
+    console.error("[AppService] Failed to initialize operation data:", error);
     markOperationDataFailed();
     return;
   }
@@ -61,7 +64,7 @@ async function loadOperationData(): Promise<void> {
   }
 }
 
-/** アプリケーション全体の初期化シーケンスを実行する */
+// アプリケーション全体の初期化シーケンスを実行する。
 async function initializeAppData(): Promise<void> {
   const store = useAppStore.getState();
 

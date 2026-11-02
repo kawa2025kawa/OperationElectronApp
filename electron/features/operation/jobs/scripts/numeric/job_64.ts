@@ -10,8 +10,8 @@ import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/job
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
-  //baseDir: "\\\\172.25.101.51\\if\\LOG\\DCMMD",
-  baseDir: "C:\\Users\\C3088091\\Desktop\\test",
+  baseDir: "\\\\172.25.101.51\\if\\LOG\\DCMMD",
+  //baseDir: "C:\\Users\\C3088091\\Desktop\\test",
   systemId: "C1088241",
   encoding: "Shift_JIS",
   pluEncoding: "EUC-JP",

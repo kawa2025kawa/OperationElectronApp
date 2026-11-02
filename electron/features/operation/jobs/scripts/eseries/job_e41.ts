@@ -4,25 +4,74 @@ import path from "node:path";
 import readline from "node:readline";
 import fs from "fs-extra";
 import { addDays, format } from "date-fns";
+
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import type { ScriptFilePath } from "@shared/types/operation/operationTypes";
 
-type ScriptFilePath = string | string[];
+const CONFIG = {
+  backupPath: "\\\\C0088150\\nec\\ftp\\GIFTSYS\\giftRecv\\BackUp\\",
+  outputPath: "\\\\C0088150\\nec\\ftp\\GIFTSYS\\giftRecv\\",
+  errorPrefix: "マスタ情報獲得エラー :",
+  backupFileKeyword: "GIFTDEN111",
+  outputFilePrefix: "GIFTDEN111_",
+  completionMessage: "マスタ情報の抽出完了",
+} as const;
 
-const BACKUP_PATH = "\\\\C0088150\\nec\\ftp\\GIFTSYS\\giftRecv\\BackUp\\";
-const OUTPUT_PATH = "\\\\C0088150\\nec\\ftp\\GIFTSYS\\giftRecv\\";
-const ERROR_PREFIX = "マスタ情報獲得エラー :";
+type JobResultData = {
+  inputFilePath: string;
+  backupFilePath: string;
+  outputFilePath: string;
+  keywordCount: number;
+  extractedCount: number;
+};
 
-// folderUtils の directoryExists をローカル関数として実装
-async function directoryExists(dirPath: string): Promise<boolean> {
+/**
+ * ギフトマスタエラーログからキーワードを抽出し、最新バックアップから対象行を翌日付で再作成する。
+ *
+ * 入力ファイル:
+ * - エラーログテキストファイル (1ファイルのみ)
+ *
+ * 参照先:
+ * - \\C0088150\nec\ftp\GIFTSYS\giftRecv\BackUp (最新の GIFTDEN111 ファイル)
+ *
+ * 出力先:
+ * - \\C0088150\nec\ftp\GIFTSYS\giftRecv\GIFTDEN111_YYYYMMDD_HHmmss.DAT
+ *
+ * 業務上の要対応:
+ * - なし（正常完了後、抽出・作成結果をログ出力）
+ *
+ * システムエラー:
+ * - 入力ファイル未指定・複数指定・不在
+ * - 対象キーワード未検出
+ * - バックアップディレクトリまたはバックアップファイル不在
+ * - ファイル読み書き失敗
+ */
+export async function runJobE41(filePath?: ScriptFilePath): Promise<string> {
+  const logger = new JobLogger();
+
   try {
-    const stats = await fs.stat(dirPath);
-    return stats.isDirectory();
-  } catch {
-    return false;
+    const inputFilePath = await resolveSingleFilePath(filePath);
+    const result = await processGiftMasterError(inputFilePath);
+
+    return writeResultLog(logger, result);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
+      throw error;
+    }
+
+    const detail = error instanceof Error ? ` (${error.message})` : "";
+
+    throw logger.fail(`ファイル処理に失敗しました${detail}`);
   }
 }
 
-function resolveSingleFilePath(filePath?: ScriptFilePath): string {
+/**
+ * 入力ファイルパスを検証・解決する。
+ */
+async function resolveSingleFilePath(
+  filePath?: ScriptFilePath,
+): Promise<string> {
   const filePaths = Array.isArray(filePath)
     ? filePath
     : filePath
@@ -39,121 +88,139 @@ function resolveSingleFilePath(filePath?: ScriptFilePath): string {
     throw new Error("ファイルは1つだけ指定してください。");
   }
 
-  return filePaths[0];
+  const targetPath = filePaths[0];
+  if (!(await fs.pathExists(targetPath))) {
+    throw new Error(`指定されたファイルが存在しません: ${targetPath}`);
+  }
+
+  return targetPath;
 }
 
-export async function runJobE41(filePath?: ScriptFilePath): Promise<string> {
-  const logger = new JobLogger();
+/**
+ * エラーログから検索キーワード（11〜15桁目の4文字）を抽出する。
+ */
+async function extractKeywords(filePath: string): Promise<Set<string>> {
+  const keywordSet = new Set<string>();
+  const rl = readline.createInterface({
+    input: fs.createReadStream(filePath, { encoding: "utf8" }),
+    crlfDelay: Infinity,
+  });
 
-  try {
-    const targetFilePath = resolveSingleFilePath(filePath);
+  for await (let line of rl) {
+    if (!line.includes(CONFIG.errorPrefix)) continue;
 
-    if (!(await fs.pathExists(targetFilePath))) {
-      throw new Error(`指定されたファイルが存在しません: ${targetFilePath}`);
+    line = line.replace(CONFIG.errorPrefix, "").trim();
+    const cleanedLine = line.replace(/\s+/g, "");
+
+    if (cleanedLine.length >= 15) {
+      keywordSet.add(cleanedLine.substring(11, 15));
     }
-
-    logger.log(`入力ファイル : ${targetFilePath}`);
-
-    // エラーログから検索キーワード（11〜15桁目の4文字）を抽出
-    const keywordSet = new Set<string>();
-    const rlError = readline.createInterface({
-      input: fs.createReadStream(targetFilePath, { encoding: "utf8" }),
-      crlfDelay: Infinity,
-    });
-
-    for await (let line of rlError) {
-      if (!line.includes(ERROR_PREFIX)) continue;
-
-      line = line.replace(ERROR_PREFIX, "").trim();
-      const cleanedLine = line.replace(/\s+/g, "");
-
-      if (cleanedLine.length >= 15) {
-        keywordSet.add(cleanedLine.substring(11, 15));
-      }
-    }
-
-    logger.log(`抽出キーワード数 : ${keywordSet.size}`);
-
-    if (keywordSet.size === 0) {
-      throw new Error("ファイルから対象キーワードが見つかりませんでした。");
-    }
-
-    if (!(await directoryExists(BACKUP_PATH))) {
-      throw new Error(`バックアップフォルダが存在しません: ${BACKUP_PATH}`);
-    }
-
-    // バックアップフォルダから最新の GIFTDEN111 ファイルを取得
-    const backupFiles = await fs.readdir(BACKUP_PATH);
-    let latestFile = "";
-    let latestMtime = new Date(0);
-
-    for (const file of backupFiles) {
-      if (!file.toUpperCase().includes("GIFTDEN111")) continue;
-
-      const fullPath = path.join(BACKUP_PATH, file);
-      const stat = await fs.stat(fullPath);
-
-      if (stat.isFile() && stat.mtime > latestMtime) {
-        latestMtime = stat.mtime;
-        latestFile = fullPath;
-      }
-    }
-
-    if (!latestFile) {
-      throw new Error(
-        "バックアップフォルダ内にGIFTDEN111ファイルが見つかりません。",
-      );
-    }
-
-    logger.log(`参照バックアップ : ${latestFile}`);
-
-    // バックアップファイルから対象キーワードが含まれる行を抽出
-    const result: string[] = [];
-    const rlBackup = readline.createInterface({
-      input: fs.createReadStream(latestFile, { encoding: "utf8" }),
-      crlfDelay: Infinity,
-    });
-
-    for await (const line of rlBackup) {
-      const cleanedLine = line.replace(/\s+/g, "");
-
-      if (cleanedLine.length < 15) continue;
-
-      const keyword = cleanedLine.substring(11, 15);
-      if (keywordSet.has(keyword)) {
-        result.push(line);
-      }
-    }
-
-    logger.log(`抽出件数 : ${result.length}`);
-
-    await fs.ensureDir(OUTPUT_PATH);
-
-    const now = new Date();
-    const timestamp = format(now, "yyyyMMdd_HHmmss");
-    const outFileName = `GIFTDEN111_${timestamp}.DAT`;
-    const outFilePath = path.join(OUTPUT_PATH, outFileName);
-    const tomorrowStr = format(addDays(now, 1), "yyyyMMdd");
-
-    // 先頭8桁を明日の日付に置換して書き出し
-    const outputLines = result.map((line) =>
-      line.length >= 8 ? tomorrowStr + line.substring(8) : line,
-    );
-
-    await fs.writeFile(outFilePath, outputLines.join("\r\n") + "\r\n", "utf8");
-
-    logger.log(`出力ファイル : ${outFilePath}`);
-    logger.complete("マスタ情報の抽出完了");
-
-    return (
-      `処理が完了しました。\n` +
-      `キーワード数 : ${keywordSet.size}\n` +
-      `抽出件数 : ${result.length}\n` +
-      `出力ファイル : ${outFilePath}`
-    );
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    throw logger.fail(errorMessage);
   }
+
+  if (keywordSet.size === 0) {
+    throw new Error("ファイルから対象キーワードが見つかりませんでした。");
+  }
+
+  return keywordSet;
+}
+
+/**
+ * バックアップフォルダから最新の GIFTDEN111 ファイルを探索する。
+ */
+async function findLatestBackupFile(): Promise<string> {
+  if (!(await directoryExists(CONFIG.backupPath))) {
+    throw new Error(`バックアップフォルダが存在しません: ${CONFIG.backupPath}`);
+  }
+
+  const backupFiles = await fs.readdir(CONFIG.backupPath);
+  let latestFile = "";
+  let latestMtime = new Date(0);
+
+  for (const file of backupFiles) {
+    if (!file.toUpperCase().includes(CONFIG.backupFileKeyword)) continue;
+
+    const fullPath = path.join(CONFIG.backupPath, file);
+    const stat = await fs.stat(fullPath);
+
+    if (stat.isFile() && stat.mtime > latestMtime) {
+      latestMtime = stat.mtime;
+      latestFile = fullPath;
+    }
+  }
+
+  if (!latestFile) {
+    throw new Error(
+      `バックアップフォルダ内に${CONFIG.backupFileKeyword}ファイルが見つかりません。`,
+    );
+  }
+
+  return latestFile;
+}
+
+/**
+ * バックアップからキーワード一致行を抽出し、翌日付に置換してファイルを出力する。
+ */
+async function processGiftMasterError(
+  inputFilePath: string,
+): Promise<JobResultData> {
+  const keywordSet = await extractKeywords(inputFilePath);
+  const backupFilePath = await findLatestBackupFile();
+
+  const matchedLines: string[] = [];
+  const rl = readline.createInterface({
+    input: fs.createReadStream(backupFilePath, { encoding: "utf8" }),
+    crlfDelay: Infinity,
+  });
+
+  for await (const line of rl) {
+    const cleanedLine = line.replace(/\s+/g, "");
+    if (cleanedLine.length < 15) continue;
+
+    const keyword = cleanedLine.substring(11, 15);
+    if (keywordSet.has(keyword)) {
+      matchedLines.push(line);
+    }
+  }
+
+  await fs.ensureDir(CONFIG.outputPath);
+
+  const now = new Date();
+  const timestamp = format(now, "yyyyMMdd_HHmmss");
+  const tomorrowStr = format(addDays(now, 1), "yyyyMMdd");
+  const outFileName = `${CONFIG.outputFilePrefix}${timestamp}.DAT`;
+  const outputFilePath = path.join(CONFIG.outputPath, outFileName);
+
+  const outputLines = matchedLines.map((line) =>
+    line.length >= 8 ? tomorrowStr + line.substring(8) : line,
+  );
+
+  await fs.writeFile(outputFilePath, outputLines.join("\r\n") + "\r\n", "utf8");
+
+  return {
+    inputFilePath,
+    backupFilePath,
+    outputFilePath,
+    keywordCount: keywordSet.size,
+    extractedCount: matchedLines.length,
+  };
+}
+
+/**
+ * 処理結果をログに出力し、完了メッセージを返却する。
+ */
+function writeResultLog(logger: JobLogger, result: JobResultData): string {
+  logger.section("入力ファイル");
+  logger.log(result.inputFilePath);
+
+  logger.section("参照バックアップ");
+  logger.log(result.backupFilePath);
+
+  logger.section("抽出結果");
+  logger.log(`キーワード数 : ${result.keywordCount}件`);
+  logger.log(`抽出レコード : ${result.extractedCount}件`);
+
+  logger.section("出力ファイル");
+  logger.log(result.outputFilePath);
+
+  return logger.complete(CONFIG.completionMessage);
 }

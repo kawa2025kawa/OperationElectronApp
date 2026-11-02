@@ -50,8 +50,8 @@ export const JugyoinModalContent: GlobalModalComponent<JugyoinModalContentProps>
               </div>
             </div>
             <div className={styles.cell.header}>区分</div>
-            <div className={styles.cell.header}>内容</div>
-            <div className={styles.cell.header}>場所/詳細</div>
+            <div className={styles.cell.header}>場所</div>
+            <div className={styles.cell.header}>詳細</div>
             <div className={styles.cell.section}>AM</div>
             <div className={styles.cell.data}>{item.amStatus}</div>
             <div className={styles.cell.data}>{item.amDetail}</div>

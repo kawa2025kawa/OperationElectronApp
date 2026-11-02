@@ -1,9 +1,9 @@
-﻿import { memo } from "react";
+import { memo } from "react";
 
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 
-import type { InfoRowData } from "../operationViewDisplayConfig";
+import type { InfoRowData } from "../operationDisplayUtils";
 import * as styles from "../operationView.css";
 
 type OperationInfoRowProps = InfoRowData;

@@ -2,119 +2,176 @@
 
 import path from "node:path";
 import os from "node:os";
-import { readdir, stat } from "node:fs/promises";
+import fs from "fs-extra";
 import { isSameDay } from "date-fns";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { createZipArchive } from "@electron/features/operation/jobs/scripts/helpers/zipHelper";
 import { formatDateTime } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
-const TARGET_DIR = "\\\\S0088003\\syn_tran\\from_ACOS\\SendData";
+const CONFIG = {
+  targetDir: "\\\\S0088003\\syn_tran\\from_ACOS\\SendData",
+  targetFiles: [
+    "JCATANAWARI.TXT",
+    "JCAPRIPC2.TXT",
+    "SHELF_ERR_DATA.TXT",
+  ] as const,
+  zipPrefix: "SendData_Shelf",
+} as const;
 
-const TARGET_FILES = [
-  "JCATANAWARI.TXT",
-  "JCAPRIPC2.TXT",
-  "SHELF_ERR_DATA.TXT",
-] as const;
-
-interface FileInfo {
+type FileStatus = {
   fileName: string;
   filePath: string;
   mtime: Date;
+  isToday: boolean;
+};
+
+type JobResultData = {
+  matchedFiles: FileStatus[];
+  missingFiles: string[];
+  dateIssueFiles: FileStatus[];
+  zipMessage?: string;
+};
+
+/**
+ * 棚割関連ファイル（3ファイル）の存在と更新日を確認し、ZIPアーカイブを作成する。
+ *
+ * 確認先:
+ * - \\S0088003\syn_tran\from_ACOS\SendData
+ *
+ * 業務上の要対応:
+ * - 対象ファイルが不足している場合
+ * - ファイルの更新日が本日でない場合
+ *
+ * システムエラー:
+ * - ディレクトリへのアクセス失敗
+ * - ファイル情報取得失敗
+ * - ZIPアーカイブ作成失敗
+ */
+export async function runJobE8(): Promise<string> {
+  const logger = new JobLogger();
+
+  try {
+    const result = await checkAndArchiveFiles(logger);
+
+    return writeResultLog(logger, result);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
+      throw error;
+    }
+
+    const detail = error instanceof Error ? ` (${error.message})` : "";
+
+    throw logger.fail(`ファイル処理に失敗しました${detail}`);
+  }
 }
 
-async function findFiles(dirPath: string): Promise<string[]> {
-  const entries = await readdir(dirPath, { withFileTypes: true });
+/**
+ * ファイルの存在と日付を検証し、全条件を満たしていればZIPを作成する。
+ */
+async function checkAndArchiveFiles(logger: JobLogger): Promise<JobResultData> {
+  const now = new Date();
+  const entries = await fs.readdir(CONFIG.targetDir, { withFileTypes: true });
 
-  return entries
+  const currentFiles = entries
     .filter((entry) => entry.isFile())
-    .map((entry) => path.join(dirPath, entry.name));
-}
+    .map((entry) => entry.name);
 
-async function getFileInfo(filePath: string): Promise<FileInfo> {
-  const fileStat = await stat(filePath);
+  const currentFileSet = new Set(currentFiles);
+  const missingFiles = CONFIG.targetFiles.filter(
+    (fileName) => !currentFileSet.has(fileName),
+  );
+
+  const matchedFiles: FileStatus[] = [];
+  const dateIssueFiles: FileStatus[] = [];
+
+  for (const fileName of CONFIG.targetFiles) {
+    if (!currentFileSet.has(fileName)) {
+      continue;
+    }
+
+    const filePath = path.join(CONFIG.targetDir, fileName);
+    const fileStat = await fs.stat(filePath);
+    const isToday = isSameDay(fileStat.mtime, now);
+
+    const fileStatus: FileStatus = {
+      fileName,
+      filePath,
+      mtime: fileStat.mtime,
+      isToday,
+    };
+
+    matchedFiles.push(fileStatus);
+
+    if (!isToday) {
+      dateIssueFiles.push(fileStatus);
+    }
+  }
+
+  // 不足または日付不整合がある場合はアーカイブを作成しない
+  if (missingFiles.length > 0 || dateIssueFiles.length > 0) {
+    return {
+      matchedFiles,
+      missingFiles,
+      dateIssueFiles,
+    };
+  }
+
+  const zipMessage = await createZipArchive(
+    {
+      filePaths: matchedFiles.map((file) => file.filePath),
+      outputDir: path.join(os.homedir(), "Desktop"),
+      zipPrefix: CONFIG.zipPrefix,
+    },
+    logger,
+  );
 
   return {
-    fileName: path.basename(filePath),
-    filePath,
-    mtime: fileStat.mtime,
+    matchedFiles,
+    missingFiles,
+    dateIssueFiles,
+    zipMessage,
   };
 }
 
-function findMissingFiles(filePaths: string[]): string[] {
-  const foundNames = new Set(
-    filePaths.map((filePath) => path.basename(filePath)),
-  );
+/**
+ * 検証結果をログに出力し、最終ステータスを判定する。
+ */
+function writeResultLog(logger: JobLogger, result: JobResultData): string {
+  logger.section("確認対象フォルダ");
+  logger.log(CONFIG.targetDir);
 
-  return TARGET_FILES.filter((fileName) => !foundNames.has(fileName));
-}
+  if (result.matchedFiles.length > 0) {
+    logger.section("検出ファイル");
+    for (const file of result.matchedFiles) {
+      logger.log(`${file.fileName} (${formatDateTime(file.mtime)})`);
+    }
+  }
 
-async function validateFileDates(
-  filePaths: string[],
-  now: Date,
-  logger: JobLogger,
-): Promise<string[]> {
-  const issues: string[] = [];
+  if (result.missingFiles.length > 0) {
+    logger.section("不足ファイル");
+    for (const fileName of result.missingFiles) {
+      logger.log(fileName);
+    }
 
-  for (const filePath of filePaths) {
-    const file = await getFileInfo(filePath);
-
-    logger.log(`ファイル名 : ${file.fileName}`);
-    logger.log(`更新日時 : ${formatDateTime(file.mtime)}`);
-
-    if (isSameDay(file.mtime, now)) continue;
-
-    issues.push(
-      `更新日が本日ではありません: ${file.fileName} (${formatDateTime(file.mtime, "yyyy/MM/dd")})`,
+    return logger.needsAction(
+      `不足ファイルあり (対象: ${result.missingFiles.join(", ")})`,
     );
   }
 
-  return issues;
-}
-
-export async function runJobE8(): Promise<string> {
-  const logger = new JobLogger();
-  const now = new Date();
-
-  try {
-    logger.log(`対象ディレクトリ : ${TARGET_DIR}`);
-
-    const allFilePaths = await findFiles(TARGET_DIR);
-    const matchedFilePaths = allFilePaths.filter((filePath) =>
-      TARGET_FILES.includes(
-        path.basename(filePath) as (typeof TARGET_FILES)[number],
-      ),
+  if (result.dateIssueFiles.length > 0) {
+    logger.section("日付不整合ファイル");
+    const issues = result.dateIssueFiles.map(
+      (file) =>
+        `更新日が本日ではありません: ${file.fileName} (${formatDateTime(file.mtime, "yyyy/MM/dd")})`,
     );
 
-    logger.log(`検出ファイル数 : ${matchedFilePaths.length}件`);
-
-    const missingFiles = findMissingFiles(matchedFilePaths);
-
-    if (missingFiles.length > 0) {
-      return logger.needsAction(
-        `ファイル件数不一致 (期待値: ${TARGET_FILES.length}, 実際: ${matchedFilePaths.length}) / 不足ファイル: ${missingFiles.join(", ")}`,
-      );
+    for (const issue of issues) {
+      logger.log(issue);
     }
 
-    const dateIssues = await validateFileDates(matchedFilePaths, now, logger);
-
-    if (dateIssues.length > 0) {
-      return logger.needsAction(dateIssues.join("\n"));
-    }
-
-    logger.log("更新日検証結果 : 正常");
-
-    const message = await createZipArchive(
-      {
-        filePaths: matchedFilePaths,
-        outputDir: path.join(os.homedir(), "Desktop"),
-        zipPrefix: "SendData_Shelf",
-      },
-      logger,
-    );
-
-    return logger.complete(message);
-  } catch (error: unknown) {
-    throw logger.fail(error instanceof Error ? error.message : String(error));
+    return logger.needsAction(issues.join("\n"));
   }
+
+  return logger.complete(result.zipMessage);
 }

@@ -1,4 +1,4 @@
-// src/renderer/store/slices/operationStatusSlice.ts
+﻿// src/renderer/store/slices/operationStatusSlice.ts
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
@@ -144,6 +144,11 @@ export const createOperationStatusSlice: StateCreator<
       try {
         await operationService.resetStatuses();
         tableDataRequestId += 1;
+
+        // ★ リセットに伴いポーリングも停止されるため、フロントのステートも同期
+        set((state) => {
+          state.isPolling = false;
+        });
 
         await get().fetchTableData(get().currentMode);
         await get().fetchStatusSummary();

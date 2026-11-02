@@ -1,48 +1,29 @@
 // src/renderer/components/layout/sidebar/sidebar.css.ts
 
 import { style } from "@vanilla-extract/css";
-import {
-  tokens,
-  themeTransition,
-  brandGradientText,
-  titleText,
-} from "@renderer/styles/tokens";
+import { tokens, brandGradientText, titleText } from "@renderer/styles/tokens";
 
-/* =========================
-   1. サイドバーコンテナー
-========================= */
-export const sidebar = style([
-  themeTransition,
-  {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "300px",
-    height: "100vh",
-    backgroundColor: tokens.color.bg.base,
-    zIndex: tokens.zIndex.modal,
-    transform: "translateX(-100%)",
-
-    // サイドバーの開閉、およびライト/ダークモードトグル時のボックスシャドウの追従性を高めるトランジション
-    transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
-
-    display: "flex",
-    flexDirection: "column",
-    boxShadow: tokens.shadow.raised.high,
-    borderRight: `1px solid ${tokens.color.border.subtle}`,
-
-    // 🎯 描画分離（開閉・ホバー時のメイン領域へのペイント波及遮断）
-    isolation: "isolate",
-  },
-]);
+export const sidebar = style({
+  position: "fixed",
+  top: 0,
+  left: 0,
+  width: "300px",
+  height: "100vh",
+  display: "flex",
+  flexDirection: "column",
+  backgroundColor: tokens.color.bg.base,
+  boxShadow: tokens.shadow.raised.high,
+  borderRight: `1px solid ${tokens.color.border.subtle}`,
+  zIndex: tokens.zIndex.modal,
+  transform: "translateX(-100%)",
+  transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
+  isolation: "isolate",
+});
 
 export const sidebarOpen = style({
   transform: "translateX(0)",
 });
 
-/* =========================
-   2. ヘッダー
-========================= */
 export const header = style({
   padding: `${tokens.space.xl} ${tokens.space.lg}`,
   display: "flex",
@@ -58,9 +39,6 @@ export const headerTitle = style([
   },
 ]);
 
-/* =========================
-   3. メニューリスト
-========================= */
 export const menuList = style({
   listStyle: "none",
   padding: 10,
@@ -74,9 +52,6 @@ export const menuItem = style({
   width: "100%",
 });
 
-/* =========================
-   4. メニューボタン
-========================= */
 export const menuButton = style({
   width: "100%",
   padding: tokens.space.lg,
@@ -90,7 +65,6 @@ export const menuButton = style({
   boxShadow: tokens.shadow.raised.md,
   cursor: "pointer",
   transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
-
   selectors: {
     "&:hover": {
       color: tokens.color.text.hover,
@@ -107,8 +81,6 @@ export const menuButton = style({
 });
 
 export const menuText = style({
-  transition: `filter ${tokens.transition.normal}`,
-
   selectors: {
     [`${menuButton}[data-active='true'] &`]: {
       backgroundImage: tokens.gradient.brand,
@@ -120,9 +92,6 @@ export const menuText = style({
   },
 });
 
-/* =========================
-   5. フッター
-========================= */
 export const sidebarFooter = style({
   padding: tokens.space.xl,
   borderTop: `1px solid ${tokens.color.border.subtle}`,
@@ -137,9 +106,6 @@ export const footerLabel = style({
   color: tokens.color.text.base,
 });
 
-/* =========================
-   6. テーマ切り替えトグル
-========================= */
 export const toggleTrack = style({
   width: "44px",
   height: "22px",
@@ -147,7 +113,6 @@ export const toggleTrack = style({
   borderRadius: tokens.radius.full,
   position: "relative",
   cursor: "pointer",
-  transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
 });
 
 export const toggleThumb = style({
@@ -157,7 +122,6 @@ export const toggleThumb = style({
   position: "absolute",
   top: "3px",
   transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
-
   selectors: {
     "&[data-state='dark']": {
       right: "3px",

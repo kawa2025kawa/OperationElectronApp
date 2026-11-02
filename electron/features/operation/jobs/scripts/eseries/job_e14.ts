@@ -1,8 +1,7 @@
-//electron\features\operation\jobs\scripts\eseries\job_e14.//
+// electron/features/operation/jobs/scripts/eseries/job_e14.ts
 
 import path from "node:path";
 import fs from "fs-extra";
-import { stat } from "node:fs/promises";
 import * as ExcelJS from "exceljs";
 import { subMonths } from "date-fns";
 import type { JobResult } from "@shared/types/operation/operationTypes";
@@ -10,52 +9,191 @@ import type { JobResult } from "@shared/types/operation/operationTypes";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { createZipArchive } from "@electron/features/operation/jobs/scripts/helpers/zipHelper";
 import {
-  formatDateTime,
+  directoryExists,
+  fileExists,
   getDateKey,
 } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
-const TANPIN_PREFIX = "ＴＶ売上";
-const BUMON_PREFIX = "05 部門別売上（イオン向け）";
-const TANPIN_OUTPUT_NAME = "ベルクTV単品売上";
-const BUMON_OUTPUT_NAME = "ベルクTV部門別売上";
-const OUTPUT_FOLDER_SUFFIX = "_ベルクTV売上";
-
-const TANPIN_DELETE_ROW = 26;
-const TANPIN_DELETE_TOP_ROWS = 24;
-const BUMON_DELETE_TOP_ROWS = 23;
+const CONFIG = {
+  tanpinPrefix: "ＴＶ売上",
+  bumonPrefix: "05 部門別売上（イオン向け）",
+  tanpinOutputName: "ベルクTV単品売上",
+  bumonOutputName: "ベルクTV部門別売上",
+  outputFolderSuffix: "_ベルクTV売上",
+  tanpinDeleteRow: 26,
+  tanpinDeleteTopRows: 24,
+  bumonDeleteTopRows: 23,
+} as const;
 
 type E14FileType = "tanpin" | "bumon";
 
-interface E14Output {
+type ProcessedFile = {
+  sourceFileName: string;
   outputPath: string;
-}
+  fileType: E14FileType;
+};
+
+type JobResultData = {
+  targetMonth: string;
+  processedFiles: ProcessedFile[];
+  outputZipPath: string;
+};
 
 /**
- * ディレクトリの存在確認
+ * ベルクTV売上（単品売上・部門別売上）Excelファイルを加工し、ZIPアーカイブを作成する。
+ *
+ * 入力ファイル:
+ * - ＴＶ売上... / 05 部門別売上... Excelファイル
+ *
+ * 業務上の要対応:
+ * - なし（正常完了後、成果物ZIPを返却）
+ *
+ * システムエラー:
+ * - 入力ファイル未指定・対象外ファイル
+ * - 出力先フォルダ・ZIPの重複
+ * - Excelシート読み込み・加工失敗
+ * - ZIPアーカイブ作成失敗
  */
-async function directoryExists(dirPath: string): Promise<boolean> {
+export async function runJobE14(
+  inputFilePath?: string | string[],
+): Promise<JobResult> {
+  const logger = new JobLogger();
+  const inputPaths = resolveInputPaths(inputFilePath);
+
+  if (inputPaths.length === 0) {
+    throw logger.fail(
+      "入力ファイルが指定されていません。対象のファイルをドロップしてください。",
+    );
+  }
+
+  const baseDir = path.dirname(inputPaths[0]);
+  const targetMonth = getDateKey(subMonths(new Date(), 1), "yyyyMM");
+  const zipPrefix = `${targetMonth}${CONFIG.outputFolderSuffix}`;
+  const outputFolderPath = path.join(baseDir, zipPrefix);
+  const outputZipPath = `${outputFolderPath}.zip`;
+
   try {
-    return (await stat(dirPath)).isDirectory();
-  } catch {
-    return false;
+    if (await directoryExists(outputFolderPath)) {
+      throw new Error(
+        `既にフォルダが存在します。\n${outputFolderPath}\nフォルダを削除後、再度実施して下さい。`,
+      );
+    }
+
+    if (await fileExists(outputZipPath)) {
+      throw new Error(
+        `既にZIPファイルが存在します。\n${outputZipPath}\nZIPファイルを削除後、再度実施して下さい。`,
+      );
+    }
+
+    await fs.ensureDir(outputFolderPath);
+
+    const processedFiles = await processAllFiles(
+      inputPaths,
+      outputFolderPath,
+      targetMonth,
+    );
+
+    if (processedFiles.length === 0) {
+      throw new Error(
+        "対象のファイル（ＴＶ売上 / 05 部門別売上）が含まれていません。",
+      );
+    }
+
+    await createZipArchive(
+      {
+        filePaths: processedFiles.map((file) => file.outputPath),
+        outputDir: baseDir,
+        zipPrefix,
+        includeFileList: true,
+      },
+      logger,
+    );
+
+    const result: JobResultData = {
+      targetMonth,
+      processedFiles,
+      outputZipPath,
+    };
+
+    return writeResultLog(logger, result);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
+      throw error;
+    }
+
+    const detail = error instanceof Error ? ` (${error.message})` : "";
+
+    throw logger.fail(`ファイル処理に失敗しました${detail}`);
+  } finally {
+    if (await directoryExists(outputFolderPath)) {
+      await fs.remove(outputFolderPath);
+    }
   }
 }
 
 /**
- * ファイル情報を取得
+ * 入力ファイルパス配列を平坦化・検証する。
  */
-async function getFileInfo(filePath: string): Promise<{
-  fileName: string;
-  mtime: Date;
-}> {
-  const fileStat = await stat(filePath);
-
-  return {
-    fileName: path.basename(filePath),
-    mtime: fileStat.mtime,
-  };
+function resolveInputPaths(inputFilePath?: string | string[]): string[] {
+  if (!inputFilePath) return [];
+  return Array.isArray(inputFilePath) ? inputFilePath : [inputFilePath];
 }
 
+/**
+ * ファイル名からファイル種別を判定する。
+ */
+function getFileType(fileName: string): E14FileType | null {
+  if (fileName.startsWith(CONFIG.tanpinPrefix)) return "tanpin";
+  if (fileName.startsWith(CONFIG.bumonPrefix)) return "bumon";
+  return null;
+}
+
+/**
+ * 指定されたExcelファイルを全件順次加工する。
+ */
+async function processAllFiles(
+  inputPaths: string[],
+  outputFolderPath: string,
+  targetMonth: string,
+): Promise<ProcessedFile[]> {
+  const processedFiles: ProcessedFile[] = [];
+
+  for (const inputPath of inputPaths) {
+    const fileName = path.basename(inputPath);
+    const fileType = getFileType(fileName);
+
+    if (!fileType) {
+      continue;
+    }
+
+    const isTanpin = fileType === "tanpin";
+    const outputName = isTanpin
+      ? CONFIG.tanpinOutputName
+      : CONFIG.bumonOutputName;
+    const outputPath = path.join(
+      outputFolderPath,
+      `${targetMonth}${outputName}.xlsx`,
+    );
+
+    if (isTanpin) {
+      await processTanpin(inputPath, outputPath);
+    } else {
+      await processBumon(inputPath, outputPath);
+    }
+
+    processedFiles.push({
+      sourceFileName: fileName,
+      outputPath,
+      fileType,
+    });
+  }
+
+  return processedFiles;
+}
+
+/**
+ * Excelワークシートをロードする。
+ */
 async function loadWorksheet(filePath: string): Promise<{
   workbook: ExcelJS.Workbook;
   worksheet: ExcelJS.Worksheet;
@@ -64,6 +202,7 @@ async function loadWorksheet(filePath: string): Promise<{
   await workbook.xlsx.readFile(filePath);
 
   const worksheet = workbook.worksheets[0];
+
   if (!worksheet) {
     throw new Error(`Excelシートが存在しません。\n${filePath}`);
   }
@@ -71,6 +210,9 @@ async function loadWorksheet(filePath: string): Promise<{
   return { workbook, worksheet };
 }
 
+/**
+ * 加工後ワークブックを保存する。
+ */
 async function saveWorkbook(
   workbook: ExcelJS.Workbook,
   outputPath: string,
@@ -79,29 +221,31 @@ async function saveWorkbook(
   await workbook.xlsx.writeFile(outputPath);
 }
 
-function getFileType(fileName: string): E14FileType | null {
-  if (fileName.startsWith(TANPIN_PREFIX)) return "tanpin";
-  if (fileName.startsWith(BUMON_PREFIX)) return "bumon";
-  return null;
-}
-
+/**
+ * 部門別売上Excelの加工処理。
+ */
 async function processBumon(
   inputPath: string,
   outputPath: string,
 ): Promise<void> {
   const { workbook, worksheet } = await loadWorksheet(inputPath);
-  worksheet.spliceRows(1, BUMON_DELETE_TOP_ROWS);
+
+  worksheet.spliceRows(1, CONFIG.bumonDeleteTopRows);
+
   await saveWorkbook(workbook, outputPath);
 }
 
+/**
+ * 単品売上Excelの加工処理。
+ */
 async function processTanpin(
   inputPath: string,
   outputPath: string,
 ): Promise<void> {
   const { workbook, worksheet } = await loadWorksheet(inputPath);
 
-  worksheet.spliceRows(TANPIN_DELETE_ROW, 1);
-  worksheet.spliceRows(1, TANPIN_DELETE_TOP_ROWS);
+  worksheet.spliceRows(CONFIG.tanpinDeleteRow, 1);
+  worksheet.spliceRows(1, CONFIG.tanpinDeleteTopRows);
 
   const a1 = worksheet.getCell("A1");
   const b1 = worksheet.getCell("B1");
@@ -114,7 +258,6 @@ async function processTanpin(
 
   const { rowCount, columnCount } = worksheet;
 
-  // 列削除前に値を退避
   const rows = Array.from({ length: rowCount }, (_, i) => i + 1);
   const productNames = rows.map((row) => worksheet.getCell(row, 2).value);
   const janCodes = rows.map((row) => worksheet.getCell(row, 3).value);
@@ -141,142 +284,31 @@ async function processTanpin(
   await saveWorkbook(workbook, outputPath);
 }
 
-async function processInputFile(
-  inputPath: string,
-  outputFolderPath: string,
-  targetMonth: string,
-  logger: JobLogger,
-): Promise<E14Output | null> {
-  const fileInfo = await getFileInfo(inputPath);
-  const { fileName, mtime } = fileInfo;
-  const fileType = getFileType(fileName);
+/**
+ * 加工結果をログ出力し、JobResult を返却する。
+ */
+function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {
+  logger.section("対象年月");
+  logger.log(result.targetMonth);
 
-  logger.log(`入力ファイル : ${fileName}`);
-  logger.log(`更新日時 : ${formatDateTime(mtime)}`);
-
-  if (!fileType) {
-    logger.log(`対象外ファイルのためスキップ : ${fileName}`);
-    return null;
-  }
-
-  const isTanpin = fileType === "tanpin";
-  const outputName = isTanpin ? TANPIN_OUTPUT_NAME : BUMON_OUTPUT_NAME;
-  const outputPath = path.join(
-    outputFolderPath,
-    `${targetMonth}${outputName}.xlsx`,
-  );
-
-  logger.log(`ファイル種別 : ${isTanpin ? "単品売上" : "部門別売上"}`);
-  logger.log(`出力ファイル : ${outputPath}`);
-
-  if (isTanpin) {
-    await processTanpin(inputPath, outputPath);
-  } else {
-    await processBumon(inputPath, outputPath);
-  }
-
-  logger.log(`Excel加工完了 : ${path.basename(outputPath)}`);
-  return { outputPath };
-}
-
-export async function runJobE14(
-  inputFilePath?: string | string[],
-): Promise<JobResult> {
-  const logger = new JobLogger();
-  logger.log("ベルクTV売上ファイル加工処理を開始します");
-
-  const inputPaths = Array.isArray(inputFilePath)
-    ? inputFilePath
-    : inputFilePath
-      ? [inputFilePath]
-      : [];
-
-  if (inputPaths.length === 0) {
-    throw logger.fail(
-      "入力ファイルが指定されていません。対象のファイルをドロップしてください。",
+  logger.section("加工完了ファイル");
+  for (const file of result.processedFiles) {
+    const label = file.fileType === "tanpin" ? "単品売上" : "部門別売上";
+    logger.log(
+      `[${label}] ${file.sourceFileName} -> ${path.basename(file.outputPath)}`,
     );
   }
 
-  logger.log(`入力ファイル数 : ${inputPaths.length}件`);
-  inputPaths.forEach((filePath) => logger.log(`指定ファイル : ${filePath}`));
+  logger.section("出力ZIP");
+  logger.log(result.outputZipPath);
 
-  const baseDir = path.dirname(inputPaths[0]);
-  const targetMonth = getDateKey(subMonths(new Date(), 1), "yyyyMM");
-  const zipPrefix = `${targetMonth}${OUTPUT_FOLDER_SUFFIX}`;
-  const outputFolderPath = path.join(baseDir, zipPrefix);
-  const outputZipPath = `${outputFolderPath}.zip`;
-
-  logger.log(`対象年月 : ${targetMonth}`);
-  logger.log(`出力フォルダ : ${outputFolderPath}`);
-  logger.log(`出力ZIP : ${outputZipPath}`);
-
-  if (await directoryExists(outputFolderPath)) {
-    throw logger.fail(
-      `既にフォルダが存在します。\n${outputFolderPath}\nフォルダを削除後、再度実施して下さい。`,
-    );
-  }
-
-  if (await directoryExists(outputZipPath)) {
-    throw logger.fail(
-      `既にZIPファイルが存在します。\n${outputZipPath}\nZIPファイルを削除後、再度実施して下さい。`,
-    );
-  }
-
-  try {
-    await fs.ensureDir(outputFolderPath);
-    logger.log("出力フォルダを作成しました");
-
-    const outputs: E14Output[] = [];
-
-    // 同じ出力先への並列書き込みを避け、順次処理する
-    for (const inputPath of inputPaths) {
-      const output = await processInputFile(
-        inputPath,
-        outputFolderPath,
-        targetMonth,
-        logger,
-      );
-
-      if (output) outputs.push(output);
-    }
-
-    if (outputs.length === 0) {
-      throw new Error(
-        "対象のファイル（ＴＶ売上 / 05 部門別売上）が含まれていません。",
-      );
-    }
-
-    logger.log(`加工完了ファイル数 : ${outputs.length}件`);
-
-    const createdFiles = outputs.map(({ outputPath }) => outputPath);
-
-    await createZipArchive(
+  return {
+    message: logger.complete("正常終了"),
+    artifacts: [
       {
-        filePaths: createdFiles,
-        outputDir: baseDir,
-        zipPrefix,
-        includeFileList: true,
+        name: path.basename(result.outputZipPath),
+        path: result.outputZipPath,
       },
-      logger,
-    );
-
-    return {
-      message: logger.complete("正常終了"),
-      artifacts: [
-        {
-          name: path.basename(outputZipPath),
-          path: outputZipPath,
-        },
-      ],
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw logger.fail(message);
-  } finally {
-    // 一時出力フォルダを後始末
-    if (await directoryExists(outputFolderPath)) {
-      await fs.remove(outputFolderPath);
-      logger.log("一時出力フォルダを削除しました");
-    }
-  }
+    ],
+  };
 }

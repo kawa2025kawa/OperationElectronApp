@@ -10,23 +10,28 @@ import {
   startPolling,
   stopPolling,
 } from "@electron/features/operation/application/operationScheduler";
-import { getScriptExecutionRequirement } from "@electron/features/operation/application/scriptExecutionRequirements";
+import { getScriptExecutionRequirement } from "@electron/features/operation/application/scriptExecutionService";
 import {
   deleteAllStatuses,
+  getActiveFlags,
   initializeStatuses,
+  registerOperationTargets,
+  resetOperationStatuses,
   updateManualStatus,
   updateOperationActiveFlags,
 } from "@electron/features/operation/application/statusManager";
-import {
-  registerOperationTargets,
-  resetOperationStatuses,
-} from "@electron/features/operation/application/operationLifecycleService";
 import { executeManualScript } from "@electron/features/operation/application/scriptExecutionService";
 import { fetchSingleTrackerStatus } from "@electron/features/operation/application/operationStatusEvaluator";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { IpcChannelMap } from "@shared/types/electron/ipcTypes";
 
 export function registerOperationIpc(): void {
+  ipcMain.handle(
+    IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS,
+    (): IpcChannelMap[typeof IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS]["return"] => {
+      return getActiveFlags();
+    },
+  );
   ipcMain.handle(
     IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY,
     (): IpcChannelMap[typeof IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY]["return"] => {
@@ -75,6 +80,7 @@ export function registerOperationIpc(): void {
     async (): Promise<
       IpcChannelMap[typeof IPC_CHANNELS.OPERATION.RESET_STATUSES]["return"]
     > => {
+      stopPolling();
       return resetOperationStatuses();
     },
   );

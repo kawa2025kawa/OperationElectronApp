@@ -12,15 +12,13 @@ const DEFAULT_TIMEOUT_MS = 60000;
 
 let activeServer: http.Server | null = null;
 
-// 起動中の OAuth コールバックサーバーを停止する。
 function stopListener(): void {
-  if (activeServer) {
-    activeServer.close();
-    activeServer = null;
-  }
+  if (!activeServer) return;
+
+  activeServer.close();
+  activeServer = null;
 }
 
-// ブラウザーに表示する認証結果 HTML を生成する。
 const createHtmlPage = (title: string, message: string) =>
   `<!DOCTYPE html>
 <html lang="ja">
@@ -43,7 +41,6 @@ const INVALID_REQUEST_RESPONSE = createHtmlPage(
   "無効なリクエストです。",
 );
 
-// 指定ポートで OAuth コールバックを待ち受け、state を検証して認可コードを返す。
 export function startListener(
   port: number,
   expectedState: string,
@@ -62,8 +59,7 @@ export function startListener(
 
     activeServer = server;
 
-    // タイマーを解除し、対象のコールバックサーバーを終了する。
-    const closeAndCleanup = async () => {
+    const closeAndCleanup = async (): Promise<void> => {
       if (timer) {
         clearTimeout(timer);
         timer = null;
@@ -80,57 +76,48 @@ export function startListener(
       }
     };
 
-    // HTTP レスポンスを返した後、サーバーを片付けて Promise を確定させる。
     const respondAndSettle = async (
       res: http.ServerResponse,
       status: number,
       body: string,
       action: () => void,
-    ) => {
+    ): Promise<void> => {
       if (settled) return;
 
       settled = true;
-
       res.writeHead(status, {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",
       });
-
       res.end(body);
 
       await closeAndCleanup();
-
       action();
     };
 
-    // 待受がタイムアウトした場合、サーバーを閉じてエラーにする。
-    timer = setTimeout(async () => {
+    const fail = async (error: Error): Promise<void> => {
       if (settled) return;
 
       settled = true;
-
       await closeAndCleanup();
+      reject(error);
+    };
 
-      reject(new Error("Google OAuth ログインがタイムアウトしました"));
-    }, timeoutMs);
-
-    // OAuth コールバックの HTTP メソッド、エラー、認可コード、state を検証する。
     async function handleRequest(
       req: http.IncomingMessage,
       res: http.ServerResponse,
-    ) {
+    ): Promise<void> {
       if (settled) {
-        res.writeHead(410, {
-          "Cache-Control": "no-store",
-        });
+        res.writeHead(410, { "Cache-Control": "no-store" });
         res.end();
         return;
       }
 
       if (req.method !== "GET") {
-        return respondAndSettle(res, 405, INVALID_REQUEST_RESPONSE, () =>
+        await respondAndSettle(res, 405, INVALID_REQUEST_RESPONSE, () =>
           reject(new Error("OAuth callback must use GET")),
         );
+        return;
       }
 
       const url = new URL(req.url ?? "/", `http://${HOST}:${port}`);
@@ -139,17 +126,19 @@ export function startListener(
       const state = url.searchParams.get("state");
 
       if (error) {
-        return respondAndSettle(res, 400, AUTH_ERROR_RESPONSE, () =>
+        await respondAndSettle(res, 400, AUTH_ERROR_RESPONSE, () =>
           reject(new Error(`Google OAuth error: ${error}`)),
         );
+        return;
       }
 
       if (!code || !state || state !== expectedState) {
-        return respondAndSettle(res, 400, INVALID_REQUEST_RESPONSE, () =>
+        await respondAndSettle(res, 400, INVALID_REQUEST_RESPONSE, () =>
           reject(
             new Error("Invalid OAuth callback parameters or state mismatch"),
           ),
         );
+        return;
       }
 
       await respondAndSettle(res, 200, SUCCESS_RESPONSE, () =>
@@ -157,32 +146,23 @@ export function startListener(
       );
     }
 
-    server.once("error", async (err) => {
-      if (settled) return;
+    timer = setTimeout(() => {
+      void fail(new Error("Google OAuth ログインがタイムアウトしました"));
+    }, timeoutMs);
 
-      settled = true;
-
-      await closeAndCleanup();
-
-      reject(new Error(`OAuth listener error: ${err.message}`));
+    server.once("error", (error) => {
+      void fail(new Error(`OAuth listener error: ${error.message}`));
     });
 
-    // サーバーの待受開始後にのみ、呼び出し元の処理を実行する。
     server.listen(port, HOST, () => {
       console.log(`[OAuthListener] Listening on http://${HOST}:${port}`);
 
       if (!onListening) return;
 
       void Promise.resolve()
-        .then(() => onListening())
-        .catch(async (error: unknown) => {
-          if (settled) return;
-
-          settled = true;
-
-          await closeAndCleanup();
-
-          reject(error instanceof Error ? error : new Error(String(error)));
+        .then(onListening)
+        .catch((error: unknown) => {
+          void fail(error instanceof Error ? error : new Error(String(error)));
         });
     });
   });

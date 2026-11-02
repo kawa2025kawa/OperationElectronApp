@@ -7,6 +7,7 @@ import type {
   LinkConfig,
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
+import { getOperationWorkName } from "./operationDisplayUtils";
 import { LinkModalContent } from "./components/modal/linkModal/LinkModalContent";
 import { ScriptModalContent } from "./components/modal/scriptModal/ScriptModalContent";
 
@@ -29,20 +30,22 @@ const LINK_MODAL_CONFIG = {
   height: "min(80vh, 700px)",
 };
 
+/** PDFアップロードモーダルを開く */
+export function openPdfUploadModal(openGlobalModal: OpenGlobalModal): void {
+  openGlobalModal(
+    createElement(PdfUploadModalContent),
+    PDF_UPLOAD_MODAL_CONFIG,
+  );
+}
+
+/** スクリプト実行モーダルを開く */
 export function openScriptModal(
   openGlobalModal: OpenGlobalModal,
   item: OperationViewItem,
   scriptKey?: string,
 ): void {
-  if (!scriptKey && item.isPdfUpload) {
-    openGlobalModal(
-      createElement(PdfUploadModalContent),
-      PDF_UPLOAD_MODAL_CONFIG,
-    );
-    return;
-  }
+  const workName = getOperationWorkName(item.workName, item.kanriNo);
 
-  const workName = item.workName || `No.${item.kanriNo}`;
   openGlobalModal(
     createElement(ScriptModalContent, {
       item: { ...item, workName },
@@ -50,11 +53,12 @@ export function openScriptModal(
     }),
     {
       ...SCRIPT_MODAL_CONFIG,
-      title: scriptKey ? `${workName} (${scriptKey})` : item.workName || "",
+      title: scriptKey ? `${workName} (${scriptKey})` : workName,
     },
   );
 }
 
+/** リンク一覧モーダルを開く */
 export function openLinkModal(
   openGlobalModal: OpenGlobalModal,
   links: LinkConfig[],

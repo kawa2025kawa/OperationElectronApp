@@ -19,11 +19,7 @@ export const container = style([
     backgroundColor: tokens.color.bg.base,
     boxShadow: tokens.shadow.raised.high,
     zIndex: tokens.zIndex.content,
-
-    // 🎯 描画分離（GPU合成レイヤーによるペイント範囲の限定）
     position: "relative",
-    isolation: "isolate",
-    transform: "translateZ(0)",
   },
 ]);
 
@@ -56,7 +52,6 @@ export const centerSummaryWrapper = style({
   flexShrink: 1,
   minWidth: 0,
 
-  // 🎯 ウインドウ幅が狭い場合のレイアウト崩れ防止（サマリー非表示化）
   "@media": {
     "screen and (max-width: 900px)": {
       display: "none",
@@ -75,6 +70,5 @@ export const rightGroup = style({
   display: "flex",
   alignItems: "center",
   gap: tokens.space.md,
-
   flexShrink: 0,
 });

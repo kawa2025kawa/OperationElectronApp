@@ -1,8 +1,6 @@
-/**
- * electron/features/operation/jobs/scripts/numeric/job_16.ts
- */
+// electron/features/operation/jobs/scripts/numeric/job_16.ts
 
-import path from "path";
+import path from "node:path";
 import fs from "fs-extra";
 import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
@@ -16,7 +14,7 @@ const CONFIG = {
   cutoffMinute: 30,
 } as const;
 
-type JobResult = {
+type JobResultData = {
   targetDir: string;
   targetFile: string | null;
 };
@@ -76,7 +74,7 @@ function selectDirectoryByTime(now: Date): string {
  *
  * 対象ファイルは1件のみを前提とする。
  */
-async function findTargetFile(): Promise<JobResult> {
+async function findTargetFile(): Promise<JobResultData> {
   const now = new Date();
   const today = format(now, "yyyyMMdd");
   const searchPattern = `${CONFIG.targetPrefix}${today}`;
@@ -99,7 +97,7 @@ async function findTargetFile(): Promise<JobResult> {
 /**
  * 検出したエラーファイルを確認済フォルダへ移動する。
  */
-async function moveTargetFile(result: JobResult): Promise<void> {
+async function moveTargetFile(result: JobResultData): Promise<void> {
   if (result.targetFile === null) {
     return;
   }
@@ -121,7 +119,7 @@ async function moveTargetFile(result: JobResult): Promise<void> {
 /**
  * 検索結果と移動結果をログに出力する。
  */
-function writeResultLog(logger: JobLogger, result: JobResult): string {
+function writeResultLog(logger: JobLogger, result: JobResultData): string {
   if (result.targetFile === null) {
     logger.log("エラーファイルなし");
     return logger.complete();

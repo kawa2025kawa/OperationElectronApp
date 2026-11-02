@@ -21,6 +21,7 @@ export {
 
 export {
   clearToken,
+  getTokenGeneration,
   isTokenExpired,
   loadToken,
   saveToken,

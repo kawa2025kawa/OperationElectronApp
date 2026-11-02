@@ -5,6 +5,15 @@ import path from "node:path";
 import { net } from "electron";
 
 // ============================================================
+// Types
+// ============================================================
+
+export interface TempomaticTargetFile {
+  path: string;
+  name?: string;
+}
+
+// ============================================================
 // Constants
 // ============================================================
 
@@ -72,7 +81,6 @@ class NativeTempomaticClient {
     const startedAt = Date.now();
 
     try {
-      // 🎯 Electron の net.fetch を使用してネットワーク通信エラー(TypeError: fetch failed)を回避
       const response = await net.fetch(url, init);
       this.saveCookies(response.headers);
 
@@ -206,12 +214,16 @@ const getCsrfToken = async (
 
 const createUploadForm = (
   csrf: string,
-  filePath: string,
+  target: TempomaticTargetFile,
   expireDate: string,
   fileBuffer: Buffer,
 ): FormData => {
-  const fileName = path.basename(filePath);
-  const documentName = path.basename(filePath, path.extname(filePath));
+  // 指定されたリネーム名があれば優先、なければ元のファイル名を使用
+  const resolvedFileName = target.name?.trim() || path.basename(target.path);
+  const documentName = path.basename(
+    resolvedFileName,
+    path.extname(resolvedFileName),
+  );
 
   const form = new FormData();
   form.append("func", "edit");
@@ -223,7 +235,7 @@ const createUploadForm = (
   form.append("description", "");
   form.append("target", "1");
   form.append("recvAccount", "");
-  form.append("fileName", `C:\\fakepath\\${fileName}`);
+  form.append("fileName", `C:\\fakepath\\${resolvedFileName}`);
   form.append("pdfFileId", "");
   form.append("videoFileId", "");
   form.append("printPdf", "0");
@@ -235,11 +247,10 @@ const createUploadForm = (
     form.append("category", category);
   }
 
-  // 🎯 Uint8Array に変換して TypeScript の BlobPart 型エラーを解決
   const fileBlob = new Blob([new Uint8Array(fileBuffer)], {
     type: "application/pdf",
   });
-  form.append("pdfFile", fileBlob, fileName);
+  form.append("pdfFile", fileBlob, resolvedFileName);
 
   return form;
 };
@@ -250,13 +261,13 @@ const createUploadForm = (
 
 const uploadSingleDocument = async (
   client: NativeTempomaticClient,
-  filePath: string,
+  target: TempomaticTargetFile,
   expireDate: string,
 ): Promise<void> => {
-  const fileName = path.basename(filePath);
+  const displayName = target.name || path.basename(target.path);
   const csrf = await getCsrfToken(client);
-  const fileBuffer = await fs.readFile(filePath);
-  const form = createUploadForm(csrf, filePath, expireDate, fileBuffer);
+  const fileBuffer = await fs.readFile(target.path);
+  const form = createUploadForm(csrf, target, expireDate, fileBuffer);
 
   const body = await client.postMultipart(
     `${BASE_URL}/STRLibDocument.do`,
@@ -267,11 +278,11 @@ const uploadSingleDocument = async (
     body.includes("loginId") ||
     (!body.includes("登録") && !body.includes("更新"))
   ) {
-    console.error(`[Tempomatic] Upload failed: ${fileName}`);
-    throw new Error(`ファイルのアップロード処理に失敗しました: ${fileName}`);
+    console.error(`[Tempomatic] Upload failed: ${displayName}`);
+    throw new Error(`ファイルのアップロード処理に失敗しました: ${displayName}`);
   }
 
-  console.info(`[Tempomatic] Upload succeeded: ${fileName}`);
+  console.info(`[Tempomatic] Upload succeeded: ${displayName}`);
 };
 
 // ============================================================
@@ -280,15 +291,16 @@ const uploadSingleDocument = async (
 
 const uploadDocumentsSequentially = async (
   client: NativeTempomaticClient,
-  filePaths: readonly string[],
+  targets: readonly TempomaticTargetFile[],
   expireDate: string,
 ): Promise<void> => {
-  for (let index = 0; index < filePaths.length; index += 1) {
-    const filePath = filePaths[index];
+  for (let index = 0; index < targets.length; index += 1) {
+    const target = targets[index];
+    if (!target) continue;
 
-    await uploadSingleDocument(client, filePath, expireDate);
+    await uploadSingleDocument(client, target, expireDate);
 
-    if (index < filePaths.length - 1) {
+    if (index < targets.length - 1) {
       await sleep(UPLOAD_INTERVAL_MS);
     }
   }
@@ -299,11 +311,11 @@ const uploadDocumentsSequentially = async (
 // ============================================================
 
 export async function uploadPdfDocuments(
-  filePaths: string[],
+  targets: TempomaticTargetFile[],
   expireDate: string,
 ): Promise<string> {
-  if (!filePaths || filePaths.length === 0) {
-    throw new Error("アップロードするファイルパスが選択されていません。");
+  if (!targets || targets.length === 0) {
+    throw new Error("アップロードするファイルが選択されていません。");
   }
 
   if (!expireDate) {
@@ -311,24 +323,26 @@ export async function uploadPdfDocuments(
   }
 
   await Promise.all(
-    filePaths.map(async (p) => {
+    targets.map(async (t) => {
       try {
-        await fs.access(p);
+        await fs.access(t.path);
       } catch {
-        throw new Error(`指定されたファイルがローカルに存在しません: ${p}`);
+        throw new Error(
+          `指定されたファイルがローカルに存在しません: ${t.path}`,
+        );
       }
     }),
   );
 
   console.info("[Tempomatic] Upload started", {
-    fileCount: filePaths.length,
+    fileCount: targets.length,
     expireDate,
   });
 
   const client = new NativeTempomaticClient();
 
   await loginToTempomatic(client);
-  await uploadDocumentsSequentially(client, filePaths, expireDate);
+  await uploadDocumentsSequentially(client, targets, expireDate);
 
   console.info("[Tempomatic] Upload completed");
   return "正常終了";

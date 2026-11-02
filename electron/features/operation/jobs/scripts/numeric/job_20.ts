@@ -20,7 +20,7 @@ type FileInfo = {
   mtime: Date;
 };
 
-type JobResult = {
+type Job20CheckResult = {
   targetDir: string;
   todayKey: string;
   lastWeekKey: string;
@@ -99,7 +99,7 @@ async function getFileInfo(filePath: string): Promise<FileInfo> {
  * ファイルが見つからない場合は業務上の判定結果として返す。
  * ファイルシステムの例外は呼び出し元へ伝播する。
  */
-async function findTargetFiles(): Promise<JobResult> {
+async function findTargetFiles(): Promise<Job20CheckResult> {
   const now = new Date();
   const todayKey = format(now, "yyMMdd");
   const lastWeekKey = format(addDays(now, -CONFIG.comparisonDays), "yyMMdd");
@@ -167,7 +167,7 @@ async function findTargetFiles(): Promise<JobResult> {
 /**
  * 検索結果とサイズ比較結果をログに出力する。
  */
-function writeResultLog(logger: JobLogger, result: JobResult): string {
+function writeResultLog(logger: JobLogger, result: Job20CheckResult): string {
   logger.log(`対象フォルダ : ${result.targetDir}`);
 
   logger.section("ファイル確認結果");

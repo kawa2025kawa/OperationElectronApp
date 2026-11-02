@@ -6,28 +6,47 @@ import {
   type OperationViewItem,
   type SelectedOperationItem,
 } from "@shared/types/operation/operationTypes";
+import {
+  isErrorStatus,
+  isReadyStatus,
+  isRunningStatus,
+  isSuccessStatus,
+  isWaitingStatus,
+} from "@shared/utils/statusUtils";
 
-// 行データ（管理No、業務名、ジョブID、備考）に検索文字列が含まれるか判定する。
+/**
+ * Operationテーブルの検索対象。
+ * operationViewConfig.ts とテーブル検索処理で共通利用する。
+ */
+export const OPERATION_TABLE_SEARCH_KEYS = [
+  "kanriNo",
+  "workName",
+  "jobId",
+  "comment",
+] as const;
+
+// 指定された検索対象に検索文字列が含まれるか判定する。
 function matchesSearchTerm(
   row: OperationViewItem,
   normalizedTerm: string,
+  searchKeys: readonly string[],
 ): boolean {
-  return (
-    row.kanriNo.toLowerCase().includes(normalizedTerm) ||
-    row.workName.toLowerCase().includes(normalizedTerm) ||
-    ("jobId" in row &&
-      typeof row.jobId === "string" &&
-      row.jobId.toLowerCase().includes(normalizedTerm)) ||
-    ("comment" in row &&
-      typeof row.comment === "string" &&
-      row.comment.toLowerCase().includes(normalizedTerm))
-  );
+  const values = row as unknown as Record<string, unknown>;
+
+  return searchKeys.some((key) => {
+    const value = values[key];
+
+    return (
+      typeof value === "string" && value.toLowerCase().includes(normalizedTerm)
+    );
+  });
 }
 
 // 検索キーワードに基づいて運用テーブル行をフィルタリングして返す。
 export function selectFilteredTableRows(
   rows: OperationViewItem[] | undefined,
   searchTerm: string,
+  searchKeys: readonly string[] = OPERATION_TABLE_SEARCH_KEYS,
 ): OperationViewItem[] {
   if (!rows || rows.length === 0) {
     return [];
@@ -39,7 +58,9 @@ export function selectFilteredTableRows(
     return rows;
   }
 
-  return rows.filter((row) => matchesSearchTerm(row, normalizedTerm));
+  return rows.filter((row) =>
+    matchesSearchTerm(row, normalizedTerm, searchKeys),
+  );
 }
 
 export interface ActiveItemStatusFlags {
@@ -66,11 +87,10 @@ export function selectActiveItemStatusFlags(
   return {
     item,
     status,
-    isExecuting:
-      status === JOB_STATUS.RUNNING || status === JOB_STATUS.SCRIPT_RUNNING,
-    isError: status === JOB_STATUS.ERROR,
-    isSuccess: status === JOB_STATUS.SUCCESS,
-    isWaiting: status === JOB_STATUS.WAITING,
-    isReady: status === JOB_STATUS.READY,
+    isExecuting: isRunningStatus(status),
+    isError: isErrorStatus(status),
+    isSuccess: isSuccessStatus(status),
+    isWaiting: isWaitingStatus(status),
+    isReady: isReadyStatus(status),
   };
 }

@@ -8,25 +8,128 @@ import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/job
 import { parseCsv } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 import { parseAmount } from "../helpers/parseAmount";
 
+const CONFIG = {
+  meis0120Keyword: "MEIS0120",
+  uriYosanKeyword: "売上予算確認",
+  csvEncoding: "Shift_JIS",
+  startStoreCode: "002",
+  endStoreCode: "700",
+  completionMessage: "予算差異なし",
+} as const;
+
 type YosanMap = Map<string, number>;
 
-function normalizeInputPaths(inputFilePath?: string | string[]): string[] {
+type StoreComparison = {
+  storeCode: string;
+  uriAmount: number;
+  meisAmount: number;
+  diff: number;
+};
+
+type JobResultData = {
+  meis0120Path: string;
+  uriYosanPath: string;
+  meisStoreCount: number;
+  uriStoreCount: number;
+  matchedCount: number;
+  ignoredCount: number;
+  totalUriAmount: number;
+  totalMeisAmount: number;
+  totalDiff: number;
+  hasDifference: boolean;
+  comparisons: StoreComparison[];
+};
+
+/**
+ * 売上予算確認ファイルと MEIS0120 ファイルを突き合わせ、店舗別および合計の予算差異を検証する。
+ *
+ * 入力ファイル:
+ * - MEIS0120 CSVファイル
+ * - 売上予算確認 CSVファイル（開始コード: 002 〜 終了コード: 700）
+ *
+ * 業務上の要対応:
+ * - 店舗別または合計で予算差異（相違あり）が発生している場合
+ *
+ * システムエラー:
+ * - 入力ファイル未指定・不足
+ * - 開始店舗コード（002）不在
+ * - CSV読み込み・パース失敗
+ */
+export async function runJobE30(
+  inputFilePath?: string | string[],
+): Promise<string> {
+  const logger = new JobLogger();
+
+  try {
+    const inputPaths = resolveInputPaths(inputFilePath);
+    const result = await compareBudgets(inputPaths);
+
+    return writeResultLog(logger, result);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
+      throw error;
+    }
+
+    const detail = error instanceof Error ? ` (${error.message})` : "";
+
+    throw logger.fail(`ファイル処理に失敗しました${detail}`);
+  }
+}
+
+/**
+ * 入力ファイルパス配列を平坦化・正規化する。
+ */
+function resolveInputPaths(inputFilePath?: string | string[]): string[] {
   if (!inputFilePath) return [];
   return Array.isArray(inputFilePath) ? inputFilePath : [inputFilePath];
 }
 
+/**
+ * 入力パスから対象ファイル（MEIS0120、売上予算確認）を特定・検証する。
+ */
+function findTargetFiles(inputPaths: string[]): {
+  meis0120Path: string;
+  uriYosanPath: string;
+} {
+  const meis0120Path = inputPaths.find((filePath) =>
+    path.basename(filePath).includes(CONFIG.meis0120Keyword),
+  );
+  const uriYosanPath = inputPaths.find((filePath) =>
+    path.basename(filePath).includes(CONFIG.uriYosanKeyword),
+  );
+
+  const missing: string[] = [];
+  if (!meis0120Path) missing.push(CONFIG.meis0120Keyword);
+  if (!uriYosanPath) missing.push(CONFIG.uriYosanKeyword);
+
+  if (missing.length > 0) {
+    throw new Error(`必要なファイルが不足しています: ${missing.join(", ")}`);
+  }
+
+  return {
+    meis0120Path: meis0120Path!,
+    uriYosanPath: uriYosanPath!,
+  };
+}
+
+/**
+ * Shift_JIS エンコードの CSV ファイルを読み込みパースする。
+ */
 async function readShiftJisCsv(filePath: string): Promise<string[][]> {
   const buffer = await fs.readFile(filePath);
-  const decodedText = iconv.decode(buffer, "Shift_JIS");
+  const decodedText = iconv.decode(buffer, CONFIG.csvEncoding);
   return parseCsv(decodedText);
 }
 
+/**
+ * MEIS0120 CSVファイルを読み込み、店舗別予算Mapを生成する。
+ */
 async function parseMeisYosan(filePath: string): Promise<YosanMap> {
   const rows = (await readShiftJisCsv(filePath)).slice(1);
   const result = new Map<string, number>();
 
   for (const row of rows) {
-    const storeCode = row[0]; // csvUtils 側でトリム・パース済み
+    const storeCode = row[0];
     if (!storeCode) continue;
 
     const amount = parseAmount(row[4]);
@@ -38,16 +141,24 @@ async function parseMeisYosan(filePath: string): Promise<YosanMap> {
   return result;
 }
 
+/**
+ * 売上予算確認 CSVファイルを読み込み、指定範囲の店舗別予算Mapを生成する。
+ */
 async function parseUriYosan(filePath: string): Promise<YosanMap> {
   const rows = await readShiftJisCsv(filePath);
-  const startIndex = rows.findIndex((row) => row[0]?.includes("002"));
+  const startIndex = rows.findIndex((row) =>
+    row[0]?.includes(CONFIG.startStoreCode),
+  );
 
   if (startIndex === -1) {
-    throw new Error("開始店舗コード '002' が見つかりませんでした");
+    throw new Error(
+      `開始店舗コード '${CONFIG.startStoreCode}' が見つかりませんでした`,
+    );
   }
 
   const endIndex = rows.findIndex(
-    (row, index) => index >= startIndex && row[0]?.includes("700"),
+    (row, index) =>
+      index >= startIndex && row[0]?.includes(CONFIG.endStoreCode),
   );
   const validRows =
     endIndex === -1 ? rows.slice(startIndex) : rows.slice(startIndex, endIndex);
@@ -67,52 +178,28 @@ async function parseUriYosan(filePath: string): Promise<YosanMap> {
   return result;
 }
 
-function findInputFiles(inputPaths: string[]): {
-  meis0120Path: string;
-  uriYosanPath: string;
-} {
-  const meis0120Path = inputPaths.find((filePath) =>
-    path.basename(filePath).includes("MEIS0120"),
-  );
-  const uriYosanPath = inputPaths.find((filePath) =>
-    path.basename(filePath).includes("売上予算確認"),
-  );
-
-  const missing = [
-    !meis0120Path && "MEIS0120",
-    !uriYosanPath && "売上予算確認",
-  ].filter((name): name is string => Boolean(name));
-
-  if (missing.length > 0) {
-    throw new Error(`必要なファイルが不足しています: ${missing.join(", ")}`);
+/**
+ * 両ファイルをパースし、店舗別・合計の突き合わせ検証を行う。
+ */
+async function compareBudgets(inputPaths: string[]): Promise<JobResultData> {
+  if (inputPaths.length === 0) {
+    throw new Error("比較対象ファイルがありません。");
   }
 
-  return {
-    meis0120Path: meis0120Path!,
-    uriYosanPath: uriYosanPath!,
-  };
-}
+  const { meis0120Path, uriYosanPath } = findTargetFiles(inputPaths);
 
-function formatAmount(amount: number): string {
-  return amount.toLocaleString("ja-JP");
-}
+  const [meisMap, uriMap] = await Promise.all([
+    parseMeisYosan(meis0120Path),
+    parseUriYosan(uriYosanPath),
+  ]);
 
-function formatSignedAmount(amount: number): string {
-  const formatted = formatAmount(amount);
-  return amount > 0 ? `+${formatted}` : formatted;
-}
-
-function buildComparisonResult(
-  meisMap: YosanMap,
-  uriMap: YosanMap,
-): { comment: string; hasDifference: boolean } {
   let matchedCount = 0;
   let ignoredCount = 0;
   let totalUriAmount = 0;
   let totalMeisAmount = 0;
   let hasDifference = false;
 
-  const detailLines: string[] = [];
+  const comparisons: StoreComparison[] = [];
 
   for (const storeCode of [...uriMap.keys()].sort()) {
     const uriAmount = uriMap.get(storeCode)!;
@@ -129,74 +216,85 @@ function buildComparisonResult(
     totalUriAmount += uriAmount;
     totalMeisAmount += meisAmount;
 
-    if (Math.abs(diff) > 0.0001) hasDifference = true;
+    if (Math.abs(diff) > 0.0001) {
+      hasDifference = true;
+    }
 
-    detailLines.push(
-      `店舗[${storeCode}] 予算:${formatAmount(uriAmount)}円 | MEIS:${formatAmount(meisAmount)}円 | 差:${formatSignedAmount(diff)}円`,
-    );
+    comparisons.push({
+      storeCode,
+      uriAmount,
+      meisAmount,
+      diff,
+    });
   }
 
   const totalDiff = totalUriAmount - totalMeisAmount;
-  const status = hasDifference ? "【相違あり】" : "【相違なし】";
-
-  const headerLines = [
-    `${status} (突合:${matchedCount}件, 対象外:${ignoredCount}件)`,
-    `[合計] 売上予算: ${formatAmount(totalUriAmount)}円 | MEIS: ${formatAmount(totalMeisAmount)}円 | 差額: ${formatSignedAmount(totalDiff)}円`,
-    "--------------------------------------------------------------------------------",
-  ];
+  if (Math.abs(totalDiff) > 0.0001) {
+    hasDifference = true;
+  }
 
   return {
-    comment: `${headerLines.join("\n")}\n${detailLines.join("\n")}`,
+    meis0120Path,
+    uriYosanPath,
+    meisStoreCount: meisMap.size,
+    uriStoreCount: uriMap.size,
+    matchedCount,
+    ignoredCount,
+    totalUriAmount,
+    totalMeisAmount,
+    totalDiff,
     hasDifference,
+    comparisons,
   };
 }
 
-export async function runJobE30(
-  inputFilePath?: string | string[],
-): Promise<string> {
-  const logger = new JobLogger();
-  logger.log("売上予算とMEIS予算の比較を開始します");
+/**
+ * 金額を日本円表記にフォーマットする。
+ */
+function formatAmount(amount: number): string {
+  return `${amount.toLocaleString("ja-JP")}円`;
+}
 
-  try {
-    const inputPaths = normalizeInputPaths(inputFilePath);
+/**
+ * 符号付き金額文字列を生成する。
+ */
+function formatSignedAmount(amount: number): string {
+  const formatted = formatAmount(amount);
+  return amount > 0 ? `+${formatted}` : formatted;
+}
 
-    if (inputPaths.length === 0) {
-      throw new Error("比較対象ファイルがありません。");
-    }
+/**
+ * 検証結果をログに出力し、最終ステータスを判定する。
+ */
+function writeResultLog(logger: JobLogger, result: JobResultData): string {
+  logger.section("入力ファイル");
+  logger.log(`MEIS0120 : ${path.basename(result.meis0120Path)}`);
+  logger.log(`売上予算 : ${path.basename(result.uriYosanPath)}`);
 
-    logger.log(`入力ファイル数 : ${inputPaths.length}件`);
+  logger.section("集計店舗数");
+  logger.log(`MEIS0120 : ${result.meisStoreCount}件`);
+  logger.log(`売上予算 : ${result.uriStoreCount}件`);
+  logger.log(
+    `突合対象 : ${result.matchedCount}件 (対象外: ${result.ignoredCount}件)`,
+  );
 
-    for (const filePath of inputPaths) {
-      logger.log(`入力ファイル : ${path.basename(filePath)}`);
-    }
+  logger.section("合計結果");
+  logger.log(`売上予算計 : ${formatAmount(result.totalUriAmount)}`);
+  logger.log(`MEIS予算計 : ${formatAmount(result.totalMeisAmount)}`);
+  logger.log(`差額合計   : ${formatSignedAmount(result.totalDiff)}`);
 
-    const { meis0120Path, uriYosanPath } = findInputFiles(inputPaths);
-
-    logger.log(`MEIS0120ファイル : ${path.basename(meis0120Path)}`);
-    logger.log(`売上予算ファイル : ${path.basename(uriYosanPath)}`);
-
-    const [meisMap, uriMap] = await Promise.all([
-      parseMeisYosan(meis0120Path),
-      parseUriYosan(uriYosanPath),
-    ]);
-
-    logger.log(`MEIS集計店舗数 : ${meisMap.size}件`);
-    logger.log(`売上予算集計店舗数 : ${uriMap.size}件`);
-
-    const { comment, hasDifference } = buildComparisonResult(meisMap, uriMap);
-
-    logger.log("比較結果 :");
-    for (const line of comment.split("\n")) {
-      logger.log(line);
-    }
-
-    if (hasDifference) {
-      throw new Error(comment);
-    }
-
-    return logger.complete("予算差異なし");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw logger.fail(message);
+  logger.section("店舗別明細");
+  for (const item of result.comparisons) {
+    logger.log(
+      `店舗[${item.storeCode}] 予算:${formatAmount(item.uriAmount)} | MEIS:${formatAmount(item.meisAmount)} | 差:${formatSignedAmount(item.diff)}`,
+    );
   }
+
+  if (result.hasDifference) {
+    return logger.needsAction(
+      `予算差異が発生しています (差額合計: ${formatSignedAmount(result.totalDiff)})`,
+    );
+  }
+
+  return logger.complete(CONFIG.completionMessage);
 }

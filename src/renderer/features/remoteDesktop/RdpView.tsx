@@ -1,22 +1,14 @@
 // src/renderer/features/remoteDesktop/RdpView.tsx
 
 import { useEffect } from "react";
-import { useShallow } from "zustand/react/shallow";
 
 import { UnknownView } from "@renderer/layout/UnknownView";
-import { useAppStore } from "@renderer/store";
 
+import { useRdp } from "./useRdp";
 import * as styles from "./rdpView.css";
 
 export const RdpView = () => {
-  const { rdpTargets, isRdpLoading, fetchRdpTargets, runRdp } = useAppStore(
-    useShallow((state) => ({
-      rdpTargets: state.rdpTargets,
-      isRdpLoading: state.isRdpLoading,
-      fetchRdpTargets: state.fetchRdpTargets,
-      runRdp: state.runRdp,
-    })),
-  );
+  const { rdpTargets, isRdpLoading, fetchRdpTargets, runRdp } = useRdp();
 
   useEffect(() => {
     void fetchRdpTargets();

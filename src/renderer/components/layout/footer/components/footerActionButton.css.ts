@@ -36,7 +36,6 @@ export const actionButton = style([
 export const actionButtonText = style({
   fontSize: tokens.font.size.xs,
   fontWeight: tokens.font.weight.bold,
-  transition: `color ${tokens.transition.normal}`,
   color: tokens.color.text.base,
   selectors: {
     [`${actionButton}[data-active='false']:hover &`]: {

@@ -16,6 +16,7 @@ export const IPC_CHANNELS = {
     READ_UPDATE_INFO: "readUpdateInfo",
     THEME_CHANGED: "theme-changed",
   },
+
   RDP: {
     GET_MASTERS: "rdp:getMasters",
     START_SESSION: "rdp:startSession",
@@ -41,6 +42,7 @@ export const IPC_CHANNELS = {
     GET_TABLE_DATA: "operation:getTableData",
     GET_SCRIPT_EXECUTION_REQUIREMENT: "operation:getScriptExecutionRequirement",
     RESET_STATUSES: "operation:resetStatusesFromSpreadsheet",
+    GET_ACTIVE_FLAGS: "operation:getActiveFlags",
     SET_ACTIVE_FLAGS: "operation:setActiveFlags",
     DELETE_ALL_STATUSES: "operation:deleteAllStatuses",
     INITIALIZE_STATUS: "operation:initializeStatus",

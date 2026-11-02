@@ -280,25 +280,27 @@ export const menuItem = style([
     alignItems: "center",
     justifyContent: "center",
 
-    minWidth: "72px",
-    aspectRatio: "1 / 1",
-    height: "auto",
+    width: "72px",
+    height: "72px",
     borderRadius: "50%",
     boxSizing: "border-box",
 
-    padding: `${tokens.space.xs} ${tokens.space.sm}`,
+    padding: tokens.space.xs,
     backgroundColor: tokens.color.bg.base,
 
     border: `2px solid ${tokens.color.text.onAccent}`,
     boxShadow: `${tokens.shadow.glow.white}, ${tokens.shadow.raised.low}`,
 
     outline: "none",
-    fontSize: tokens.font.size.sm,
+    fontSize: tokens.font.size.xs,
     fontWeight: tokens.font.weight.bold,
     color: tokens.color.text.onAccent,
     cursor: "pointer",
     textAlign: "center",
-    wordBreak: "break-word",
+    whiteSpace: "normal",
+    wordBreak: "normal",
+    overflowWrap: "normal",
+    lineHeight: 1.15,
 
     transition: `
       box-shadow ${tokens.transition.ease},
