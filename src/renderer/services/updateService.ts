@@ -88,8 +88,10 @@ async function check(): Promise<boolean> {
 
     try {
       await systemIpcService.openExternal(installerPath);
-      setStatus("OK");
-      return true;
+      // インストーラープロセスの起動完了を待機後、アプリを終了して後続処理を停止
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await systemIpcService.quitApp();
+      return false;
     } catch (launchError) {
       console.error("[updateService] Failed to launch installer:", launchError);
       showToast("アップデートインストーラーの起動に失敗しました", "error");

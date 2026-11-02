@@ -3,6 +3,7 @@
 import { BrowserWindow, shell } from "electron";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { UpdateInfo } from "@shared/types/system";
 
 const UPDATE_DIRECTORY =
@@ -41,7 +42,18 @@ export async function openExternalOrPath(target: string): Promise<void> {
     return;
   }
 
-  const normalized = cleanTarget.replace(/\//g, "\\");
+  let localPath = cleanTarget;
+  if (/^file:/i.test(localPath)) {
+    try {
+      localPath = fileURLToPath(localPath);
+    } catch {
+      localPath = decodeURIComponent(
+        localPath.replace(/^file:[\\/]+/i, "\\\\"),
+      );
+    }
+  }
+
+  const normalized = localPath.replace(/\//g, "\\");
   const error = await shell.openPath(normalized);
   if (error) {
     throw new Error(`パスの起動に失敗しました: ${error}`);
