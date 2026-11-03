@@ -13,15 +13,7 @@ export interface TempomaticTargetFile {
   name?: string;
 }
 
-// ============================================================
-// Constants
-// ============================================================
-
-const BASE_URL = "https://belc.tempomatic.jp/h2";
-const UPLOAD_INTERVAL_MS = 1000;
-const DEFAULT_PUB_GROUP_ID = "a4c0532b-6dc0-446d-bd3f-bb6cbb60aab9";
-
-const DEFAULT_CATEGORIES = [
+export const TEMPOMATIC_DEFAULT_CATEGORIES = [
   "990",
   "1059",
   "1189",
@@ -46,6 +38,20 @@ const DEFAULT_CATEGORIES = [
   "1718",
   "998",
 ] as const;
+
+export type TempomaticCategoryId =
+  (typeof TEMPOMATIC_DEFAULT_CATEGORIES)[number];
+
+// ============================================================
+// Constants
+// ============================================================
+
+export const TEMPOMATIC_CONFIG = {
+  baseUrl: "https://belc.tempomatic.jp/h2",
+  uploadIntervalMs: 1000,
+  defaultPubGroupId: "a4c0532b-6dc0-446d-bd3f-bb6cbb60aab9",
+  defaultCategories: TEMPOMATIC_DEFAULT_CATEGORIES,
+} as const;
 
 // ============================================================
 // Native Cookie Store Client (Electron net.fetch 使用)
@@ -175,7 +181,7 @@ const loginToTempomatic = async (
   loginParams.append("identity", "");
 
   const responseText = await client.postForm(
-    `${BASE_URL}/Login.do`,
+    `${TEMPOMATIC_CONFIG.baseUrl}/Login.do`,
     loginParams,
   );
 
@@ -196,7 +202,7 @@ const getCsrfToken = async (
   client: NativeTempomaticClient,
 ): Promise<string> => {
   const responseText = await client.get(
-    `${BASE_URL}/STRLibDocument.do?func=edit&ctx=iframe&adding=1`,
+    `${TEMPOMATIC_CONFIG.baseUrl}/STRLibDocument.do?func=edit&ctx=iframe&adding=1`,
   );
 
   const match = responseText.match(/name="__CSRF"\s+value="([^"]+)"/);
@@ -241,9 +247,9 @@ const createUploadForm = (
   form.append("printPdf", "0");
   form.append("openDate", "");
   form.append("expireDate", expireDate);
-  form.append("pubGroupId", DEFAULT_PUB_GROUP_ID);
+  form.append("pubGroupId", TEMPOMATIC_CONFIG.defaultPubGroupId);
 
-  for (const category of DEFAULT_CATEGORIES) {
+  for (const category of TEMPOMATIC_CONFIG.defaultCategories) {
     form.append("category", category);
   }
 
@@ -270,7 +276,7 @@ const uploadSingleDocument = async (
   const form = createUploadForm(csrf, target, expireDate, fileBuffer);
 
   const body = await client.postMultipart(
-    `${BASE_URL}/STRLibDocument.do`,
+    `${TEMPOMATIC_CONFIG.baseUrl}/STRLibDocument.do`,
     form,
   );
 
@@ -301,7 +307,7 @@ const uploadDocumentsSequentially = async (
     await uploadSingleDocument(client, target, expireDate);
 
     if (index < targets.length - 1) {
-      await sleep(UPLOAD_INTERVAL_MS);
+      await sleep(TEMPOMATIC_CONFIG.uploadIntervalMs);
     }
   }
 };

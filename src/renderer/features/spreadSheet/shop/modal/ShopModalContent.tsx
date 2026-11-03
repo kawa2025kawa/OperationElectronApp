@@ -5,7 +5,12 @@ import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Shop } from "@shared/types/spreadsheet/shop";
 import { useShopModalContent } from "./useShopModalContent";
-import { TERMINAL_TYPES, TERMINAL_FIELDS } from "./shopModalConfig";
+import {
+  TERMINAL_TYPES,
+  TERMINAL_FIELDS,
+  SHOP_MODAL_CONSTANTS,
+  EMPTY_VALUE_FALLBACK,
+} from "./shopModalConfig";
 import * as styles from "./shopModalContent.css";
 
 export interface ShopModalContentProps {
@@ -55,7 +60,9 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
             <div className={styles.trTabWrapper}>
               <div className={styles.terminalSection}>
                 <div className={styles.terminalHeaderRow}>
-                  <div className={styles.terminalHeaderBadge}>TR</div>
+                  <div className={styles.terminalHeaderBadge}>
+                    {SHOP_MODAL_CONSTANTS.TR_HEADER_BADGE}
+                  </div>
                   <div className={styles.terminalHeaderGrid}>
                     {TERMINAL_FIELDS.map(({ label }) => (
                       <div key={label}>{label}</div>
@@ -73,7 +80,7 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
                       <div className={styles.terminalGrid}>
                         {TERMINAL_FIELDS.map(({ suffix }) => {
                           const fieldKey = `${type}${suffix}` as keyof Shop;
-                          const val = data[fieldKey] || "-";
+                          const val = data[fieldKey] || EMPTY_VALUE_FALLBACK;
 
                           return (
                             <div key={suffix} className={styles.cellValue}>
@@ -94,7 +101,9 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
                   <div className={styles.nonTrBadge}>{item.label}</div>
 
                   <div className={styles.flexCell}>
-                    <div className={styles.cellValue}>{item.value || "-"}</div>
+                    <div className={styles.cellValue}>
+                      {item.value || EMPTY_VALUE_FALLBACK}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -104,3 +113,5 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
       </div>
     );
   });
+
+ShopModalContent.displayName = "ShopModalContent";

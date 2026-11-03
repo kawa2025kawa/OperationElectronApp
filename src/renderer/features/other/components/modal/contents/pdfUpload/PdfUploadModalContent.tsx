@@ -14,17 +14,15 @@ export const PdfUploadModalContent: GlobalModalComponent = () => {
   } = usePdfUploadModalContent();
 
   return (
-    <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
-      <FileDropZone
-        files={files}
-        accept=".pdf,application/pdf"
-        label="PDFファイルをドラッグ＆ドロップ または クリックして選択"
-        onFileSelect={addPdfFiles}
-        onRenameFile={handleRenameFile}
-        onReorderFile={handleFileReorder}
-        onRemoveFile={handleRemoveFile}
-      />
-    </div>
+    <FileDropZone
+      files={files}
+      accept=".pdf,application/pdf"
+      label="PDFファイルをドラッグ＆ドロップ または クリックして選択"
+      onFileSelect={addPdfFiles}
+      onRenameFile={handleRenameFile}
+      onReorderFile={handleFileReorder}
+      onRemoveFile={handleRemoveFile}
+    />
   );
 };
 

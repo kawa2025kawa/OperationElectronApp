@@ -9,29 +9,33 @@ import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/job
 import { createZipArchive } from "@electron/features/operation/jobs/scripts/helpers/zipHelper";
 import { formatDateTime } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
-const CONFIG = {
-  targetDir: "\\\\S0088003\\syn_tran\\from_ACOS\\SendData",
-  targetFiles: [
-    "JCATANAWARI.TXT",
-    "JCAPRIPC2.TXT",
-    "SHELF_ERR_DATA.TXT",
-  ] as const,
-  zipPrefix: "SendData_Shelf",
-} as const;
+export const TARGET_FILES_E8 = [
+  "JCATANAWARI.TXT",
+  "JCAPRIPC2.TXT",
+  "SHELF_ERR_DATA.TXT",
+] as const;
 
-type FileStatus = {
+export type JobE8TargetFileName = (typeof TARGET_FILES_E8)[number];
+
+export interface FileStatusE8 {
   fileName: string;
   filePath: string;
   mtime: Date;
   isToday: boolean;
-};
+}
 
-type JobResultData = {
-  matchedFiles: FileStatus[];
+export interface JobE8ResultData {
+  matchedFiles: FileStatusE8[];
   missingFiles: string[];
-  dateIssueFiles: FileStatus[];
+  dateIssueFiles: FileStatusE8[];
   zipMessage?: string;
-};
+}
+
+const CONFIG = {
+  targetDir: "\\\\S0088003\\syn_tran\\from_ACOS\\SendData",
+  targetFiles: TARGET_FILES_E8,
+  zipPrefix: "SendData_Shelf",
+} as const;
 
 /**
  * 棚割関連ファイル（3ファイル）の存在と更新日を確認し、ZIPアーカイブを作成する。
@@ -69,7 +73,9 @@ export async function runJobE8(): Promise<string> {
 /**
  * ファイルの存在と日付を検証し、全条件を満たしていればZIPを作成する。
  */
-async function checkAndArchiveFiles(logger: JobLogger): Promise<JobResultData> {
+async function checkAndArchiveFiles(
+  logger: JobLogger,
+): Promise<JobE8ResultData> {
   const now = new Date();
   const entries = await fs.readdir(CONFIG.targetDir, { withFileTypes: true });
 
@@ -82,8 +88,8 @@ async function checkAndArchiveFiles(logger: JobLogger): Promise<JobResultData> {
     (fileName) => !currentFileSet.has(fileName),
   );
 
-  const matchedFiles: FileStatus[] = [];
-  const dateIssueFiles: FileStatus[] = [];
+  const matchedFiles: FileStatusE8[] = [];
+  const dateIssueFiles: FileStatusE8[] = [];
 
   for (const fileName of CONFIG.targetFiles) {
     if (!currentFileSet.has(fileName)) {
@@ -94,7 +100,7 @@ async function checkAndArchiveFiles(logger: JobLogger): Promise<JobResultData> {
     const fileStat = await fs.stat(filePath);
     const isToday = isSameDay(fileStat.mtime, now);
 
-    const fileStatus: FileStatus = {
+    const fileStatus: FileStatusE8 = {
       fileName,
       filePath,
       mtime: fileStat.mtime,
@@ -137,7 +143,7 @@ async function checkAndArchiveFiles(logger: JobLogger): Promise<JobResultData> {
 /**
  * 検証結果をログに出力し、最終ステータスを判定する。
  */
-function writeResultLog(logger: JobLogger, result: JobResultData): string {
+function writeResultLog(logger: JobLogger, result: JobE8ResultData): string {
   logger.section("確認対象フォルダ");
   logger.log(CONFIG.targetDir);
 

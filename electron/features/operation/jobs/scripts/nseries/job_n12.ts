@@ -7,11 +7,20 @@ import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/job
 import { getStatus } from "@electron/features/operation/application/statusManager";
 import { JOB_STATUS } from "@shared/types/operation/operationTypes";
 
+const TARGET_KEYWORDS = [
+  "098_FTRDCSND",
+  "982_FTRDCSND",
+  "983_FTRDCSND",
+  "FTRDCSNDSD",
+] as const;
+
+export type JobN12Keyword = (typeof TARGET_KEYWORDS)[number];
+
 const CONFIG = {
   targetDirSv: "\\\\172.25.101.51\\if\\WMSSLIP\\RCV\\SV",
   targetDirRcv: "\\\\172.25.101.51\\if\\WMSSLIP\\RCV",
   refKanriNo: "49",
-  keywords: ["098_FTRDCSND", "982_FTRDCSND", "983_FTRDCSND", "FTRDCSNDSD"],
+  keywords: TARGET_KEYWORDS,
 } as const;
 
 type MatchedFile = {

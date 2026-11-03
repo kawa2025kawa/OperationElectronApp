@@ -27,15 +27,8 @@ const rowBaseStyle = style({
 export const contentContainer = style({
   display: "flex",
   flexDirection: "column",
-  gap: tokens.space.md,
   width: "100%",
   height: "100%",
-});
-
-export const sectionTitle = style({
-  fontSize: tokens.font.size.sm,
-  fontWeight: tokens.font.weight.bold,
-  color: tokens.color.text.base,
 });
 
 export const terminalSection = style({
@@ -83,7 +76,6 @@ const terminalBadge = style({
   selectors: {
     "&:hover, &:focus-visible": {
       boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-
       outline: "none",
     },
     "&:active": {

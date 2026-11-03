@@ -5,7 +5,9 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { AuthSession, OAuthToken } from "@shared/types/auth";
 
-const TOKEN_FILE_NAME = "google-oauth-session.dat";
+export const TOKEN_STORAGE_CONFIG = {
+  fileName: "google-oauth-session.dat",
+} as const;
 
 let cachedSession: AuthSession | null = null;
 let isSessionLoaded = false;
@@ -15,12 +17,8 @@ export function getTokenGeneration(): number {
   return sessionGeneration;
 }
 
-function copySession(session: AuthSession | null): AuthSession | null {
-  return session ? { ...session } : null;
-}
-
 function getTokenFilePath(): string {
-  return path.join(app.getPath("userData"), TOKEN_FILE_NAME);
+  return path.join(app.getPath("userData"), TOKEN_STORAGE_CONFIG.fileName);
 }
 
 function assertGeneration(expectedGeneration?: number): void {
@@ -44,7 +42,6 @@ function persistSession(session: AuthSession): AuthSession {
 
   cachedSession = session;
   isSessionLoaded = true;
-
   return { ...session };
 }
 
@@ -56,7 +53,9 @@ function tokenToSession(
     accessToken: token.accessToken,
     refreshToken: token.refreshToken,
     expiresAt:
-      token.expiresIn !== null ? Date.now() + token.expiresIn * 1000 : null,
+      typeof token.expiresIn === "number" && Number.isFinite(token.expiresIn)
+        ? Date.now() + token.expiresIn * 1000
+        : null,
     email: profile?.email ?? null,
     familyName: profile?.familyName ?? null,
   };
@@ -98,41 +97,29 @@ export async function updateTokenProfile(
     return null;
   }
 
+  assertGeneration(expectedGeneration);
+
   const updatedSession: AuthSession = {
     ...session,
     email: profile.email ?? session.email,
     familyName: profile.familyName ?? session.familyName,
   };
 
-  assertGeneration(expectedGeneration);
-
-  if (
-    expectedAccessToken !== undefined &&
-    updatedSession.accessToken !== expectedAccessToken
-  ) {
-    return null;
-  }
-
   const savedSession = persistSession(updatedSession);
-
   console.log("[GoogleOAuth] Session profile updated");
-
   return savedSession;
 }
 
 export async function loadToken(): Promise<AuthSession | null> {
   if (isSessionLoaded) {
-    return copySession(cachedSession);
+    return cachedSession ? { ...cachedSession } : null;
   }
 
   const filePath = getTokenFilePath();
-
   if (!existsSync(filePath)) {
     cachedSession = null;
     isSessionLoaded = true;
-
     console.log("[GoogleOAuth] No stored session");
-
     return null;
   }
 
@@ -154,10 +141,14 @@ export async function loadToken(): Promise<AuthSession | null> {
     }
 
     const session: AuthSession = {
-      accessToken: parsed.accessToken,
+      accessToken: parsed.accessToken.trim(),
       refreshToken:
         typeof parsed.refreshToken === "string" ? parsed.refreshToken : null,
-      expiresAt: typeof parsed.expiresAt === "number" ? parsed.expiresAt : null,
+      expiresAt:
+        typeof parsed.expiresAt === "number" &&
+        Number.isFinite(parsed.expiresAt)
+          ? parsed.expiresAt
+          : null,
       email: typeof parsed.email === "string" ? parsed.email : null,
       familyName:
         typeof parsed.familyName === "string" ? parsed.familyName : null,
@@ -173,7 +164,7 @@ export async function loadToken(): Promise<AuthSession | null> {
       expired: isTokenExpired(session),
     });
 
-    return copySession(session);
+    return { ...session };
   } catch (error) {
     console.error("[GoogleOAuth] Failed to load stored session:", error);
     await clearToken();
@@ -182,19 +173,9 @@ export async function loadToken(): Promise<AuthSession | null> {
 }
 
 export async function clearToken(expectedGeneration?: number): Promise<void> {
-  if (
-    expectedGeneration !== undefined &&
-    expectedGeneration !== sessionGeneration
-  ) {
-    return;
-  }
-
-  sessionGeneration++;
-  cachedSession = null;
-  isSessionLoaded = true;
+  assertGeneration(expectedGeneration);
 
   const filePath = getTokenFilePath();
-
   try {
     if (existsSync(filePath)) {
       unlinkSync(filePath);
@@ -202,7 +183,12 @@ export async function clearToken(expectedGeneration?: number): Promise<void> {
     }
   } catch (error) {
     console.error("[GoogleOAuth] Failed to clear stored session:", error);
+    throw error;
   }
+
+  sessionGeneration++;
+  cachedSession = null;
+  isSessionLoaded = true;
 }
 
 export function isTokenExpired(session: AuthSession): boolean {

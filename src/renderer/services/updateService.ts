@@ -101,7 +101,9 @@ async function check(): Promise<boolean> {
   } catch (error) {
     console.error("[updateService] Update check failed:", error);
     setStatus("NG");
-    return false;
+
+    // 更新情報を取得できなくても、認証確認と通常の初期化は続行する
+    return true;
   }
 }
 

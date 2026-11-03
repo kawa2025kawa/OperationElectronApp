@@ -3,7 +3,7 @@
 import { memo } from "react";
 import type { Shop } from "@shared/types/spreadsheet/shop";
 import { SpreadSheetBaseTable } from "../../components/table/SpreadSheetBaseTable";
-import { SHOP_COLUMNS } from "../shopColumns";
+import { SHOP_COLUMNS } from "@shared/types/spreadsheet/spreadsheetTypes";
 import * as styles from "@renderer/styles/global/table.css";
 
 export interface ShopTableProps {

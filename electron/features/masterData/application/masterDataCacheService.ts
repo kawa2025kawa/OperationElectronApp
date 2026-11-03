@@ -11,98 +11,95 @@ export interface MasterDataCacheServiceOptions<T> {
   logPrefix: string;
 }
 
+interface MemoryCache<T> {
+  data: T;
+  fetchedAt: string;
+}
+
 // マスターデータの取得・更新・削除を共通管理する。
 export function createMasterDataCacheService<T>(
   options: MasterDataCacheServiceOptions<T>,
 ) {
-  let cachedData: T | null = null;
-  let cachedFetchedAt: string | null = null;
+  let memoryCache: MemoryCache<T> | null = null;
 
   let refreshPromise: Promise<T> | null = null;
   let clearPromise: Promise<void> | null = null;
   let cacheGeneration = 0;
 
-  // メモリーキャッシュを更新する。
-  function setMemoryCache(data: T, fetchedAt: string): void {
-    cachedData = data;
-    cachedFetchedAt = fetchedAt;
-  }
-
-  // メモリーキャッシュを初期状態に戻す。
-  function clearMemoryCache(): void {
-    cachedData = null;
-    cachedFetchedAt = null;
-  }
-
   // 最新データを取得してディスク・メモリーキャッシュを更新する。
   async function refresh(): Promise<T> {
-    if (clearPromise) {
-      await clearPromise;
-      return refresh();
-    }
+    while (true) {
+      const pendingClear = clearPromise;
 
-    if (refreshPromise) {
-      return refreshPromise;
-    }
+      if (pendingClear) {
+        await pendingClear;
+        continue;
+      }
 
-    const currentRefresh = (async () => {
-      const data = await options.loadFreshData();
+      if (refreshPromise) {
+        return refreshPromise;
+      }
 
-      await options.saveCache(data);
+      const currentRefresh = (async () => {
+        const data = await options.loadFreshData();
 
-      const fetchedAt = new Date().toISOString();
-      setMemoryCache(data, fetchedAt);
+        await options.saveCache(data);
 
-      return data;
-    })();
+        memoryCache = {
+          data,
+          fetchedAt: new Date().toISOString(),
+        };
 
-    refreshPromise = currentRefresh;
+        return data;
+      })();
 
-    try {
-      return await currentRefresh;
-    } catch (err) {
-      console.error(`${options.logPrefix} 更新に失敗:`, err);
-      throw err;
-    } finally {
-      if (refreshPromise === currentRefresh) {
-        refreshPromise = null;
+      refreshPromise = currentRefresh;
+
+      try {
+        return await currentRefresh;
+      } catch (err) {
+        console.error(`${options.logPrefix} 更新に失敗:`, err);
+        throw err;
+      } finally {
+        if (refreshPromise === currentRefresh) {
+          refreshPromise = null;
+        }
       }
     }
   }
 
   // 有効なメモリー・ディスクキャッシュを確認してマスターデータを返す。
   async function get(): Promise<T> {
-    if (clearPromise) {
-      await clearPromise;
-      return get();
+    while (true) {
+      const pendingClear = clearPromise;
+
+      if (pendingClear) {
+        await pendingClear;
+        continue;
+      }
+
+      if (memoryCache !== null && isSameJstDay(memoryCache.fetchedAt)) {
+        return memoryCache.data;
+      }
+
+      const generationAtReadStart = cacheGeneration;
+      const cached = await options.loadCache();
+
+      if (generationAtReadStart !== cacheGeneration) {
+        continue;
+      }
+
+      if (cached && isSameJstDay(cached.fetchedAt)) {
+        memoryCache = {
+          data: cached.data,
+          fetchedAt: cached.fetchedAt,
+        };
+
+        return cached.data;
+      }
+
+      return refresh();
     }
-
-    if (
-      cachedData !== null &&
-      cachedFetchedAt !== null &&
-      isSameJstDay(cachedFetchedAt)
-    ) {
-      return cachedData;
-    }
-
-    const generationAtReadStart = cacheGeneration;
-    const cached = await options.loadCache();
-
-    if (generationAtReadStart !== cacheGeneration) {
-      return get();
-    }
-
-    if (clearPromise) {
-      await clearPromise;
-      return get();
-    }
-
-    if (cached && isSameJstDay(cached.fetchedAt)) {
-      setMemoryCache(cached.data, cached.fetchedAt);
-      return cached.data;
-    }
-
-    return refresh();
   }
 
   // 実行中の更新完了を待って、メモリー・ディスクキャッシュを削除する。
@@ -112,6 +109,7 @@ export function createMasterDataCacheService<T>(
     }
 
     cacheGeneration += 1;
+
     const pendingRefresh = refreshPromise;
 
     const currentClear = (async () => {
@@ -123,7 +121,8 @@ export function createMasterDataCacheService<T>(
         }
       }
 
-      clearMemoryCache();
+      memoryCache = null;
+
       await options.deleteCache();
     })();
 
@@ -138,5 +137,8 @@ export function createMasterDataCacheService<T>(
     }
   }
 
-  return { get, clear };
+  return {
+    get,
+    clear,
+  };
 }

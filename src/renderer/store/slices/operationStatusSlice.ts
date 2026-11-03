@@ -1,4 +1,4 @@
-﻿// src/renderer/store/slices/operationStatusSlice.ts
+// src/renderer/store/slices/operationStatusSlice.ts
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
@@ -115,7 +115,10 @@ export const createOperationStatusSlice: StateCreator<
 
       set((state) => {
         for (const row of state.tableRows) {
-          const notification = notificationMap.get(row.kanriNo);
+          const rowKanriNo = row.kanriNo?.trim();
+          if (!rowKanriNo) continue;
+
+          const notification = notificationMap.get(rowKanriNo);
           if (notification) {
             applyNotificationToRow(row, notification);
           }
@@ -129,6 +132,21 @@ export const createOperationStatusSlice: StateCreator<
       const kanriNo = update.kanriNo.trim();
       if (!kanriNo || !update.status) return;
 
+      // 🎯 即時反映（楽観的更新）: tableRows の該当行のステータスを即座に書き換える
+      set((state) => {
+        const targetRow = state.tableRows.find(
+          (row) => row.kanriNo?.trim() === kanriNo,
+        );
+        if (targetRow) {
+          targetRow.status = update.status;
+          targetRow.comment = update.comment ?? "";
+        }
+      });
+
+      // サマリー集計の再取得
+      void get().fetchStatusSummary();
+
+      // バックエンドへステータス更新を通知
       void operationService
         .updateJobStatus({
           kanriNo,

@@ -2,31 +2,38 @@
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
-const CONFIG = {
-  apiUrl: "http://onpremises-web-server.belc.internal:8088/request",
-  sql: "SELECT *FROM mtn_haita_seigyo WHERE MSTKBN='ADMIN'",
-} as const;
-
-interface HaitaRecord {
+export interface HaitaRecord {
   SYOHINCD?: string;
   MTN_USERNAME?: string;
   MTN_DATE?: string;
   MTN_TIME?: string;
 }
 
-interface ApiResponse {
+export interface HaitaApiResponse {
   status?: string;
   datas?: HaitaRecord[];
 }
 
-function parseApiResponse(raw: unknown): ApiResponse | null {
+export type ValidHaitaRecord = HaitaRecord & {
+  SYOHINCD: string;
+  MTN_USERNAME: string;
+  MTN_DATE: string;
+  MTN_TIME: string;
+};
+
+const CONFIG = {
+  apiUrl: "http://onpremises-web-server.belc.internal:8088/request",
+  sql: "SELECT *FROM mtn_haita_seigyo WHERE MSTKBN='ADMIN'",
+} as const;
+
+function parseApiResponse(raw: unknown): HaitaApiResponse | null {
   const data = Array.isArray(raw) ? raw[0] : raw;
 
   if (!data || typeof data !== "object") {
     return null;
   }
 
-  return data as ApiResponse;
+  return data as HaitaApiResponse;
 }
 
 function formatDate(value: string): string {
@@ -47,12 +54,7 @@ function formatTime(value: string): string {
 
 function isValidRecord(
   record: HaitaRecord | undefined,
-): record is HaitaRecord & {
-  SYOHINCD: string;
-  MTN_USERNAME: string;
-  MTN_DATE: string;
-  MTN_TIME: string;
-} {
+): record is ValidHaitaRecord {
   return Boolean(
     record?.SYOHINCD &&
     record.MTN_USERNAME &&
@@ -91,9 +93,9 @@ export async function runJob6066(): Promise<string> {
 
   const updatedAt = `${formatDate(record.MTN_DATE)} ${formatTime(record.MTN_TIME)}`;
 
-  logger.log(`  状態            : ${record.SYOHINCD}`);
-  logger.log(`  更新者          : ${record.MTN_USERNAME}`);
-  logger.log(`  更新日時        : ${updatedAt}`);
+  logger.log(`  状態             : ${record.SYOHINCD}`);
+  logger.log(`  更新者           : ${record.MTN_USERNAME}`);
+  logger.log(`  更新日時         : ${updatedAt}`);
 
   return logger.complete();
 }

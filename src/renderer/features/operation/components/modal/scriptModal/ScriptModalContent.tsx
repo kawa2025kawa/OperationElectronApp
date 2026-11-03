@@ -6,8 +6,9 @@ import { FileDropZone } from "@renderer/components/ui/fileDropZone/FileDropZone"
 import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { JobArtifact } from "@shared/types/operation/operationTypes";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { systemIpcService } from "@renderer/services/systemIpcService";
 import { useScriptModalContent } from "./useScriptModalContent";
+import { SCRIPT_MODAL_LABELS } from "./scriptModalConstants";
 import * as styles from "./scriptModalContent.css";
 
 interface ScriptModalContentProps {
@@ -32,13 +33,15 @@ export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
         rightActions: [
           {
             id: "cancel",
-            label: "キャンセル",
+            label: SCRIPT_MODAL_LABELS.CANCEL_BUTTON,
             onClick: actions.handleClose,
             disabled: state.isExecuting,
           },
           {
             id: "execute",
-            label: state.isExecuting ? "実行中..." : "実行",
+            label: state.isExecuting
+              ? SCRIPT_MODAL_LABELS.EXECUTING_BUTTON
+              : SCRIPT_MODAL_LABELS.EXECUTE_BUTTON,
             onClick: actions.handleExecute,
             disabled: state.isExecuteDisabled || state.isExecuting,
             variant: "default",
@@ -56,9 +59,7 @@ export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
 
     const handleOpenArtifact = useCallback(async (path: string) => {
       try {
-        await window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, {
-          urlOrPath: path,
-        });
+        await systemIpcService.openExternal(path);
       } catch (error) {
         console.error("Failed to open artifact:", error);
       }
@@ -100,7 +101,9 @@ export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
                             }
                           >
                             <span className={styles.linkLabel}>
-                              {artifact.name ?? "成果物"}:
+                              {artifact.name ??
+                                SCRIPT_MODAL_LABELS.DEFAULT_ARTIFACT_NAME}
+                              :
                             </span>
                             <span className={styles.linkValue}>
                               {artifact.path}
@@ -117,3 +120,5 @@ export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
       </div>
     );
   });
+
+ScriptModalContent.displayName = "ScriptModalContent";

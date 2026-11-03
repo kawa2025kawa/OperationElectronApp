@@ -1,4 +1,4 @@
-﻿// electron/features/operation/application/dependencyPropagator.ts
+// electron/features/operation/application/dependencyPropagator.ts
 
 import {
   hasCenterFlagDependency,
@@ -10,354 +10,212 @@ import {
   type DependencyMasters,
 } from "@electron/features/operation/domain/dependencyUtils";
 import type { OperationStatusState } from "@shared/types/operation/operationTypes";
-import type { StatusTarget } from "./statusTypes";
+import type { StatusTarget } from "./statusManager";
 
-interface PendingTargetEntry {
-  kanriNo: string;
-  includeSelf: boolean;
-}
+/** 指定ノード集合に対するトポロジカルソート（Kahn法）。DAGならソート配列、循環時は空配列を返す */
+function kahnSort(
+  nodes: Set<string>,
+  dependentsMap: Map<string, Set<string>>,
+  prerequisitesMap: Map<string, Set<string>>,
+): { sorted: string[]; unvisited: string[] } {
+  const inDegree = new Map<string, number>();
+  const queue: string[] = [];
 
-interface DependencyIndex {
-  dependentTargets: Map<string, Set<string>>;
-  prerequisiteTargets: Map<string, Set<string>>;
+  for (const node of nodes) {
+    let degree = 0;
+    const prereqs = prerequisitesMap.get(node);
+    if (prereqs) {
+      for (const p of prereqs) if (nodes.has(p)) degree++;
+    }
+    inDegree.set(node, degree);
+    if (degree === 0) queue.push(node);
+  }
+
+  const sorted: string[] = [];
+  let i = 0;
+  while (i < queue.length) {
+    const curr = queue[i++];
+    sorted.push(curr);
+    const deps = dependentsMap.get(curr);
+    if (!deps) continue;
+    for (const dep of deps) {
+      if (!nodes.has(dep)) continue;
+      const nextDegree = (inDegree.get(dep) ?? 0) - 1;
+      inDegree.set(dep, nextDegree);
+      if (nextDegree === 0) queue.push(dep);
+    }
+  }
+
+  const unvisited =
+    sorted.length === nodes.size
+      ? []
+      : [...nodes].filter((n) => !sorted.includes(n));
+
+  return { sorted, unvisited };
 }
 
 export class DependencyPropagator {
-  // 先行ノード -> 後続ノード一覧 (prerequisite -> dependents)
   private readonly dependentTargets = new Map<string, Set<string>>();
-
-  // 後続ノード -> 先行ノード一覧 (target -> prerequisites)
   private readonly prerequisiteTargets = new Map<string, Set<string>>();
-
-  // 今回の伝播で評価起点となるターゲット一覧
   private readonly pendingTargets = new Map<string, boolean>();
-
   private isPropagating = false;
 
-  // 依存エッジを追加する。
-  private addDependencyEdge(
-    dependencyNo: string,
-    kanriNo: string,
-    index: DependencyIndex,
+  private addEdge(
+    dep: string,
+    target: string,
+    depsMap: Map<string, Set<string>>,
+    prereqsMap: Map<string, Set<string>>,
   ): void {
-    let dependents = index.dependentTargets.get(dependencyNo);
+    if (!depsMap.has(dep)) depsMap.set(dep, new Set());
+    depsMap.get(dep)!.add(target);
 
-    if (!dependents) {
-      dependents = new Set<string>();
-      index.dependentTargets.set(dependencyNo, dependents);
-    }
-
-    dependents.add(kanriNo);
-
-    let prerequisites = index.prerequisiteTargets.get(kanriNo);
-
-    if (!prerequisites) {
-      prerequisites = new Set<string>();
-      index.prerequisiteTargets.set(kanriNo, prerequisites);
-    }
-
-    prerequisites.add(dependencyNo);
+    if (!prereqsMap.has(target)) prereqsMap.set(target, new Set());
+    prereqsMap.get(target)!.add(dep);
   }
 
-  // Kahn法でグラフ全体を検証し、循環により処理できないノードを返す。
-  private findCycleNodes(index: DependencyIndex): string[] {
-    const nodes = new Set<string>();
-
-    for (const [node, dependents] of index.dependentTargets) {
-      nodes.add(node);
-
-      for (const dependent of dependents) {
-        nodes.add(dependent);
-      }
-    }
-
-    for (const [node, prerequisites] of index.prerequisiteTargets) {
-      nodes.add(node);
-
-      for (const prerequisite of prerequisites) {
-        nodes.add(prerequisite);
-      }
-    }
-
-    const inDegree = new Map<string, number>();
-
-    for (const node of nodes) {
-      inDegree.set(node, index.prerequisiteTargets.get(node)?.size ?? 0);
-    }
-
-    const readyNodes: string[] = [];
-
-    for (const [node, degree] of inDegree) {
-      if (degree === 0) {
-        readyNodes.push(node);
-      }
-    }
-
-    let indexPosition = 0;
-    let processedCount = 0;
-
-    while (indexPosition < readyNodes.length) {
-      const current = readyNodes[indexPosition++];
-      processedCount++;
-
-      const dependents = index.dependentTargets.get(current);
-      if (!dependents) continue;
-
-      for (const dependent of dependents) {
-        const nextDegree = (inDegree.get(dependent) ?? 0) - 1;
-
-        inDegree.set(dependent, nextDegree);
-
-        if (nextDegree === 0) {
-          readyNodes.push(dependent);
-        }
-      }
-    }
-
-    if (processedCount === nodes.size) {
-      return [];
-    }
-
-    return [...inDegree.entries()]
-      .filter(([, degree]) => degree > 0)
-      .map(([node]) => node);
-  }
-
-  // 依存関係索引を一時構築し、DAG検証成功後にのみ反映する。
+  /** 依存関係索引を一時構築し、DAG検証成功後にのみ反映する */
   public rebuildDependencyIndex(
     targets: Iterable<StatusTarget>,
     masters?: DependencyMasters,
   ): void {
-    const nextIndex: DependencyIndex = {
-      dependentTargets: new Map<string, Set<string>>(),
-      prerequisiteTargets: new Map<string, Set<string>>(),
-    };
+    const nextDeps = new Map<string, Set<string>>();
+    const nextPrereqs = new Map<string, Set<string>>();
+    const allNodes = new Set<string>();
 
     for (const target of targets) {
       const kanriNo = normalizeKanriNo(target.kanriNo);
       if (!kanriNo) continue;
+      allNodes.add(kanriNo);
 
-      for (const dependency of normalizeDependencies(
+      for (const dep of normalizeDependencies(
         target.dependsOn,
         kanriNo,
         masters,
       )) {
-        const dependencyNo = normalizeKanriNo(dependency);
-        if (!dependencyNo) continue;
-
-        if (kanriNo === dependencyNo) {
+        const depNo = normalizeKanriNo(dep);
+        if (!depNo) continue;
+        if (kanriNo === depNo) {
           throw new Error(
             `[DependencyPropagator] 自己依存を検出しました: ${kanriNo}`,
           );
         }
-
-        this.addDependencyEdge(dependencyNo, kanriNo, nextIndex);
+        allNodes.add(depNo);
+        this.addEdge(depNo, kanriNo, nextDeps, nextPrereqs);
       }
     }
 
-    const cycleNodes = this.findCycleNodes(nextIndex);
-
-    if (cycleNodes.length > 0) {
+    const { unvisited } = kahnSort(allNodes, nextDeps, nextPrereqs);
+    if (unvisited.length > 0) {
       throw new Error(
-        `[DependencyPropagator] 循環依存を検出しました。対象管理No: ${cycleNodes.join(", ")}`,
+        `[DependencyPropagator] 循環依存を検出しました。対象管理No: ${unvisited.join(", ")}`,
       );
     }
 
-    // 検証成功後に既存インデックスを置き換える。
     this.dependentTargets.clear();
     this.prerequisiteTargets.clear();
-
-    for (const [node, dependents] of nextIndex.dependentTargets) {
-      this.dependentTargets.set(node, dependents);
-    }
-
-    for (const [node, prerequisites] of nextIndex.prerequisiteTargets) {
-      this.prerequisiteTargets.set(node, prerequisites);
-    }
-
+    for (const [k, v] of nextDeps) this.dependentTargets.set(k, v);
+    for (const [k, v] of nextPrereqs) this.prerequisiteTargets.set(k, v);
     this.pendingTargets.clear();
   }
 
-  // 指定された管理番号の下流ターゲットを再計算対象に追加する。
   public enqueueDependents(kanriNo: string): void {
     const normalized = normalizeKanriNo(kanriNo);
-    if (!normalized) return;
-
-    const current = this.pendingTargets.get(normalized);
-
-    if (current === undefined) {
+    if (normalized && !this.pendingTargets.has(normalized)) {
       this.pendingTargets.set(normalized, false);
     }
   }
 
-  // センターフラグに依存するターゲットを再計算対象に追加する。
   public enqueueCenterFlagDependents(
     targets: Map<string, StatusTarget>,
     masters?: DependencyMasters,
   ): void {
     for (const [kanriNo, target] of targets) {
-      const dependencies = normalizeDependencies(
-        target.dependsOn,
-        kanriNo,
-        masters,
-      );
-
-      if (hasCenterFlagDependency(dependencies)) {
+      const deps = normalizeDependencies(target.dependsOn, kanriNo, masters);
+      if (hasCenterFlagDependency(deps)) {
         this.pendingTargets.set(kanriNo, true);
       }
     }
   }
 
-  // 保護対象を除く登録済みターゲットを再計算対象に追加する。
   public enqueueAllRecalculableTargets(
     statuses: Map<string, OperationStatusState>,
     targets: Map<string, StatusTarget>,
   ): void {
     for (const [kanriNo] of targets) {
-      const status = statuses.get(kanriNo);
-
-      if (isProtectedStatus(status?.status)) {
-        continue;
+      if (!isProtectedStatus(statuses.get(kanriNo)?.status)) {
+        this.pendingTargets.set(kanriNo, true);
       }
-
-      this.pendingTargets.set(kanriNo, true);
     }
   }
 
-  // 再計算キューの登録内容をすべて削除する。
   public clearQueue(): void {
     this.pendingTargets.clear();
   }
 
-  // 依存関係索引と再計算キューをすべて初期化する。
   public clearAll(): void {
     this.dependentTargets.clear();
     this.prerequisiteTargets.clear();
     this.pendingTargets.clear();
   }
 
-  // 起点ノード群から影響を受ける下流ノードをトポロジカル順序で取得する。
-  private resolveTopologicalExecutionOrder(
-    entries: PendingTargetEntry[],
-  ): string[] {
+  /** 起点ノード群から影響を受ける下流ノードを探索しトポロジカル順序で取得 */
+  private resolveTopologicalExecutionOrder(): string[] {
     const affected = new Set<string>();
     const queue: string[] = [];
 
-    for (const { kanriNo, includeSelf } of entries) {
+    // 起点ノードと直下の下流ノードをキューに追加
+    for (const [kanriNo, includeSelf] of this.pendingTargets) {
       if (includeSelf && !affected.has(kanriNo)) {
         affected.add(kanriNo);
         queue.push(kanriNo);
       }
-
-      const dependents = this.dependentTargets.get(kanriNo);
-      if (!dependents) continue;
-
-      for (const dependent of dependents) {
-        if (affected.has(dependent)) continue;
-
-        affected.add(dependent);
-        queue.push(dependent);
+      const deps = this.dependentTargets.get(kanriNo);
+      if (deps) {
+        for (const dep of deps) {
+          if (!affected.has(dep)) {
+            affected.add(dep);
+            queue.push(dep);
+          }
+        }
       }
     }
 
-    let queueIndex = 0;
-
-    while (queueIndex < queue.length) {
-      const current = queue[queueIndex++];
-      const dependents = this.dependentTargets.get(current);
-
-      if (!dependents) continue;
-
-      for (const dependent of dependents) {
-        if (affected.has(dependent)) continue;
-
-        affected.add(dependent);
-        queue.push(dependent);
+    // 幅優先探索で下流全体を収集
+    let qi = 0;
+    while (qi < queue.length) {
+      const curr = queue[qi++];
+      const deps = this.dependentTargets.get(curr);
+      if (!deps) continue;
+      for (const dep of deps) {
+        if (!affected.has(dep)) {
+          affected.add(dep);
+          queue.push(dep);
+        }
       }
     }
 
     if (affected.size === 0) return [];
 
-    // 影響範囲内の入次数を計算する。
-    const inDegree = new Map<string, number>();
-
-    for (const node of affected) {
-      let degree = 0;
-      const prerequisites = this.prerequisiteTargets.get(node);
-
-      if (prerequisites) {
-        for (const prerequisite of prerequisites) {
-          if (affected.has(prerequisite)) {
-            degree++;
-          }
-        }
-      }
-
-      inDegree.set(node, degree);
-    }
-
-    // 入次数0のノードからKahn法で処理する。
-    const readyNodes: string[] = [];
-
-    for (const [node, degree] of inDegree) {
-      if (degree === 0) {
-        readyNodes.push(node);
-      }
-    }
-
-    const sortedOrder: string[] = [];
-    let readyIndex = 0;
-
-    while (readyIndex < readyNodes.length) {
-      const current = readyNodes[readyIndex++];
-      sortedOrder.push(current);
-
-      const dependents = this.dependentTargets.get(current);
-      if (!dependents) continue;
-
-      for (const dependent of dependents) {
-        if (!affected.has(dependent)) continue;
-
-        const nextDegree = (inDegree.get(dependent) ?? 0) - 1;
-
-        inDegree.set(dependent, nextDegree);
-
-        if (nextDegree === 0) {
-          readyNodes.push(dependent);
-        }
-      }
-    }
-
-    // 登録時のDAG検証を通過しているため、残存ノードは内部不整合。
-    if (sortedOrder.length !== affected.size) {
-      const sortedNodes = new Set(sortedOrder);
-      const unresolvedNodes = [...affected].filter(
-        (node) => !sortedNodes.has(node),
-      );
-
+    const { sorted, unvisited } = kahnSort(
+      affected,
+      this.dependentTargets,
+      this.prerequisiteTargets,
+    );
+    if (unvisited.length > 0) {
       throw new Error(
-        `[DependencyPropagator] トポロジカルソートに失敗しました。対象管理No: ${unresolvedNodes.join(", ")}`,
+        `[DependencyPropagator] トポロジカルソートに失敗しました。対象管理No: ${unvisited.join(", ")}`,
       );
     }
-
-    return sortedOrder;
+    return sorted;
   }
 
-  // トポロジカル順に確定した配列を先頭から1回ずつ順次評価する。
+  /** トポロジカル順に確定したターゲットを順次再計算 */
   public processPropagation(recalculateFn: (kanriNo: string) => void): void {
     if (this.isPropagating || this.pendingTargets.size === 0) return;
-
     this.isPropagating = true;
-
     try {
-      const entries: PendingTargetEntry[] = Array.from(
-        this.pendingTargets.entries(),
-      ).map(([kanriNo, includeSelf]) => ({ kanriNo, includeSelf }));
-
+      const executionOrder = this.resolveTopologicalExecutionOrder();
       this.pendingTargets.clear();
-
-      const executionOrder = this.resolveTopologicalExecutionOrder(entries);
-
       for (const kanriNo of executionOrder) {
         recalculateFn(kanriNo);
       }

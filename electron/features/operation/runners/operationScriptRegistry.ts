@@ -5,6 +5,7 @@ import { normalizeKanriNo } from "@electron/features/operation/domain/operationR
 import type {
   JobResult,
   OperationScriptKey,
+  OperationScriptKeyId,
   ScriptExecutionRequirement,
   ScriptFilePath,
 } from "@shared/types/operation/operationTypes";
@@ -16,41 +17,25 @@ type ScriptRunnerFn = (
   filePath?: ScriptFilePath,
 ) => Promise<string | JobResult>;
 
-interface ScriptDefinitionConfig {
+interface ScriptConfig {
   run: ScriptRunnerFn;
   requiresFileSelection?: boolean;
 }
 
-/**
- * スクリプト実行定義の一元管理テーブル
- * 新規スクリプトの追加・削除・変更はここ1箇所に定義する
- */
-const SCRIPT_DEFINITIONS: Readonly<Record<string, ScriptDefinitionConfig>> = {
+/** スクリプト実行定義テーブル */
+const SCRIPT_DEFINITIONS: Readonly<
+  Partial<Record<OperationScriptKeyId, ScriptConfig>>
+> = {
   // Eシリーズ
   E1: { run: () => jobs.runJobE1() },
-  E5: {
-    run: (_, filePath) => jobs.runJobE5(filePath),
-    requiresFileSelection: true,
-  },
+  E5: { run: (_, p) => jobs.runJobE5(p), requiresFileSelection: true },
   E55: { run: () => jobs.runJobE55() },
   E8: { run: () => jobs.runJobE8() },
   E9: { run: () => jobs.runJobE9() },
-  E14: {
-    run: (_, filePath) => jobs.runJobE14(filePath),
-    requiresFileSelection: true,
-  },
-  E29: {
-    run: (_, filePath) => jobs.runJobE29(filePath),
-    requiresFileSelection: true,
-  },
-  E30: {
-    run: (_, filePath) => jobs.runJobE30(filePath),
-    requiresFileSelection: true,
-  },
-  E41: {
-    run: (_, filePath) => jobs.runJobE41(filePath),
-    requiresFileSelection: true,
-  },
+  E14: { run: (_, p) => jobs.runJobE14(p), requiresFileSelection: true },
+  E29: { run: (_, p) => jobs.runJobE29(p), requiresFileSelection: true },
+  E30: { run: (_, p) => jobs.runJobE30(p), requiresFileSelection: true },
+  E41: { run: (_, p) => jobs.runJobE41(p), requiresFileSelection: true },
 
   // Nシリーズ
   N12: { run: jobs.runJobN12 },
@@ -74,105 +59,89 @@ const SCRIPT_DEFINITIONS: Readonly<Record<string, ScriptDefinitionConfig>> = {
   "80": { run: jobs.runJob80 },
 };
 
-/**
- * 管理Noと実行キーのデフォルト対応表
- * PDF対象、手動、自動をすべてここで一元管理する
- */
+const makeKeys = (
+  key: string,
+  label = "Script",
+  executionTypes: ("auto" | "manual")[] = ["auto", "manual"],
+): readonly OperationScriptKey[] => [{ key, label, executionTypes }];
+
+/** デフォルト対応表 */
 const DEFAULT_OPERATION_KEYS: Readonly<
   Record<string, readonly OperationScriptKey[]>
 > = {
-  // 常時運用 (自動+手動スクリプト)
-  "114": [{ key: "114", label: "Script", executionTypes: ["auto", "manual"] }],
-  "16": [{ key: "16", label: "Script", executionTypes: ["auto", "manual"] }],
-  "20": [{ key: "20", label: "Script", executionTypes: ["auto", "manual"] }],
-  "25": [{ key: "25", label: "Script", executionTypes: ["auto", "manual"] }],
-  "28": [{ key: "28", label: "Script", executionTypes: ["auto", "manual"] }],
-  "34": [{ key: "34", label: "Script", executionTypes: ["auto", "manual"] }],
-  "39": [{ key: "39", label: "Script", executionTypes: ["auto", "manual"] }],
-  "43": [{ key: "28", label: "Script", executionTypes: ["auto", "manual"] }],
-  "56": [{ key: "56", label: "Script", executionTypes: ["auto", "manual"] }],
-  "68": [{ key: "28", label: "Script", executionTypes: ["auto", "manual"] }],
-  "80": [{ key: "80", label: "Script", executionTypes: ["auto", "manual"] }],
-  N25: [{ key: "N25", label: "N25", executionTypes: ["auto", "manual"] }],
-  N31: [{ key: "N31", label: "Script", executionTypes: ["auto", "manual"] }],
-  N33: [{ key: "N33", label: "Script", executionTypes: ["auto", "manual"] }],
+  "114": makeKeys("114"),
+  "16": makeKeys("16"),
+  "20": makeKeys("20"),
+  "25": makeKeys("25"),
+  "28": makeKeys("28"),
+  "34": makeKeys("34"),
+  "39": makeKeys("39"),
+  "43": makeKeys("28"),
+  "56": makeKeys("56"),
+  "68": makeKeys("28"),
+  "80": makeKeys("80"),
+  N25: makeKeys("N25", "N25"),
+  N31: makeKeys("N31"),
+  N33: makeKeys("N33"),
 
-  // 手動専用・PDF
-  "30": [{ key: "30", label: "PDF", executionTypes: ["manual"] }],
-  "37": [{ key: "37", label: "PDF", executionTypes: ["manual"] }],
-  "45": [{ key: "45", label: "PDF", executionTypes: ["manual"] }],
-  "48": [{ key: "48", label: "PDF", executionTypes: ["manual"] }],
-  "54": [{ key: "54", label: "PDF", executionTypes: ["manual"] }],
-  "60": [{ key: "60", label: "ロック状態", executionTypes: ["manual"] }],
-  "62": [{ key: "62", label: "Script", executionTypes: ["manual"] }],
-  "64": [{ key: "64", label: "Script", executionTypes: ["manual"] }],
-  "66": [{ key: "66", label: "ロック状態", executionTypes: ["manual"] }],
-  N12: [{ key: "N12", label: "Script", executionTypes: ["manual"] }],
+  "30": makeKeys("30", "PDF", ["manual"]),
+  "37": makeKeys("37", "PDF", ["manual"]),
+  "45": makeKeys("45", "PDF", ["manual"]),
+  "48": makeKeys("48", "PDF", ["manual"]),
+  "54": makeKeys("54", "PDF", ["manual"]),
+  "60": makeKeys("60", "ロック状態", ["manual"]),
+  "62": makeKeys("62", "Script", ["manual"]),
+  "64": makeKeys("64", "Script", ["manual"]),
+  "66": makeKeys("66", "ロック状態", ["manual"]),
+  N12: makeKeys("N12", "Script", ["manual"]),
   N27: [
     { key: "webedi_db", label: "webedi_db", executionTypes: ["manual"] },
     { key: "webedi", label: "webedi", executionTypes: ["manual"] },
   ],
-  N28: [{ key: "webedi", label: "webedi", executionTypes: ["manual"] }],
+  N28: makeKeys("webedi", "webedi", ["manual"]),
 
-  // イレギュラー運用
-  E1: [{ key: "E1", label: "Script", executionTypes: ["manual"] }],
-  E8: [{ key: "E8", label: "Script", executionTypes: ["manual"] }],
-  E9: [{ key: "E9", label: "Script", executionTypes: ["manual"] }],
+  E1: makeKeys("E1", "Script", ["manual"]),
+  E8: makeKeys("E8", "Script", ["manual"]),
+  E9: makeKeys("E9", "Script", ["manual"]),
   E5: [
     { key: "E5", label: "Script1", executionTypes: ["manual"] },
     { key: "E55", label: "Script2", executionTypes: ["manual"] },
   ],
-  E14: [{ key: "E14", label: "Script", executionTypes: ["manual"] }],
-  E29: [{ key: "E29", label: "Script", executionTypes: ["manual"] }],
-  E30: [{ key: "E30", label: "Script", executionTypes: ["manual"] }],
-  E41: [{ key: "E41", label: "Script", executionTypes: ["manual"] }],
+  E14: makeKeys("E14", "Script", ["manual"]),
+  E29: makeKeys("E29", "Script", ["manual"]),
+  E30: makeKeys("E30", "Script", ["manual"]),
+  E41: makeKeys("E41", "Script", ["manual"]),
 };
 
-function normalizeKey(key: string): string {
-  return key.trim().toUpperCase();
-}
+const normalizeKey = (k: string): OperationScriptKeyId =>
+  k.trim().toUpperCase() as OperationScriptKeyId;
 
-/**
- * Spreadsheet側の定義を優先して、実行キー一覧を取得する。
- */
 export function getScriptKeysForOperation(
   kanriNo: string,
   scriptKeys?: readonly OperationScriptKey[] | null,
 ): readonly OperationScriptKey[] {
-  if (scriptKeys?.length) {
-    return scriptKeys;
-  }
-  const normalized = normalizeKanriNo(kanriNo).toUpperCase();
-  return DEFAULT_OPERATION_KEYS[normalized] ?? [];
+  return scriptKeys?.length
+    ? scriptKeys
+    : (DEFAULT_OPERATION_KEYS[normalizeKanriNo(kanriNo).toUpperCase()] ?? []);
 }
 
-/**
- * 対象管理NoまたはScriptKeysがPDFアップロード対象かを一元判定する。
- */
 export function isPdfUploadOperation(
   kanriNo: string,
   scriptKeys?: readonly OperationScriptKey[] | null,
 ): boolean {
-  const keys = getScriptKeysForOperation(kanriNo, scriptKeys);
-  return keys.some((k) => k.label?.toUpperCase() === "PDF");
+  return getScriptKeysForOperation(kanriNo, scriptKeys).some(
+    (k) => k.label?.toUpperCase() === "PDF",
+  );
 }
 
-/**
- * 実行キーに紐づく実行関数を取得する。
- */
-export function getScriptRunner(scriptKey: string): ScriptRunnerFn | undefined {
-  return SCRIPT_DEFINITIONS[normalizeKey(scriptKey)]?.run;
-}
-
-/**
- * 実行キーに紐づく実行要件を取得する。
- */
-export function getScriptExecutionRequirement(
+export const getScriptRunner = (
   scriptKey: string,
-): ScriptExecutionRequirement {
-  return {
-    requiresFileSelection:
-      SCRIPT_DEFINITIONS[normalizeKey(scriptKey)]?.requiresFileSelection ??
-      false,
-  };
-}
+): ScriptRunnerFn | undefined =>
+  SCRIPT_DEFINITIONS[normalizeKey(scriptKey)]?.run;
+
+export const getScriptExecutionRequirement = (
+  scriptKey: string,
+): ScriptExecutionRequirement => ({
+  requiresFileSelection:
+    SCRIPT_DEFINITIONS[normalizeKey(scriptKey)]?.requiresFileSelection ?? false,
+});

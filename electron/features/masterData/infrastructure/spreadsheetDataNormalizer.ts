@@ -9,28 +9,31 @@ import type {
 
 const DEFAULT_LINK_LABELS = ["リンク1", "リンク2", "リンク3"] as const;
 
-// 文字列の空白とgmailのboolean表現を正規化する。
-export function normalizeSpreadsheetRows<T extends object>(rows: T[]): T[] {
-  return rows.map((row) => {
-    const normalized = Object.fromEntries(
-      Object.entries(row).map(([key, value]) => [
-        key,
-        typeof value === "string" ? value.trim() : value,
-      ]),
-    );
+// レコードのキーと文字列値を正規化する。
+function normalizeRow<T extends object>(row: T): T {
+  const normalized = Object.fromEntries(
+    Object.entries(row).map(([rawKey, value]) => [
+      rawKey.replace(/^\uFEFF/, "").trim(),
+      typeof value === "string" ? value.trim() : value,
+    ]),
+  );
 
-    if (typeof normalized.gmail === "string") {
-      const gmail = normalized.gmail.toUpperCase();
+  if (typeof normalized.gmail === "string") {
+    const gmail = normalized.gmail.toUpperCase();
 
-      if (gmail === "TRUE") {
-        normalized.gmail = true;
-      } else if (gmail === "FALSE") {
-        normalized.gmail = false;
-      }
+    if (gmail === "TRUE") {
+      normalized.gmail = true;
+    } else if (gmail === "FALSE") {
+      normalized.gmail = false;
     }
+  }
 
-    return normalized as T;
-  });
+  return normalized as T;
+}
+
+// レコード一覧を正規化する。
+export function normalizeSpreadsheetRows<T extends object>(rows: T[]): T[] {
+  return rows.map(normalizeRow);
 }
 
 // シートのリンク先パスとラベルをOperationLink形式に変換する。
@@ -45,6 +48,7 @@ function normalizeLinks<T extends OperationMaster | IrregularMaster>(
 
   const links: OperationLink[] = configs.flatMap((cfg, index) => {
     const trimmedPath = cfg.path?.trim();
+
     if (!trimmedPath || trimmedPath === "-") {
       return [];
     }
@@ -64,34 +68,33 @@ function normalizeLinks<T extends OperationMaster | IrregularMaster>(
   };
 }
 
+// 不定期運用データの周期指定を統合する。
+function normalizeIrregulars(rows: IrregularMaster[]): IrregularMaster[] {
+  return normalizeSpreadsheetRows(rows).map((item) =>
+    normalizeLinks({
+      ...item,
+      cycle: [item.cycle1, item.cycle2, item.cycle]
+        .filter(
+          (value): value is string => typeof value === "string" && value !== "",
+        )
+        .join(","),
+    }),
+  );
+}
+
 // スプレッドシートのマスターデータを正規化する。
 export function normalizeSpreadsheetMasterData(
   data: SpreadsheetMasterData,
 ): SpreadsheetMasterData {
-  const operations = normalizeSpreadsheetRows(data.operations ?? []).map(
-    normalizeLinks,
-  );
-
-  const irregulars = normalizeSpreadsheetRows(data.irregulars ?? []).map(
-    (item) =>
-      normalizeLinks({
-        ...item,
-        cycle: [item.cycle1, item.cycle2, item.cycle]
-          .filter(
-            (value): value is string =>
-              typeof value === "string" && value.trim() !== "",
-          )
-          .join(","),
-      }),
-  );
-
   return {
     stores: normalizeSpreadsheetRows(data.stores ?? []),
     kokyuhyos: normalizeSpreadsheetRows(data.kokyuhyos ?? []),
     jugyoin: normalizeSpreadsheetRows(data.jugyoin ?? []),
     kokyuhyoTantous: normalizeSpreadsheetRows(data.kokyuhyoTantous ?? []),
-    operations,
-    irregulars,
+    operations: normalizeSpreadsheetRows(data.operations ?? []).map(
+      normalizeLinks,
+    ),
+    irregulars: normalizeIrregulars(data.irregulars ?? []),
     todayIrregulars: normalizeSpreadsheetRows(data.todayIrregulars ?? []).map(
       normalizeLinks,
     ),

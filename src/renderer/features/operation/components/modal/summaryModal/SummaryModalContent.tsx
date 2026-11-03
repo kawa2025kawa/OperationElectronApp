@@ -1,9 +1,10 @@
-﻿// src/renderer/features/operation/components/modal/summaryModal/SummaryModalContent.tsx
+// src/renderer/features/operation/components/modal/summaryModal/SummaryModalContent.tsx
 
 import { memo } from "react";
 import { clsx } from "clsx";
 
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
+import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Column } from "@shared/types/table/tableType";
 import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes";
@@ -11,13 +12,23 @@ import {
   toDisplayValue,
   toMissingPropertyDisplayValue,
 } from "@renderer/features/operation/operationDisplayUtils";
-
-import { useSummaryModalContent } from "./useSummaryModalContent";
 import * as styles from "./summaryModalContent.css";
 
 interface SummaryModalContentProps {
   items?: SummaryDetailRow[];
 }
+
+const SUMMARY_COLUMNS: readonly Column<SummaryDetailRow>[] = [
+  { key: "kanriNo", label: "管理No", width: "15%" },
+  { key: "workName", label: "作業名", width: "55%" },
+  { key: "jobId", label: "Job ID", width: "15%" },
+  {
+    key: "status",
+    label: "ステータス",
+    width: "15%",
+    render: (item) => <StatusBadge status={item.status} />,
+  },
+];
 
 interface TableColGroupProps {
   columns: readonly Column<SummaryDetailRow>[];
@@ -108,9 +119,8 @@ TableRow.displayName = "SummaryTableRow";
 export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps> =
   memo((props) => {
     const items = props?.items ?? [];
-    const { state } = useSummaryModalContent(items);
 
-    if (state.isEmpty) {
+    if (items.length === 0) {
       return (
         <div className={styles.container}>
           <EmptyState />
@@ -123,10 +133,10 @@ export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps>
         <div className={styles.tableContainer}>
           <div className={styles.headerWrapper}>
             <table className={styles.headerTable}>
-              <TableColGroup columns={state.columns} />
+              <TableColGroup columns={SUMMARY_COLUMNS} />
               <thead>
                 <tr>
-                  {state.columns.map((column) => {
+                  {SUMMARY_COLUMNS.map((column) => {
                     const align = column.align ?? "left";
                     const alignClass =
                       styles.alignVariants[align] ?? styles.alignVariants.left;
@@ -147,16 +157,16 @@ export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps>
 
           <div className={styles.bodyWrapper}>
             <table className={styles.bodyTable}>
-              <TableColGroup columns={state.columns} />
+              <TableColGroup columns={SUMMARY_COLUMNS} />
               <tbody>
-                {state.items.map((item, index) => {
+                {items.map((item, index) => {
                   const key = item.kanriNo || String(index);
 
                   return (
                     <TableRow
                       key={key}
                       item={item}
-                      columns={state.columns}
+                      columns={SUMMARY_COLUMNS}
                       isSelected={false}
                     />
                   );

@@ -1,154 +1,136 @@
 // electron/features/auth/authService.ts
 
 import { shell } from "electron";
-import type { AuthSession, GoogleUserInfo } from "@shared/types/auth";
+import { randomBytes } from "node:crypto";
+import { CodeChallengeMethod } from "google-auth-library";
+import type { AuthSession, OAuthToken } from "@shared/types/auth";
+import { OAUTH_LISTENER_CONFIG, startListener } from "./listener";
+import {
+  createOAuthClient,
+  exchangeAuthorizationCode,
+  fetchGoogleUserInfo,
+  isInvalidGrantError,
+  refreshAccessToken,
+} from "./oauthClient";
 import {
   clearToken,
-  createPkce,
-  exchangeToken,
-  generateAuthUrl,
-  generateState,
-  getGoogleCredentials,
   getTokenGeneration,
   isTokenExpired,
   loadToken,
-  refreshToken,
   saveToken,
-  startListener,
   updateTokenProfile,
-} from "./authHelpers";
+} from "./token";
 
-const DEFAULT_PORT = 8888;
-const REDIRECT_HOST = "127.0.0.1";
-const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
+// Google認証に関するエラーを表す。
+export class GoogleAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GoogleAuthError";
+  }
+}
 
 export interface GoogleApiRequestOptions extends RequestInit {
   retryOnUnauthorized?: boolean;
 }
 
-export interface AuthPublicSession {
-  email: string | null;
-  familyName: string | null;
-}
+export const AUTH_SERVICE_CONFIG = {
+  defaultPort: 8888,
+  redirectHost: OAUTH_LISTENER_CONFIG.host,
+  scopes: [
+    "openid",
+    "email",
+    "profile",
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
+    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/gmail.settings.basic",
+    "https://www.googleapis.com/auth/gmail.compose",
+  ] as const,
+} as const;
 
-interface RefreshRequest {
+export type GoogleScope = (typeof AUTH_SERVICE_CONFIG.scopes)[number];
+
+interface InFlightRequest {
   generation: number;
   accessToken: string;
   promise: Promise<AuthSession | null>;
 }
 
-interface ProfileRequest {
-  accessToken: string;
-  promise: Promise<AuthSession | null>;
-}
-
 class AuthService {
-  private refreshRequest: RefreshRequest | null = null;
-  private profileRequest: ProfileRequest | null = null;
+  private refreshRequest: InFlightRequest | null = null;
+  private profileRequest: InFlightRequest | null = null;
 
-  async login(port = DEFAULT_PORT): Promise<AuthSession> {
+  // ブラウザー認証を開始し、セッションを作成する。
+  async login(port = AUTH_SERVICE_CONFIG.defaultPort): Promise<AuthSession> {
     const generation = getTokenGeneration();
-    const { clientId, clientSecret } = getGoogleCredentials();
-    const { verifier, challenge } = createPkce();
-    const state = generateState();
-    const redirectUri = `http://${REDIRECT_HOST}:${port}`;
-    const authUrl = generateAuthUrl(clientId, redirectUri, challenge, state);
+    const client = createOAuthClient(
+      `http://${AUTH_SERVICE_CONFIG.redirectHost}:${port}`,
+    );
+
+    const { codeVerifier, codeChallenge } =
+      await client.generateCodeVerifierAsync();
+
+    const state = randomBytes(32).toString("hex");
+
+    const authUrl = client.generateAuthUrl({
+      scope: [...AUTH_SERVICE_CONFIG.scopes],
+      access_type: "offline",
+      prompt: "consent",
+      state,
+      code_challenge: codeChallenge,
+      code_challenge_method: CodeChallengeMethod.S256,
+    });
 
     const { code } = await startListener(port, state, undefined, async () => {
       await shell.openExternal(authUrl);
     });
 
-    const token = await exchangeToken(
-      clientId,
-      clientSecret,
-      code,
-      redirectUri,
-      verifier,
-    );
-
-    return saveToken(
-      token,
-      await this.fetchUserInfo(token.accessToken),
-      generation,
-    );
-  }
-
-  async loadSession(forceRefresh = false): Promise<AuthSession | null> {
-    const session = await this.getSession(forceRefresh);
-
-    if (!session || (session.email && session.familyName)) {
-      return session;
+    let token: OAuthToken;
+    try {
+      token = await exchangeAuthorizationCode(client, code, codeVerifier);
+    } catch (error) {
+      throw new Error(
+        `Google token exchange failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        { cause: error },
+      );
     }
 
-    return this.restoreProfile(session);
+    const profile = await fetchGoogleUserInfo(token.accessToken);
+    return saveToken(token, profile, generation);
   }
 
+  // 保存済みセッションを取得し、必要に応じてリフレッシュやプロフィール補完を行う。
+  async loadSession(forceRefresh = false): Promise<AuthSession | null> {
+    const session = await loadToken();
+    if (!session) {
+      return null;
+    }
+
+    if (!forceRefresh && !isTokenExpired(session)) {
+      if (session.email && session.familyName) {
+        return session;
+      }
+      return this.restoreProfile(session);
+    }
+
+    const refreshed = await this.refreshSessionFor(session);
+    if (!refreshed || (refreshed.email && refreshed.familyName)) {
+      return refreshed;
+    }
+
+    return this.restoreProfile(refreshed);
+  }
+
+  // セッションを破棄する。
   async clearSession(): Promise<void> {
     this.refreshRequest = null;
     this.profileRequest = null;
-
     await clearToken();
   }
 
-  async request(
-    url: string,
-    init: GoogleApiRequestOptions = {},
-  ): Promise<Response> {
-    const { retryOnUnauthorized = true, ...requestInit } = init;
-    let session = await this.getSession();
-
-    if (!session) {
-      throw new Error("Google認証セッションが存在しません");
-    }
-
-    const response = await this.fetchWithToken(url, requestInit, session);
-
-    if (response.status !== 401 || !retryOnUnauthorized) {
-      return response;
-    }
-
-    session = await this.refreshSessionFor(session);
-
-    if (!session) {
-      throw new Error("Google認証セッションの更新に失敗しました");
-    }
-
-    return this.fetchWithToken(url, requestInit, session);
-  }
-
-  async getJson<T>(
-    url: string,
-    init: GoogleApiRequestOptions = {},
-  ): Promise<T> {
-    const response = await this.request(url, init);
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      throw new Error(`Google API Error (${response.status}): ${responseText}`);
-    }
-
-    try {
-      return JSON.parse(responseText) as T;
-    } catch (error) {
-      throw new Error("Google API response is not valid JSON", {
-        cause: error,
-      });
-    }
-  }
-
-  private async getSession(forceRefresh = false): Promise<AuthSession | null> {
-    const session = await loadToken();
-
-    if (!session || (!forceRefresh && !isTokenExpired(session))) {
-      return session;
-    }
-
-    return this.refreshSessionFor(session);
-  }
-
-  private async refreshSessionFor(
-    session: AuthSession,
-  ): Promise<AuthSession | null> {
+  // 401応答時や期限切れ時にトークンを更新する。
+  async refreshSessionFor(session: AuthSession): Promise<AuthSession | null> {
     const generation = getTokenGeneration();
     const currentSession = await loadToken();
 
@@ -169,65 +151,127 @@ class AuthService {
       return null;
     }
 
-    return this.refreshSession(currentSession, generation);
+    return this.performCoalescedRefresh(currentSession, generation);
   }
 
-  private async fetchWithToken(
-    url: string,
-    init: RequestInit,
+  // 同一セッションに対するトークン更新要求を集約する。
+  private async performCoalescedRefresh(
     session: AuthSession,
-  ): Promise<Response> {
-    const headers = new Headers(init.headers);
+    generation: number,
+  ): Promise<AuthSession | null> {
+    const existing = this.refreshRequest;
+    if (
+      existing?.generation === generation &&
+      existing.accessToken === session.accessToken
+    ) {
+      return existing.promise;
+    }
 
-    headers.set("Authorization", `Bearer ${session.accessToken}`);
-    headers.set("Accept", "application/json");
+    const request: InFlightRequest = {
+      generation,
+      accessToken: session.accessToken,
+      promise: Promise.resolve(null),
+    };
 
-    return fetch(url, { ...init, headers });
+    request.promise = this.executeRefresh(session, generation);
+    this.refreshRequest = request;
+
+    try {
+      return await request.promise;
+    } finally {
+      if (this.refreshRequest === request) {
+        this.refreshRequest = null;
+      }
+    }
   }
 
+  // トークンの再取得と保存を実行する。
+  private async executeRefresh(
+    session: AuthSession,
+    generation: number,
+  ): Promise<AuthSession | null> {
+    let token: OAuthToken;
+
+    try {
+      token = await refreshAccessToken(session.refreshToken!);
+    } catch (error) {
+      if (generation !== getTokenGeneration()) {
+        return loadToken();
+      }
+
+      if (isInvalidGrantError(error)) {
+        console.warn("[AuthService] Refresh token is no longer valid");
+        await clearToken(generation);
+        return null;
+      }
+
+      throw new Error(
+        `Google token refresh failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        { cause: error },
+      );
+    }
+
+    if (generation !== getTokenGeneration()) {
+      return loadToken();
+    }
+
+    token.refreshToken ??= session.refreshToken;
+
+    return saveToken(
+      token,
+      {
+        email: session.email,
+        familyName: session.familyName,
+      },
+      generation,
+    );
+  }
+
+  // 不足しているプロフィール情報を取得して反映する。
   private async restoreProfile(
     session: AuthSession,
   ): Promise<AuthSession | null> {
-    const existingRequest = this.profileRequest;
+    const generation = getTokenGeneration();
+    const existing = this.profileRequest;
 
-    if (existingRequest?.accessToken === session.accessToken) {
-      return existingRequest.promise;
+    if (
+      existing?.generation === generation &&
+      existing.accessToken === session.accessToken
+    ) {
+      return existing.promise;
     }
 
-    const generation = getTokenGeneration();
-
-    const request: ProfileRequest = {
+    const request: InFlightRequest = {
+      generation,
       accessToken: session.accessToken,
-      promise: (async () => {
-        const profile = await this.fetchUserInfo(session.accessToken);
+      promise: Promise.resolve(null),
+    };
 
-        if (generation !== getTokenGeneration()) {
+    request.promise = (async () => {
+      const profile = await fetchGoogleUserInfo(session.accessToken);
+      if (generation !== getTokenGeneration()) {
+        return loadToken();
+      }
+
+      if (!profile.email && !profile.familyName) {
+        const currentSession = await loadToken();
+        if (
+          generation !== getTokenGeneration() ||
+          !currentSession ||
+          currentSession.accessToken !== session.accessToken
+        ) {
           return loadToken();
         }
+        return currentSession;
+      }
 
-        if (!profile.email && !profile.familyName) {
-          const currentSession = await loadToken();
-
-          if (
-            generation !== getTokenGeneration() ||
-            !currentSession ||
-            currentSession.accessToken !== session.accessToken
-          ) {
-            return loadToken();
-          }
-
-          return currentSession;
-        }
-
-        return (
-          (await updateTokenProfile(
-            profile,
-            session.accessToken,
-            generation,
-          )) ?? loadToken()
-        );
-      })(),
-    };
+      return (
+        (await updateTokenProfile(profile, session.accessToken, generation)) ??
+        loadToken()
+      );
+    })();
 
     this.profileRequest = request;
 
@@ -240,99 +284,67 @@ class AuthService {
     }
   }
 
-  private async refreshSession(
-    session: AuthSession,
-    generation: number,
-  ): Promise<AuthSession | null> {
-    const existingRequest = this.refreshRequest;
+  // 認証トークンを付与してGoogle APIへ送信する。
+  private async fetchWithToken(
+    url: string,
+    init: RequestInit,
+    accessToken: string,
+  ): Promise<Response> {
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${accessToken}`);
+    headers.set("Accept", "application/json");
 
-    if (
-      existingRequest?.generation === generation &&
-      existingRequest.accessToken === session.accessToken
-    ) {
-      return existingRequest.promise;
-    }
-
-    const request: RefreshRequest = {
-      generation,
-      accessToken: session.accessToken,
-      promise: (async () => {
-        try {
-          const { clientId, clientSecret } = getGoogleCredentials();
-          const token = await refreshToken(
-            clientId,
-            clientSecret,
-            session.refreshToken!,
-          );
-
-          if (generation !== getTokenGeneration()) {
-            return loadToken();
-          }
-
-          if (!token.refreshToken) {
-            token.refreshToken = session.refreshToken;
-          }
-
-          return await saveToken(
-            token,
-            {
-              email: session.email,
-              familyName: session.familyName,
-            },
-            generation,
-          );
-        } catch (error) {
-          if (generation === getTokenGeneration()) {
-            console.error("[AuthService] Token refresh failed:", error);
-            await clearToken(generation);
-          }
-
-          return null;
-        }
-      })(),
-    };
-
-    this.refreshRequest = request;
-
-    try {
-      return await request.promise;
-    } finally {
-      if (this.refreshRequest === request) {
-        this.refreshRequest = null;
-      }
-    }
+    return fetch(url, { ...init, headers });
   }
 
-  private async fetchUserInfo(accessToken: string): Promise<{
-    email: string | null;
-    familyName: string | null;
-  }> {
+  // Google APIへ認証済みリクエストを送信する。
+  async request(
+    url: string,
+    init: GoogleApiRequestOptions = {},
+  ): Promise<Response> {
+    const { retryOnUnauthorized = true, ...requestInit } = init;
+    let session = await this.loadSession();
+
+    if (!session) {
+      throw new GoogleAuthError("Google認証セッションが存在しません");
+    }
+
+    const response = await this.fetchWithToken(
+      url,
+      requestInit,
+      session.accessToken,
+    );
+
+    if (response.status !== 401 || !retryOnUnauthorized) {
+      return response;
+    }
+
+    session = await this.refreshSessionFor(session);
+    if (!session) {
+      throw new GoogleAuthError("Google認証セッションの更新に失敗しました");
+    }
+
+    return this.fetchWithToken(url, requestInit, session.accessToken);
+  }
+
+  // Google APIのレスポンスをJSONとして取得する。
+  async getJson<T>(
+    url: string,
+    init: GoogleApiRequestOptions = {},
+  ): Promise<T> {
+    const response = await this.request(url, init);
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      throw new Error(`Google API Error (${response.status}): ${responseText}`);
+    }
+
     try {
-      const response = await fetch(GOOGLE_USERINFO_URL, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        console.warn(
-          `[AuthService] UserInfo API failed with status: ${response.status}`,
-        );
-
-        return { email: null, familyName: null };
-      }
-
-      const userInfo = (await response.json()) as GoogleUserInfo;
-
-      return {
-        email: userInfo.email?.trim() || null,
-        familyName: userInfo.family_name?.trim() || null,
-      };
+      return JSON.parse(responseText) as T;
     } catch (error) {
-      console.error("[AuthService] Failed to fetch user info:", error);
-
-      return { email: null, familyName: null };
+      throw new Error("Google API response is not valid JSON", {
+        cause: error,
+      });
     }
   }
 }

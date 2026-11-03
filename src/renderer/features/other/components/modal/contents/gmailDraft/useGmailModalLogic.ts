@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 import { useShallow } from "zustand/shallow";
-import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftTypes";
+import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftUiTypes";
 import type {
   EmailTemplateKey,
   GmailDraftFormValues,
-} from "@renderer/features/other/types/gmailDraftTypes";
+} from "@renderer/features/other/types/gmailDraftUiTypes";
 import { useAppStore } from "@renderer/store";
 import { otherIpcService } from "@renderer/services/otherIpcService";
 

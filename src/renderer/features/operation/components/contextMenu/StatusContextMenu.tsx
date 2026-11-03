@@ -8,6 +8,7 @@ import { useAppStore } from "@renderer/store";
 import {
   JOB_STATUS_LABEL,
   JOB_STATUS_VALUES,
+  OPERATION_FIELD_LABELS,
   type JobStatus,
 } from "@shared/types/operation/operationTypes";
 
@@ -16,12 +17,6 @@ import * as styles from "./statusContextMenu.css";
 interface StatusContextMenuProps {
   kanriNo: string;
 }
-
-type StatusVariantKey = keyof typeof styles.itemVariants;
-
-const getStatusVariantKey = (status: JobStatus): StatusVariantKey => {
-  return status.toUpperCase() as StatusVariantKey;
-};
 
 export const StatusContextMenu = memo<StatusContextMenuProps>(({ kanriNo }) => {
   const updateOperationStatus = useAppStore(
@@ -43,16 +38,15 @@ export const StatusContextMenu = memo<StatusContextMenuProps>(({ kanriNo }) => {
     <ContextMenu.Portal>
       <ContextMenu.Content className={styles.content}>
         <div className={styles.header}>
-          <span className={styles.headerTitle}>Status</span>
+          <span className={styles.headerTitle}>
+            {OPERATION_FIELD_LABELS.status}
+          </span>
         </div>
 
         {JOB_STATUS_VALUES.map((status) => (
           <ContextMenu.Item
             key={status}
-            className={clsx(
-              styles.itemBase,
-              styles.itemVariants[getStatusVariantKey(status)],
-            )}
+            className={clsx(styles.itemBase, styles.itemVariants[status])}
             onSelect={() => handleSelectStatus(status)}
           >
             {JOB_STATUS_LABEL[status]}

@@ -5,20 +5,23 @@ import fs from "fs-extra";
 import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
-const CONFIG = {
-  targetDir: "\\\\mdsyuhai01.BELC01.belc.local\\IF\\EOB棚割\\SND",
-  keywords: ["EOB_DSP_001"],
-} as const;
+export const TARGET_KEYWORDS_E1 = ["EOB_DSP_001"] as const;
+export type JobE1Keyword = (typeof TARGET_KEYWORDS_E1)[number];
 
-type MatchedFile = {
+export interface MatchedFileE1 {
   keyword: string;
   fileName: string;
-};
+}
 
-type JobResultData = {
-  matchedFiles: MatchedFile[];
+export interface JobE1ResultData {
+  matchedFiles: MatchedFileE1[];
   missingKeywords: string[];
-};
+}
+
+const CONFIG = {
+  targetDir: "\\\\mdsyuhai01.BELC01.belc.local\\IF\\EOB棚割\\SND",
+  keywords: TARGET_KEYWORDS_E1,
+} as const;
 
 /**
  * 当日分の EOB棚割ファイルを受信しているか確認する。
@@ -54,13 +57,13 @@ export async function runJobE1(): Promise<string> {
 /**
  * 対象ディレクトリからキーワードに一致する本日更新ファイルを検索・確認する。
  */
-async function checkTargetFiles(): Promise<JobResultData> {
+async function checkTargetFiles(): Promise<JobE1ResultData> {
   const today = format(new Date(), "yyyy-MM-dd");
   const entries = await fs.readdir(CONFIG.targetDir, {
     withFileTypes: true,
   });
 
-  const matchedFiles: MatchedFile[] = [];
+  const matchedFiles: MatchedFileE1[] = [];
   const missingKeywords: string[] = [];
 
   for (const keyword of CONFIG.keywords) {
@@ -105,7 +108,7 @@ async function findTodayFile(
 /**
  * 検索結果をログに出力し、最終ステータスを判定する。
  */
-function writeResultLog(logger: JobLogger, result: JobResultData): string {
+function writeResultLog(logger: JobLogger, result: JobE1ResultData): string {
   logger.section("対象フォルダ");
   logger.log(CONFIG.targetDir);
 

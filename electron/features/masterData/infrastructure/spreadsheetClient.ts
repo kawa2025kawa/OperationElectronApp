@@ -1,12 +1,22 @@
 ﻿// electron/features/masterData/infrastructure/spreadsheetClient.ts
 
-import { authService } from "@electron/features/auth/authService";
+import {
+  authService,
+  GoogleAuthError,
+} from "@electron/features/auth/authService";
 import {
   SHEETS,
   type SheetData,
   type SheetId,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { normalizeSpreadsheetRows } from "./spreadsheetDataNormalizer";
+
+export const SPREADSHEET_CLIENT_CONFIG = {
+  apiBaseUrl: "https://sheets.googleapis.com/v4/spreadsheets",
+  headerMappings: {
+    AutoManualUrl: "autoManualUrl",
+  } as const,
+} as const;
 
 export interface FetchSheetResult<TSheetId extends SheetId> {
   success: boolean;
@@ -20,8 +30,10 @@ export type SheetDataResult<TSheetId extends SheetId> =
 
 // シートの列名をアプリケーション側のプロパティ名に合わせる。
 function normalizeHeader(header: string): string {
-  if (header === "AutoManualUrl") {
-    return "autoManualUrl";
+  if (header in SPREADSHEET_CLIENT_CONFIG.headerMappings) {
+    return SPREADSHEET_CLIENT_CONFIG.headerMappings[
+      header as keyof typeof SPREADSHEET_CLIENT_CONFIG.headerMappings
+    ];
   }
 
   return header.trim();
@@ -80,7 +92,7 @@ export async function fetchSheet<TSheetId extends SheetId>(
   }
 
   const range = `'${sheet.sheetName.replace(/'/g, "''")}'`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheet.spreadsheetId)}/values/${encodeURIComponent(range)}`;
+  const url = `${SPREADSHEET_CLIENT_CONFIG.apiBaseUrl}/${encodeURIComponent(sheet.spreadsheetId)}/values/${encodeURIComponent(range)}`;
 
   try {
     const response = await authService.request(url);
@@ -121,6 +133,14 @@ export async function fetchSheet<TSheetId extends SheetId>(
       data: normalizeSheetData(sheetId, json.values ?? []),
     };
   } catch (error) {
+    if (error instanceof GoogleAuthError) {
+      return {
+        success: false,
+        unauthorized: true,
+        data: [],
+      };
+    }
+
     return {
       success: false,
       unauthorized: false,

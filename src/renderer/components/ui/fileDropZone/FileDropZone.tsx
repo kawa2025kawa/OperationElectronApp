@@ -6,7 +6,7 @@ import * as styles from "./fileDropZone.css";
 import {
   ORDER_TIME_OPTIONS,
   type FileDropZoneProps,
-} from "./fileDropZone.types";
+} from "./fileDropZoneTypes";
 import { useFileDropZone } from "./useFileDropZone";
 
 export const FileDropZone = memo<FileDropZoneProps>(

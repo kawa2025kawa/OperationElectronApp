@@ -4,7 +4,7 @@ import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type { UpdateInfo } from "@shared/types/system";
 
 /**
- * システム操作（外部起動・マニュアル・更新確認等）の IPC 通信を集約するサービス
+ * システム操作（外部起動・マニュアル・更新確認・ファイル操作等）の IPC 通信を集約するサービス
  */
 export const systemIpcService = {
   /** アプリのバージョン番号を取得する */
@@ -39,4 +39,14 @@ export const systemIpcService = {
   /** アプリの最新アップデート情報を読み込む */
   readUpdateInfo: (): Promise<UpdateInfo | null> =>
     window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.READ_UPDATE_INFO),
+
+  /** ローカルファイルを指定の名前にリネームする */
+  renameFile: (
+    filePath: string,
+    newName: string,
+  ): Promise<{ success: boolean; newPath: string }> =>
+    window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.RENAME_FILE, {
+      filePath,
+      newName,
+    }),
 };

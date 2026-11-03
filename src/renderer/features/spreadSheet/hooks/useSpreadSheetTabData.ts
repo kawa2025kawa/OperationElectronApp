@@ -1,5 +1,10 @@
+// src/renderer/features/spreadSheet/hooks/useSpreadSheetTabData.ts
+
 import { useMemo, useState } from "react";
-import type { SpreadSheetEntity } from "@shared/types/spreadsheet/spreadsheetTypes";
+import {
+  EMPTY_VALUE_FALLBACK,
+  type SpreadSheetEntity,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 import { getValueByPath } from "@shared/utils/getValueByPath";
 
 export interface TabGroupConfig<K extends string = string> {
@@ -39,7 +44,10 @@ export function useSpreadSheetTabData<
 
               return {
                 label,
-                value: value === "" || value == null ? "-" : String(value),
+                value:
+                  value === "" || value == null
+                    ? EMPTY_VALUE_FALLBACK
+                    : String(value),
               };
             }),
           }))

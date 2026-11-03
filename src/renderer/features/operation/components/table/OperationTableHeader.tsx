@@ -8,28 +8,12 @@ import {
   getOperationColumnAlignment,
   getOperationColumnMeta,
 } from "./operationTableConfig";
+import { TableColumnGroup } from "./TableColumnGroup";
 import * as styles from "./operationTable.css";
 
 interface OperationTableHeaderProps {
   readonly columns: readonly OperationColumn[];
 }
-
-const TableColumnGroup = memo(function TableColumnGroup({
-  columns,
-}: OperationTableHeaderProps) {
-  return (
-    <colgroup>
-      {columns.map((column) => (
-        <col
-          key={column}
-          style={{ width: getOperationColumnMeta(column).width }}
-        />
-      ))}
-    </colgroup>
-  );
-});
-
-TableColumnGroup.displayName = "TableColumnGroup";
 
 export const OperationTableHeader = memo(function OperationTableHeader({
   columns,

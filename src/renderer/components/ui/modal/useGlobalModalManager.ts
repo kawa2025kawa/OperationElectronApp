@@ -4,13 +4,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
-
-import type { ModalAction } from "@shared/types/ui/modal";
-
-const DEFAULT_MODAL_SIZE = {
-  width: "min(85vw, 850px)",
-  height: "min(75vh, 650px)",
-};
+import { MODAL_SIZES, type ModalAction } from "@shared/types/ui/modal";
 
 export function useGlobalModalManager() {
   const { isOpen, content, config, closeModal } = useAppStore(
@@ -50,8 +44,8 @@ export function useGlobalModalManager() {
       ? document.getElementById("modal-root")
       : null;
 
-  const width = config?.width ?? DEFAULT_MODAL_SIZE.width;
-  const height = config?.height ?? DEFAULT_MODAL_SIZE.height;
+  const width = config?.width ?? MODAL_SIZES.DEFAULT.width;
+  const height = config?.height ?? MODAL_SIZES.DEFAULT.height;
 
   const rightActions = config?.rightActions;
   const confirmText = config?.confirmText;

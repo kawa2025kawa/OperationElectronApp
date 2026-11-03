@@ -5,6 +5,12 @@ import { addDays, format } from "date-fns";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
+export interface JobN25ResultData {
+  expectedDate: string;
+  actualDate: string;
+  isMatched: boolean;
+}
+
 const CONFIG = {
   loginUrl: "http://192.88.1.192/belcta/login.php",
   userId: "98810028",
@@ -18,12 +24,6 @@ const CONFIG = {
   },
   dateRegex: /\d{4}\/\d{2}\/\d{2}/,
 } as const;
-
-type JobResultData = {
-  expectedDate: string;
-  actualDate: string;
-  isMatched: boolean;
-};
 
 /**
  * ベルク勤怠管理システム（BELCTA）へログインし、業務日付が翌日日付と一致するか確認する。
@@ -60,7 +60,7 @@ export async function runJobN25(): Promise<string> {
 /**
  * ブラウザを起動して勤怠管理システムにログインし、画面上の業務日付を抽出・照合する。
  */
-async function fetchAndValidateBusinessDate(): Promise<JobResultData> {
+async function fetchAndValidateBusinessDate(): Promise<JobN25ResultData> {
   if (!CONFIG.userId || !CONFIG.password) {
     throw new Error(
       "ログイン認証情報が設定されていません。BELCTA_USER_ID / BELCTA_PASSWORD を設定してください。",
@@ -121,13 +121,13 @@ async function fetchAndValidateBusinessDate(): Promise<JobResultData> {
 /**
  * 取得結果をログに出力し、最終ステータスを判定する。
  */
-function writeResultLog(logger: JobLogger, result: JobResultData): string {
+function writeResultLog(logger: JobLogger, result: JobN25ResultData): string {
   logger.section("接続先URL");
   logger.log(CONFIG.loginUrl);
 
   logger.section("業務日付確認");
   logger.log(`期待業務日付 (翌日) : ${result.expectedDate}`);
-  logger.log(`取得業務日付        : ${result.actualDate}`);
+  logger.log(`取得業務日付         : ${result.actualDate}`);
 
   if (!result.isMatched) {
     logger.log("NG: 業務日付が翌日日付と一致しません");

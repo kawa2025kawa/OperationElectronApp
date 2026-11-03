@@ -86,10 +86,56 @@ export type TodayIrregularMaster = IrregularMaster;
  * Script
  * ========================= */
 
+export const OPERATION_SCRIPT_KEY_IDS = [
+  // Eシリーズ
+  "E1",
+  "E5",
+  "E55",
+  "E8",
+  "E9",
+  "E14",
+  "E29",
+  "E30",
+  "E41",
+  // Nシリーズ
+  "N12",
+  "N25",
+  "N27",
+  "N28",
+  "N31",
+  "N33",
+  // 数字系
+  "16",
+  "20",
+  "25",
+  "28",
+  "30",
+  "34",
+  "37",
+  "39",
+  "43",
+  "45",
+  "48",
+  "54",
+  "56",
+  "60",
+  "62",
+  "64",
+  "66",
+  "68",
+  "80",
+  "114",
+  // 特殊手動キー
+  "webedi",
+  "webedi_db",
+] as const;
+
+export type OperationScriptKeyId = (typeof OPERATION_SCRIPT_KEY_IDS)[number];
+
 export type ScriptExecutionType = "manual" | "auto";
 
 export interface OperationScriptKey {
-  key: string;
+  key: OperationScriptKeyId | string;
   label?: string;
   executionTypes?: ScriptExecutionType[];
   requiresFileSelection?: boolean;
@@ -246,3 +292,21 @@ export type OperationViewItem = (
 };
 
 export type SelectedOperationItem = OperationViewItem & OperationStatusState;
+
+/* =========================
+ * Field Labels (Table & Detail Info)
+ * ========================= */
+
+export const OPERATION_FIELD_LABELS = {
+  kanriNo: "管理No",
+  workName: "業務名",
+  scheduledTime: "予定時刻",
+  jobId: "ジョブID",
+  status: "状態",
+  cycle: "サイクル",
+  startTime: "開始時刻",
+  endTime: "終了時刻",
+  comment: "備考",
+} as const;
+
+export type OperationFieldKey = keyof typeof OPERATION_FIELD_LABELS;

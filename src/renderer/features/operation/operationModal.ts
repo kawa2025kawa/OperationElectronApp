@@ -7,34 +7,18 @@ import type {
   LinkConfig,
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
+import { MODAL_PRESETS } from "@shared/types/ui/modal";
 import { getOperationWorkName } from "./operationDisplayUtils";
 import { LinkModalContent } from "./components/modal/linkModal/LinkModalContent";
 import { ScriptModalContent } from "./components/modal/scriptModal/ScriptModalContent";
 
 type OpenGlobalModal = AppState["openGlobalModal"];
 
-const PDF_UPLOAD_MODAL_CONFIG = {
-  title: "Tempomatic PDF",
-  width: "min(95vw, calc(75vh * (21 / 9)))",
-  height: "min(75vh, calc(95vw * (9 / 21)))",
-};
-
-const SCRIPT_MODAL_CONFIG = {
-  width: "min(85vw, calc(75vh * 16 / 9))",
-  height: "min(75vh, calc(85vw * 9 / 16))",
-};
-
-const LINK_MODAL_CONFIG = {
-  title: "リンク一覧",
-  width: "min(85vw, 800px)",
-  height: "min(80vh, 700px)",
-};
-
 /** PDFアップロードモーダルを開く */
 export function openPdfUploadModal(openGlobalModal: OpenGlobalModal): void {
   openGlobalModal(
     createElement(PdfUploadModalContent),
-    PDF_UPLOAD_MODAL_CONFIG,
+    MODAL_PRESETS.PDF_UPLOAD,
   );
 }
 
@@ -45,6 +29,7 @@ export function openScriptModal(
   scriptKey?: string,
 ): void {
   const workName = getOperationWorkName(item.workName, item.kanriNo);
+  const title = item.kanriNo ? `[${item.kanriNo}] ${workName}` : workName;
 
   openGlobalModal(
     createElement(ScriptModalContent, {
@@ -52,8 +37,8 @@ export function openScriptModal(
       scriptKey: scriptKey ?? String(item.kanriNo),
     }),
     {
-      ...SCRIPT_MODAL_CONFIG,
-      title: scriptKey ? `${workName} (${scriptKey})` : workName,
+      ...MODAL_PRESETS.SCRIPT_EXECUTION,
+      title,
     },
   );
 }
@@ -64,6 +49,6 @@ export function openLinkModal(
   links: LinkConfig[],
 ): void {
   openGlobalModal(createElement(LinkModalContent, { link: links }), {
-    ...LINK_MODAL_CONFIG,
+    ...MODAL_PRESETS.LINK_LIST,
   });
 }

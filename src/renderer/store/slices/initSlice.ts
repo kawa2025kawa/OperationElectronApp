@@ -7,9 +7,8 @@ import type { AppState } from "@renderer/store";
 import { setupInitIpcListeners } from "@renderer/store/listeners/initIpcListeners";
 import {
   createInitStatus,
-  getUnsettledStatusAsNg,
   INITIAL_INIT_STATUS,
-  isInitStatusSettled,
+  SETTLED_INIT_STATUS_VALUES,
   type InitStatus,
 } from "@shared/types/initializationTypes";
 
@@ -17,8 +16,22 @@ const APP_LOADER_DELAY_MS = 2000;
 
 let loaderTimeoutId: number | null = null;
 
+const isSettledStatus = (value: unknown): boolean =>
+  SETTLED_INIT_STATUS_VALUES.some((status) => status === value);
+
+const isInitStatusSettled = (status: InitStatus): boolean =>
+  Object.values(status).every(isSettledStatus);
+
+const getUnsettledStatus = (status: InitStatus): Partial<InitStatus> =>
+  Object.fromEntries(
+    Object.entries(status)
+      .filter(([, value]) => !isSettledStatus(value))
+      .map(([key]) => [key, "NG"]),
+  ) as Partial<InitStatus>;
+
 const clearLoaderTimeout = (): void => {
   if (loaderTimeoutId === null) return;
+
   window.clearTimeout(loaderTimeoutId);
   loaderTimeoutId = null;
 };
@@ -47,7 +60,8 @@ export const createInitSlice: StateCreator<
   InitSlice
 > = (set, get) => {
   const scheduleLoaderClose = (): void => {
-    const { initStatus, isInitializing, isInitialLoaded, showAppLoader } = get();
+    const { initStatus, isInitializing, isInitialLoaded, showAppLoader } =
+      get();
 
     if (
       !isInitStatusSettled(initStatus) ||
@@ -61,6 +75,7 @@ export const createInitSlice: StateCreator<
 
     loaderTimeoutId = window.setTimeout(() => {
       loaderTimeoutId = null;
+
       set((state) => {
         state.isInitialLoaded = true;
         state.showAppLoader = false;
@@ -73,10 +88,6 @@ export const createInitSlice: StateCreator<
       "[InitSlice] Failed to initialize app:",
       error instanceof Error ? error.message : String(error),
     );
-
-    set((state) => {
-      state.isAuthenticated = false;
-    });
 
     get().settleUnsettledAsNg();
   };
@@ -106,10 +117,7 @@ export const createInitSlice: StateCreator<
     },
 
     settleUnsettledAsNg: () => {
-      const unsettledPatch = getUnsettledStatusAsNg(get().initStatus);
-      if (Object.keys(unsettledPatch).length > 0) {
-        get().setInitStatus(unsettledPatch);
-      }
+      get().setInitStatus(getUnsettledStatus(get().initStatus));
     },
 
     initializeApp: async () => {

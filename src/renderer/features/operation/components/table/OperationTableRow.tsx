@@ -59,7 +59,6 @@ export const OperationTableRow = memo(function OperationTableRow({
     <tr
       tabIndex={0}
       className={clsx(styles.tableRowBase, rowStateClass)}
-      style={{ outline: "none" }}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
     >

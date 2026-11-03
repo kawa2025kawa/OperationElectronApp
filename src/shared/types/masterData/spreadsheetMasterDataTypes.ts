@@ -21,6 +21,27 @@ export interface SpreadsheetMasterData {
   rdps: RdpMaster[];
 }
 
+// SpreadsheetMasterData の全キーの網羅性を型レベルで強制するマッピング
+const SPREADSHEET_MASTER_DATA_KEY_MAP: Record<
+  keyof SpreadsheetMasterData,
+  true
+> = {
+  stores: true,
+  kokyuhyos: true,
+  jugyoin: true,
+  kokyuhyoTantous: true,
+  operations: true,
+  irregulars: true,
+  todayIrregulars: true,
+  rdps: true,
+};
+
+export const SPREADSHEET_MASTER_DATA_KEYS = Object.keys(
+  SPREADSHEET_MASTER_DATA_KEY_MAP,
+) as readonly (keyof SpreadsheetMasterData)[];
+
+export type SpreadsheetMasterDataKey = keyof SpreadsheetMasterData;
+
 export interface SpreadsheetMasterDataCache {
   fetchedAt: string;
   data: SpreadsheetMasterData;

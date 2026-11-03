@@ -1,3 +1,5 @@
+// src/renderer/features/operation/OperationView.tsx
+
 import { memo, useMemo } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
@@ -8,6 +10,10 @@ import { createInfoRows } from "./operationDisplayUtils";
 import { OperationModeSwitcher } from "./components/OperationModeSwitcher";
 import { OperationInfoRow } from "./components/OperationInfoRow";
 import * as styles from "./operationView.css";
+
+const OPERATION_VIEW_LABELS = {
+  MENU_BUTTON: "Menu ▼",
+} as const;
 
 export const OperationView = memo(function OperationView() {
   const {
@@ -51,7 +57,7 @@ export const OperationView = memo(function OperationView() {
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <button type="button" className={styles.menuButton}>
-                    Menu ▼
+                    {OPERATION_VIEW_LABELS.MENU_BUTTON}
                   </button>
                 </DropdownMenu.Trigger>
 

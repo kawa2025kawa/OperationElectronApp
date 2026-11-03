@@ -15,6 +15,7 @@ export const IPC_CHANNELS = {
     SHOW_OPEN_DIALOG: "showOpenDialog",
     READ_UPDATE_INFO: "readUpdateInfo",
     THEME_CHANGED: "theme-changed",
+    RENAME_FILE: "system:renameFile",
   },
 
   RDP: {

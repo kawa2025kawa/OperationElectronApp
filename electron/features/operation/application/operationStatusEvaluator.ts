@@ -27,68 +27,52 @@ import {
 
 type OperationTarget = Extract<StatusTarget, { targetType: "operation" }>;
 
-// Tracker連携対象判定
-function isTrackerTarget(target: StatusTarget): target is OperationTarget {
-  return (
-    target.targetType === "operation" &&
-    Boolean(normalizeKanriNo(target.kanriNo)) &&
-    Boolean(getJobId(target))
-  );
-}
+const isTrackerTarget = (t: StatusTarget): t is OperationTarget =>
+  t.targetType === "operation" &&
+  Boolean(normalizeKanriNo(t.kanriNo)) &&
+  Boolean(getJobId(t));
 
-// 同期可能なステータス判定
-function canSyncTrackerStatus(status?: JobStatus): boolean {
-  return status === JOB_STATUS.READY || status === JOB_STATUS.RUNNING;
-}
+const canSyncTrackerStatus = (s?: JobStatus): boolean =>
+  s === JOB_STATUS.READY || s === JOB_STATUS.RUNNING;
 
-// TrackerのSUCCESS判定と前提依存の評価を一元処理
 export function evaluateTrackerStatus(
   trackerStatus: OperationStatusState,
 ): OperationStatusState {
-  if (trackerStatus.status !== JOB_STATUS.SUCCESS) {
-    return trackerStatus;
-  }
+  if (trackerStatus.status !== JOB_STATUS.SUCCESS) return trackerStatus;
 
-  const dependencyResult = checkJobDependencies(
+  const depResult = checkJobDependencies(
     trackerStatus.kanriNo,
     getDependencyMasters(),
     getDependencyStatuses(),
     getActiveFlags(),
   );
 
-  if (dependencyResult.ok) {
-    return trackerStatus;
-  }
-
-  return {
-    ...trackerStatus,
-    status: JOB_STATUS.WAITING,
-    comment: formatDependencyWaitingComment(
-      dependencyResult.missingDependencies,
-    ),
-  };
+  return depResult.ok
+    ? trackerStatus
+    : {
+        ...trackerStatus,
+        status: JOB_STATUS.WAITING,
+        comment: formatDependencyWaitingComment(depResult.missingDependencies),
+      };
 }
 
-// Trackerステータスの評価と更新を一括適用
 export function applyTrackerStatus(
   trackerStatus: OperationStatusState,
 ): OperationStatusState {
-  const evaluatedStatus = evaluateTrackerStatus(trackerStatus);
-  updateStatus(evaluatedStatus);
-  return evaluatedStatus;
+  const evaluated = evaluateTrackerStatus(trackerStatus);
+  updateStatus(evaluated);
+  return evaluated;
 }
 
-// 対象のTrackerステータスを取得
 export async function fetchTrackerStatus(
   target: OperationTarget,
 ): Promise<OperationStatusState | undefined> {
   const jobId = getJobId(target);
-  if (!jobId) return undefined;
-
-  return fetchTrackerStatusByJobId(jobId, target.scheduledTime, target.kanriNo);
+  return jobId
+    ? fetchTrackerStatusByJobId(jobId, target.scheduledTime, target.kanriNo)
+    : undefined;
 }
 
-// 管理番号を指定して単一ターゲットのTrackerステータスを取得・適用
 export async function fetchSingleTrackerStatus(
   kanriNoInput: string,
 ): Promise<OperationStatusState> {
@@ -102,7 +86,6 @@ export async function fetchSingleTrackerStatus(
   }
 
   const trackerStatus = await fetchTrackerStatus(target);
-
   if (!trackerStatus) {
     return {
       kanriNo,
@@ -114,7 +97,6 @@ export async function fetchSingleTrackerStatus(
   return applyTrackerStatus(trackerStatus);
 }
 
-// READY状態のTrackerターゲットを同期
 export async function syncReadyTrackerStatus(
   target: StatusTarget,
 ): Promise<void> {
@@ -135,7 +117,6 @@ export async function syncReadyTrackerStatus(
   applyTrackerStatus(trackerStatus);
 }
 
-// 全ターゲットのステータス同期（中間配列・二重評価を全廃）
 export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
   const activeFlags = getActiveFlags();
 
@@ -149,9 +130,7 @@ export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
         return;
       }
 
-      if (!canSyncTrackerStatus(getStatus(kanriNo)?.status)) {
-        return;
-      }
+      if (!canSyncTrackerStatus(getStatus(kanriNo)?.status)) return;
 
       try {
         const trackerStatus = await fetchTrackerStatus(target);
@@ -166,7 +145,6 @@ export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
         );
       }
 
-      // Tracker取得失敗時はローカル再判定
       recalculateTargetStatus(kanriNo, activeFlags);
     }),
   );

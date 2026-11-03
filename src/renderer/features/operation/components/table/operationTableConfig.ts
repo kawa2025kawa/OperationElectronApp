@@ -5,7 +5,10 @@ import {
   toDisplayValue,
   toMissingPropertyDisplayValue,
 } from "@renderer/features/operation/operationDisplayUtils";
-import type { OperationViewItem } from "@shared/types/operation/operationTypes";
+import {
+  OPERATION_FIELD_LABELS,
+  type OperationViewItem,
+} from "@shared/types/operation/operationTypes";
 import * as styles from "./operationTable.css";
 
 export interface OperationColumnMeta {
@@ -16,28 +19,28 @@ export interface OperationColumnMeta {
 
 export const OPERATION_COLUMN_CONFIG = {
   kanriNo: {
-    label: "管理No",
+    label: OPERATION_FIELD_LABELS.kanriNo,
     width: "90px",
   },
   scheduledTime: {
-    label: "予定時刻",
+    label: OPERATION_FIELD_LABELS.scheduledTime,
     width: "120px",
   },
   cycle: {
-    label: "cycle",
+    label: OPERATION_FIELD_LABELS.cycle,
     width: "100px",
     align: "center",
   },
   workName: {
-    label: "作業名",
+    label: OPERATION_FIELD_LABELS.workName,
     width: "auto",
   },
   jobId: {
-    label: "ジョブID",
+    label: OPERATION_FIELD_LABELS.jobId,
     width: "auto",
   },
   status: {
-    label: "ステータス",
+    label: OPERATION_FIELD_LABELS.status,
     width: "140px",
     align: "center",
   },

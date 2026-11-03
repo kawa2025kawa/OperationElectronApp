@@ -5,16 +5,40 @@ import { toast } from "sonner";
 
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
 import { otherIpcService } from "@renderer/services/otherIpcService";
+import { systemIpcService } from "@renderer/services/systemIpcService";
 import { useAppStore } from "@renderer/store";
-import type { FileDropZoneItem } from "@renderer/components/ui/fileDropZone/fileDropZone.types";
+import type { FileDropZoneItem } from "@renderer/components/ui/fileDropZone/fileDropZoneTypes";
+import { MODAL_TITLES } from "@shared/types/ui/modal";
 
 interface PdfMessage {
   text: string;
   type: "info" | "success" | "error" | "warning";
 }
 
+const PDF_UPLOAD_MESSAGES = {
+  INITIAL: "PDFファイルをドラッグ＆ドロップまたは選択してください。",
+  PROCESSING: "PDF処理中...",
+  SUCCESS: "PDFのアップロードが完了しました。",
+  SUCCESS_TOAST: "PDFアップロード完了",
+  FAILED_PREFIX: "アップロード失敗: ",
+  selectedCount: (count: number) =>
+    `${count} 件のPDFファイルが選択されています。`,
+  invalidFiles: (names: string) => `対象外のファイルが含まれています: ${names}`,
+} as const;
+
+const PDF_UPLOAD_ACTIONS = {
+  CANCEL: {
+    id: "cancel",
+    label: "キャンセル",
+  },
+  UPLOAD: {
+    id: "upload",
+    label: "アップロード実行",
+  },
+} as const;
+
 const INITIAL_MESSAGE: PdfMessage = {
-  text: "PDFファイルをドラッグ＆ドロップまたは選択してください。",
+  text: PDF_UPLOAD_MESSAGES.INITIAL,
   type: "info",
 };
 
@@ -64,12 +88,12 @@ export function usePdfUploadModalContent() {
       if (invalidFiles.length > 0) {
         const invalidNames = invalidFiles.map((file) => file.name).join(", ");
         setInfoMessage({
-          text: `対象外のファイルが含まれています: ${invalidNames}`,
+          text: PDF_UPLOAD_MESSAGES.invalidFiles(invalidNames),
           type: "error",
         });
       } else {
         setInfoMessage({
-          text: `${nextFiles.length} 件のPDFファイルが選択されています。`,
+          text: PDF_UPLOAD_MESSAGES.selectedCount(nextFiles.length),
           type: "info",
         });
       }
@@ -77,20 +101,40 @@ export function usePdfUploadModalContent() {
     });
   }, []);
 
-  const handleRenameFile = useCallback((index: number, newName: string) => {
-    setFiles((currentFiles) => {
-      if (index < 0 || index >= currentFiles.length) return currentFiles;
-      const target = currentFiles[index];
-      if (!target) return currentFiles;
+  const handleRenameFile = useCallback(
+    async (index: number, newName: string) => {
+      const currentTarget = files[index];
+      if (!currentTarget || !currentTarget.path) return;
 
-      const nextFiles = [...currentFiles];
-      nextFiles[index] = {
-        ...target,
-        name: newName,
-      };
-      return nextFiles;
-    });
-  }, []);
+      try {
+        const result = await systemIpcService.renameFile(
+          currentTarget.path,
+          newName,
+        );
+
+        setFiles((currentFiles) => {
+          if (index < 0 || index >= currentFiles.length) return currentFiles;
+          const target = currentFiles[index];
+          if (!target) return currentFiles;
+
+          const nextFiles = [...currentFiles];
+          nextFiles[index] = {
+            ...target,
+            name: newName,
+            path: result.newPath,
+          };
+          return nextFiles;
+        });
+
+        toast.success(`ファイル名を「${newName}」に変更しました`);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[PdfUpload] Failed to rename file:", error);
+        toast.error(`リネーム失敗: ${message}`);
+      }
+    },
+    [files],
+  );
 
   const handleFileReorder = useCallback(
     (fromIndex: number, toIndex: number) => {
@@ -123,7 +167,7 @@ export function usePdfUploadModalContent() {
         (_, fileIndex) => fileIndex !== index,
       );
       setInfoMessage({
-        text: `${nextFiles.length} 件のPDFファイルが選択されています。`,
+        text: PDF_UPLOAD_MESSAGES.selectedCount(nextFiles.length),
         type: "info",
       });
       return nextFiles;
@@ -136,8 +180,8 @@ export function usePdfUploadModalContent() {
 
     try {
       await runJobWithGlobalProcessing(
-        "PDF処理中...",
-        "Tempomatic PDF",
+        PDF_UPLOAD_MESSAGES.PROCESSING,
+        MODAL_TITLES.PDF_UPLOAD,
         async () => {
           await otherIpcService.uploadTempomaticPdf({
             files: filesToUpload.map((file) => ({
@@ -149,15 +193,15 @@ export function usePdfUploadModalContent() {
       );
       setFiles([]);
       setInfoMessage({
-        text: "PDFのアップロードが完了しました。",
+        text: PDF_UPLOAD_MESSAGES.SUCCESS,
         type: "success",
       });
-      toast.success("PDFアップロード完了");
+      toast.success(PDF_UPLOAD_MESSAGES.SUCCESS_TOAST);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       console.error("[PdfUpload] upload failed:", error);
       setInfoMessage({
-        text: `アップロード失敗: ${message}`,
+        text: `${PDF_UPLOAD_MESSAGES.FAILED_PREFIX}${message}`,
         type: "error",
       });
       toast.error(message);
@@ -170,15 +214,15 @@ export function usePdfUploadModalContent() {
       message: infoMessage,
       leftActions: [
         {
-          id: "cancel",
-          label: "キャンセル",
+          id: PDF_UPLOAD_ACTIONS.CANCEL.id,
+          label: PDF_UPLOAD_ACTIONS.CANCEL.label,
           onClick: closeGlobalModal,
         },
       ],
       rightActions: [
         {
-          id: "upload",
-          label: "アップロード実行",
+          id: PDF_UPLOAD_ACTIONS.UPLOAD.id,
+          label: PDF_UPLOAD_ACTIONS.UPLOAD.label,
           onClick: handleExecuteUpload,
           disabled: files.length === 0,
           variant: "default",

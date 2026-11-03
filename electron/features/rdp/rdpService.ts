@@ -7,6 +7,17 @@ import type { RdpMaster } from "@shared/types/rdp/rdpTypes";
 
 const execFilePromise = util.promisify(execFile);
 
+export interface LaunchRdpParams {
+  ipAddress: string;
+  userName?: string;
+  password?: string;
+}
+
+const RDP_COMMANDS = {
+  cmdkey: "cmdkey",
+  mstsc: "mstsc",
+} as const;
+
 // スプレッドシートからRDP接続先端末の一覧を取得して返す。
 export async function getRdpTargets(): Promise<RdpMaster[]> {
   const masterData = await getSpreadsheetMasterData();
@@ -38,11 +49,7 @@ export async function findRdpTarget(name: string): Promise<RdpMaster> {
 }
 
 // Windowsのmstscコマンドを起動して対象ホストへのリモートデスクトップ接続を開く。
-export async function launchRdp(params: {
-  ipAddress: string;
-  userName?: string;
-  password?: string;
-}): Promise<void> {
+export async function launchRdp(params: LaunchRdpParams): Promise<void> {
   const cleanIp = params.ipAddress.trim();
 
   if (!cleanIp) {
@@ -50,14 +57,14 @@ export async function launchRdp(params: {
   }
 
   if (params.userName?.trim() && params.password?.trim()) {
-    await execFilePromise("cmdkey", [
+    await execFilePromise(RDP_COMMANDS.cmdkey, [
       `/generic:TERMSRV/${cleanIp}`,
       `/user:${params.userName.trim()}`,
       `/pass:${params.password.trim()}`,
     ]);
   }
 
-  execFile("mstsc", [`/v:${cleanIp}`], (error) => {
+  execFile(RDP_COMMANDS.mstsc, [`/v:${cleanIp}`], (error) => {
     if (error) {
       console.error(`[RDP] mstsc launch failed for ${cleanIp}:`, error);
     }

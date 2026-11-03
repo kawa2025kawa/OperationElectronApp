@@ -4,7 +4,7 @@ import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type {
   EmailTemplateKey,
   GmailDraftFormValues,
-} from "@renderer/features/other/types/gmailDraftTypes";
+} from "@renderer/features/other/types/gmailDraftUiTypes";
 import type { TempomaticUploadTargetFile } from "@shared/types/electron/ipcTypes";
 
 export interface GenerateDraftTemplateParams {
@@ -35,7 +35,7 @@ export const otherIpcService = {
       params,
     ),
 
-  createGmailDraft: (formValues: GmailDraftFormValues): Promise<unknown> =>
+  createGmailDraft: (formValues: GmailDraftFormValues): Promise<void> =>
     window.electronAPI.invoke(IPC_CHANNELS.GMAIL.CREATE_DRAFT, formValues),
 
   // --- Tempomatic ---

@@ -3,6 +3,25 @@
 import type { Shop } from "@shared/types/spreadsheet/shop";
 import { SHOP_FIELD_LABELS } from "@shared/types/spreadsheet/shop";
 import type { TabGroupConfig } from "../../hooks/useSpreadSheetTabData";
+import { EMPTY_VALUE_FALLBACK } from "@shared/types/spreadsheet/spreadsheetTypes";
+
+export { EMPTY_VALUE_FALLBACK };
+
+export const SHOP_MODAL_CONSTANTS = {
+  TAB_TITLES: {
+    BASIC: "基本情報",
+    STAFF: "スタッフ",
+    PRINTER_K: "プリンター (K)",
+    PRINTER_B: "プリンター (B)",
+    PRINTER_O: "プリンター (O)",
+    TIME_RECORDER: "タイムレコーダー",
+  },
+  TR_HEADER_BADGE: "TR",
+  FILES: {
+    EXCEL_LABEL: "店舗情報.xlsx",
+    PDF_LABEL: "店舗情報.pdf",
+  },
+} as const;
 
 export const TERMINAL_TYPES = ["tr1", "tr2", "tr3", "tr4"] as const;
 
@@ -26,9 +45,18 @@ export const TIME_RECORDER_IMAGE_ITEMS: readonly {
   { key: "outletImageUrl", label: SHOP_FIELD_LABELS.outletImageUrl },
 ] as const;
 
+const PRINTER_FIELD_LABELS = {
+  MODEL: "機種名",
+  SERIAL: "シリアル",
+  PHONE: "連絡先",
+  HOLIDAY_PHONE: "休保",
+  HOLIDAY_PHONE_O: "土日祝連絡先",
+  CONTRACT_ID: "契約ID",
+} as const;
+
 export const SHOP_MODAL_GROUPS: readonly TabGroupConfig<keyof Shop>[] = [
   {
-    title: "基本情報",
+    title: SHOP_MODAL_CONSTANTS.TAB_TITLES.BASIC,
     items: [
       { key: "openTime", label: SHOP_FIELD_LABELS.openTime },
       { key: "closeTime", label: SHOP_FIELD_LABELS.closeTime },
@@ -39,7 +67,7 @@ export const SHOP_MODAL_GROUPS: readonly TabGroupConfig<keyof Shop>[] = [
     ],
   },
   {
-    title: "スタッフ",
+    title: SHOP_MODAL_CONSTANTS.TAB_TITLES.STAFF,
     items: [
       { key: "storeManagerName", label: SHOP_FIELD_LABELS.storeManagerName },
       {
@@ -56,37 +84,46 @@ export const SHOP_MODAL_GROUPS: readonly TabGroupConfig<keyof Shop>[] = [
     ],
   },
   {
-    title: "プリンター (K)",
+    title: SHOP_MODAL_CONSTANTS.TAB_TITLES.PRINTER_K,
     items: [
-      { key: "printerModelK", label: "機種名" },
-      { key: "printerSerialNumberK", label: "シリアル" },
-      { key: "printerPhoneK", label: "連絡先" },
-      { key: "printerHolidayPhoneK", label: "休保" },
-      { key: "printerContractIdK", label: "契約ID" },
+      { key: "printerModelK", label: PRINTER_FIELD_LABELS.MODEL },
+      { key: "printerSerialNumberK", label: PRINTER_FIELD_LABELS.SERIAL },
+      { key: "printerPhoneK", label: PRINTER_FIELD_LABELS.PHONE },
+      {
+        key: "printerHolidayPhoneK",
+        label: PRINTER_FIELD_LABELS.HOLIDAY_PHONE,
+      },
+      { key: "printerContractIdK", label: PRINTER_FIELD_LABELS.CONTRACT_ID },
     ],
   },
   {
-    title: "プリンター (B)",
+    title: SHOP_MODAL_CONSTANTS.TAB_TITLES.PRINTER_B,
     items: [
-      { key: "printerModelB", label: "機種名" },
-      { key: "printerSerialNumberB", label: "シリアル" },
-      { key: "printerPhoneB", label: "連絡先" },
-      { key: "printerHolidayPhoneB", label: "休保" },
-      { key: "printerContractIdB", label: "契約ID" },
+      { key: "printerModelB", label: PRINTER_FIELD_LABELS.MODEL },
+      { key: "printerSerialNumberB", label: PRINTER_FIELD_LABELS.SERIAL },
+      { key: "printerPhoneB", label: PRINTER_FIELD_LABELS.PHONE },
+      {
+        key: "printerHolidayPhoneB",
+        label: PRINTER_FIELD_LABELS.HOLIDAY_PHONE,
+      },
+      { key: "printerContractIdB", label: PRINTER_FIELD_LABELS.CONTRACT_ID },
     ],
   },
   {
-    title: "プリンター (O)",
+    title: SHOP_MODAL_CONSTANTS.TAB_TITLES.PRINTER_O,
     items: [
-      { key: "printerModelO", label: "機種名" },
-      { key: "printerSerialNumberO", label: "シリアル" },
-      { key: "printerPhoneO", label: "連絡先" },
-      { key: "printerHolidayPhoneO", label: "土日祝連絡先" },
-      { key: "printerContractIdO", label: "契約ID" },
+      { key: "printerModelO", label: PRINTER_FIELD_LABELS.MODEL },
+      { key: "printerSerialNumberO", label: PRINTER_FIELD_LABELS.SERIAL },
+      { key: "printerPhoneO", label: PRINTER_FIELD_LABELS.PHONE },
+      {
+        key: "printerHolidayPhoneO",
+        label: PRINTER_FIELD_LABELS.HOLIDAY_PHONE_O,
+      },
+      { key: "printerContractIdO", label: PRINTER_FIELD_LABELS.CONTRACT_ID },
     ],
   },
   {
-    title: "タイムレコーダー",
+    title: SHOP_MODAL_CONSTANTS.TAB_TITLES.TIME_RECORDER,
     items: [
       { key: "deviceCount", label: SHOP_FIELD_LABELS.deviceCount },
       { key: "tr1Name", label: SHOP_FIELD_LABELS.tr1Name },

@@ -2,10 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { ChangeEvent, DragEvent } from "react";
-import {
-  ORDER_TIME_OPTIONS,
-  type FileDropZoneItem,
-} from "./fileDropZone.types";
+import { ORDER_TIME_OPTIONS, type FileDropZoneItem } from "./fileDropZoneTypes";
 
 interface UseFileDropZoneProps {
   files?: readonly FileDropZoneItem[];
@@ -13,7 +10,7 @@ interface UseFileDropZoneProps {
   onFileSelect: (files: File[]) => void;
   onReorderFile?: (fromIndex: number, toIndex: number) => void;
   onRemoveFile?: (index: number) => void;
-  onRenameFile?: (index: number, newName: string) => void;
+  onRenameFile?: (index: number, newName: string) => void | Promise<void>;
 }
 
 export function getTodayString(): string {
@@ -148,7 +145,7 @@ export function useFileDropZone({
         ({ value }) => value === orderValue,
       );
       if (option) {
-        onRenameFile(index, generateOrderErrorFileName(option.timeLabel));
+        void onRenameFile(index, generateOrderErrorFileName(option.timeLabel));
       }
     },
     [onRenameFile],

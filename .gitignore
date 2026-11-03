@@ -93,3 +93,6 @@ Desktop.ini
 
 # Playwright browser binaries
 resources/playwright/
+# Chrome run profile
+.chrome-profile/
+electron/.chrome-profile/

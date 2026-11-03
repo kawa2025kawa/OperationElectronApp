@@ -6,38 +6,19 @@ import type {
 } from "@shared/types/operation/operationTypes";
 import { getJstDateParts } from "./jstDate";
 
-// CSVなどのレコードのキーと文字列値を正規化する。
-function normalizeRecord(record: IrregularMaster): IrregularMaster {
-  const normalized: Record<string, unknown> = {};
+type JstDateParts = ReturnType<typeof getJstDateParts>;
 
-  for (const [rawKey, value] of Object.entries(record)) {
-    const key = rawKey.replace(/^\uFEFF/, "").trim();
-    normalized[key] = typeof value === "string" ? value.trim() : value;
-  }
+// 周期指定が月日・週・曜日などの条件に一致するか判定する。
+function matchesCycle(cycleValue: string, today: JstDateParts): boolean {
+  return cycleValue.split(/[,，、]/).some((rawRule) => {
+    const rule = rawRule.trim();
 
-  return normalized as unknown as IrregularMaster;
-}
+    if (rule === "") {
+      return false;
+    }
 
-// 周期指定が月日・週・曜日・奇数月・偶数月などの条件に一致するか判定する。
-function matchesCycle(cycleValue: string, now: Date): boolean {
-  const today = getJstDateParts(now);
-
-  const rules = cycleValue
-    .split(/[,，、]/)
-    .map((rule) => rule.trim())
-    .filter(Boolean);
-
-  return rules.some((rule) => {
     if (/^(月末|末日)$/.test(rule)) {
       return today.day === today.lastDay;
-    }
-
-    if (rule === "奇数月") {
-      return today.month % 2 === 1;
-    }
-
-    if (rule === "偶数月") {
-      return today.month % 2 === 0;
     }
 
     const monthDay = rule.match(/^(\d{1,2})\/(\d{1,2})$/);
@@ -71,11 +52,18 @@ function matchesCycle(cycleValue: string, now: Date): boolean {
 }
 
 // 予定時刻を並べ替え用の数値に変換し、AM・PMや不正値も区別する。
-function getScheduledTimeRank(value: string): number {
-  const time = value.trim().toUpperCase();
+function getScheduledTimeRank(value: unknown): number {
+  const time = String(value ?? "")
+    .trim()
+    .toUpperCase();
 
-  if (time === "AM") return 1440;
-  if (time === "PM") return 2880;
+  if (time === "AM") {
+    return 1440;
+  }
+
+  if (time === "PM") {
+    return 2880;
+  }
 
   const match = time.match(/^(\d{1,2}):(\d{2})$/);
 
@@ -96,23 +84,30 @@ export function buildTodayIrregulars(
   source: IrregularMaster[],
   now: Date = new Date(),
 ): TodayIrregularMaster[] {
+  const today = getJstDateParts(now);
+
   return source
-    .map(normalizeRecord)
     .filter((item) => {
       const kanriNo = String(item.kanriNo ?? "").trim();
       const workName = String(item.workName ?? "").trim();
       const cycle = String(item.cycle ?? "").trim();
+      const cycle2 = String(item.cycle2 ?? "").trim();
 
-      return (
-        kanriNo !== "" &&
-        workName !== "" &&
-        cycle !== "" &&
-        matchesCycle(cycle, now)
-      );
+      if (kanriNo === "" || workName === "") {
+        return false;
+      }
+
+      // E16 かつ cycle2 が 1 の場合：四半期末月（3, 6, 9, 12月）の 1日 のみ抽出対象
+      if (kanriNo === "E16" && cycle2 === "1") {
+        return today.month % 3 === 0 && today.day === 1;
+      }
+
+      return cycle !== "" && matchesCycle(cycle, today);
     })
-    .sort(
-      (a, b) =>
-        getScheduledTimeRank(String(a.scheduledTime ?? "")) -
-        getScheduledTimeRank(String(b.scheduledTime ?? "")),
-    ) as TodayIrregularMaster[];
+    .map((item) => ({
+      item,
+      timeRank: getScheduledTimeRank(item.scheduledTime),
+    }))
+    .sort((a, b) => a.timeRank - b.timeRank)
+    .map(({ item }) => item as TodayIrregularMaster);
 }

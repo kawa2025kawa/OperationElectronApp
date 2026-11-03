@@ -10,7 +10,6 @@ import type {
 
 export type { ScriptFilePath } from "@shared/types/operation/operationTypes";
 
-// スクリプト実行結果または例外を標準の JobResult オブジェクトに正規化する。
 function normalizeScriptResult(result: string | JobResult): JobResult {
   if (typeof result === "string") {
     return {
@@ -19,7 +18,6 @@ function normalizeScriptResult(result: string | JobResult): JobResult {
       message: result.trim() || "正常終了",
     };
   }
-
   const success = result.success !== false;
   return {
     ...result,
@@ -29,7 +27,6 @@ function normalizeScriptResult(result: string | JobResult): JobResult {
   };
 }
 
-// 単一スクリプトまたはRDPセッションを実行し、統一された JobResult を返す。
 export async function executeSingleScriptJob(
   kanriNo: string,
   targetKey: string,
@@ -48,20 +45,12 @@ export async function executeSingleScriptJob(
 
   try {
     const runner = getScriptRunner(cleanKey) ?? getScriptRunner(cleanKanriNo);
-
-    if (runner) {
-      const output = await runner(cleanKanriNo, filePath);
-      return normalizeScriptResult(output);
-    }
-
-    const rdpOutput = await startRdpSession(cleanKey);
-    return normalizeScriptResult(rdpOutput);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    return {
-      success: false,
-      kind: "error",
-      message: `エラー: ${message.trim()}`,
-    };
+    const output = runner
+      ? await runner(cleanKanriNo, filePath)
+      : await startRdpSession(cleanKey);
+    return normalizeScriptResult(output);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, kind: "error", message: `エラー: ${msg.trim()}` };
   }
 }

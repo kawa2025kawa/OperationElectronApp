@@ -6,12 +6,26 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { UpdateInfo } from "@shared/types/system";
 
-const UPDATE_DIRECTORY =
-  "\\\\192.88.1.210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp";
+// ============================================================
+// System Configuration & Types
+// ============================================================
+
+export interface SystemServiceConfig {
+  readonly updateDirectory: string;
+  readonly updateInfoFileName: string;
+  readonly manualBaseUrl: string;
+}
+
+export const SYSTEM_CONFIG: SystemServiceConfig = {
+  updateDirectory:
+    "\\\\192.88.1.210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp",
+  updateInfoFileName: "OperationElectronApp_update.json",
+  manualBaseUrl: "https://sites.google.com/belc.co.jp",
+} as const;
 
 const UPDATE_INFO_PATH = path.join(
-  UPDATE_DIRECTORY,
-  "OperationElectronApp_update.json",
+  SYSTEM_CONFIG.updateDirectory,
+  SYSTEM_CONFIG.updateInfoFileName,
 );
 
 // 対象管理Noに対応するWebマニュアルのURLを生成して返す。
@@ -20,10 +34,10 @@ export function getManualUrl(target: string, isAuto = false): string {
   const basePrefix = isAuto ? "operation-auto-manual" : "operation-manual";
 
   if (!cleanTarget || cleanTarget.toLowerCase() === "true") {
-    return `https://sites.google.com/belc.co.jp/${basePrefix}`;
+    return `${SYSTEM_CONFIG.manualBaseUrl}/${basePrefix}`;
   }
 
-  return `https://sites.google.com/belc.co.jp/${basePrefix}-${cleanTarget}`;
+  return `${SYSTEM_CONFIG.manualBaseUrl}/${basePrefix}-${cleanTarget}`;
 }
 
 // 破棄されていないアクティブなメインウィンドウインスタンスを取得する。

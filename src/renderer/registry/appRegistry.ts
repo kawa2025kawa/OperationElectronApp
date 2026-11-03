@@ -1,79 +1,121 @@
 // src/renderer/registry/appRegistry.ts
 
-import type { OperationViewItem } from "@shared/types/operation/operationTypes";
-import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
-import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
-import type { Shop } from "@shared/types/spreadsheet/shop";
 import {
   APP_VIEW_IDS,
+  APP_VIEW_METADATA,
   type AppViewId,
   type AppViewDefinition,
+  type ViewEntityMap,
   type ViewMode,
 } from "@shared/types/registry/viewDefinition";
+import {
+  SHEETS,
+  SHOP_COLUMNS,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 
-export { APP_VIEW_IDS, ViewMode, type AppViewId };
+import { OperationView } from "@renderer/features/operation/OperationView";
+import { OPERATION_TABLE_SEARCH_KEYS } from "@renderer/store/selectors/operationSelectors";
+import {
+  KokyuhyoView,
+  JugyoinView,
+  ShopView,
+} from "@renderer/features/spreadSheet/SpreadSheetView";
+import {
+  KOKYUHYO_COLUMNS,
+  JUGYOIN_COLUMNS,
+} from "@renderer/features/spreadSheet/utils/spreadsheetDateUtils";
+import { OtherView } from "@renderer/features/other/OtherView";
+import { RdpView } from "@renderer/features/remoteDesktop/RdpView";
+import { AuthView } from "@renderer/features/auth/AuthView";
 
-export type ViewEntityMap = {
-  [APP_VIEW_IDS.OPERATION]: OperationViewItem;
-  [APP_VIEW_IDS.KOKYUHYO]: Kokyuhyo;
-  [APP_VIEW_IDS.JUGYOIN]: Jugyoin;
-  [APP_VIEW_IDS.SHOP]: Shop;
-  [APP_VIEW_IDS.OTHER]: void;
-  [APP_VIEW_IDS.RDP]: void;
-  [APP_VIEW_IDS.AUTH]: void;
-};
+export { APP_VIEW_IDS, ViewMode, type AppViewId, type ViewEntityMap };
 
 export type AppRegistryMap = {
   [K in AppViewId]: AppViewDefinition<ViewEntityMap[K]>;
 };
 
-type ViewConfigModule = Record<string, unknown>;
-
-function isViewDefinition(value: unknown): value is AppViewDefinition {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "id" in value &&
-    "title" in value &&
-    typeof value.id === "string" &&
-    typeof value.title === "string"
-  );
+function defineView<K extends AppViewId>(
+  id: K,
+  config: Omit<
+    AppViewDefinition<ViewEntityMap[K]>,
+    "id" | "title" | "isProtected" | "sidebarMenu"
+  > & {
+    title?: string;
+    isProtected?: boolean;
+    sidebarMenu?: AppViewDefinition["sidebarMenu"];
+  },
+): AppViewDefinition<ViewEntityMap[K]> {
+  const meta = APP_VIEW_METADATA[id];
+  return {
+    ...config,
+    id,
+    title: config.title ?? meta.title,
+    isProtected: config.isProtected ?? meta.isProtected,
+    sidebarMenu: config.sidebarMenu ?? {
+      show: true,
+      order: meta.sidebarOrder,
+    },
+  } as AppViewDefinition<ViewEntityMap[K]>;
 }
 
-const viewConfigModules = import.meta.glob<ViewConfigModule>(
-  "../features/**/*ViewConfig.ts",
-  { eager: true },
-);
+export const APP_REGISTRY: AppRegistryMap = {
+  [APP_VIEW_IDS.OPERATION]: defineView(APP_VIEW_IDS.OPERATION, {
+    component: OperationView,
+    search: {
+      placeholder: "検索...",
+      searchKeys: OPERATION_TABLE_SEARCH_KEYS,
+    },
+  }),
 
-const viewDefinitions = Object.values(viewConfigModules)
-  .flatMap((module) => Object.values(module))
-  .filter(isViewDefinition);
+  [APP_VIEW_IDS.KOKYUHYO]: defineView(APP_VIEW_IDS.KOKYUHYO, {
+    component: KokyuhyoView,
+    sheetId: SHEETS.KOKYUHYO.sheetName,
+    search: {
+      placeholder: "名前、名前カナで検索...",
+      searchKeys: ["name", "nameKana"],
+    },
+    columns: KOKYUHYO_COLUMNS,
+  }),
 
-const registryEntries = viewDefinitions.map(
-  (definition) => [definition.id, definition] as const,
-);
+  [APP_VIEW_IDS.JUGYOIN]: defineView(APP_VIEW_IDS.JUGYOIN, {
+    component: JugyoinView,
+    sheetId: SHEETS.JUGYOIN.sheetName,
+    search: {
+      placeholder: "部門、名前で検索...",
+      searchKeys: ["bumon", "bumonKana", "name", "nameKana"],
+    },
+    columns: JUGYOIN_COLUMNS,
+  }),
 
-const registry = Object.fromEntries(registryEntries) as AppRegistryMap;
+  [APP_VIEW_IDS.SHOP]: defineView(APP_VIEW_IDS.SHOP, {
+    component: ShopView,
+    sheetId: SHEETS.STORE.sheetName,
+    search: {
+      placeholder: "店舗コード、店舗名、住所等で検索...",
+      searchKeys: [
+        "shopCode",
+        "shopName",
+        "shopKana",
+        "address",
+        "phoneNumber",
+        "centerName",
+      ],
+    },
+    columns: SHOP_COLUMNS,
+  }),
 
-const missingViewIds = Object.values(APP_VIEW_IDS).filter(
-  (id) => !registry[id as AppViewId],
-);
+  [APP_VIEW_IDS.OTHER]: defineView(APP_VIEW_IDS.OTHER, {
+    component: OtherView,
+  }),
 
-if (missingViewIds.length > 0) {
-  throw new Error(`画面設定が見つかりません: ${missingViewIds.join(", ")}`);
-}
+  [APP_VIEW_IDS.RDP]: defineView(APP_VIEW_IDS.RDP, {
+    component: RdpView,
+  }),
 
-const duplicateViewIds = registryEntries
-  .map(([id]) => id)
-  .filter((id, index, ids) => ids.indexOf(id) !== index);
-
-if (duplicateViewIds.length > 0) {
-  throw new Error(
-    `画面 ID が重複しています: ${[...new Set(duplicateViewIds)].join(", ")}`,
-  );
-}
-
-export const APP_REGISTRY: AppRegistryMap = registry;
+  [APP_VIEW_IDS.AUTH]: defineView(APP_VIEW_IDS.AUTH, {
+    component: AuthView,
+  }),
+};
 
 export function getAppViewConfig<K extends AppViewId>(
   viewId: K,

@@ -1,7 +1,7 @@
 ﻿// src/renderer/features/operation/components/table/OperationTableBody.tsx
 
 import { memo, useLayoutEffect, useRef } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useShallow } from "zustand/shallow";
 
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { useAppStore } from "@renderer/store";
@@ -9,10 +9,8 @@ import type { OperationViewItem } from "@shared/types/operation/operationTypes";
 
 import type { OperationColumn } from "./operationTableConfig";
 import { OperationTableRow } from "./OperationTableRow";
-import { getOperationColumnMeta } from "./operationTableConfig";
+import { TableColumnGroup } from "./TableColumnGroup";
 import * as styles from "./operationTable.css";
-
-const EMPTY_CELL_HEIGHT = "240px";
 
 interface OperationTableBodyProps {
   readonly rows: readonly OperationViewItem[];
@@ -21,23 +19,6 @@ interface OperationTableBodyProps {
   readonly onRowClick: (kanriNo: string) => void;
   readonly onMarkSuccess: (kanriNo: string) => void;
 }
-
-const TableColumnGroup = memo(function TableColumnGroup({
-  columns,
-}: Pick<OperationTableBodyProps, "columns">) {
-  return (
-    <colgroup>
-      {columns.map((column) => (
-        <col
-          key={column}
-          style={{ width: getOperationColumnMeta(column).width }}
-        />
-      ))}
-    </colgroup>
-  );
-});
-
-TableColumnGroup.displayName = "TableColumnGroup";
 
 export const OperationTableBody = memo(function OperationTableBody({
   rows,
@@ -130,24 +111,21 @@ export const OperationTableBody = memo(function OperationTableBody({
             <tr>
               <td
                 colSpan={Math.max(columns.length, 1)}
-                style={{
-                  height: EMPTY_CELL_HEIGHT,
-                  verticalAlign: "middle",
-                }}
+                className={styles.emptyCell}
               >
                 <EmptyState />
               </td>
             </tr>
           ) : (
             rows.map((row, index) => {
-              const kanriNo = row.kanriNo.trim();
+              const kanriNo = row.kanriNo ? row.kanriNo.trim() : "";
 
               return (
                 <OperationTableRow
-                  key={`${kanriNo}-${index}`}
+                  key={kanriNo || String(index)}
                   row={row}
                   columns={columns}
-                  isSelected={selectedId === kanriNo}
+                  isSelected={Boolean(kanriNo) && selectedId === kanriNo}
                   kanriNo={kanriNo}
                   onRowClick={onRowClick}
                   onMarkSuccess={onMarkSuccess}

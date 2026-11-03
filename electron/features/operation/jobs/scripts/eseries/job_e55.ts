@@ -6,6 +6,28 @@ import { isSameDay } from "date-fns";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
+export type JobE55CheckStatus =
+  | "SUCCESS"
+  | "NOT_UPDATED_TODAY"
+  | "LINE_NOT_FOUND"
+  | "LINE_MISMATCH";
+
+export interface TargetLineDetailE55 {
+  dept: string;
+  store: string;
+  purchase: string;
+  transfer: string;
+  sales: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface JobE55ResultData {
+  status: JobE55CheckStatus;
+  invalidFilePath?: string;
+  detail?: TargetLineDetailE55;
+}
+
 const CONFIG = {
   sourcePath: "\\\\192.12.2.1\\d$\\BELC\\ftp\\PC0140.dat",
   targetPath: "\\\\C0088150\\nec\\ftp\\TENF0140.dat",
@@ -14,28 +36,6 @@ const CONFIG = {
   targetStoreName: "宮地店 (012)",
   targetDeptName: "01",
 } as const;
-
-type TargetLineDetail = {
-  dept: string;
-  store: string;
-  purchase: string;
-  transfer: string;
-  sales: string;
-  startDate: string;
-  endDate: string;
-};
-
-type CheckStatus =
-  | "SUCCESS"
-  | "NOT_UPDATED_TODAY"
-  | "LINE_NOT_FOUND"
-  | "LINE_MISMATCH";
-
-type JobResultData = {
-  status: CheckStatus;
-  invalidFilePath?: string;
-  detail?: TargetLineDetail;
-};
 
 /**
  * e5 仕入原価リストデータ作成完了後の整合性チェックを行う（対象: 3.宮地店）。
@@ -96,7 +96,7 @@ async function readLines(filePath: string): Promise<string[]> {
 /**
  * 対象ファイルの更新日時および仕入原価データの整合性を検証する。
  */
-async function checkCostListData(): Promise<JobResultData> {
+async function checkCostListData(): Promise<JobE55ResultData> {
   for (const filePath of [CONFIG.sourcePath, CONFIG.targetPath]) {
     if (!(await isUpdatedToday(filePath))) {
       return {
@@ -124,7 +124,7 @@ async function checkCostListData(): Promise<JobResultData> {
   const [dept, store, purchase, transfer, sales, startDate, endDate] =
     targetLine.split(",");
 
-  const detail: TargetLineDetail = {
+  const detail: TargetLineDetailE55 = {
     dept,
     store,
     purchase,
@@ -150,7 +150,10 @@ async function checkCostListData(): Promise<JobResultData> {
 /**
  * 検証結果をログ出力し、JobResult を返却する。
  */
-function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {
+function writeResultLog(
+  logger: JobLogger,
+  result: JobE55ResultData,
+): JobResult {
   logger.section("確認対象ファイル");
   logger.log(`元データ   : ${CONFIG.sourcePath}`);
   logger.log(`送信データ : ${CONFIG.targetPath}`);

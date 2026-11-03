@@ -9,6 +9,19 @@ import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/job
 import { createZipArchive } from "@electron/features/operation/jobs/scripts/helpers/zipHelper";
 import { formatDateTime } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
+export interface FileStatusE9 {
+  fileName: string;
+  filePath: string;
+  mtime: Date;
+  isToday: boolean;
+}
+
+export interface JobE9ResultData {
+  matchedFiles: FileStatusE9[];
+  dateIssueFiles: FileStatusE9[];
+  zipMessage?: string;
+}
+
 const CONFIG = {
   targetDir: "\\\\S0088003\\syn_tran\\from_ACOS\\SendData",
   expectedFileCount: 16,
@@ -16,19 +29,6 @@ const CONFIG = {
   fileExtension: ".TXT",
   zipPrefix: "SendData_POP",
 } as const;
-
-type FileStatus = {
-  fileName: string;
-  filePath: string;
-  mtime: Date;
-  isToday: boolean;
-};
-
-type JobResultData = {
-  matchedFiles: FileStatus[];
-  dateIssueFiles: FileStatus[];
-  zipMessage?: string;
-};
 
 /**
  * POP関連ファイル（FPOPHAT*.TXT 16件）の存在と更新日を確認し、ZIPアーカイブを作成する。
@@ -66,7 +66,9 @@ export async function runJobE9(): Promise<string> {
 /**
  * 対象ファイルを検索し、日付検証およびZIPアーカイブ作成を実行する。
  */
-async function checkAndArchiveFiles(logger: JobLogger): Promise<JobResultData> {
+async function checkAndArchiveFiles(
+  logger: JobLogger,
+): Promise<JobE9ResultData> {
   const now = new Date();
   const entries = await fs.readdir(CONFIG.targetDir, { withFileTypes: true });
 
@@ -79,15 +81,15 @@ async function checkAndArchiveFiles(logger: JobLogger): Promise<JobResultData> {
     );
   });
 
-  const matchedFiles: FileStatus[] = [];
-  const dateIssueFiles: FileStatus[] = [];
+  const matchedFiles: FileStatusE9[] = [];
+  const dateIssueFiles: FileStatusE9[] = [];
 
   for (const entry of matchedEntries) {
     const filePath = path.join(CONFIG.targetDir, entry.name);
     const fileStat = await fs.stat(filePath);
     const isToday = isSameDay(fileStat.mtime, now);
 
-    const fileStatus: FileStatus = {
+    const fileStatus: FileStatusE9 = {
       fileName: entry.name,
       filePath,
       mtime: fileStat.mtime,
@@ -132,7 +134,7 @@ async function checkAndArchiveFiles(logger: JobLogger): Promise<JobResultData> {
 /**
  * 検証結果をログに出力し、最終ステータスを判定する。
  */
-function writeResultLog(logger: JobLogger, result: JobResultData): string {
+function writeResultLog(logger: JobLogger, result: JobE9ResultData): string {
   logger.section("確認対象フォルダ");
   logger.log(CONFIG.targetDir);
 

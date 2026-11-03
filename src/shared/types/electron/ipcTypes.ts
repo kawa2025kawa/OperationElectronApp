@@ -1,7 +1,7 @@
 // src/shared/types/electron/ipcTypes.ts
 
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
-import type { AuthProfile } from "@shared/types/auth/authTypes";
+import type { AuthProfile } from "@shared/types/auth";
+import type { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type {
   ActiveFlags,
   JobResult,
@@ -12,6 +12,7 @@ import type {
   OperationViewItem,
   ScriptExecutionRequirement,
 } from "@shared/types/operation/operationTypes";
+import type { ViewMode } from "@shared/types/registry/viewDefinition";
 import type { RdpMaster } from "@shared/types/rdp/rdpTypes";
 import type { SpreadsheetMasterData } from "@shared/types/masterData/spreadsheetMasterDataTypes";
 import type { UpdateInfo } from "@shared/types/system";
@@ -22,7 +23,7 @@ import type {
 import type {
   EmailTemplateKey,
   GmailDraftFormValues,
-} from "@renderer/features/other/types/gmailDraftTypes";
+} from "@renderer/features/other/types/gmailDraftUiTypes";
 
 export interface IpcEventMap {
   [IPC_CHANNELS.SYSTEM.THEME_CHANGED]: [theme: "light" | "dark" | "system"];
@@ -37,188 +38,109 @@ export interface TempomaticUploadTargetFile {
   name?: string;
 }
 
-export interface IpcChannelMap {
-  // Auth
-  [IPC_CHANNELS.AUTH.LOGIN]: {
-    args: [];
-    return: AuthProfile;
-  };
-  [IPC_CHANNELS.AUTH.LOAD_SESSION]: {
-    args: [forceRefresh?: boolean];
-    return: AuthProfile | null;
-  };
-  [IPC_CHANNELS.AUTH.LOGOUT]: {
-    args: [];
-    return: void;
-  };
+/** チャンネル定義（関数シグネチャ）の宣言マップ */
+interface IpcChannelDefinitions {
+  // --- Auth ---
+  [IPC_CHANNELS.AUTH.LOGIN]: () => AuthProfile;
+  [IPC_CHANNELS.AUTH.LOAD_SESSION]: (
+    forceRefresh?: boolean,
+  ) => AuthProfile | null;
+  [IPC_CHANNELS.AUTH.LOGOUT]: () => void;
 
-  // System
-  [IPC_CHANNELS.SYSTEM.GET_APP_VERSION]: {
-    args: [];
-    return: string;
-  };
-  [IPC_CHANNELS.SYSTEM.SHOW_MAIN_WINDOW]: {
-    args: [];
-    return: null;
-  };
-  [IPC_CHANNELS.SYSTEM.QUIT_APP]: {
-    args: [];
-    return: null;
-  };
-  [IPC_CHANNELS.SYSTEM.OPEN_MANUAL]: {
-    args: [{ target: string; isAuto?: boolean }];
-    return: null;
-  };
-  [IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL]: {
-    args: [{ urlOrPath: string }];
-    return: null;
-  };
-  [IPC_CHANNELS.SYSTEM.SHOW_OPEN_DIALOG]: {
-    args: [options?: Record<string, unknown>];
-    return: string[] | null;
-  };
-  [IPC_CHANNELS.SYSTEM.READ_UPDATE_INFO]: {
-    args: [];
-    return: UpdateInfo | null;
-  };
+  // --- System ---
+  [IPC_CHANNELS.SYSTEM.GET_APP_VERSION]: () => string;
+  [IPC_CHANNELS.SYSTEM.SHOW_MAIN_WINDOW]: () => null;
+  [IPC_CHANNELS.SYSTEM.QUIT_APP]: () => null;
+  [IPC_CHANNELS.SYSTEM.OPEN_MANUAL]: (input: {
+    target: string;
+    isAuto?: boolean;
+  }) => null;
+  [IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL]: (input: { urlOrPath: string }) => null;
+  [IPC_CHANNELS.SYSTEM.SHOW_OPEN_DIALOG]: (
+    options?: Record<string, unknown>,
+  ) => string[] | null;
+  [IPC_CHANNELS.SYSTEM.READ_UPDATE_INFO]: () => UpdateInfo | null;
+  [IPC_CHANNELS.SYSTEM.RENAME_FILE]: (input: {
+    filePath: string;
+    newName: string;
+  }) => { success: boolean; newPath: string };
 
-  // RDP
-  [IPC_CHANNELS.RDP.GET_MASTERS]: {
-    args: [];
-    return: RdpMaster[];
-  };
-  [IPC_CHANNELS.RDP.START_SESSION]: {
-    args: [{ name: string }];
-    return: null;
-  };
+  // --- RDP ---
+  [IPC_CHANNELS.RDP.GET_MASTERS]: () => RdpMaster[];
+  [IPC_CHANNELS.RDP.START_SESSION]: (input: { name: string }) => null;
 
-  // Gmail
-  [IPC_CHANNELS.GMAIL.GET_SIGNATURE]: {
-    args: [];
-    return: string;
-  };
-  [IPC_CHANNELS.GMAIL.GENERATE_DRAFT_TEMPLATE]: {
-    args: [
-      params: {
-        templateKey: EmailTemplateKey;
-        familyName?: string;
-        links?: Record<string, string> | null;
-      },
-    ];
-    return: GmailDraftFormValues;
-  };
-  [IPC_CHANNELS.GMAIL.CREATE_DRAFT]: {
-    args: [
-      params: {
-        to?: string;
-        cc?: string;
-        subject?: string;
-        body?: string;
-        raw?: string;
-      },
-    ];
-    return: unknown;
-  };
+  // --- Gmail ---
+  [IPC_CHANNELS.GMAIL.GET_SIGNATURE]: () => string;
+  [IPC_CHANNELS.GMAIL.GENERATE_DRAFT_TEMPLATE]: (input: {
+    templateKey: EmailTemplateKey;
+    targetData?: Record<string, unknown>;
+    familyName?: string;
+    links?: Record<string, string> | null;
+  }) => GmailDraftFormValues;
+  [IPC_CHANNELS.GMAIL.CREATE_DRAFT]: (input: GmailDraftFormValues) => void;
 
-  // Spreadsheet
-  [IPC_CHANNELS.SPREADSHEET.GET_MASTER_DATA]: {
-    args: [];
-    return: SpreadsheetMasterData;
-  };
-  [IPC_CHANNELS.SPREADSHEET.GET_FILTERED_DATA]: {
-    args: [
-      params: {
-        sheetName: string;
-        searchTerm?: string;
-        searchKeys?: string[];
-      },
-    ];
-    return: Record<string, unknown>[];
-  };
+  // --- Spreadsheet ---
+  [IPC_CHANNELS.SPREADSHEET.GET_MASTER_DATA]: () => SpreadsheetMasterData;
+  [IPC_CHANNELS.SPREADSHEET.GET_FILTERED_DATA]: (input: {
+    sheetName: string;
+    query?: string;
+  }) => Record<string, unknown>[];
 
-  // Tempomatic
-  [IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT]: {
-    args: [
-      {
-        filePaths?: string[];
-        files?: TempomaticUploadTargetFile[];
-        expireDate?: string;
-      },
-    ];
-    return: string;
-  };
+  // --- Tempomatic ---
+  [IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT]: (input: {
+    files?: TempomaticUploadTargetFile[];
+    filePaths?: string[];
+    expireDate?: string;
+  }) => string;
 
-  // Other
-  [IPC_CHANNELS.OTHER.PROCESS_GIFT_MD]: {
-    args: [filePath: string];
-    return: string;
-  };
+  // --- Other ---
+  [IPC_CHANNELS.OTHER.PROCESS_GIFT_MD]: (filePath: string) => string;
 
-  // Operation
-  [IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS]: {
-    args: [];
-    return: ActiveFlags;
-  };
-  [IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY]: {
-    args: [];
-    return: StatusSummary;
-  };
-  [IPC_CHANNELS.OPERATION.GET_SUMMARY_DETAILS]: {
-    args: [{ filterKey: string }];
-    return: SummaryDetailRow[];
-  };
-  [IPC_CHANNELS.OPERATION.GET_TABLE_DATA]: {
-    args: [{ mode: "operation" | "irregular" | "today" }];
-    return: OperationViewItem[];
-  };
-  [IPC_CHANNELS.OPERATION.GET_SCRIPT_EXECUTION_REQUIREMENT]: {
-    args: [{ scriptKey: string }];
-    return: ScriptExecutionRequirement;
-  };
-  [IPC_CHANNELS.OPERATION.RESET_STATUSES]: {
-    args: [];
-    return: Record<string, OperationStatusState>;
-  };
-  [IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS]: {
-    args: [input: Partial<ActiveFlags> | { flags: Partial<ActiveFlags> }];
-    return: void;
-  };
-  [IPC_CHANNELS.OPERATION.DELETE_ALL_STATUSES]: {
-    args: [];
-    return: void;
-  };
-  [IPC_CHANNELS.OPERATION.INITIALIZE_STATUS]: {
-    args: [];
-    return: Record<string, OperationStatusState>;
-  };
-  [IPC_CHANNELS.OPERATION.REGISTER_TARGETS]: {
-    args: [];
-    return: void;
-  };
-  [IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS]: {
-    args: [
-      {
-        kanriNo: string;
-        status: JobStatus;
-        comment?: string;
-      },
-    ];
-    return: void;
-  };
-  [IPC_CHANNELS.OPERATION.START_POLLING]: {
-    args: [];
-    return: void;
-  };
-  [IPC_CHANNELS.OPERATION.STOP_POLLING]: {
-    args: [];
-    return: void;
-  };
-  [IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT]: {
-    args: [ManualScriptExecutionInput];
-    return: JobResult;
-  };
-  [IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS]: {
-    args: [{ kanriNo: string }];
-    return: OperationStatusState | null;
-  };
+  // --- Operation ---
+  [IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS]: () => ActiveFlags;
+  [IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY]: () => StatusSummary;
+  [IPC_CHANNELS.OPERATION.GET_SUMMARY_DETAILS]: (input: {
+    filterKey: string;
+  }) => SummaryDetailRow[];
+  [IPC_CHANNELS.OPERATION.GET_TABLE_DATA]: (input: {
+    mode: ViewMode;
+  }) => OperationViewItem[];
+  [IPC_CHANNELS.OPERATION.GET_SCRIPT_EXECUTION_REQUIREMENT]: (input: {
+    scriptKey: string;
+  }) => ScriptExecutionRequirement;
+  [IPC_CHANNELS.OPERATION.RESET_STATUSES]: () => Record<
+    string,
+    OperationStatusState
+  >;
+  [IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS]: (
+    input: Partial<ActiveFlags> | { flags: Partial<ActiveFlags> },
+  ) => void;
+  [IPC_CHANNELS.OPERATION.DELETE_ALL_STATUSES]: () => void;
+  [IPC_CHANNELS.OPERATION.INITIALIZE_STATUS]: () => Record<
+    string,
+    OperationStatusState
+  >;
+  [IPC_CHANNELS.OPERATION.REGISTER_TARGETS]: () => void;
+  [IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS]: (input: {
+    kanriNo: string;
+    status: JobStatus;
+    comment?: string;
+  }) => void;
+  [IPC_CHANNELS.OPERATION.START_POLLING]: () => void;
+  [IPC_CHANNELS.OPERATION.STOP_POLLING]: () => void;
+  [IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT]: (
+    input: ManualScriptExecutionInput,
+  ) => JobResult;
+  [IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS]: (input: {
+    kanriNo: string;
+  }) => OperationStatusState | null;
 }
+
+/** 既存の invoke / ipcMain.handle 向けの後方互換型マッピング */
+export type IpcChannelMap = {
+  [K in keyof IpcChannelDefinitions]: IpcChannelDefinitions[K] extends (
+    ...args: infer Args
+  ) => infer Return
+    ? { args: Args; return: Return }
+    : never;
+};

@@ -1,4 +1,4 @@
-// src/renderer/features/spreadsheet/shop/modal/useShopModalContent.ts
+// src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
 
 import { useMemo, useCallback } from "react";
 import type { Shop } from "@shared/types/spreadsheet/shop";
@@ -8,6 +8,8 @@ import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
 import {
   SHOP_MODAL_GROUPS,
   TIME_RECORDER_IMAGE_ITEMS,
+  SHOP_MODAL_CONSTANTS,
+  EMPTY_VALUE_FALLBACK,
 } from "./shopModalConfig";
 
 interface UseShopModalContentParams {
@@ -17,7 +19,7 @@ interface UseShopModalContentParams {
 function getValidFilePath(value: unknown): string {
   if (typeof value !== "string") return "";
   const path = value.trim();
-  return path && path !== "-" ? path : "";
+  return path && path !== EMPTY_VALUE_FALLBACK ? path : "";
 }
 
 export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
@@ -28,10 +30,11 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     useSpreadSheetTabData(data, SHOP_MODAL_GROUPS);
 
   const isTimeRecorderTab =
-    SHOP_MODAL_GROUPS[selectedIndex]?.title === "タイムレコーダー";
+    SHOP_MODAL_GROUPS[selectedIndex]?.title ===
+    SHOP_MODAL_CONSTANTS.TAB_TITLES.TIME_RECORDER;
 
   const handleOpenPath = useCallback(async (path: string | undefined) => {
-    if (!path || path === "-") return;
+    if (!path || path === EMPTY_VALUE_FALLBACK) return;
     const normalized = path.trim();
     if (!normalized) return;
 
@@ -52,7 +55,7 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     const imageActions: ModalAction[] = TIME_RECORDER_IMAGE_ITEMS.map(
       ({ key, label }) => {
         const rawValue = data[key];
-        const hasUrl = Boolean(rawValue && rawValue !== "-");
+        const hasUrl = Boolean(rawValue && rawValue !== EMPTY_VALUE_FALLBACK);
 
         return {
           id: `image-${key}`,
@@ -69,7 +72,7 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     if (excelPath) {
       fileActions.push({
         id: "excel",
-        label: "店舗情報.xlsx",
+        label: SHOP_MODAL_CONSTANTS.FILES.EXCEL_LABEL,
         onClick: () => void handleOpenPath(excelPath),
         variant: "default",
       });
@@ -78,7 +81,7 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     if (pdfPath) {
       fileActions.push({
         id: "pdf",
-        label: "店舗情報.pdf",
+        label: SHOP_MODAL_CONSTANTS.FILES.PDF_LABEL,
         onClick: () => void handleOpenPath(pdfPath),
         variant: "default",
       });

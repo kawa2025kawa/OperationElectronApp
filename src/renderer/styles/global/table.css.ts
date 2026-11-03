@@ -89,8 +89,17 @@ export const tableRowBase = style([
     isolation: "isolate",
     transform: "translateZ(0)",
     zIndex: 0,
+    outline: "none",
     // 🎯 ハードコードをトークン参照に修正
     transition: `box-shadow ${tokens.transition.normal}, background-color ${tokens.transition.normal}, color ${tokens.transition.normal}`,
+    selectors: {
+      "&:focus": {
+        outline: "none",
+      },
+      "&:focus-visible": {
+        outline: "none",
+      },
+    },
   },
 ]);
 

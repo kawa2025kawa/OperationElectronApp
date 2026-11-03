@@ -1,6 +1,5 @@
 // electron/ipc/operationIpc.ts
 
-import { ipcMain } from "electron";
 import {
   getOperationTableData,
   getStatusSummary,
@@ -10,7 +9,10 @@ import {
   startPolling,
   stopPolling,
 } from "@electron/features/operation/application/operationScheduler";
-import { getScriptExecutionRequirement } from "@electron/features/operation/application/scriptExecutionService";
+import {
+  executeManualScript,
+  getScriptExecutionRequirement,
+} from "@electron/features/operation/application/scriptExecutionService";
 import {
   deleteAllStatuses,
   getActiveFlags,
@@ -20,159 +22,61 @@ import {
   updateManualStatus,
   updateOperationActiveFlags,
 } from "@electron/features/operation/application/statusManager";
-import { executeManualScript } from "@electron/features/operation/application/scriptExecutionService";
 import { fetchSingleTrackerStatus } from "@electron/features/operation/application/operationStatusEvaluator";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
-import type { IpcChannelMap } from "@shared/types/electron/ipcTypes";
+import { registerIpcHandler } from "./ipcHelper";
 
 export function registerOperationIpc(): void {
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS,
-    (): IpcChannelMap[typeof IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS]["return"] => {
-      return getActiveFlags();
-    },
+  registerIpcHandler(IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS, () =>
+    getActiveFlags(),
   );
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY,
-    (): IpcChannelMap[typeof IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY]["return"] => {
-      return getStatusSummary();
-    },
+  registerIpcHandler(IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY, () =>
+    getStatusSummary(),
   );
-
-  ipcMain.handle(
+  registerIpcHandler(
     IPC_CHANNELS.OPERATION.GET_SUMMARY_DETAILS,
-    (
-      _event,
-      {
-        filterKey,
-      }: IpcChannelMap[typeof IPC_CHANNELS.OPERATION.GET_SUMMARY_DETAILS]["args"][0],
-    ): IpcChannelMap[typeof IPC_CHANNELS.OPERATION.GET_SUMMARY_DETAILS]["return"] => {
-      return getSummaryDetails(filterKey);
-    },
+    ({ filterKey }) => getSummaryDetails(filterKey),
   );
-
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.GET_TABLE_DATA,
-    (
-      _event,
-      {
-        mode,
-      }: IpcChannelMap[typeof IPC_CHANNELS.OPERATION.GET_TABLE_DATA]["args"][0],
-    ): IpcChannelMap[typeof IPC_CHANNELS.OPERATION.GET_TABLE_DATA]["return"] => {
-      return getOperationTableData(mode);
-    },
+  registerIpcHandler(IPC_CHANNELS.OPERATION.GET_TABLE_DATA, ({ mode }) =>
+    getOperationTableData(mode),
   );
-
-  ipcMain.handle(
+  registerIpcHandler(
     IPC_CHANNELS.OPERATION.GET_SCRIPT_EXECUTION_REQUIREMENT,
-    (
-      _event,
-      {
-        scriptKey,
-      }: IpcChannelMap[typeof IPC_CHANNELS.OPERATION.GET_SCRIPT_EXECUTION_REQUIREMENT]["args"][0],
-    ): IpcChannelMap[typeof IPC_CHANNELS.OPERATION.GET_SCRIPT_EXECUTION_REQUIREMENT]["return"] => {
-      return getScriptExecutionRequirement(scriptKey);
-    },
+    ({ scriptKey }) => getScriptExecutionRequirement(scriptKey),
   );
 
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.RESET_STATUSES,
-    async (): Promise<
-      IpcChannelMap[typeof IPC_CHANNELS.OPERATION.RESET_STATUSES]["return"]
-    > => {
-      stopPolling();
-      return resetOperationStatuses();
-    },
-  );
+  registerIpcHandler(IPC_CHANNELS.OPERATION.RESET_STATUSES, async () => {
+    stopPolling();
+    return resetOperationStatuses();
+  });
 
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS,
-    (
-      _event,
-      input: IpcChannelMap[typeof IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS]["args"][0],
-    ): IpcChannelMap[typeof IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS]["return"] => {
-      if ("flags" in input) {
-        updateOperationActiveFlags(input.flags);
-      } else {
-        updateOperationActiveFlags(input);
-      }
-    },
-  );
+  registerIpcHandler(IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS, (input) => {
+    const flags = "flags" in input ? input.flags : input;
+    updateOperationActiveFlags(flags);
+  });
 
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.DELETE_ALL_STATUSES,
-    async (): Promise<
-      IpcChannelMap[typeof IPC_CHANNELS.OPERATION.DELETE_ALL_STATUSES]["return"]
-    > => {
-      await deleteAllStatuses();
-    },
+  registerIpcHandler(IPC_CHANNELS.OPERATION.DELETE_ALL_STATUSES, () =>
+    deleteAllStatuses(),
   );
-
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.INITIALIZE_STATUS,
-    async (): Promise<
-      IpcChannelMap[typeof IPC_CHANNELS.OPERATION.INITIALIZE_STATUS]["return"]
-    > => {
-      return await initializeStatuses();
-    },
+  registerIpcHandler(IPC_CHANNELS.OPERATION.INITIALIZE_STATUS, () =>
+    initializeStatuses(),
   );
-
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.REGISTER_TARGETS,
-    async (): Promise<
-      IpcChannelMap[typeof IPC_CHANNELS.OPERATION.REGISTER_TARGETS]["return"]
-    > => {
-      await registerOperationTargets();
-    },
+  registerIpcHandler(IPC_CHANNELS.OPERATION.REGISTER_TARGETS, () =>
+    registerOperationTargets(),
   );
+  registerIpcHandler(IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS, (input) => {
+    updateManualStatus(input.kanriNo, input.status, input.comment ?? "");
+  });
 
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS,
-    (
-      _event,
-      input: IpcChannelMap[typeof IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS]["args"][0],
-    ): IpcChannelMap[typeof IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS]["return"] => {
-      updateManualStatus(input.kanriNo, input.status, input.comment ?? "");
-    },
+  registerIpcHandler(IPC_CHANNELS.OPERATION.START_POLLING, () =>
+    startPolling(),
   );
-
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.START_POLLING,
-    (): IpcChannelMap[typeof IPC_CHANNELS.OPERATION.START_POLLING]["return"] => {
-      startPolling();
-    },
+  registerIpcHandler(IPC_CHANNELS.OPERATION.STOP_POLLING, () => stopPolling());
+  registerIpcHandler(IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT, (input) =>
+    executeManualScript(input),
   );
-
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.STOP_POLLING,
-    (): IpcChannelMap[typeof IPC_CHANNELS.OPERATION.STOP_POLLING]["return"] => {
-      stopPolling();
-    },
-  );
-
-  ipcMain.handle(
-    IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT,
-    async (
-      _event,
-      input: IpcChannelMap[typeof IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT]["args"][0],
-    ): Promise<
-      IpcChannelMap[typeof IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT]["return"]
-    > => {
-      return executeManualScript(input);
-    },
-  );
-
-  ipcMain.handle(
+  registerIpcHandler(
     IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS,
-    async (
-      _event,
-      {
-        kanriNo,
-      }: IpcChannelMap[typeof IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS]["args"][0],
-    ): Promise<
-      IpcChannelMap[typeof IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS]["return"]
-    > => {
-      return fetchSingleTrackerStatus(kanriNo);
-    },
+    ({ kanriNo }) => fetchSingleTrackerStatus(kanriNo),
   );
 }

@@ -19,3 +19,8 @@ export const modeContent = style({
   height: "100%",
   minHeight: 0,
 });
+
+export const emptyCell = style({
+  height: "240px",
+  verticalAlign: "middle",
+});

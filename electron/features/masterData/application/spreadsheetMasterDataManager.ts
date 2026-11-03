@@ -1,6 +1,9 @@
 // electron/features/masterData/application/spreadsheetMasterDataManager.ts
 
-import type { SpreadsheetMasterData } from "@shared/types/masterData/spreadsheetMasterDataTypes";
+import {
+  SPREADSHEET_MASTER_DATA_KEYS,
+  type SpreadsheetMasterData,
+} from "@shared/types/masterData/spreadsheetMasterDataTypes";
 import {
   deleteMasterDataFileCache,
   loadMasterDataFileCache,
@@ -11,8 +14,11 @@ import { loadSpreadsheetMasterData } from "../infrastructure/spreadsheetMasterLo
 import { buildTodayIrregulars } from "./todayIrregularFilter";
 import { createMasterDataCacheService } from "./masterDataCacheService";
 
-const CACHE_FILE_NAME = "spreadsheet-master-data.json";
-const CACHE_VERSION = 2;
+export const SPREADSHEET_MASTER_CACHE_CONFIG = {
+  fileName: "spreadsheet-master-data.json",
+  version: 2,
+  logPrefix: "[SpreadsheetMasterDataManager]",
+} as const;
 
 function isSpreadsheetMasterData(
   value: unknown,
@@ -23,16 +29,7 @@ function isSpreadsheetMasterData(
 
   const data = value as Record<string, unknown>;
 
-  return (
-    Array.isArray(data.stores) &&
-    Array.isArray(data.kokyuhyos) &&
-    Array.isArray(data.jugyoin) &&
-    Array.isArray(data.kokyuhyoTantous) &&
-    Array.isArray(data.operations) &&
-    Array.isArray(data.irregulars) &&
-    Array.isArray(data.todayIrregulars) &&
-    Array.isArray(data.rdps)
-  );
+  return SPREADSHEET_MASTER_DATA_KEYS.every((key) => Array.isArray(data[key]));
 }
 
 // 取得データ・キャッシュデータを正規化し、当日対象を生成する。
@@ -49,18 +46,23 @@ const spreadsheetMasterDataCache =
   createMasterDataCacheService<SpreadsheetMasterData>({
     loadCache: async () => {
       const cached = await loadMasterDataFileCache(
-        CACHE_FILE_NAME,
-        CACHE_VERSION,
+        SPREADSHEET_MASTER_CACHE_CONFIG.fileName,
+        SPREADSHEET_MASTER_CACHE_CONFIG.version,
         isSpreadsheetMasterData,
       );
 
       return cached ? { ...cached, data: normalizeData(cached.data) } : null;
     },
     saveCache: (data) =>
-      saveMasterDataFileCache(CACHE_FILE_NAME, CACHE_VERSION, data),
-    deleteCache: () => deleteMasterDataFileCache(CACHE_FILE_NAME),
+      saveMasterDataFileCache(
+        SPREADSHEET_MASTER_CACHE_CONFIG.fileName,
+        SPREADSHEET_MASTER_CACHE_CONFIG.version,
+        data,
+      ),
+    deleteCache: () =>
+      deleteMasterDataFileCache(SPREADSHEET_MASTER_CACHE_CONFIG.fileName),
     loadFreshData: async () => normalizeData(await loadSpreadsheetMasterData()),
-    logPrefix: "[SpreadsheetMasterDataManager]",
+    logPrefix: SPREADSHEET_MASTER_CACHE_CONFIG.logPrefix,
   });
 
 export async function getSpreadsheetMasterData(): Promise<SpreadsheetMasterData> {

@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-import { LoadingOverlay } from "@renderer/components/ui/overlay/LoadingOverlay";
 
 import * as styles from "./globalModalManager.css";
 import { useGlobalModalManager } from "./useGlobalModalManager";
@@ -61,12 +60,6 @@ export const GlobalModalManager = () => {
         }}
         onClick={(event) => event.stopPropagation()}
       >
-        <LoadingOverlay
-          isOpen={state.isProcessing}
-          message="PROCESSING"
-          statusMessage="処理を実行中..."
-        />
-
         <header className={styles.header}>
           <h2 className={styles.title}>{state.title}</h2>
 

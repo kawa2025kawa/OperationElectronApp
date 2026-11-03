@@ -7,6 +7,7 @@ import type {
 } from "@shared/types/operation/operationTypes";
 import { useAppStore } from "@renderer/store";
 import { operationService } from "@renderer/features/operation/operationService";
+import { SCRIPT_MODAL_MESSAGES } from "./scriptModalConstants";
 
 interface ScriptFileItem {
   name: string;
@@ -56,40 +57,36 @@ function getExecutionState(result: JobResult): ExecutionState {
 function getInfoMessage(
   executionState: ExecutionState,
   executionResult: JobResult | null,
-  workName: string | undefined,
-  scriptKey: string,
 ): InfoBoxMessage {
   switch (executionState) {
     case "error":
       return {
-        text: "エラーが発生しました",
+        text: SCRIPT_MODAL_MESSAGES.ERROR,
         type: "error",
       };
 
     case "needsAction":
       return {
-        text: "要対応",
+        text: SCRIPT_MODAL_MESSAGES.NEEDS_ACTION,
         type: "warning",
       };
 
     case "completed":
       if (executionResult?.kind === "difference") {
         return {
-          text: "差分あり",
+          text: SCRIPT_MODAL_MESSAGES.DIFFERENCE,
           type: "error",
         };
       }
 
       return {
-        text: "正常終了しました",
+        text: SCRIPT_MODAL_MESSAGES.SUCCESS,
         type: "success",
       };
 
     case "idle":
       return {
-        text: workName
-          ? `${workName} (${scriptKey})`
-          : `スクリプト実行 (${scriptKey})`,
+        text: SCRIPT_MODAL_MESSAGES.CONFIRM_IDLE,
         type: "info",
       };
   }
@@ -125,12 +122,7 @@ export function useScriptModalContent(
     Boolean(scriptKey) &&
     (!isFileSelectionRequired || selectedFiles.length > 0);
 
-  const infoMessage = getInfoMessage(
-    executionState,
-    executionResult,
-    targetName,
-    scriptKey,
-  );
+  const infoMessage = getInfoMessage(executionState, executionResult);
 
   const handleFileSelect = useCallback((files: File[]) => {
     const items = toScriptFileItems(files);

@@ -2,6 +2,11 @@
 
 import { addDays, format, getDay } from "date-fns";
 import { ja } from "date-fns/locale/ja";
+import {
+  SHOP_COLUMNS,
+  getKokyuhyoColumns,
+  getJugyoinColumns,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 
 export const formatDateForHeader = (date: Date): string =>
   format(date, "MM/dd(EEE)", { locale: ja });
@@ -33,3 +38,7 @@ export function getSpreadSheetDateLabels() {
 }
 
 export const DATE_LABELS = getSpreadSheetDateLabels();
+
+export { SHOP_COLUMNS };
+export const KOKYUHYO_COLUMNS = getKokyuhyoColumns(DATE_LABELS);
+export const JUGYOIN_COLUMNS = getJugyoinColumns(DATE_LABELS);

@@ -5,7 +5,7 @@ import { memo } from "react";
 import { AuthView } from "@renderer/features/auth/AuthView";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import * as styles from "./gmailDraftContent.css";
-import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftTypes";
+import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftUiTypes";
 import { useGmailModalLogic } from "./useGmailModalLogic";
 
 export const GmailDraftContent: GlobalModalComponent = memo(() => {

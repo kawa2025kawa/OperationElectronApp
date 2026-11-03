@@ -2,6 +2,7 @@
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens";
+import { JOB_STATUS } from "@shared/types/operation/operationTypes";
 
 export const content = style({
   minWidth: "160px",
@@ -62,28 +63,28 @@ export const itemBase = style({
 });
 
 export const itemVariants = styleVariants({
-  SCHEDULED: {
+  [JOB_STATUS.SCHEDULED]: {
     color: tokens.color.status.scheduled,
   },
-  RUNNING: {
+  [JOB_STATUS.RUNNING]: {
     color: tokens.color.status.running,
   },
-  SCRIPTRUNNING: {
+  [JOB_STATUS.SCRIPT_RUNNING]: {
     color: tokens.color.status.running,
   },
-  SUCCESS: {
+  [JOB_STATUS.SUCCESS]: {
     color: tokens.color.status.success,
   },
-  READY: {
+  [JOB_STATUS.READY]: {
     color: tokens.color.status.ready,
   },
-  WAITING: {
+  [JOB_STATUS.WAITING]: {
     color: tokens.color.status.waiting,
   },
-  NEEDSACTION: {
+  [JOB_STATUS.NEEDS_ACTION]: {
     color: tokens.color.status.needsAction,
   },
-  ERROR: {
+  [JOB_STATUS.ERROR]: {
     color: tokens.color.status.error,
   },
 });

@@ -8,6 +8,27 @@ import readline from "node:readline";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
+export const TARGET_CODES = ["S330", "S332"] as const;
+export type JobN33TargetCode = (typeof TARGET_CODES)[number];
+
+export interface UnassignedDetail {
+  code: string;
+  detail: string;
+}
+
+export interface TargetCodeResult {
+  codeName: string;
+  fileName: string | null;
+  unassignedItems: UnassignedDetail[];
+}
+
+export interface JobN33ResultData {
+  today: string;
+  results: TargetCodeResult[];
+  missingCodes: string[];
+  unassignedCodes: string[];
+}
+
 const CONFIG = {
   ftp: {
     host: "172.31.1.4",
@@ -16,27 +37,18 @@ const CONFIG = {
     password: "fe-Ftp",
   },
   ftpDir: "/fep/chkcount/",
-  targetCodes: ["S330", "S332"] as const,
-  excludeStoreCodes: ["24", "43", "51", "57", "59", "88", "88*", "7**"],
+  targetCodes: TARGET_CODES,
+  excludeStoreCodes: [
+    "24",
+    "43",
+    "51",
+    "57",
+    "59",
+    "88",
+    "88*",
+    "7**",
+  ] as const,
 } as const;
-
-type UnassignedDetail = {
-  code: string;
-  detail: string;
-};
-
-type TargetCodeResult = {
-  codeName: string;
-  fileName: string | null;
-  unassignedItems: UnassignedDetail[];
-};
-
-type JobResultData = {
-  today: string;
-  results: TargetCodeResult[];
-  missingCodes: string[];
-  unassignedCodes: string[];
-};
 
 /**
  * FEP FTPサーバー上の当日CSV（S330, S332）をストリーム走査し、未格納データの有無を検証する。
@@ -144,7 +156,7 @@ async function processCsvStream(stream: Readable): Promise<UnassignedDetail[]> {
 /**
  * FTPサーバーへ接続し、対象コードごとのCSV検証を実行する。
  */
-async function checkFtpCsvFiles(): Promise<JobResultData> {
+async function checkFtpCsvFiles(): Promise<JobN33ResultData> {
   const client = new Client();
   const today = format(new Date(), "yyyyMMdd");
 
@@ -203,11 +215,11 @@ async function checkFtpCsvFiles(): Promise<JobResultData> {
 /**
  * 検証結果をログに出力し、最終ステータスを判定する。
  */
-function writeResultLog(logger: JobLogger, result: JobResultData): string {
+function writeResultLog(logger: JobLogger, result: JobN33ResultData): string {
   logger.section("FTP接続情報");
-  logger.log(`接続先       : ${CONFIG.ftp.host}:${CONFIG.ftp.port}`);
-  logger.log(`ディレクトリ : ${CONFIG.ftpDir}`);
-  logger.log(`対象日付     : ${result.today}`);
+  logger.log(`接続先        : ${CONFIG.ftp.host}:${CONFIG.ftp.port}`);
+  logger.log(`ディレクトリ  : ${CONFIG.ftpDir}`);
+  logger.log(`対象日付      : ${result.today}`);
 
   logger.section("チェック結果");
   for (const item of result.results) {

@@ -4,9 +4,9 @@ import type {
   JobStatus,
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
+import { OPERATION_FIELD_LABELS } from "@shared/types/operation/operationTypes";
+import { EMPTY_VALUE_FALLBACK } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
-
-const MISSING_PROPERTY_VALUE = "‐";
 
 const ISO_DATE_TIME_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
@@ -41,7 +41,7 @@ export interface InfoRowDefinition {
 }
 
 export interface InfoRowData extends InfoRowDefinition {
-  readonly value: string;
+  readonly value: string; // string型
 }
 
 export interface InfoRowValue {
@@ -51,24 +51,40 @@ export interface InfoRowValue {
 
 export const OPERATION_INFO_ROW_DEFINITIONS = {
   operation: [
-    { field: "kanriNo", label: "管理No", type: "text" },
-    { field: "workName", label: "業務名", type: "text" },
-    { field: "status", label: "状態", type: "status" },
-    { field: "startTime", label: "開始時刻", type: "text" },
-    { field: "endTime", label: "終了時刻", type: "text" },
-    { field: "comment", label: "備考", type: "remarks" },
+    { field: "kanriNo", label: OPERATION_FIELD_LABELS.kanriNo, type: "text" },
+    { field: "workName", label: OPERATION_FIELD_LABELS.workName, type: "text" },
+    { field: "status", label: OPERATION_FIELD_LABELS.status, type: "status" },
+    {
+      field: "startTime",
+      label: OPERATION_FIELD_LABELS.startTime,
+      type: "text",
+    },
+    { field: "endTime", label: OPERATION_FIELD_LABELS.endTime, type: "text" },
+    {
+      field: "comment",
+      label: OPERATION_FIELD_LABELS.comment,
+      type: "remarks",
+    },
   ],
   irregular: [
-    { field: "kanriNo", label: "管理No", type: "text" },
-    { field: "scheduleTime", label: "予定時刻", type: "text" },
-    { field: "workName", label: "業務名", type: "text" },
-    { field: "cycle", label: "サイクル", type: "text" },
+    { field: "kanriNo", label: OPERATION_FIELD_LABELS.kanriNo, type: "text" },
+    {
+      field: "scheduleTime",
+      label: OPERATION_FIELD_LABELS.scheduledTime,
+      type: "text",
+    },
+    { field: "workName", label: OPERATION_FIELD_LABELS.workName, type: "text" },
+    { field: "cycle", label: OPERATION_FIELD_LABELS.cycle, type: "text" },
   ],
   today: [
-    { field: "kanriNo", label: "管理No", type: "text" },
-    { field: "workName", label: "業務名", type: "text" },
-    { field: "status", label: "状態", type: "status" },
-    { field: "comment", label: "備考", type: "remarks" },
+    { field: "kanriNo", label: OPERATION_FIELD_LABELS.kanriNo, type: "text" },
+    { field: "workName", label: OPERATION_FIELD_LABELS.workName, type: "text" },
+    { field: "status", label: OPERATION_FIELD_LABELS.status, type: "status" },
+    {
+      field: "comment",
+      label: OPERATION_FIELD_LABELS.comment,
+      type: "remarks",
+    },
   ],
 } as const satisfies Record<ViewMode, readonly InfoRowDefinition[]>;
 
@@ -92,11 +108,15 @@ function isValidDate(date: Date): boolean {
 
 // プロパティが存在しない場合の欠損プレースホルダー表示値を返す。
 export function toMissingPropertyDisplayValue(): string {
-  return MISSING_PROPERTY_VALUE;
+  return EMPTY_VALUE_FALLBACK;
 }
 
 // 存在するプロパティの値を表示用文字列に変換する。
 export function toDisplayValue(value: unknown): string {
+  if (value == null || value === "") {
+    return EMPTY_VALUE_FALLBACK;
+  }
+
   if (value instanceof Date) {
     return isValidDate(value) ? formatJapanDateTime(value) : String(value);
   }

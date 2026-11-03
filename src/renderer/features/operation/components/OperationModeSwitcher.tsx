@@ -1,9 +1,13 @@
-﻿import { memo } from "react";
+﻿// src/renderer/features/operation/components/OperationModeSwitcher.tsx
+
+import { memo } from "react";
 
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
-import { VIEW_MODES } from "@shared/types/registry/viewDefinition";
-
-import * as styles from "../operationView.css";
+import {
+  VIEW_MODES,
+  VIEW_MODE_LABELS,
+} from "@shared/types/registry/viewDefinition";
+import * as styles from "@renderer/features/operation/operationView.css";
 
 const MODES: readonly ViewMode[] = Object.values(VIEW_MODES);
 
@@ -28,7 +32,7 @@ export const OperationModeSwitcher = memo(function OperationModeSwitcher({
           data-active={currentMode === mode}
           onClick={() => onModeChange(mode)}
         >
-          {mode.charAt(0).toUpperCase() + mode.slice(1)}
+          {VIEW_MODE_LABELS[mode]}
         </button>
       ))}
     </div>

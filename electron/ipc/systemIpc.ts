@@ -1,6 +1,9 @@
 // electron/ipc/systemIpc.ts
 
-import { app, dialog, ipcMain, shell, type OpenDialogOptions } from "electron";
+import path from "node:path";
+import { app, dialog, shell, type OpenDialogOptions } from "electron";
+import fs from "fs-extra";
+
 import {
   getMainWindow,
   getManualUrl,
@@ -8,98 +11,79 @@ import {
   readUpdateInfo,
 } from "@electron/features/system/systemService";
 import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
-import type { IpcChannelMap } from "@shared/types/electron/ipcTypes";
+import { registerIpcHandler } from "./ipcHelper";
 
 // アプリ基本操作（バージョン取得・ウィンドウ表示・終了・マニュアル・ファイル選択等）のIPCハンドラーを登録する。
 export function registerSystemIpc(): void {
-  ipcMain.handle(
-    IPC_CHANNELS.SYSTEM.GET_APP_VERSION,
-    (): IpcChannelMap[typeof IPC_CHANNELS.SYSTEM.GET_APP_VERSION]["return"] => {
-      return app.getVersion();
-    },
+  registerIpcHandler(IPC_CHANNELS.SYSTEM.GET_APP_VERSION, () =>
+    app.getVersion(),
   );
 
-  ipcMain.handle(
-    IPC_CHANNELS.SYSTEM.SHOW_MAIN_WINDOW,
-    (): IpcChannelMap[typeof IPC_CHANNELS.SYSTEM.SHOW_MAIN_WINDOW]["return"] => {
-      const mainWindow = getMainWindow();
+  registerIpcHandler(IPC_CHANNELS.SYSTEM.SHOW_MAIN_WINDOW, () => {
+    const mainWindow = getMainWindow();
+    if (!mainWindow) return null;
 
-      if (!mainWindow) return null;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+    return null;
+  });
 
-      if (mainWindow.isMinimized()) mainWindow.restore();
+  registerIpcHandler(IPC_CHANNELS.SYSTEM.QUIT_APP, () => {
+    app.quit();
+    return null;
+  });
 
-      mainWindow.show();
-      mainWindow.focus();
-
-      return null;
-    },
-  );
-
-  ipcMain.handle(
-    IPC_CHANNELS.SYSTEM.QUIT_APP,
-    (): IpcChannelMap[typeof IPC_CHANNELS.SYSTEM.QUIT_APP]["return"] => {
-      app.quit();
-      return null;
-    },
-  );
-
-  ipcMain.handle(
+  registerIpcHandler(
     IPC_CHANNELS.SYSTEM.OPEN_MANUAL,
-    async (
-      _event,
-      {
-        target,
-        isAuto,
-      }: IpcChannelMap[typeof IPC_CHANNELS.SYSTEM.OPEN_MANUAL]["args"][0],
-    ): Promise<
-      IpcChannelMap[typeof IPC_CHANNELS.SYSTEM.OPEN_MANUAL]["return"]
-    > => {
+    async ({ target, isAuto }) => {
       const url = getManualUrl(target, isAuto);
       await shell.openExternal(url);
       return null;
     },
   );
 
-  ipcMain.handle(
+  registerIpcHandler(
     IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL,
-    async (
-      _event,
-      {
-        urlOrPath,
-      }: IpcChannelMap[typeof IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL]["args"][0],
-    ): Promise<
-      IpcChannelMap[typeof IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL]["return"]
-    > => {
+    async ({ urlOrPath }) => {
       await openExternalOrPath(urlOrPath);
       return null;
     },
   );
 
-  ipcMain.handle(
-    IPC_CHANNELS.SYSTEM.SHOW_OPEN_DIALOG,
-    async (
-      _event,
-      options?: IpcChannelMap[typeof IPC_CHANNELS.SYSTEM.SHOW_OPEN_DIALOG]["args"][0],
-    ): Promise<
-      IpcChannelMap[typeof IPC_CHANNELS.SYSTEM.SHOW_OPEN_DIALOG]["return"]
-    > => {
-      const mainWindow = getMainWindow();
+  registerIpcHandler(IPC_CHANNELS.SYSTEM.SHOW_OPEN_DIALOG, async (options) => {
+    const mainWindow = getMainWindow();
+    if (!mainWindow) return null;
 
-      if (!mainWindow) return null;
+    const opts = (options ?? {}) as OpenDialogOptions;
+    const result = await dialog.showOpenDialog(mainWindow, opts);
+    return result.canceled ? null : result.filePaths;
+  });
 
-      const opts = (options ?? {}) as OpenDialogOptions;
-      const result = await dialog.showOpenDialog(mainWindow, opts);
-
-      return result.canceled ? null : result.filePaths;
-    },
+  registerIpcHandler(IPC_CHANNELS.SYSTEM.READ_UPDATE_INFO, () =>
+    readUpdateInfo(),
   );
 
-  ipcMain.handle(
-    IPC_CHANNELS.SYSTEM.READ_UPDATE_INFO,
-    async (): Promise<
-      IpcChannelMap[typeof IPC_CHANNELS.SYSTEM.READ_UPDATE_INFO]["return"]
-    > => {
-      return readUpdateInfo();
+  registerIpcHandler(
+    IPC_CHANNELS.SYSTEM.RENAME_FILE,
+    async ({ filePath, newName }) => {
+      if (!filePath || !(await fs.pathExists(filePath))) {
+        throw new Error(`対象ファイルが存在しません: ${filePath}`);
+      }
+
+      const dir = path.dirname(filePath);
+      const targetPath = path.join(dir, newName);
+
+      if (filePath === targetPath) {
+        return { success: true, newPath: targetPath };
+      }
+
+      if (await fs.pathExists(targetPath)) {
+        throw new Error(`同名のファイルが既に存在します: ${newName}`);
+      }
+
+      await fs.rename(filePath, targetPath);
+      return { success: true, newPath: targetPath };
     },
   );
 }

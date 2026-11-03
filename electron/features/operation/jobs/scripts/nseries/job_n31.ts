@@ -4,32 +4,47 @@ import { chromium, type Page } from "playwright";
 import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
+export interface JobN31ResultData {
+  orderDate: string;
+  departmentCode: string;
+  supplierCode: string;
+}
+
+export interface JobN31Selectors {
+  readonly entry: string;
+  readonly userId: string;
+  readonly password: string;
+  readonly login: string;
+  readonly orderMenu: string;
+  readonly orderList: string;
+  readonly orderDate: string;
+  readonly departmentCode: string;
+  readonly supplier: string;
+  readonly execute: string;
+}
+
+const SELECTORS: JobN31Selectors = {
+  entry: "img[name='botan_img1_01']",
+  userId: "#TANTCD",
+  password: "#PASSWORD",
+  login: "#submit_btn",
+  orderMenu: "#menu_btn1",
+  orderList: "#menu_btn9",
+  orderDate: "#HAT_DATE",
+  departmentCode: "#BMN_CD_0",
+  supplier: "#SIR_CD_0",
+  execute: "#fkey_12",
+} as const;
+
 const CONFIG = {
   url: "https://www2.belc.co.jp:8002/webedi/belcwebedi.html",
   userId: "09803",
   password: "09803",
   supplierCode: "029560:",
   departmentCode: "3",
-  selectors: {
-    entry: "img[name='botan_img1_01']",
-    userId: "#TANTCD",
-    password: "#PASSWORD",
-    login: "#submit_btn",
-    orderMenu: "#menu_btn1",
-    orderList: "#menu_btn9",
-    orderDate: "#HAT_DATE",
-    departmentCode: "#BMN_CD_0",
-    supplier: "#SIR_CD_0",
-    execute: "#fkey_12",
-  },
+  selectors: SELECTORS,
   completionMessage: "正常終了",
 } as const;
-
-type JobResultData = {
-  orderDate: string;
-  departmentCode: string;
-  supplierCode: string;
-};
 
 /**
  * ベルク WEB-EDI にログインし、本日日付の発注一覧照会処理を自動実行する。
@@ -90,7 +105,7 @@ async function selectSupplier(page: Page): Promise<void> {
 /**
  * ブラウザを起動し、WEB-EDIの発注操作シーケンスを実行する。
  */
-async function executeWebEdiOrder(): Promise<JobResultData> {
+async function executeWebEdiOrder(): Promise<JobN31ResultData> {
   const orderDate = format(new Date(), "yyyy/MM/dd");
   const browser = await chromium.launch({
     headless: false,
@@ -127,7 +142,7 @@ async function executeWebEdiOrder(): Promise<JobResultData> {
 /**
  * 操作結果をログに出力し、完了メッセージを返却する。
  */
-function writeResultLog(logger: JobLogger, result: JobResultData): string {
+function writeResultLog(logger: JobLogger, result: JobN31ResultData): string {
   logger.section("WEB-EDI 操作情報");
   logger.log(`接続先URL     : ${CONFIG.url}`);
   logger.log(`発注日       : ${result.orderDate}`);
