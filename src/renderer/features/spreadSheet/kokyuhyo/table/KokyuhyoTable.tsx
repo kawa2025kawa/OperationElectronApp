@@ -5,7 +5,7 @@ import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
 import type { Column } from "@shared/types/table/tableType";
 import { SpreadSheetBaseTable } from "../../components/table/SpreadSheetBaseTable";
 import { KOKYUHYO_COLUMNS } from "../../utils/spreadsheetDateUtils";
-import * as styles from "@renderer/styles/global/table.css";
+import * as styles from "@renderer/styles/global/globalTable.css";
 
 export interface KokyuhyoTableProps {
   rows: readonly Kokyuhyo[];

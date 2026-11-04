@@ -49,8 +49,8 @@ const commonValues = {
   },
 
   transition: {
-    fast: "0.1s ease",
-    normal: "0.25s ease",
+    fast: "0.18s cubic-bezier(0.4, 0, 0.2, 1)", // 🎯 クリックや即時反応用（個別指定用）
+    normal: "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)", // 🎯 全体の基底：0.8s 統一フェード
     ease: "0.3s ease-out",
   },
 
@@ -133,7 +133,6 @@ export const themeTransition = style({
     `border-color ${commonValues.transition.normal}`,
     `box-shadow ${commonValues.transition.normal}`,
     `backdrop-filter ${commonValues.transition.normal}`,
-    `transform ${commonValues.transition.fast}`,
     `opacity ${commonValues.transition.normal}`,
   ].join(","),
 });

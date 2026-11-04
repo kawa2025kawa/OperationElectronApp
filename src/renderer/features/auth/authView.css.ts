@@ -1,7 +1,7 @@
-// src/renderer/features/auth/authView.css.ts
+﻿// src/renderer/features/auth/authView.css.ts
 
 import { style } from "@vanilla-extract/css";
-import { tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 export const viewContainer = style({
   width: "100%",
@@ -169,3 +169,4 @@ export const authButton = style({
     },
   },
 });
+

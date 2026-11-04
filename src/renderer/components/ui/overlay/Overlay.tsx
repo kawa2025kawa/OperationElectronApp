@@ -1,6 +1,6 @@
 // src/renderer/components/ui/overlay/Overlay.tsx
 import React from "react";
-import { m } from "framer-motion";
+import { m } from "motion/react";
 import * as styles from "./overlay.css";
 
 interface OverlayProps {

@@ -3,7 +3,7 @@
 import {
   SPREADSHEET_MASTER_DATA_KEYS,
   type SpreadsheetMasterData,
-} from "@shared/types/masterData/spreadsheetMasterDataTypes";
+} from "../types/internalSpreadsheetMasterDataTypes";
 import {
   deleteMasterDataFileCache,
   loadMasterDataFileCache,

@@ -1,4 +1,4 @@
-﻿// src/renderer/features/operation/operationModal.ts
+﻿// src\renderer\features\operation\components\modal\operationModal.ts
 
 import { createElement } from "react";
 import { PdfUploadModalContent } from "@renderer/features/other/components/modal/contents/pdfUpload/PdfUploadModalContent";
@@ -8,9 +8,9 @@ import type {
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
 import { MODAL_PRESETS } from "@shared/types/ui/modal";
-import { getOperationWorkName } from "./operationDisplayUtils";
-import { LinkModalContent } from "./components/modal/linkModal/LinkModalContent";
-import { ScriptModalContent } from "./components/modal/scriptModal/ScriptModalContent";
+import { getOperationWorkName } from "../../utils/operationDisplayUtils";
+import { LinkModalContent } from "./linkModal/LinkModalContent";
+import { ScriptModalContent } from "./scriptModal/ScriptModalContent";
 
 type OpenGlobalModal = AppState["openGlobalModal"];
 

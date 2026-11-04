@@ -6,7 +6,7 @@ import type {
   JobResult,
 } from "@shared/types/operation/operationTypes";
 import { useAppStore } from "@renderer/store";
-import { operationService } from "@renderer/features/operation/operationService";
+import { operationService } from "@renderer/features/operation/service/operationService";
 import { SCRIPT_MODAL_MESSAGES } from "./scriptModalConstants";
 
 interface ScriptFileItem {

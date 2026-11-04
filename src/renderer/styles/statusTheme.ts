@@ -1,6 +1,6 @@
-// src/renderer/styles/statusTheme.ts
+﻿// src/renderer/styles/statusTheme.ts
 
-import { tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 
 export interface StatusTheme {
@@ -39,3 +39,4 @@ const statusThemes: Record<JobStatus, StatusTheme> = {
 
 export const getStatusTheme = (status: JobStatus): StatusTheme =>
   statusThemes[status];
+

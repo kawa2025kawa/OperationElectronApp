@@ -2,7 +2,7 @@
 
 import { style } from "@vanilla-extract/css";
 
-export * from "@renderer/styles/global/table.css";
+export * from "@renderer/styles/global/globalTable.css";
 
 export const statusCellWrapper = style({
   display: "flex",

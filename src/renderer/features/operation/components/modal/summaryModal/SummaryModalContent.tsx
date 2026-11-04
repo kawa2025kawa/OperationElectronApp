@@ -11,7 +11,7 @@ import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummary
 import {
   toDisplayValue,
   toMissingPropertyDisplayValue,
-} from "@renderer/features/operation/operationDisplayUtils";
+} from "@renderer/features/operation/utils/operationDisplayUtils";
 import * as styles from "./summaryModalContent.css";
 
 interface SummaryModalContentProps {

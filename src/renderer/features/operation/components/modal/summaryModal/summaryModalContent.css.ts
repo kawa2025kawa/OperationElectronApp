@@ -1,10 +1,10 @@
 ﻿// src/renderer/features/operation/components/modal/summaryModal/summaryModalContent.css.ts
 
 import { style } from "@vanilla-extract/css";
-import { tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 // 共通テーブルスタイルを一括継承
-export * from "@renderer/styles/global/table.css";
+export * from "@renderer/styles/global/globalTable.css";
 
 // モーダルコンテナ固有のスタイル
 export const container = style({
@@ -22,3 +22,4 @@ export const container = style({
     },
   },
 });
+

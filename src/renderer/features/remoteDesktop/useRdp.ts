@@ -4,18 +4,17 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { rdpIpcService } from "@renderer/services/rdpIpcService";
-import type { RdpMaster } from "@shared/types/rdp/rdpTypes";
+import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
 
-// エラーオブジェクトから適切なエラーメッセージ文字列を抽出する。
 const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-// RDP接続先の取得・起動を管理する。
+/** RDP 接続先の取得・起動を管理する */
 export const useRdp = () => {
-  const [rdpTargets, setRdpTargets] = useState<RdpMaster[]>([]);
+  const [rdpTargets, setRdpTargets] = useState<RdpTarget[]>([]);
   const [isRdpLoading, setIsRdpLoading] = useState(false);
 
-  // RDP接続先マスタ一覧を取得する。
+  /** RDP 接続先一覧を取得する */
   const fetchRdpTargets = useCallback(async () => {
     setIsRdpLoading(true);
 
@@ -29,7 +28,7 @@ export const useRdp = () => {
     }
   }, []);
 
-  // 指定名称の端末へRDPセッションを開始する。
+  /** 指定名称の端末へ RDP セッションを開始する */
   const runRdp = useCallback(async (name: string) => {
     try {
       await rdpIpcService.startSession(name);

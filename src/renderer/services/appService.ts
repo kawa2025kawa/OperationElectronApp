@@ -1,6 +1,6 @@
 ﻿// src/renderer/services/appService.ts
 
-import { operationService } from "@renderer/features/operation/operationService";
+import { operationService } from "@renderer/features/operation/service/operationService";
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
 import { updateService } from "@renderer/services/updateService";
 import { useAppStore } from "@renderer/store";

@@ -223,7 +223,17 @@ export interface JobArtifact {
   size?: number;
 }
 
-export type JobResultKind = "success" | "difference" | "needsAction" | "error";
+export type JobResultKind =
+  | "success"
+  | "difference"
+  | "needsAction"
+  | "error"
+  | "retrying";
+
+export interface JobRetryPolicy {
+  intervalMs: number;
+  timeoutMs: number;
+}
 
 export interface JobResult {
   message: string;
@@ -231,6 +241,7 @@ export interface JobResult {
   kind?: JobResultKind;
   data?: unknown;
   artifacts?: JobArtifact[];
+  retryPolicy?: JobRetryPolicy;
 }
 
 export interface JobDependency {

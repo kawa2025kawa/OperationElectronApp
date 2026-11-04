@@ -2,7 +2,7 @@
 
 import type { StateCreator } from "zustand";
 
-import { operationService } from "@renderer/features/operation/operationService";
+import { operationService } from "@renderer/features/operation/service/operationService";
 import type { AppState } from "@renderer/store";
 import {
   EMPTY_STATUS_SUMMARY,

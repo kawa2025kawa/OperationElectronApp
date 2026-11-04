@@ -1,7 +1,8 @@
-// src/renderer/components/ui/fileDropZone/fileDropZone.css.ts
+﻿// src/renderer/components/ui/fileDropZone/fileDropZone.css.ts
 
 import { style } from "@vanilla-extract/css";
-import { themeTransition, tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 const textEllipsis = style({
   minWidth: 0,
@@ -370,3 +371,4 @@ export const removeFileButton = style([
     },
   },
 ]);
+

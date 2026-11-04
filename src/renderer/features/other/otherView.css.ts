@@ -1,7 +1,8 @@
-//src\renderer\features\other\otherView.css.ts
+﻿//src\renderer\features\other\otherView.css.ts
 
 import { style } from "@vanilla-extract/css";
-import { tokens, themeTransition } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 export const container = style([
   themeTransition,
@@ -56,3 +57,4 @@ export const card = style([
     },
   },
 ]);
+

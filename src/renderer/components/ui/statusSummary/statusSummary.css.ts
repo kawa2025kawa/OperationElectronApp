@@ -1,7 +1,8 @@
-// src/renderer/components/ui/statusSummary/statusSummary.css.ts
+﻿// src/renderer/components/ui/statusSummary/statusSummary.css.ts
 
 import { style, styleVariants, type StyleRule } from "@vanilla-extract/css";
-import { themeTransition, tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 import { getStatusTheme } from "@renderer/styles/statusTheme";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 
@@ -108,3 +109,4 @@ export const valueBadgeVariants = styleVariants({
   needsAction: createStatusVariant("needsAction"),
   error: createStatusVariant("error"),
 });
+

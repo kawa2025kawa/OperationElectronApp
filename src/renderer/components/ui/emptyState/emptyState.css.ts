@@ -1,5 +1,5 @@
-import { style } from "@vanilla-extract/css";
-import { tokens } from "@renderer/styles/tokens";
+﻿import { style } from "@vanilla-extract/css";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 export const emptyWrapper = style({
   display: "flex",
@@ -57,3 +57,4 @@ export const retryButton = style({
     },
   },
 });
+

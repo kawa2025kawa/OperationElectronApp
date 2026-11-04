@@ -53,9 +53,12 @@ export function registerServiceIpc(): void {
   );
 
   // Spreadsheet Master
-  registerIpcHandler(IPC_CHANNELS.SPREADSHEET.GET_MASTER_DATA, () =>
-    getSpreadsheetMasterData(),
-  );
+  registerIpcHandler(IPC_CHANNELS.SPREADSHEET.GET_MASTER_DATA, async () => {
+    const masterData = await getSpreadsheetMasterData();
+    const { rdps, ...publicMasterData } = masterData;
+    void rdps;
+    return publicMasterData;
+  });
 
   // RDP
   registerIpcHandler(IPC_CHANNELS.RDP.GET_MASTERS, () => getRdpTargets());

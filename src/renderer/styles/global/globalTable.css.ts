@@ -1,7 +1,10 @@
-﻿// src/renderer/styles/global/table.css.ts
+﻿// src/renderer/styles/global/globalTable.css.ts
 
 import { createVar, style, styleVariants } from "@vanilla-extract/css";
-import { themeTransition, tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
+
+const t = tokens.transition.normal;
 
 // Internal CSS variables
 const rowTextColor = createVar();
@@ -29,7 +32,10 @@ const defaultRowVars = {
   [rowShadow]: tokens.shadow.raised.low,
 };
 
+// ============================================================
 // Layout
+// ============================================================
+
 export const tableContainer = style({
   display: "flex",
   flexDirection: "column",
@@ -47,9 +53,10 @@ export const headerWrapper = style({
   flexShrink: 0,
   paddingInline: tokens.space.md,
   borderRadius: tokens.radius.md,
-  boxShadow: tokens.shadow.raised.low,
+  boxShadow: tokens.shadow.raised.high,
 });
 
+// 🎯 テーブルスクロールバーを備考欄と同じピンク系に設定
 export const bodyWrapper = style({
   position: "relative",
   zIndex: 0,
@@ -60,9 +67,31 @@ export const bodyWrapper = style({
   paddingInline: tokens.space.md,
   paddingTop: tokens.space.sm,
   scrollbarGutter: "stable",
+  scrollbarWidth: "thin",
+  scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
+
+  selectors: {
+    "&::-webkit-scrollbar": {
+      width: "4px",
+      display: "block",
+    },
+    "&::-webkit-scrollbar-track": {
+      backgroundColor: "transparent",
+    },
+    "&::-webkit-scrollbar-thumb": {
+      backgroundColor: tokens.color.accent.neonPink,
+      borderRadius: tokens.radius.full,
+    },
+    "&::-webkit-scrollbar-thumb:hover": {
+      backgroundColor: tokens.color.accent.neonPink,
+    },
+  },
 });
 
+// ============================================================
 // Tables
+// ============================================================
+
 export const headerTable = style({
   ...commonTable,
   borderCollapse: "collapse",
@@ -77,7 +106,10 @@ export const bodyTable = style({
   borderSpacing: `0 ${tokens.space.md}`,
 });
 
+// ============================================================
 // Rows
+// ============================================================
+
 export const tableRowBase = style([
   themeTransition,
   {
@@ -90,8 +122,7 @@ export const tableRowBase = style([
     transform: "translateZ(0)",
     zIndex: 0,
     outline: "none",
-    // 🎯 ハードコードをトークン参照に修正
-    transition: `box-shadow ${tokens.transition.normal}, background-color ${tokens.transition.normal}, color ${tokens.transition.normal}`,
+    transition: `box-shadow ${t}, background-color ${t}, color ${t}`,
     selectors: {
       "&:focus": {
         outline: "none",
@@ -112,15 +143,17 @@ export const tableRowStates = styleVariants({
     vars: { ...defaultRowVars },
     cursor: "pointer",
     selectors: {
+      // 🎯 ホバー時にネオンブルー（シアン発光）
       "&:hover": {
         vars: {
           [rowTextColor]: tokens.color.text.hover,
-          [rowShadow]: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+          [rowShadow]: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
         },
         zIndex: 1,
       },
       "&:active": {
         vars: {
+          [rowTextColor]: tokens.color.text.hover,
           [rowShadow]: tokens.shadow.pressed.low,
         },
       },
@@ -130,9 +163,10 @@ export const tableRowStates = styleVariants({
   selected: {
     vars: {
       ...defaultRowVars,
-      [rowTextColor]: "transparent",
-      [rowShadow]: tokens.shadow.pressed.md,
+      [rowTextColor]: tokens.color.text.base,
+      [rowShadow]: tokens.shadow.pressed.low,
     },
+    zIndex: 1,
   },
 
   disabled: {
@@ -145,7 +179,10 @@ export const tableRowStates = styleVariants({
   },
 });
 
+// ============================================================
 // Cells
+// ============================================================
+
 export const thBase = style([
   themeTransition,
   {
@@ -172,7 +209,10 @@ export const tdBase = style({
   selectors: rowEdgeRadius,
 });
 
+// ============================================================
 // Alignment
+// ============================================================
+
 export const alignVariants = styleVariants({
   left: { textAlign: "left" },
   center: { textAlign: "center" },
@@ -182,7 +222,10 @@ export const alignVariants = styleVariants({
 export const thAlignVariants = alignVariants;
 export const tdAlignVariants = alignVariants;
 
-// Cell text
+// ============================================================
+// Cell Text & Special Styling
+// ============================================================
+
 export const cellText = style({
   display: "inline-block",
   maxWidth: "100%",
@@ -190,7 +233,7 @@ export const cellText = style({
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   verticalAlign: "middle",
-  transition: "color 0.25s ease, filter 0.25s ease",
+  transition: `color ${t}, filter ${t}`,
   selectors: {
     [`${tableRowStates.selected} &`]: {
       backgroundImage: tokens.gradient.brand,
@@ -202,8 +245,7 @@ export const cellText = style({
   },
 });
 
-// 休日強調スタイル
 export const cellTextHoliday = style({
   color: tokens.color.accent.neonPink ?? "#ff4d4f",
-  fontWeight: "bold",
+  fontWeight: tokens.font.weight.bold,
 });

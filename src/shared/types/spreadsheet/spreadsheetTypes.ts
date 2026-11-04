@@ -9,7 +9,7 @@ import type {
   IrregularMaster,
   OperationMaster,
 } from "@shared/types/operation/operationTypes";
-import type { RdpMaster } from "@shared/types/rdp/rdpTypes";
+import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
 
 /* =========================
  * Spreadsheet ID
@@ -69,7 +69,7 @@ type SheetRowMap = {
   [SHEETS.KOKYUHYO_TANTOU.sheetName]: Tantou;
   [SHEETS.OPERATION.sheetName]: OperationMaster;
   [SHEETS.IRREGULAR.sheetName]: IrregularMaster;
-  [SHEETS.RDP.sheetName]: RdpMaster;
+  [SHEETS.RDP.sheetName]: RdpTarget;
 };
 
 export type SheetRow<TSheetId extends SheetId> = SheetRowMap[TSheetId];

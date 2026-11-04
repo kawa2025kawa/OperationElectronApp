@@ -9,17 +9,19 @@ interface FooterActionButtonProps {
   onClick: () => void;
 }
 
-export const FooterActionButton = memo<FooterActionButtonProps>(
-  ({ label, isActive = false, onClick }) => {
-    return (
-      <button
-        className={styles.actionButton}
-        data-active={isActive}
-        onClick={onClick}
-        type="button"
-      >
-        <span className={styles.actionButtonText}>{label}</span>
-      </button>
-    );
-  },
-);
+export const FooterActionButton = memo(function FooterActionButton({
+  label,
+  isActive = false,
+  onClick,
+}: FooterActionButtonProps) {
+  return (
+    <button
+      type="button"
+      className={styles.actionButton}
+      aria-pressed={isActive}
+      onClick={onClick}
+    >
+      <span className={styles.actionButtonText}>{label}</span>
+    </button>
+  );
+});

@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 
-import { operationService } from "@renderer/features/operation/operationService";
+import { operationService } from "@renderer/features/operation/service/operationService";
 import type { AppState } from "@renderer/store";
 import type { ViewMode } from "@renderer/registry/appRegistry";
 import type {
@@ -39,8 +39,9 @@ function applyNotificationToRow(
 export interface OperationStatusSlice {
   tableRows: OperationViewItem[];
   tableRowsMode: ViewMode | null;
+  tableRowsByMode: Record<ViewMode, OperationViewItem[]>;
   isTableLoading: boolean;
-  fetchTableData: (mode: ViewMode) => Promise<void>;
+  fetchTableData: (mode: ViewMode, force?: boolean) => Promise<void>;
   applyOperationStatusUpdates: (
     notifications: OperationStatusNotification[],
   ) => void;
@@ -59,9 +60,25 @@ export const createOperationStatusSlice: StateCreator<
   return {
     tableRows: [],
     tableRowsMode: null,
+    tableRowsByMode: {
+      operation: [],
+      irregular: [],
+      today: [],
+    },
     isTableLoading: false,
 
-    fetchTableData: async (mode) => {
+    fetchTableData: async (mode, force = false) => {
+      // キャッシュが存在し強制再取得でない場合は即座にキャッシュを反映して完了
+      const currentCache = get().tableRowsByMode[mode];
+      if (!force && currentCache && currentCache.length > 0) {
+        set((state) => {
+          state.tableRows = currentCache;
+          state.tableRowsMode = mode;
+          state.isTableLoading = false;
+        });
+        return;
+      }
+
       const requestId = ++tableDataRequestId;
 
       set((state) => {
@@ -71,7 +88,6 @@ export const createOperationStatusSlice: StateCreator<
       try {
         const data = await operationService.getTableData(mode);
 
-        // 後から開始されたリクエストまたはモードが切り替わっている場合は反映を破棄
         if (requestId !== tableDataRequestId || get().currentMode !== mode) {
           return;
         }
@@ -79,6 +95,7 @@ export const createOperationStatusSlice: StateCreator<
         set((state) => {
           state.tableRows = data;
           state.tableRowsMode = mode;
+          state.tableRowsByMode[mode] = data;
         });
       } catch (error) {
         if (requestId === tableDataRequestId) {
@@ -97,7 +114,6 @@ export const createOperationStatusSlice: StateCreator<
     applyOperationStatusUpdates: (notifications) => {
       if (notifications.length === 0) return;
 
-      // kanriNo ごとに最新の通知をマップ化
       const notificationMap = new Map<string, OperationStatusNotification>();
       for (const notification of notifications) {
         const kanriNo = (
@@ -114,6 +130,7 @@ export const createOperationStatusSlice: StateCreator<
       if (notificationMap.size === 0) return;
 
       set((state) => {
+        // 現在表示中の行を更新
         for (const row of state.tableRows) {
           const rowKanriNo = row.kanriNo?.trim();
           if (!rowKanriNo) continue;
@@ -121,6 +138,23 @@ export const createOperationStatusSlice: StateCreator<
           const notification = notificationMap.get(rowKanriNo);
           if (notification) {
             applyNotificationToRow(row, notification);
+          }
+        }
+
+        // キャッシュされている全モードの行も同期更新
+        const modes: ViewMode[] = ["operation", "irregular", "today"];
+        for (const mode of modes) {
+          const cachedRows = state.tableRowsByMode[mode];
+          if (cachedRows) {
+            for (const row of cachedRows) {
+              const rowKanriNo = row.kanriNo?.trim();
+              if (!rowKanriNo) continue;
+
+              const notification = notificationMap.get(rowKanriNo);
+              if (notification) {
+                applyNotificationToRow(row, notification);
+              }
+            }
           }
         }
       });
@@ -132,7 +166,6 @@ export const createOperationStatusSlice: StateCreator<
       const kanriNo = update.kanriNo.trim();
       if (!kanriNo || !update.status) return;
 
-      // 🎯 即時反映（楽観的更新）: tableRows の該当行のステータスを即座に書き換える
       set((state) => {
         const targetRow = state.tableRows.find(
           (row) => row.kanriNo?.trim() === kanriNo,
@@ -141,12 +174,21 @@ export const createOperationStatusSlice: StateCreator<
           targetRow.status = update.status;
           targetRow.comment = update.comment ?? "";
         }
+
+        const modes: ViewMode[] = ["operation", "irregular", "today"];
+        for (const mode of modes) {
+          const cached = state.tableRowsByMode[mode]?.find(
+            (row) => row.kanriNo?.trim() === kanriNo,
+          );
+          if (cached) {
+            cached.status = update.status;
+            cached.comment = update.comment ?? "";
+          }
+        }
       });
 
-      // サマリー集計の再取得
       void get().fetchStatusSummary();
 
-      // バックエンドへステータス更新を通知
       void operationService
         .updateJobStatus({
           kanriNo,
@@ -163,12 +205,16 @@ export const createOperationStatusSlice: StateCreator<
         await operationService.resetStatuses();
         tableDataRequestId += 1;
 
-        // ★ リセットに伴いポーリングも停止されるため、フロントのステートも同期
         set((state) => {
           state.isPolling = false;
+          state.tableRowsByMode = {
+            operation: [],
+            irregular: [],
+            today: [],
+          };
         });
 
-        await get().fetchTableData(get().currentMode);
+        await get().fetchTableData(get().currentMode, true);
         await get().fetchStatusSummary();
 
         toast.success("ステータスを初期化しました");

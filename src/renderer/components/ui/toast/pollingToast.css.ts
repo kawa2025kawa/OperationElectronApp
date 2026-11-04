@@ -1,7 +1,8 @@
-// src\renderer\components\ui\toast\pollingToast.css.ts
+﻿// src\renderer\components\ui\toast\pollingToast.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
-import { themeTransition, tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 export const panel = style([
   themeTransition,
@@ -175,3 +176,4 @@ export const tone = styleVariants({
     color: tokens.color.status.ready,
   },
 });
+

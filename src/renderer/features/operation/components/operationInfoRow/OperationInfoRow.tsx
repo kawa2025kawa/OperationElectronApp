@@ -7,8 +7,8 @@ import {
   JOB_STATUS_VALUES,
   type JobStatus,
 } from "@shared/types/operation/operationTypes";
-import type { InfoRowData } from "@renderer/features/operation/operationDisplayUtils";
-import * as styles from "@renderer/features/operation/operationView.css";
+import type { InfoRowData } from "@renderer/features/operation/utils/operationDisplayUtils";
+import * as styles from "./operationInfoRow.css";
 
 type OperationInfoRowProps = InfoRowData;
 

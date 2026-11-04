@@ -21,6 +21,7 @@ export function useOperationTable() {
     setSelectedId,
     tableRows,
     tableRowsMode,
+    tableRowsByMode,
     isLoading,
     fetchTableData,
     updateOperationStatus,
@@ -32,6 +33,7 @@ export function useOperationTable() {
       setSelectedId: state.setSelectedId,
       tableRows: state.tableRows,
       tableRowsMode: state.tableRowsMode,
+      tableRowsByMode: state.tableRowsByMode,
       isLoading: state.isTableLoading,
       fetchTableData: state.fetchTableData,
       updateOperationStatus: state.updateOperationStatus,
@@ -39,21 +41,34 @@ export function useOperationTable() {
   );
 
   useEffect(() => {
+    // キャッシュがない場合のみ非同期フェッチを実行
+    const hasCache = tableRowsByMode[currentMode]?.length > 0;
     if (tableRowsMode !== currentMode) {
-      void fetchTableData(currentMode).catch((error: unknown) => {
-        console.error("[OperationTable] Failed to load table data:", error);
-      });
+      if (hasCache) {
+        // キャッシュから即時同期展開
+        void fetchTableData(currentMode, false);
+      } else {
+        void fetchTableData(currentMode).catch((error: unknown) => {
+          console.error("[OperationTable] Failed to load table data:", error);
+        });
+      }
     }
-  }, [currentMode, tableRowsMode, fetchTableData]);
+  }, [currentMode, tableRowsMode, tableRowsByMode, fetchTableData]);
+
+  // モード切り替え直後の一瞬のズレを防ぐため、現在のモードのキャッシュ行を優先
+  const activeRows =
+    tableRowsMode === currentMode
+      ? tableRows
+      : (tableRowsByMode[currentMode] ?? tableRows);
 
   const rows = useMemo(
     () =>
       selectFilteredTableRows(
-        tableRows,
+        activeRows,
         searchTerm,
         OPERATION_TABLE_SEARCH_KEYS,
       ),
-    [tableRows, searchTerm],
+    [activeRows, searchTerm],
   );
 
   const handleRowClick = useCallback(
@@ -75,7 +90,7 @@ export function useOperationTable() {
   );
 
   const refetch = useCallback(
-    () => fetchTableData(currentMode),
+    () => fetchTableData(currentMode, true),
     [currentMode, fetchTableData],
   );
 

@@ -1,7 +1,7 @@
-// src/renderer/components/layout/navbar/components/tantouButton/tantouButton.css.ts
+﻿// src/renderer/components/layout/navbar/components/tantouButton/tantouButton.css.ts
 
 import { style } from "@vanilla-extract/css";
-import { tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 export const button = style({
   padding: `${tokens.space.md} ${tokens.space.xl}`,
@@ -35,3 +35,4 @@ export const button = style({
     },
   },
 });
+

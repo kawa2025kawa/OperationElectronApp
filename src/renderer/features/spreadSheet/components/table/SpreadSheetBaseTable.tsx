@@ -4,42 +4,35 @@ import { memo, useCallback, useLayoutEffect, useRef } from "react";
 import type { Column } from "@shared/types/table/tableType";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { useAppStore } from "@renderer/store";
+import * as defaultStyles from "@renderer/styles/global/globalTable.css";
 
-export interface SpreadSheetTableStyles {
-  container: string;
-  headerWrapper: string;
-  headerTable: string;
-  thBase: string;
-  alignVariants: Record<string, string>;
-  bodyWrapper: string;
-  bodyTable: string;
-  tableRowBase: string;
-  tableRowStates: {
-    selected: string;
-    clickable: string;
-    idle: string;
-  };
-  tdBase: string;
-  cellText: string;
-}
+export type SpreadSheetTableStyles = typeof defaultStyles;
 
 export interface SpreadSheetBaseTableProps<T> {
-  rows: readonly T[];
-  columns: readonly Column<T>[];
-  selectedId?: string;
-  getRowId?: (row: T, index: number) => string;
-  onRowClick?: (item: T) => void;
-  renderCell?: (row: T, col: Column<T>, value: unknown) => React.ReactNode;
-  styles: SpreadSheetTableStyles;
+  readonly rows: readonly T[];
+  readonly columns: readonly Column<T>[];
+  readonly selectedId?: string;
+  readonly getRowId?: (row: T, index: number) => string;
+  readonly onRowClick?: (item: T) => void;
+  readonly renderCell?: (
+    row: T,
+    col: Column<T>,
+    value: unknown,
+  ) => React.ReactNode;
+  readonly styles?: SpreadSheetTableStyles;
 }
 
 interface TableRowProps<T> {
-  row: T;
-  columns: readonly Column<T>[];
-  isSelected: boolean;
-  onRowClick?: (item: T) => void;
-  renderCell?: (row: T, col: Column<T>, value: unknown) => React.ReactNode;
-  styles: SpreadSheetTableStyles;
+  readonly row: T;
+  readonly columns: readonly Column<T>[];
+  readonly isSelected: boolean;
+  readonly onRowClick?: (item: T) => void;
+  readonly renderCell?: (
+    row: T,
+    col: Column<T>,
+    value: unknown,
+  ) => React.ReactNode;
+  readonly styles: SpreadSheetTableStyles;
 }
 
 function getCellValue<T>(row: T, column: Column<T>): unknown {
@@ -113,7 +106,7 @@ export function SpreadSheetBaseTable<T>({
   getRowId,
   onRowClick,
   renderCell,
-  styles,
+  styles = defaultStyles,
 }: SpreadSheetBaseTableProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const restoredScrollKeyRef = useRef<string | null>(null);

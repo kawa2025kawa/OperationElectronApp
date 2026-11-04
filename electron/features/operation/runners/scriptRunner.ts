@@ -5,25 +5,50 @@ import { startRdpSession } from "@electron/features/rdp/rdpService";
 import { getScriptRunner } from "@electron/features/operation/runners/operationScriptRegistry";
 import type {
   JobResult,
+  JobResultKind,
   ScriptFilePath,
 } from "@shared/types/operation/operationTypes";
 
 export type { ScriptFilePath } from "@shared/types/operation/operationTypes";
 
+const NEEDS_ACTION_PATTERN =
+  /▶\s*\[\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2}\]\s*要対応/;
+const DIFFERENCE_PATTERN =
+  /▶\s*\[\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2}\]\s*差分あり/;
+
+function detectKindFromMessage(message: string): JobResultKind {
+  if (NEEDS_ACTION_PATTERN.test(message) || message.includes("要対応")) {
+    return "needsAction";
+  }
+  if (DIFFERENCE_PATTERN.test(message) || message.includes("差分あり")) {
+    return "difference";
+  }
+  return "success";
+}
+
 function normalizeScriptResult(result: string | JobResult): JobResult {
   if (typeof result === "string") {
+    const trimmedMessage = result.trim() || "正常終了";
+    const kind = detectKindFromMessage(trimmedMessage);
+
     return {
       success: true,
-      kind: "success",
-      message: result.trim() || "正常終了",
+      kind,
+      message: trimmedMessage,
     };
   }
+
   const success = result.success !== false;
+  const rawMessage =
+    result.message?.trim() || (success ? "正常終了" : "エラー");
+  const kind =
+    result.kind ?? (!success ? "error" : detectKindFromMessage(rawMessage));
+
   return {
     ...result,
     success,
-    kind: result.kind ?? (success ? "success" : "error"),
-    message: result.message?.trim() || (success ? "正常終了" : "エラー"),
+    kind,
+    message: rawMessage,
   };
 }
 

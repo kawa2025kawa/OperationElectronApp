@@ -1,5 +1,8 @@
+﻿// src/renderer/features/spreadSheet/shop/modal/shopModalContent.css.ts
+
 import { style } from "@vanilla-extract/css";
-import { themeTransition, tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 const BADGE_WIDTH = "60px";
 
@@ -41,44 +44,6 @@ export const contentContainer = style({
   gap: tokens.space.md,
   padding: "4px",
 });
-
-export const tabContainer = style({
-  display: "flex",
-  backgroundColor: tokens.color.bg.base,
-  borderRadius: tokens.radius.lg,
-  boxShadow: tokens.shadow.pressed.md,
-  padding: "6px",
-  gap: "4px",
-});
-
-export const button = style([
-  themeTransition,
-  {
-    border: "none",
-    cursor: "pointer",
-    backgroundColor: "transparent",
-    color: tokens.color.text.base,
-    fontSize: tokens.font.fluid.md,
-    fontWeight: tokens.font.weight.bold,
-    outline: "none",
-    borderRadius: tokens.radius.md,
-    padding: "8px 16px",
-    selectors: {
-      "&:hover": { color: tokens.color.text.hover },
-      '&[data-variant="tab"]': {
-        flex: 1,
-        padding: "8px 12px",
-        borderRadius: tokens.radius.sm,
-        whiteSpace: "nowrap",
-      },
-      '&[data-variant="tab"][data-active="true"]': {
-        backgroundColor: tokens.color.bg.base,
-        color: tokens.color.accent.base,
-        boxShadow: tokens.shadow.raised.md,
-      },
-    },
-  },
-]);
 
 export const trTabWrapper = style({
   display: "flex",
@@ -180,3 +145,4 @@ export const cellValue = style({
     },
   },
 });
+

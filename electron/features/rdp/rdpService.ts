@@ -2,8 +2,10 @@
 
 import { execFile } from "node:child_process";
 import util from "node:util";
+
 import { getSpreadsheetMasterData } from "@electron/features/masterData/application/spreadsheetMasterDataManager";
-import type { RdpMaster } from "@shared/types/rdp/rdpTypes";
+import type { RdpMaster } from "./rdpMasterTypes";
+import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
 
 const execFilePromise = util.promisify(execFile);
 
@@ -18,13 +20,17 @@ const RDP_COMMANDS = {
   mstsc: "mstsc",
 } as const;
 
-// スプレッドシートからRDP接続先端末の一覧を取得して返す。
-export async function getRdpTargets(): Promise<RdpMaster[]> {
-  const masterData = await getSpreadsheetMasterData();
-  return masterData.rdps;
+/** Renderer に公開する RDP 接続先一覧を取得する。 */
+export async function getRdpTargets(): Promise<RdpTarget[]> {
+  const { rdps } = await getSpreadsheetMasterData();
+
+  return rdps.map(({ name, ipAddress }) => ({
+    name,
+    ipAddress,
+  }));
 }
 
-// 指定された名称(name)に合致するRDP接続先情報をマスタから検索して取得する。
+/** Main 側で指定名称に一致する RDP 接続情報を取得する。 */
 export async function findRdpTarget(name: string): Promise<RdpMaster> {
   const cleanName = name.trim().toUpperCase();
 
@@ -32,7 +38,7 @@ export async function findRdpTarget(name: string): Promise<RdpMaster> {
     throw new Error("RDP接続先が指定されていません");
   }
 
-  const rdps = await getRdpTargets();
+  const { rdps } = await getSpreadsheetMasterData();
   const target = rdps.find(
     (item) => item.name?.trim().toUpperCase() === cleanName,
   );
@@ -48,7 +54,7 @@ export async function findRdpTarget(name: string): Promise<RdpMaster> {
   return target;
 }
 
-// Windowsのmstscコマンドを起動して対象ホストへのリモートデスクトップ接続を開く。
+/** Windows の mstsc コマンドを起動して対象ホストへの接続を開く。 */
 export async function launchRdp(params: LaunchRdpParams): Promise<void> {
   const cleanIp = params.ipAddress.trim();
 
@@ -71,9 +77,10 @@ export async function launchRdp(params: LaunchRdpParams): Promise<void> {
   });
 }
 
-// 対象名称(name)のRDP情報を取得し、リモートデスクトップ接続セッションを開始する。
+/** 指定名称の RDP 情報を取得し、接続セッションを開始する。 */
 export async function startRdpSession(name: string): Promise<string> {
   const target = await findRdpTarget(name);
+
   await launchRdp({
     ipAddress: target.ipAddress,
     userName: target.userName,

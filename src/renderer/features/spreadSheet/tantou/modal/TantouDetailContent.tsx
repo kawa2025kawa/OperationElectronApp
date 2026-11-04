@@ -1,6 +1,7 @@
 // src/renderer/features/spreadSheet/tantou/modal/TantouDetailContent.tsx
 
 import { memo } from "react";
+import { motion } from "motion/react";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Tantou } from "@shared/types/spreadsheet/tantou";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
@@ -49,25 +50,42 @@ export const TantouDetailContent: GlobalModalComponent<TantouDetailContentProps>
     const todayLabel = `本日 ${formatDateForHeader(now)}`;
     const tomorrowLabel = `明日 ${formatDateForHeader(getOffsetDate(1, now))}`;
 
+    const tabs = [
+      { id: 0, label: todayLabel },
+      { id: 1, label: tomorrowLabel },
+    ];
+
     return (
       <div className={styles.container}>
         <div className={styles.tabBar}>
-          <button
-            type="button"
-            className={styles.tabButton}
-            data-active={selectedIndex === 0}
-            onClick={() => setSelectedIndex(0)}
-          >
-            {todayLabel}
-          </button>
-          <button
-            type="button"
-            className={styles.tabButton}
-            data-active={selectedIndex === 1}
-            onClick={() => setSelectedIndex(1)}
-          >
-            {tomorrowLabel}
-          </button>
+          {tabs.map((tab) => {
+            const isActive = selectedIndex === tab.id;
+
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className={styles.tabButton}
+                data-active={isActive}
+                aria-pressed={isActive}
+                onClick={() => setSelectedIndex(tab.id)}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="tantouDetailTabSlider"
+                    className={styles.tabSlider}
+                    transition={{
+                      type: "spring",
+                      stiffness: 380,
+                      damping: 30,
+                    }}
+                  />
+                )}
+
+                <span className={styles.buttonText}>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className={styles.listContainer}>

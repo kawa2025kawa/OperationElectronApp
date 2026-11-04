@@ -1,4 +1,4 @@
-//electron\features\operation\jobs\scripts\helpers\jobLogger.ts
+// electron/features/operation/jobs/scripts/helpers/jobLogger.ts
 
 import { format } from "date-fns";
 
@@ -32,12 +32,21 @@ export class JobLogger {
 
   /**
    * 対応が必要な業務結果を記録する。
-   *
-   * システムエラーではないため、例外は送出しない。
    */
   public needsAction(summary: string): string {
     this.lines.push(
       `▶ [${format(new Date(), "MM/dd HH:mm:ss")}] 要対応 : ${summary}`,
+    );
+
+    return this.lines.join("\n");
+  }
+
+  /**
+   * バックグラウンド再試行中であることを記録する。
+   */
+  public retrying(summary: string): string {
+    this.lines.push(
+      `▶ [${format(new Date(), "MM/dd HH:mm:ss")}] 再試行中 : ${summary}`,
     );
 
     return this.lines.join("\n");

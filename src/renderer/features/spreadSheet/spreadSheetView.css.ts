@@ -1,7 +1,7 @@
 ﻿// src/renderer/features/spreadSheet/spreadSheetView.css.ts
 
 import { style } from "@vanilla-extract/css";
-import { tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 export const viewContainer = style({
   width: "100%",
@@ -26,3 +26,4 @@ export const tableArea = style({
   minHeight: 0,
   width: "100%",
 });
+

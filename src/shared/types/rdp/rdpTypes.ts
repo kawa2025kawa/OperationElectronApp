@@ -1,11 +1,7 @@
 // src/shared/types/rdp/rdpTypes.ts
 
-/**
- * RDP マスターデータ
- */
-export interface RdpMaster {
+/** Renderer に公開する RDP 接続先情報 */
+export interface RdpTarget {
   name: string;
   ipAddress: string;
-  userName: string;
-  password: string;
 }

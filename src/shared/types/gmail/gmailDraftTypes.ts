@@ -9,12 +9,7 @@ export interface GmailDraft {
   body: string;
 }
 
-export interface GmailDraftFormValues {
-  to: string;
-  cc: string;
-  subject: string;
-  body: string;
-}
+export type GmailDraftFormValues = GmailDraft;
 
 export interface EmailTemplateOption {
   key: EmailTemplateKey;

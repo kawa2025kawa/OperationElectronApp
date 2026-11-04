@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
-import type { SpreadsheetMasterData } from "@shared/types/masterData/spreadsheetMasterDataTypes";
+import type { SpreadsheetMasterDataResponse } from "@shared/types/masterData/spreadsheetMasterDataTypes";
 import {
   SHEETS,
   type SheetDataResponse,
@@ -33,7 +33,7 @@ export interface SpreadSheetSlice {
     sheetId: TSheetId,
     data: SheetDataResponse<TSheetId>,
   ): void;
-  fetchMasterData(): Promise<SpreadsheetMasterData | null>;
+  fetchMasterData(): Promise<SpreadsheetMasterDataResponse | null>;
 }
 
 // Google スプレッドシート由来のマスタデータを管理するスライスを生成する。
@@ -54,7 +54,7 @@ export const createSpreadSheetSlice: StateCreator<
   };
 
   // 取得したスプレッドシートマスタデータを各シートのステートに展開して反映する。
-  const applyMasterData = (masterData: SpreadsheetMasterData): void => {
+  const applyMasterData = (masterData: SpreadsheetMasterDataResponse): void => {
     set((state) => {
       state.sheetData[SHEETS.STORE.sheetName] = {
         sheetId: SHEETS.STORE.sheetName,
@@ -79,33 +79,34 @@ export const createSpreadSheetSlice: StateCreator<
   };
 
   // バックエンドからスプレッドシートマスタデータを取得し初期化ステータスを更新する。
-  const fetchMasterData = async (): Promise<SpreadsheetMasterData | null> => {
-    try {
-      const masterData = await spreadsheetIpcService.getMasterData();
+  const fetchMasterData =
+    async (): Promise<SpreadsheetMasterDataResponse | null> => {
+      try {
+        const masterData = await spreadsheetIpcService.getMasterData();
 
-      // Spreadsheet由来のデータのみをZustandへ反映する
-      applyMasterData(masterData);
+        // Spreadsheet由来のデータのみをZustandへ反映する
+        applyMasterData(masterData);
 
-      get().setInitStatus(
-        createInitStatusPatch(INIT_STATUS_GROUPS.spreadsheetData, "OK"),
-      );
-      return masterData;
-    } catch (error: unknown) {
-      console.error("[SpreadSheetSlice] fetchMasterData エラー詳細:", error);
+        get().setInitStatus(
+          createInitStatusPatch(INIT_STATUS_GROUPS.spreadsheetData, "OK"),
+        );
+        return masterData;
+      } catch (error: unknown) {
+        console.error("[SpreadSheetSlice] fetchMasterData エラー詳細:", error);
 
-      const message =
-        error instanceof Error
-          ? error.message
-          : "マスターデータの取得に失敗しました";
+        const message =
+          error instanceof Error
+            ? error.message
+            : "マスターデータの取得に失敗しました";
 
-      get().setInitStatus(
-        createInitStatusPatch(INIT_STATUS_GROUPS.spreadsheetData, "NG"),
-      );
+        get().setInitStatus(
+          createInitStatusPatch(INIT_STATUS_GROUPS.spreadsheetData, "NG"),
+        );
 
-      toast.error(message);
-      return null;
-    }
-  };
+        toast.error(message);
+        return null;
+      }
+    };
 
   return {
     sheetData: createSheetState(null) as SheetDataState,

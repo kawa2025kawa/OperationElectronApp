@@ -1,7 +1,8 @@
-// src/renderer/components/ui/button/actionButton/actionButton.css.ts
+﻿// src/renderer/components/ui/button/actionButton/actionButton.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
-import { themeTransition, tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 // ベーススタイル（全バリアント共通）
 export const actionButton = style([
@@ -112,3 +113,4 @@ export const variants = styleVariants({
     },
   },
 });
+

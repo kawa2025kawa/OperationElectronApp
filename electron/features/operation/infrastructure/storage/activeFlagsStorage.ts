@@ -18,23 +18,31 @@ export const ACTIVE_FLAGS_STORAGE_CONFIG = {
 const getFilePath = (): string =>
   getDatedFilePath(ACTIVE_FLAGS_STORAGE_CONFIG.filePrefix);
 
-export function loadActiveFlags(): ActiveFlags {
-  void cleanupDatedFiles(ACTIVE_FLAGS_STORAGE_CONFIG.filePrefix);
-
+export async function loadActiveFlags(): Promise<ActiveFlags> {
   try {
-    const filePath = getFilePath();
-    if (!fs.existsSync(filePath)) return { ...DEFAULT_ACTIVE_FLAGS };
+    await cleanupDatedFiles(ACTIVE_FLAGS_STORAGE_CONFIG.filePrefix);
 
-    const saved = (fs.readJsonSync(filePath) as Record<string, unknown>) ?? {};
+    const filePath = getFilePath();
+
+    if (!(await fs.pathExists(filePath))) {
+      return { ...DEFAULT_ACTIVE_FLAGS };
+    }
+
+    const saved = (await fs.readJson(filePath)) as Record<
+      string,
+      unknown
+    > | null;
+
     const result: ActiveFlags = { ...DEFAULT_ACTIVE_FLAGS };
 
     for (const key of Object.keys(
       DEFAULT_ACTIVE_FLAGS,
     ) as (keyof ActiveFlags)[]) {
-      if (typeof saved[key] === "boolean") {
+      if (typeof saved?.[key] === "boolean") {
         result[key] = saved[key] as ActiveFlags[typeof key];
       }
     }
+
     return result;
   } catch (error) {
     console.error("[ActiveFlagsStorage] Read failed:", error);

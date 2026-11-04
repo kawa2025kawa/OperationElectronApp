@@ -18,15 +18,22 @@ export const SPREADSHEET_CLIENT_CONFIG = {
   } as const,
 } as const;
 
-export interface FetchSheetResult<TSheetId extends SheetId> {
+type DefaultSheetRow<TSheetId extends SheetId> = SheetData<TSheetId>[number];
+
+export interface FetchSheetResult<
+  TSheetId extends SheetId,
+  TRow extends object = DefaultSheetRow<TSheetId>,
+> {
   success: boolean;
   unauthorized: boolean;
-  data: SheetData<TSheetId>;
+  data: TRow[];
   error?: string;
 }
 
-export type SheetDataResult<TSheetId extends SheetId> =
-  FetchSheetResult<TSheetId>;
+export type SheetDataResult<
+  TSheetId extends SheetId,
+  TRow extends object = DefaultSheetRow<TSheetId>,
+> = FetchSheetResult<TSheetId, TRow>;
 
 // シートの列名をアプリケーション側のプロパティ名に合わせる。
 function normalizeHeader(header: string): string {
@@ -64,22 +71,21 @@ function parseSheetRows<T>(rows: string[][]): T[] {
 }
 
 // シートの行データをレコードに変換し、文字列を正規化する。
-export function normalizeSheetData<TSheetId extends SheetId>(
-  _sheetId: TSheetId,
-  rows: string[][],
-): SheetData<TSheetId> {
-  return normalizeSpreadsheetRows(
-    parseSheetRows<SheetData<TSheetId>[number]>(rows),
-  ) as SheetData<TSheetId>;
+export function normalizeSheetData<
+  TSheetId extends SheetId,
+  TRow extends object = DefaultSheetRow<TSheetId>,
+>(_sheetId: TSheetId, rows: string[][]): TRow[] {
+  return normalizeSpreadsheetRows(parseSheetRows<TRow>(rows));
 }
 
 function getSheetConfig(sheetId: SheetId) {
   return Object.values(SHEETS).find((sheet) => sheet.sheetName === sheetId);
 }
 
-export async function fetchSheet<TSheetId extends SheetId>(
-  sheetId: TSheetId,
-): Promise<SheetDataResult<TSheetId>> {
+export async function fetchSheet<
+  TSheetId extends SheetId,
+  TRow extends object = DefaultSheetRow<TSheetId>,
+>(sheetId: TSheetId): Promise<SheetDataResult<TSheetId, TRow>> {
   const sheet = getSheetConfig(sheetId);
 
   if (!sheet) {
@@ -130,7 +136,7 @@ export async function fetchSheet<TSheetId extends SheetId>(
     return {
       success: true,
       unauthorized: false,
-      data: normalizeSheetData(sheetId, json.values ?? []),
+      data: normalizeSheetData<TSheetId, TRow>(sheetId, json.values ?? []),
     };
   } catch (error) {
     if (error instanceof GoogleAuthError) {

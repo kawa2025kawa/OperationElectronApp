@@ -1,6 +1,6 @@
 ﻿// electron/features/masterData/infrastructure/spreadsheetDataNormalizer.ts
 
-import type { SpreadsheetMasterData } from "@shared/types/masterData/spreadsheetMasterDataTypes";
+import type { SpreadsheetMasterData } from "../types/internalSpreadsheetMasterDataTypes";
 import type {
   IrregularMaster,
   OperationLink,

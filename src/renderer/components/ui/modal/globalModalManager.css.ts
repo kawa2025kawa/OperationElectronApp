@@ -1,7 +1,8 @@
-// src/renderer/components/ui/modal/globalModalManager.css.ts
+﻿// src/renderer/components/ui/modal/globalModalManager.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
-import { themeTransition, tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 // ============================================================
 // Overlay (背景遮蔽)
@@ -179,3 +180,4 @@ export const messageTypes = styleVariants({
     boxShadow: tokens.shadow.glow.running,
   },
 });
+

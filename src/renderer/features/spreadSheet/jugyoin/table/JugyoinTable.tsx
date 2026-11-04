@@ -4,7 +4,7 @@ import { memo } from "react";
 import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
 import { SpreadSheetBaseTable } from "../../components/table/SpreadSheetBaseTable";
 import { JUGYOIN_COLUMNS } from "../../utils/spreadsheetDateUtils";
-import * as styles from "@renderer/styles/global/table.css";
+import * as styles from "@renderer/styles/global/globalTable.css";
 
 export interface JugyoinTableProps {
   rows: readonly Jugyoin[];

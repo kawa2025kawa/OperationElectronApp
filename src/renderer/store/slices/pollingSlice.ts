@@ -2,7 +2,7 @@
 
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
-import { operationService } from "@renderer/features/operation/operationService";
+import { operationService } from "@renderer/features/operation/service/operationService";
 
 export interface PollingSlice {
   isPolling: boolean;

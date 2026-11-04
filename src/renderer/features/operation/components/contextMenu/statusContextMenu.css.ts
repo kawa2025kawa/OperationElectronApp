@@ -1,7 +1,7 @@
-// src/renderer/features/operation/components/contextMenu/statusContextMenu.css.ts
+﻿// src/renderer/features/operation/components/contextMenu/statusContextMenu.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
-import { tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { JOB_STATUS } from "@shared/types/operation/operationTypes";
 
 export const content = style({
@@ -88,3 +88,4 @@ export const itemVariants = styleVariants({
     color: tokens.color.status.error,
   },
 });
+

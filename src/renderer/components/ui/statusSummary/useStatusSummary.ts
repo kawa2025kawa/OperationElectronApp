@@ -6,7 +6,7 @@ import { useShallow } from "zustand/shallow";
 import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes";
 import { useAppStore } from "@renderer/store";
 import type { SummaryDisplayKey } from "@shared/types/statusSummary/statusSummaryTypes";
-import { operationService } from "@renderer/features/operation/operationService";
+import { operationService } from "@renderer/features/operation/service/operationService";
 
 import * as styles from "./statusSummary.css";
 import { getSummaryLabel, SUMMARY_DISPLAY_ORDER } from "./statusSummaryConfig";

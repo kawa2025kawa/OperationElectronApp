@@ -4,70 +4,120 @@ import { chromium, type Browser } from "playwright";
 import { addDays, format } from "date-fns";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import type {
+  JobResult,
+  JobRetryPolicy,
+} from "@shared/types/operation/operationTypes";
 
 export interface JobN25ResultData {
   expectedDate: string;
-  actualDate: string;
+  actualDate: string | null;
   isMatched: boolean;
 }
 
+const RETRY_POLICY: JobRetryPolicy = {
+  intervalMs: 3 * 60 * 1000,
+  timeoutMs: 45 * 60 * 1000,
+};
+
 const CONFIG = {
   loginUrl: "http://192.88.1.192/belcta/login.php",
-  userId: "98810028",
-  password: "1560",
+  userId: process.env.BELCTA_USER_ID ?? "",
+  password: process.env.BELCTA_PASSWORD ?? "",
   timeout: 30_000,
   selectors: {
-    userId: "#uid",
-    password: "#password",
+    userId: "98810028",
+    password: "1560",
     submit: "#sub2",
     headerDate: ".heder_date_honsya",
   },
   dateRegex: /\d{4}\/\d{2}\/\d{2}/,
 } as const;
 
-/**
- * ベルク勤怠管理システム（BELCTA）へログインし、業務日付が翌日日付と一致するか確認する。
- *
- * 接続先:
- * - http://192.88.1.192/belcta/login.php
- *
- * 業務上の要対応:
- * - 取得した業務日付が期待値（翌日日付）と一致しない場合
- *
- * システムエラー:
- * - 認証情報未設定
- * - ページ遷移・セレクタ取得タイムアウト
- * - 日付テキスト取得・パース失敗
- */
-export async function runJobN25(): Promise<string> {
-  const logger = new JobLogger();
+interface RetrySession {
+  expectedDate: string;
+  expiresAt: number;
+}
 
-  try {
-    const result = await fetchAndValidateBusinessDate();
+// 45分間の再試行中は期待日付を固定する。
+let retrySession: RetrySession | null = null;
 
-    return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
+function getExpectedDate(): string {
+  if (!retrySession || Date.now() >= retrySession.expiresAt) {
+    const startedAt = Date.now();
 
-    const detail = error instanceof Error ? ` (${error.message})` : "";
+    retrySession = {
+      expectedDate: format(addDays(new Date(startedAt), 1), "yyyy/MM/dd"),
+      expiresAt: startedAt + RETRY_POLICY.timeoutMs,
+    };
+  }
 
-    throw logger.fail(`業務日付取得処理に失敗しました${detail}`);
+  return retrySession.expectedDate;
+}
+
+function clearRetrySession(expectedDate: string): void {
+  if (retrySession?.expectedDate === expectedDate) {
+    retrySession = null;
   }
 }
 
+function createRetryResult(
+  logger: JobLogger,
+  expectedDate: string,
+  summary: string,
+  actualDate: string | null = null,
+): JobResult {
+  const data: JobN25ResultData = {
+    expectedDate,
+    actualDate,
+    isMatched: false,
+  };
+
+  return {
+    success: true,
+    kind: "retrying",
+    message: logger.retrying(`${summary} 3分間隔で最大45分間再試行します。`),
+    data,
+    retryPolicy: RETRY_POLICY,
+  };
+}
+
 /**
- * ブラウザを起動して勤怠管理システムにログインし、画面上の業務日付を抽出・照合する。
+ * ベルク勤怠管理システム（BELCTA）へログインし、業務日付を確認する。
  */
-async function fetchAndValidateBusinessDate(): Promise<JobN25ResultData> {
+export async function runJobN25(): Promise<JobResult> {
+  const logger = new JobLogger();
+
   if (!CONFIG.userId || !CONFIG.password) {
-    throw new Error(
+    throw logger.fail(
       "ログイン認証情報が設定されていません。BELCTA_USER_ID / BELCTA_PASSWORD を設定してください。",
     );
   }
 
-  const expectedDate = format(addDays(new Date(), 1), "yyyy/MM/dd");
+  const expectedDate = getExpectedDate();
+
+  try {
+    const result = await fetchAndValidateBusinessDate(expectedDate);
+
+    return writeResultLog(logger, result);
+  } catch (error: unknown) {
+    const detail =
+      error instanceof Error ? ` (${error.message})` : ` (${String(error)})`;
+
+    return createRetryResult(
+      logger,
+      expectedDate,
+      `業務日付を取得できませんでした${detail}`,
+    );
+  }
+}
+
+/**
+ * ブラウザを起動してログインし、画面上の業務日付を取得・照合する。
+ */
+async function fetchAndValidateBusinessDate(
+  expectedDate: string,
+): Promise<JobN25ResultData> {
   let browser: Browser | undefined;
 
   try {
@@ -89,17 +139,20 @@ async function fetchAndValidateBusinessDate(): Promise<JobN25ResultData> {
     });
 
     const header = page.locator(CONFIG.selectors.headerDate);
+
     await header.waitFor({
       state: "visible",
       timeout: CONFIG.timeout,
     });
 
     const headerText = await header.textContent();
+
     if (!headerText) {
       throw new Error("業務日付を取得できませんでした。");
     }
 
     const match = headerText.match(CONFIG.dateRegex);
+
     if (!match) {
       throw new Error("業務日付の形式が見つかりませんでした。");
     }
@@ -119,9 +172,12 @@ async function fetchAndValidateBusinessDate(): Promise<JobN25ResultData> {
 }
 
 /**
- * 取得結果をログに出力し、最終ステータスを判定する。
+ * 取得結果をログに出力し、再試行または正常終了を判定する。
  */
-function writeResultLog(logger: JobLogger, result: JobN25ResultData): string {
+function writeResultLog(
+  logger: JobLogger,
+  result: JobN25ResultData,
+): JobResult {
   logger.section("接続先URL");
   logger.log(CONFIG.loginUrl);
 
@@ -132,10 +188,20 @@ function writeResultLog(logger: JobLogger, result: JobN25ResultData): string {
   if (!result.isMatched) {
     logger.log("NG: 業務日付が翌日日付と一致しません");
 
-    return logger.needsAction(
-      `業務日付要確認 (期待値: ${result.expectedDate}, 実際: ${result.actualDate})`,
+    return createRetryResult(
+      logger,
+      result.expectedDate,
+      `業務日付が一致しません。期待値: ${result.expectedDate} / 実際: ${result.actualDate}`,
+      result.actualDate,
     );
   }
 
-  return logger.complete();
+  clearRetrySession(result.expectedDate);
+
+  return {
+    success: true,
+    kind: "success",
+    message: logger.complete("翌日の業務日付を確認しました"),
+    data: result,
+  };
 }

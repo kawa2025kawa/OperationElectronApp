@@ -1,5 +1,5 @@
-import { style } from "@vanilla-extract/css";
-import { tokens } from "@renderer/styles/tokens";
+﻿import { style } from "@vanilla-extract/css";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 export const closeButton = style({
   width: "32px",
@@ -30,3 +30,4 @@ export const closeButton = style({
     },
   },
 });
+

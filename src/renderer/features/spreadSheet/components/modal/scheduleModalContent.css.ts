@@ -1,7 +1,8 @@
 ﻿// src/renderer/features/spreadSheet/components/modal/ScheduleModalContent.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
-import { themeTransition, tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 export const contentContainer = style({
   display: "flex",
@@ -138,7 +139,8 @@ export const cell = styleVariants({
     baseCell,
     {
       color: tokens.color.text.hover,
-      boxShadow: tokens.shadow.raised.low,
+      boxShadow: "none", // 影を消す
+      borderRadius: 0, // 個別の角丸を消す
     },
   ],
   section: [

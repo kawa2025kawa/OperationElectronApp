@@ -1,7 +1,8 @@
 // src/renderer/features/spreadSheet/shop/modal/ShopModalContent.tsx
 
-import { memo, useEffect } from "react";
+import { memo, useEffect, useMemo } from "react";
 import { useAppStore } from "@renderer/store";
+import { SegmentedControl } from "@renderer/components/ui/toggle/SegmentedControl";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Shop } from "@shared/types/spreadsheet/shop";
 import { useShopModalContent } from "./useShopModalContent";
@@ -38,22 +39,25 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
       };
     }, [leftActions, updateModalConfig]);
 
+    const tabItems = useMemo(
+      () =>
+        groups.map((group, idx) => ({
+          id: idx,
+          label: group.title,
+        })),
+      [groups],
+    );
+
     return (
       <div className={styles.mainContainer}>
-        <div className={styles.tabContainer}>
-          {groups.map((group, idx) => (
-            <button
-              key={group.title}
-              type="button"
-              className={styles.button}
-              data-variant="tab"
-              data-active={selectedIndex === idx}
-              onClick={() => setSelectedIndex(idx)}
-            >
-              {group.title}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          id="shopModalTabs"
+          items={tabItems}
+          value={selectedIndex}
+          onChange={setSelectedIndex}
+          size="md"
+          fullWidth
+        />
 
         <div className={styles.contentContainer}>
           {isTimeRecorderTab ? (

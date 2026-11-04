@@ -1,7 +1,6 @@
 // src/renderer/features/operation/components/table/OperationTable.tsx
 
 import { memo } from "react";
-import { AnimatePresence, m } from "framer-motion";
 
 import { useOperationTable } from "./useOperationTable";
 import { OperationTableHeader } from "./OperationTableHeader";
@@ -21,29 +20,17 @@ export const OperationTable = memo(function OperationTable() {
 
   return (
     <div className={styles.container}>
-      <AnimatePresence mode="wait" initial={false}>
-        <m.div
-          key={currentMode}
-          initial={{ opacity: 0, x: 6 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -6 }}
-          transition={{
-            duration: 0.12,
-            ease: "easeOut",
-          }}
-          className={styles.modeContent}
-        >
-          <OperationTableHeader columns={columns} />
+      <div className={styles.modeContent}>
+        <OperationTableHeader columns={columns} />
 
-          <OperationTableBody
-            rows={tableRows}
-            columns={columns}
-            selectedId={selectedId}
-            onRowClick={handleRowClick}
-            onMarkSuccess={handleMarkSuccess}
-          />
-        </m.div>
-      </AnimatePresence>
+        <OperationTableBody
+          rows={tableRows}
+          columns={columns}
+          selectedId={selectedId}
+          onRowClick={handleRowClick}
+          onMarkSuccess={handleMarkSuccess}
+        />
+      </div>
     </div>
   );
 });

@@ -1,23 +1,22 @@
 // src/renderer/features/operation/OperationView.tsx
 
-import { memo, useMemo } from "react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { memo, useMemo, useTransition } from "react";
+import { motion } from "motion/react";
 
 import { OperationTable } from "@renderer/features/operation/components/table/OperationTable";
+import type { ViewMode } from "@shared/types/registry/viewDefinition";
 
-import { useOperationViewLogic } from "./useOperationViewLogic";
-import { createInfoRows } from "./operationDisplayUtils";
-import { OperationModeSwitcher } from "./components/OperationModeSwitcher";
-import { OperationInfoRow } from "./components/OperationInfoRow";
+import { useOperationViewLogic } from "./hooks/useOperationViewLogic";
+import { createInfoRows } from "./utils/operationDisplayUtils";
+import { OperationModeSwitcher } from "./components/operationModeSwitcher/OperationModeSwitcher";
+import { OperationActionMenu } from "./components/operationActionMenu/OperationActionMenu";
+import { OperationInfoRow } from "./components/operationInfoRow/OperationInfoRow";
 import * as styles from "./operationView.css";
-
-const OPERATION_VIEW_LABELS = {
-  MENU_BUTTON: "Menu ▼",
-} as const;
 
 export const OperationView = memo(function OperationView() {
   const {
     currentMode,
+    selectedId,
     selectedItem,
     status,
     activeActions,
@@ -26,10 +25,18 @@ export const OperationView = memo(function OperationView() {
     executeAction,
   } = useOperationViewLogic();
 
+  const [, startTransition] = useTransition();
+
   const infoRows = useMemo(
     () => createInfoRows(currentMode, selectedItem, status),
     [currentMode, selectedItem, status],
   );
+
+  const handleModeChange = (mode: ViewMode): void => {
+    startTransition(() => {
+      setMode(mode);
+    });
+  };
 
   const handleActionSelect = (key: string): void => {
     requestAnimationFrame(() => {
@@ -50,43 +57,32 @@ export const OperationView = memo(function OperationView() {
           <div className={styles.topControls}>
             <OperationModeSwitcher
               currentMode={currentMode}
-              onModeChange={setMode}
+              onModeChange={handleModeChange}
             />
 
-            {isMenuVisible && (
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger asChild>
-                  <button type="button" className={styles.menuButton}>
-                    {OPERATION_VIEW_LABELS.MENU_BUTTON}
-                  </button>
-                </DropdownMenu.Trigger>
-
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content
-                    className={styles.menuDropdownContent}
-                    sideOffset={5}
-                    align="end"
-                  >
-                    {activeActions.map((action) => (
-                      <DropdownMenu.Item
-                        key={action.key}
-                        className={styles.menuItem}
-                        onSelect={() => handleActionSelect(action.key)}
-                      >
-                        {action.label}
-                      </DropdownMenu.Item>
-                    ))}
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
-            )}
+            {/* 🎯 常に表示し、未選択・無効時は disabled を渡す */}
+            <OperationActionMenu
+              actions={activeActions}
+              onActionSelect={handleActionSelect}
+              disabled={!isMenuVisible}
+            />
           </div>
 
-          <div className={styles.infoList}>
+          {/* 行の選択IDが変わるたびに opacity 0 → 1 でフワッと表示 */}
+          <motion.div
+            key={selectedId || "empty"}
+            className={styles.infoList}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              duration: 0.2,
+              ease: "easeOut",
+            }}
+          >
             {infoRows.map((row) => (
               <OperationInfoRow key={row.field} {...row} />
             ))}
-          </div>
+          </motion.div>
         </div>
       </aside>
     </div>

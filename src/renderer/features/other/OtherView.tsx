@@ -1,8 +1,6 @@
 // src/renderer/features/other/OtherView.tsx
 
 import { memo } from "react";
-import { clsx } from "clsx";
-import { animateFadeIn } from "@renderer/styles/tokens";
 import { useOtherViewLogic } from "./useOtherViewLogic";
 import * as styles from "./otherView.css";
 
@@ -16,7 +14,7 @@ export const OtherView = memo(() => {
   } = useOtherViewLogic();
 
   return (
-    <div className={clsx(styles.container, animateFadeIn)}>
+    <div className={styles.container}>
       <div className={styles.grid}>
         <button
           className={styles.card}

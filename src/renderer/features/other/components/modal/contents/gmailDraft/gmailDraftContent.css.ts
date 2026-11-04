@@ -1,7 +1,7 @@
-// src/renderer/features/other/components/modal/contents/gmailDraft/gmailDraftContent.css.ts
+﻿// src/renderer/features/other/components/modal/contents/gmailDraft/gmailDraftContent.css.ts
 
 import { style } from "@vanilla-extract/css";
-import { tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 export const formContainer = style({
   display: "flex",
@@ -124,3 +124,4 @@ export const bodyTextarea = style([
     minHeight: "150px",
   },
 ]);
+

@@ -4,7 +4,10 @@ import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
-import { darkThemeClass, lightThemeClass } from "@renderer/styles/tokens";
+import {
+  darkThemeClass,
+  lightThemeClass,
+} from "@renderer/styles/tokens/theme.css";
 import { PollingToast } from "@renderer/components/ui/toast/PollingToast";
 import { GlobalModalManager } from "@renderer/components/ui/modal/GlobalModalManager";
 import {

@@ -6,7 +6,7 @@ import type {
   ActiveFlags,
   CenterId,
 } from "@shared/types/operation/operationTypes";
-import { operationService } from "@renderer/features/operation/operationService";
+import { operationService } from "@renderer/features/operation/service/operationService";
 
 export interface CenterSlice extends ActiveFlags {
   toggleCenter: (id: CenterId) => Promise<void>;

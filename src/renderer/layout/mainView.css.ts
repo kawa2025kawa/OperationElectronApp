@@ -1,7 +1,8 @@
-// src/renderer/layout/mainView.css.ts
+﻿// src/renderer/layout/mainView.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
-import { themeTransition, tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 /**
  * 1. アプリ全体の最外殻（ウィンドウ全体）
@@ -82,3 +83,4 @@ export const viewWrapper = style({
   transform: "translateZ(0)",
   overflow: "hidden",
 });
+

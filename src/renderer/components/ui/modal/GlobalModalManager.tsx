@@ -1,6 +1,7 @@
 // src/renderer/components/ui/modal/GlobalModalManager.tsx
 
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "motion/react";
 
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
@@ -11,7 +12,7 @@ import { useGlobalModalManager } from "./useGlobalModalManager";
 export const GlobalModalManager = () => {
   const { state, actions } = useGlobalModalManager();
 
-  if (!state.isOpen || !state.content || !state.modalRoot) {
+  if (!state.modalRoot) {
     return null;
   }
 
@@ -51,37 +52,54 @@ export const GlobalModalManager = () => {
   );
 
   return createPortal(
-    <div className={styles.overlay} onClick={actions.handleCancel}>
-      <div
-        className={styles.modalWindow}
-        style={{
-          width: state.dimensions.width,
-          height: state.dimensions.height,
-        }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <header className={styles.header}>
-          <h2 className={styles.title}>{state.title}</h2>
+    <AnimatePresence>
+      {state.isOpen && state.content && (
+        <motion.div
+          key="modal-overlay"
+          className={styles.overlay}
+          onClick={actions.handleCancel}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+        >
+          <motion.div
+            key="modal-window"
+            className={styles.modalWindow}
+            style={{
+              width: state.dimensions.width,
+              height: state.dimensions.height,
+            }}
+            onClick={(event) => event.stopPropagation()}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            <header className={styles.header}>
+              <h2 className={styles.title}>{state.title}</h2>
 
-          <CloseButton
-            onClick={actions.handleCancel}
-            disabled={state.isProcessing}
-          />
-        </header>
+              <CloseButton
+                onClick={actions.handleCancel}
+                disabled={state.isProcessing}
+              />
+            </header>
 
-        {state.message && (
-          <div className={`${styles.messageBanner} ${messageClass}`}>
-            {state.message.text}
-          </div>
-        )}
+            {state.message && (
+              <div className={`${styles.messageBanner} ${messageClass}`}>
+                {state.message.text}
+              </div>
+            )}
 
-        <main className={styles.body}>{state.content}</main>
+            <main className={styles.body}>{state.content}</main>
 
-        {!state.hideFooter && (
-          <footer className={styles.footer}>{footerContent}</footer>
-        )}
-      </div>
-    </div>,
+            {!state.hideFooter && (
+              <footer className={styles.footer}>{footerContent}</footer>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
     state.modalRoot,
   );
 };

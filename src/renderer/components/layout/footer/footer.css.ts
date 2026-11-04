@@ -1,7 +1,8 @@
-// src/renderer/components/layout/footer/footer.css.ts
+﻿// src/renderer/components/layout/footer/footer.css.ts
 
 import { style } from "@vanilla-extract/css";
-import { themeTransition, tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 export const footerContainer = style([
   themeTransition,
@@ -45,3 +46,4 @@ export const controlsContainer = style({
   alignItems: "center",
   gap: tokens.space.md,
 });
+

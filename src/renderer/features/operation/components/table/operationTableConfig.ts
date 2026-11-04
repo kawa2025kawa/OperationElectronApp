@@ -4,7 +4,7 @@ import type { ViewMode } from "@shared/types/registry/viewDefinition";
 import {
   toDisplayValue,
   toMissingPropertyDisplayValue,
-} from "@renderer/features/operation/operationDisplayUtils";
+} from "@renderer/features/operation/utils/operationDisplayUtils";
 import {
   OPERATION_FIELD_LABELS,
   type OperationViewItem,

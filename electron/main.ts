@@ -15,6 +15,7 @@ let mainWindow: BrowserWindow | null = null;
 // メインアプリケーションウィンドウを生成・設定し、ライフサイクルイベントを登録する。
 function createWindow(): void {
   const preloadPath = path.join(__dirname, "preload.cjs");
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 800,
@@ -45,6 +46,7 @@ async function loadRenderer(): Promise<void> {
   if (!mainWindow) return;
 
   const devUrl = process.env.VITE_DEV_SERVER_URL;
+
   if (devUrl) {
     await mainWindow.loadURL(devUrl);
     mainWindow.webContents.openDevTools({ mode: "detach" });
@@ -62,8 +64,9 @@ async function loadRenderer(): Promise<void> {
 // Electronの起動完了後にセンターフラグを復元し、IPCとメインウィンドウを初期化する。
 app
   .whenReady()
-  .then(() => {
-    initializeActiveFlags();
+  .then(async () => {
+    await initializeActiveFlags();
+
     registerIpcHandlers();
     createWindow();
 

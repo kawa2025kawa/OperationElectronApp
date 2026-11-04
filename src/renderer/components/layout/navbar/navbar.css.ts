@@ -1,12 +1,8 @@
-// src/renderer/components/layout/navbar/navbar.css.ts
+﻿// src/renderer/components/layout/navbar/navbar.css.ts
 
 import { style } from "@vanilla-extract/css";
-import {
-  tokens,
-  themeTransition,
-  brandGradientText,
-  titleText,
-} from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 export const container = style([
   themeTransition,
@@ -23,21 +19,24 @@ export const container = style([
   },
 ]);
 
-export const logoText = style([
-  brandGradientText,
-  titleText,
-  {
-    fontSize: tokens.font.size.xl,
-    whiteSpace: "nowrap",
-    flexShrink: 0,
+export const logoText = style({
+  backgroundImage: tokens.gradient.brand,
+  WebkitBackgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+  backgroundClip: "text",
+  color: "transparent",
+  fontSize: tokens.font.size.xl,
+  fontWeight: tokens.font.weight.bold,
+  letterSpacing: "1px",
+  whiteSpace: "nowrap",
+  flexShrink: 0,
 
-    "@media": {
-      "screen and (max-width: 850px)": {
-        display: "none",
-      },
+  "@media": {
+    "screen and (max-width: 850px)": {
+      display: "none",
     },
   },
-]);
+});
 
 export const centerItem = style({
   flex: 1,
@@ -72,3 +71,4 @@ export const rightGroup = style({
   gap: tokens.space.md,
   flexShrink: 0,
 });
+

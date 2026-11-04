@@ -3,12 +3,12 @@
 import { createElement, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
 
-import { operationService } from "@renderer/features/operation/operationService";
+import { operationService } from "@renderer/features/operation/service/operationService";
 import {
   openLinkModal,
   openPdfUploadModal,
   openScriptModal,
-} from "@renderer/features/operation/operationModal";
+} from "@renderer/features/operation/components/modal/operationModal";
 import { GmailDraftContent } from "@renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent";
 import { systemIpcService } from "@renderer/services/systemIpcService";
 import { useAppStore, type AppState } from "@renderer/store";
@@ -242,6 +242,7 @@ export function useOperationViewLogic(rowsInput?: OperationViewItem[]) {
 
   return {
     currentMode,
+    selectedId,
     selectedItem,
     status,
     activeActions,

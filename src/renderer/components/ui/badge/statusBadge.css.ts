@@ -1,7 +1,8 @@
-// src/renderer/components/ui/badge/statusBadge.css.ts
+﻿// src/renderer/components/ui/badge/statusBadge.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
-import { themeTransition, tokens } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 import { getStatusTheme } from "@renderer/styles/statusTheme";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 
@@ -52,3 +53,4 @@ export const tone = styleVariants({
     boxShadow: tokens.shadow.raised.low,
   },
 });
+

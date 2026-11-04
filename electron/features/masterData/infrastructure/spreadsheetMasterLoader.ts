@@ -2,13 +2,20 @@
 
 import {
   SHEETS,
+  type SheetData,
   type SheetId,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
-import type { SpreadsheetMasterData } from "@shared/types/masterData/spreadsheetMasterDataTypes";
+import type { RdpMaster } from "../../rdp/rdpMasterTypes";
+import type { SpreadsheetMasterData } from "../types/internalSpreadsheetMasterDataTypes";
 import { fetchSheet } from "./spreadsheetClient";
 
-async function loadSheetData<TSheetId extends SheetId>(sheetId: TSheetId) {
-  const result = await fetchSheet(sheetId);
+type DefaultSheetRow<TSheetId extends SheetId> = SheetData<TSheetId>[number];
+
+async function loadSheetData<
+  TSheetId extends SheetId,
+  TRow extends object = DefaultSheetRow<TSheetId>,
+>(sheetId: TSheetId): Promise<TRow[]> {
+  const result = await fetchSheet<TSheetId, TRow>(sheetId);
 
   if (result.success) {
     return result.data;
@@ -37,7 +44,7 @@ export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData
     loadSheetData(SHEETS.KOKYUHYO_TANTOU.sheetName),
     loadSheetData(SHEETS.OPERATION.sheetName),
     loadSheetData(SHEETS.IRREGULAR.sheetName),
-    loadSheetData(SHEETS.RDP.sheetName),
+    loadSheetData<typeof SHEETS.RDP.sheetName, RdpMaster>(SHEETS.RDP.sheetName),
   ]);
 
   return {

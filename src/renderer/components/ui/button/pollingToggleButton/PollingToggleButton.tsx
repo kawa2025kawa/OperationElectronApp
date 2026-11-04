@@ -17,15 +17,15 @@ export const PollingToggleButton = () => {
       title={title}
       onClick={handleClick}
     >
-      <div className={styles.content}>
-        <div className={styles.indicatorContainer}>
-          <span className={isPolling ? styles.onlineDot : styles.offlineDot} />
-        </div>
+      <span className={styles.indicator}>
+        <span className={styles.dot} />
+      </span>
 
-        <span className={styles.label}>
+      <span className={styles.label}>
+        <span className={styles.textSpan}>
           {isPolling ? "SYSTEM ONLINE" : "SYSTEM OFFLINE"}
         </span>
-      </div>
+      </span>
     </button>
   );
 };

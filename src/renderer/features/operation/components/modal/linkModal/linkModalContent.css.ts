@@ -1,7 +1,8 @@
 ﻿// src/renderer/features/operation/components/modal/linkModal/linkModalContent.css.ts
 
 import { style } from "@vanilla-extract/css";
-import { tokens, themeTransition } from "@renderer/styles/tokens";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 const BADGE_WIDTH = "120px";
 
@@ -115,3 +116,4 @@ export const cellValue = style({
     },
   },
 });
+
