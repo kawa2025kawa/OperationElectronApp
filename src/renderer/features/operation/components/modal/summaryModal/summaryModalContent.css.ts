@@ -3,8 +3,8 @@
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
-// 共通テーブルスタイルを一括継承
-export * from "@renderer/styles/global/globalTable.css";
+// OperationTable のテーブルスタイルを継承
+export * from "../../table/operationTable.css";
 
 // モーダルコンテナ固有のスタイル
 export const container = style({
@@ -22,4 +22,3 @@ export const container = style({
     },
   },
 });
-

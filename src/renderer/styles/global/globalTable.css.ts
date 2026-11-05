@@ -89,15 +89,14 @@ export const bodyWrapper = style({
 });
 
 // ============================================================
-// Tables
+// Tables (列幅を完全一致させるため、横の borderSpacing は共に 0 に固定)
 // ============================================================
 
 export const headerTable = style({
   ...commonTable,
-  borderCollapse: "collapse",
-  backgroundColor: tokens.color.bg.base,
-  borderRadius: tokens.radius.md,
-  overflow: "hidden",
+  borderCollapse: "separate",
+  borderSpacing: 0,
+  backgroundColor: "transparent",
 });
 
 export const bodyTable = style({
@@ -143,7 +142,6 @@ export const tableRowStates = styleVariants({
     vars: { ...defaultRowVars },
     cursor: "pointer",
     selectors: {
-      // 🎯 ホバー時にネオンブルー（シアン発光）
       "&:hover": {
         vars: {
           [rowTextColor]: tokens.color.text.hover,
@@ -180,15 +178,27 @@ export const tableRowStates = styleVariants({
 });
 
 // ============================================================
-// Cells
+// Header Cells & Convex Cards (行の列幅と完全同期)
 // ============================================================
 
-export const thBase = style([
+// th 自体は padding を設けず、列幅（colgroup）のグリッド枠を厳格に保持
+export const thCellBase = style({
+  padding: 0,
+  verticalAlign: "top",
+  border: "none",
+  backgroundColor: "transparent",
+});
+
+// 単独列（部門・氏名）の凸カード
+export const thCardSingle = style([
   themeTransition,
   {
-    height: "56px",
+    display: "flex",
+    alignItems: "center",
+    height: "64px",
+    marginInline: "3px", // カード間の余白
     paddingInline: tokens.space.lg,
-    backgroundColor: "transparent",
+    backgroundColor: tokens.color.bg.base,
     color: tokens.color.text.base,
     fontSize: tokens.font.size.sm,
     fontWeight: tokens.font.weight.bold,
@@ -197,9 +207,69 @@ export const thBase = style([
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
-    selectors: rowEdgeRadius,
+    borderRadius: tokens.radius.md,
+    boxShadow: tokens.shadow.raised.high,
+    borderTop: `1px solid ${tokens.color.border.highlight}`,
+    borderLeft: `1px solid ${tokens.color.border.default}`,
+    borderRight: `1px solid ${tokens.color.border.subtle}`,
+    borderBottom: `1px solid ${tokens.color.border.subtle}`,
+    boxSizing: "border-box",
   },
 ]);
+
+// 「本日」「明日」のグループ凸カード
+export const thCardGroup = style([
+  themeTransition,
+  {
+    marginInline: "3px", // カード間の余白
+    backgroundColor: tokens.color.bg.base,
+    borderRadius: tokens.radius.md,
+    boxShadow: tokens.shadow.raised.high,
+    borderTop: `1px solid ${tokens.color.border.highlight}`,
+    borderLeft: `1px solid ${tokens.color.border.default}`,
+    borderRight: `1px solid ${tokens.color.border.subtle}`,
+    borderBottom: `1px solid ${tokens.color.border.subtle}`,
+    overflow: "hidden",
+    boxSizing: "border-box",
+  },
+]);
+
+// 凸カード内の上段（日付タイトル）
+export const thCardTitle = style({
+  height: "32px",
+  lineHeight: "32px",
+  textAlign: "center",
+  color: tokens.color.text.base,
+  fontSize: tokens.font.size.sm,
+  fontWeight: tokens.font.weight.bold,
+  letterSpacing: "0.05em",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  paddingInline: tokens.space.sm,
+});
+
+// 凸カード内の下段（区分・午前・区分・午後）
+export const thCardSubRow = style({
+  display: "flex",
+  width: "100%",
+  height: "32px",
+});
+
+export const thCardSubCell = style({
+  display: "flex",
+  alignItems: "center",
+  paddingInline: tokens.space.sm,
+  color: tokens.color.text.base,
+  fontSize: tokens.font.size.xs,
+  fontWeight: tokens.font.weight.bold,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  boxSizing: "border-box",
+});
 
 export const tdBase = style({
   paddingInline: tokens.space.lg,
@@ -214,9 +284,9 @@ export const tdBase = style({
 // ============================================================
 
 export const alignVariants = styleVariants({
-  left: { textAlign: "left" },
-  center: { textAlign: "center" },
-  right: { textAlign: "right" },
+  left: { textAlign: "left", justifyContent: "flex-start" },
+  center: { textAlign: "center", justifyContent: "center" },
+  right: { textAlign: "right", justifyContent: "flex-end" },
 });
 
 export const thAlignVariants = alignVariants;

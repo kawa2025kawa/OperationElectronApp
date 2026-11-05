@@ -3,7 +3,7 @@
 import { style, styleVariants, type StyleRule } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { themeTransition } from "@renderer/styles/tokens/theme.css";
-import { getStatusTheme } from "@renderer/styles/statusTheme";
+import { getStatusTheme } from "@renderer/styles/tokens/statusTheme";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 
 export const container = style([
@@ -109,4 +109,3 @@ export const valueBadgeVariants = styleVariants({
   needsAction: createStatusVariant("needsAction"),
   error: createStatusVariant("error"),
 });
-

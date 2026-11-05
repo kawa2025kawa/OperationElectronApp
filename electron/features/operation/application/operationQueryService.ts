@@ -1,6 +1,7 @@
 // electron/features/operation/application/operationQueryService.ts
 
 import { isRunningStatus } from "@electron/features/operation/domain/operationRules";
+import { getRdpKeysForOperation } from "@electron/features/operation/runners/operationRdpRegistry";
 import {
   getScriptExecutionRequirement,
   getScriptKeysForOperation,
@@ -18,6 +19,7 @@ import {
 } from "@shared/types/statusSummary/statusSummaryTypes";
 import type {
   JobStatus,
+  OperationRdpKey,
   OperationScriptKey,
   OperationStatusState,
   OperationViewItem,
@@ -88,16 +90,22 @@ function enrichItem(
     target.kanriNo,
     target.ScriptKeys,
   );
+
   const scriptKeys: OperationScriptKey[] = rawScriptKeys.map((k) => ({
     ...k,
     requiresFileSelection: getScriptExecutionRequirement(k.key)
       .requiresFileSelection,
   }));
 
+  const rdpKeys: OperationRdpKey[] = [
+    ...getRdpKeysForOperation(target.kanriNo, target.RdpKeys),
+  ];
+
   return {
     ...target,
     workName: getWorkName(target.workName, target.kanriNo),
     ScriptKeys: scriptKeys,
+    RdpKeys: rdpKeys,
     isPdfUpload: isPdfUploadOperation(target.kanriNo, rawScriptKeys),
     ...(statusState?.status !== undefined && { status: statusState.status }),
     ...(statusState?.comment !== undefined && { comment: statusState.comment }),

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { ChangeEvent, DragEvent } from "react";
+
 import { ORDER_TIME_OPTIONS, type FileDropZoneItem } from "./fileDropZoneTypes";
 
 interface UseFileDropZoneProps {
@@ -10,11 +11,12 @@ interface UseFileDropZoneProps {
   onFileSelect: (files: File[]) => void;
   onReorderFile?: (fromIndex: number, toIndex: number) => void;
   onRemoveFile?: (index: number) => void;
-  onRenameFile?: (index: number, newName: string) => void | Promise<void>;
+  onRenameFile?: (filePath: string, newName: string) => void | Promise<void>;
 }
 
 export function getTodayString(): string {
   const now = new Date();
+
   return `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, "0")}月${String(now.getDate()).padStart(2, "0")}日`;
 }
 
@@ -35,6 +37,7 @@ export function useFileDropZone({
   const [dragOverFileIndex, setDragOverFileIndex] = useState<number | null>(
     null,
   );
+
   const mainInputRef = useRef<HTMLInputElement>(null);
 
   const resetFileDrag = useCallback(() => {
@@ -48,7 +51,10 @@ export function useFileDropZone({
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       event.stopPropagation();
-      if (!disabled) setIsDragOverMain(true);
+
+      if (!disabled) {
+        setIsDragOverMain(true);
+      }
     },
     [disabled],
   );
@@ -57,6 +63,7 @@ export function useFileDropZone({
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       event.stopPropagation();
+
       setIsDragOverMain(false);
     },
     [],
@@ -66,12 +73,16 @@ export function useFileDropZone({
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       event.stopPropagation();
+
       setIsDragOverMain(false);
 
       if (disabled) return;
 
       const droppedFiles = Array.from(event.dataTransfer.files);
-      if (droppedFiles.length) onFileSelect(droppedFiles);
+
+      if (droppedFiles.length > 0) {
+        onFileSelect(droppedFiles);
+      }
     },
     [disabled, onFileSelect],
   );
@@ -79,10 +90,14 @@ export function useFileDropZone({
   const handleMainInputChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const selectedFiles = Array.from(event.target.files ?? []);
-      if (selectedFiles.length) onFileSelect(selectedFiles);
+
+      if (!disabled && selectedFiles.length > 0) {
+        onFileSelect(selectedFiles);
+      }
+
       event.target.value = "";
     },
-    [onFileSelect],
+    [disabled, onFileSelect],
   );
 
   const handleFileDragStart = useCallback(
@@ -101,6 +116,7 @@ export function useFileDropZone({
 
       event.preventDefault();
       event.dataTransfer.dropEffect = "move";
+
       setDragOverFileIndex(index);
     },
     [disabled, draggedFileIndex, onReorderFile],
@@ -132,23 +148,26 @@ export function useFileDropZone({
 
   const handleRemoveFileItem = useCallback(
     (index: number) => {
-      if (!disabled) onRemoveFile?.(index);
+      if (!disabled) {
+        onRemoveFile?.(index);
+      }
     },
     [disabled, onRemoveFile],
   );
 
   const handleRowSelectRename = useCallback(
-    (index: number, orderValue: string) => {
-      if (!onRenameFile || !orderValue) return;
+    (filePath: string, orderValue: string) => {
+      if (disabled || !onRenameFile || !filePath || !orderValue) return;
 
       const option = ORDER_TIME_OPTIONS.find(
         ({ value }) => value === orderValue,
       );
-      if (option) {
-        void onRenameFile(index, generateOrderErrorFileName(option.timeLabel));
-      }
+
+      if (!option) return;
+
+      void onRenameFile(filePath, generateOrderErrorFileName(option.timeLabel));
     },
-    [onRenameFile],
+    [disabled, onRenameFile],
   );
 
   return {

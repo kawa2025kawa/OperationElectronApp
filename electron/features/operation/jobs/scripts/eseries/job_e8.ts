@@ -28,7 +28,7 @@ export interface JobE8ResultData {
   matchedFiles: FileStatusE8[];
   missingFiles: string[];
   dateIssueFiles: FileStatusE8[];
-  zipMessage?: string;
+  zipFilePath?: string | null;
 }
 
 const CONFIG = {
@@ -39,24 +39,12 @@ const CONFIG = {
 
 /**
  * 棚割関連ファイル（3ファイル）の存在と更新日を確認し、ZIPアーカイブを作成する。
- *
- * 確認先:
- * - \\S0088003\syn_tran\from_ACOS\SendData
- *
- * 業務上の要対応:
- * - 対象ファイルが不足している場合
- * - ファイルの更新日が本日でない場合
- *
- * システムエラー:
- * - ディレクトリへのアクセス失敗
- * - ファイル情報取得失敗
- * - ZIPアーカイブ作成失敗
  */
 export async function runJobE8(): Promise<string> {
   const logger = new JobLogger();
 
   try {
-    const result = await checkAndArchiveFiles(logger);
+    const result = await checkAndArchiveFiles();
 
     return writeResultLog(logger, result);
   } catch (error: unknown) {
@@ -73,9 +61,7 @@ export async function runJobE8(): Promise<string> {
 /**
  * ファイルの存在と日付を検証し、全条件を満たしていればZIPを作成する。
  */
-async function checkAndArchiveFiles(
-  logger: JobLogger,
-): Promise<JobE8ResultData> {
+async function checkAndArchiveFiles(): Promise<JobE8ResultData> {
   const now = new Date();
   const entries = await fs.readdir(CONFIG.targetDir, { withFileTypes: true });
 
@@ -123,20 +109,17 @@ async function checkAndArchiveFiles(
     };
   }
 
-  const zipMessage = await createZipArchive(
-    {
-      filePaths: matchedFiles.map((file) => file.filePath),
-      outputDir: path.join(os.homedir(), "Desktop"),
-      zipPrefix: CONFIG.zipPrefix,
-    },
-    logger,
-  );
+  const zipFilePath = await createZipArchive({
+    filePaths: matchedFiles.map((file) => file.filePath),
+    outputDir: path.join(os.homedir(), "Desktop"),
+    zipPrefix: CONFIG.zipPrefix,
+  });
 
   return {
     matchedFiles,
     missingFiles,
     dateIssueFiles,
-    zipMessage,
+    zipFilePath,
   };
 }
 
@@ -152,6 +135,11 @@ function writeResultLog(logger: JobLogger, result: JobE8ResultData): string {
     for (const file of result.matchedFiles) {
       logger.log(`${file.fileName} (${formatDateTime(file.mtime)})`);
     }
+  }
+
+  if (result.zipFilePath) {
+    logger.section("出力先");
+    logger.log(result.zipFilePath);
   }
 
   if (result.missingFiles.length > 0) {
@@ -179,5 +167,9 @@ function writeResultLog(logger: JobLogger, result: JobE8ResultData): string {
     return logger.needsAction(issues.join("\n"));
   }
 
-  return logger.complete(result.zipMessage);
+  if (!result.zipFilePath) {
+    throw logger.fail("ZIPアーカイブの作成に失敗しました。");
+  }
+
+  return logger.complete();
 }

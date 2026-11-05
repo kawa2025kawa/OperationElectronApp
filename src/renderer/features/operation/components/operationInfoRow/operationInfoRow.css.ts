@@ -3,13 +3,15 @@
 import { style, globalStyle } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
+const t = tokens.transition.normal;
+
 // ============================================================
 // Info Row
 // ============================================================
 export const row = style({
+  position: "relative",
   display: "flex",
   alignItems: "center",
-  // 🎯 左右に余白を持たせ、ネオンブルー発光（boxShadow）が見切れない幅にする
   width: `calc(100% - ${tokens.space.sm} * 2)`,
   marginInline: "auto",
   boxSizing: "border-box",
@@ -18,16 +20,27 @@ export const row = style({
   borderRadius: tokens.radius.md,
   color: tokens.color.text.base,
   boxShadow: tokens.shadow.raised.low,
-  transition: `box-shadow ${tokens.transition.normal}, color ${tokens.transition.normal}, background-color ${tokens.transition.normal}`,
+  transition: `color ${t}, background-color ${t}`,
   minHeight: "44px",
+
+  // 🎯 完成形シャドウを固定描画した擬似要素レイヤー
+  "::before": {
+    content: '""',
+    position: "absolute",
+    inset: 0,
+    borderRadius: tokens.radius.md,
+    boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+    opacity: 0,
+    transition: `opacity ${t}`,
+    pointerEvents: "none",
+  },
 
   selectors: {
     "&:hover": {
       color: tokens.color.text.hover,
-      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
     },
-    "&:active": {
-      transition: `box-shadow ${tokens.transition.fast}`,
+    "&:hover::before": {
+      opacity: 1,
     },
     "&[data-remarks='true']": {
       flexDirection: "column",
@@ -39,6 +52,8 @@ export const row = style({
 });
 
 globalStyle(`${row} > span:first-child`, {
+  position: "relative",
+  zIndex: 1,
   flexShrink: 0,
   fontSize: tokens.font.size.sm,
   fontWeight: tokens.font.weight.bold,
@@ -51,6 +66,8 @@ globalStyle(`${row} > span:first-child`, {
 // Result Value
 // ============================================================
 export const resultValue = style({
+  position: "relative",
+  zIndex: 1,
   flex: 1,
   paddingLeft: tokens.space.md,
   textAlign: "right",
@@ -75,7 +92,6 @@ export const resultValue = style({
       scrollbarWidth: "thin",
       scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
     },
-    // ネストせず同列のセレクタとして定義
     [`${row}[data-remarks='true'] &::-webkit-scrollbar`]: {
       width: "4px",
       display: "block",

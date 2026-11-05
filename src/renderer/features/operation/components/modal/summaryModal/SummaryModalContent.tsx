@@ -8,10 +8,7 @@ import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Column } from "@shared/types/table/tableType";
 import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes";
-import {
-  toDisplayValue,
-  toMissingPropertyDisplayValue,
-} from "@renderer/features/operation/utils/operationDisplayUtils";
+import { useSummaryModalContent } from "./useSummaryModalContent";
 import * as styles from "./summaryModalContent.css";
 
 interface SummaryModalContentProps {
@@ -47,20 +44,11 @@ interface TableRowProps {
   columns: readonly Column<SummaryDetailRow>[];
   isSelected: boolean;
   onRowClick?: (item: SummaryDetailRow) => void;
-}
-
-function getSummaryCellValue(
-  item: SummaryDetailRow,
-  key: string,
-): { exists: boolean; value: unknown } {
-  if (!Object.prototype.hasOwnProperty.call(item, key)) {
-    return { exists: false, value: undefined };
-  }
-
-  return {
-    exists: true,
-    value: (item as unknown as Record<string, unknown>)[key],
-  };
+  formatCellDisplay: (item: SummaryDetailRow, key: string) => string;
+  getRowState: (
+    isSelected: boolean,
+    hasClickHandler: boolean,
+  ) => "selected" | "clickable" | "idle";
 }
 
 const TableRowInner = ({
@@ -68,8 +56,10 @@ const TableRowInner = ({
   columns,
   isSelected,
   onRowClick,
+  formatCellDisplay,
+  getRowState,
 }: TableRowProps) => {
-  const rowState = isSelected ? "selected" : onRowClick ? "clickable" : "idle";
+  const rowState = getRowState(isSelected, Boolean(onRowClick));
 
   return (
     <tr
@@ -91,14 +81,11 @@ const TableRowInner = ({
           );
         }
 
-        const cell = getSummaryCellValue(item, key);
-        const displayValue = cell.exists
-          ? toDisplayValue(cell.value)
-          : toMissingPropertyDisplayValue();
-
         return (
           <td key={key} className={clsx(styles.tdBase, alignClass)}>
-            <span className={styles.cellText}>{displayValue}</span>
+            <span className={styles.cellText}>
+              {formatCellDisplay(item, key)}
+            </span>
           </td>
         );
       })}
@@ -118,9 +105,10 @@ TableRow.displayName = "SummaryTableRow";
 
 export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps> =
   memo((props) => {
-    const items = props?.items ?? [];
+    const { isEmpty, items, formatCellDisplay, getRowState, getRowKey } =
+      useSummaryModalContent(props?.items);
 
-    if (items.length === 0) {
+    if (isEmpty) {
       return (
         <div className={styles.container}>
           <EmptyState />
@@ -159,18 +147,16 @@ export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps>
             <table className={styles.bodyTable}>
               <TableColGroup columns={SUMMARY_COLUMNS} />
               <tbody>
-                {items.map((item, index) => {
-                  const key = item.kanriNo || String(index);
-
-                  return (
-                    <TableRow
-                      key={key}
-                      item={item}
-                      columns={SUMMARY_COLUMNS}
-                      isSelected={false}
-                    />
-                  );
-                })}
+                {items.map((item, index) => (
+                  <TableRow
+                    key={getRowKey(item, index)}
+                    item={item}
+                    columns={SUMMARY_COLUMNS}
+                    isSelected={false}
+                    formatCellDisplay={formatCellDisplay}
+                    getRowState={getRowState}
+                  />
+                ))}
               </tbody>
             </table>
           </div>

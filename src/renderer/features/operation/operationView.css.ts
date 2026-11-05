@@ -95,7 +95,7 @@ export const panelContainer = style([
     borderRadius: tokens.radius.lg,
     boxShadow: tokens.shadow.raised.high,
     padding: tokens.space.md,
-    gap: tokens.space.md,
+    gap: tokens.space.xl,
   },
 ]);
 
@@ -118,7 +118,8 @@ export const infoList = style([
     flex: 1,
     minHeight: 0,
     overflowY: "auto",
+    paddingTop: tokens.space.xs,
+    paddingBottom: tokens.space.xs,
     gap: tokens.space.md,
   },
 ]);
-

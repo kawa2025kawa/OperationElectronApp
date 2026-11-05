@@ -2,49 +2,15 @@
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
+import { baseButton } from "../buttonBase.css";
 
-// ベーススタイル（全バリアント共通）
 export const actionButton = style([
-  themeTransition,
+  baseButton,
   {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    boxSizing: "border-box",
     fontWeight: tokens.font.weight.bold,
-    cursor: "pointer",
-    outline: "none",
-    transition: tokens.transition.fast,
-    textDecoration: "none",
-
-    // 🎯 描画分離（ホバー・クリック時の周囲領域へのペイント波及を防止）
-    position: "relative",
-    isolation: "isolate",
-    transform: "translateZ(0)",
-
-    selectors: {
-      "&:disabled": {
-        opacity: 0.35,
-        cursor: "not-allowed",
-        pointerEvents: "none",
-        backgroundColor: tokens.color.bg.base,
-        borderColor: tokens.color.border.subtle,
-        color: tokens.color.text.base,
-        boxShadow: tokens.shadow.pressed.low,
-        filter: "grayscale(60%)",
-        textShadow: "none",
-      },
-    },
   },
 ]);
 
-// バリアントスタイル定義
-// src/renderer/components/ui/button/actionButton/actionButton.css.ts
-
-// ...（ベーススタイルは既存のまま）
-
-// バリアントスタイル定義
 export const variants = styleVariants({
   default: {
     padding: "1.2vmin 3vmin",
@@ -113,4 +79,3 @@ export const variants = styleVariants({
     },
   },
 });
-

@@ -70,7 +70,10 @@ export async function runJobE14(
   const targetMonth = getDateKey(subMonths(new Date(), 1), "yyyyMM");
   const zipPrefix = `${targetMonth}${CONFIG.outputFolderSuffix}`;
   const outputFolderPath = path.join(baseDir, zipPrefix);
-  const outputZipPath = `${outputFolderPath}.zip`;
+  const expectedZipPath = path.join(
+    baseDir,
+    `${zipPrefix}_${getDateKey()}.zip`,
+  );
 
   try {
     if (await directoryExists(outputFolderPath)) {
@@ -79,9 +82,9 @@ export async function runJobE14(
       );
     }
 
-    if (await fileExists(outputZipPath)) {
+    if (await fileExists(expectedZipPath)) {
       throw new Error(
-        `既にZIPファイルが存在します。\n${outputZipPath}\nZIPファイルを削除後、再度実施して下さい。`,
+        `既にZIPファイルが存在します。\n${expectedZipPath}\nZIPファイルを削除後、再度実施して下さい。`,
       );
     }
 
@@ -99,15 +102,15 @@ export async function runJobE14(
       );
     }
 
-    await createZipArchive(
-      {
-        filePaths: processedFiles.map((file) => file.outputPath),
-        outputDir: baseDir,
-        zipPrefix,
-        includeFileList: true,
-      },
-      logger,
-    );
+    const outputZipPath = await createZipArchive({
+      filePaths: processedFiles.map((file) => file.outputPath),
+      outputDir: baseDir,
+      zipPrefix,
+    });
+
+    if (!outputZipPath) {
+      throw new Error("ZIPアーカイブの作成に失敗しました。");
+    }
 
     const result: JobResultData = {
       targetMonth,

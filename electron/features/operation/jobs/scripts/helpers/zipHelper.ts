@@ -4,7 +4,6 @@ import path from "node:path";
 import fs from "fs-extra";
 import archiver from "archiver";
 
-import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   directoryExists,
   getDateKey,
@@ -19,9 +18,6 @@ export interface CreateZipOptions {
 
   /** ZIPファイル名の接頭辞 (例: "ORDER_DATA") */
   zipPrefix: string;
-
-  /** 戻り値およびログにファイル一覧を含めるか (デフォルト: false) */
-  includeFileList?: boolean;
 }
 
 interface ZipSourceFile {
@@ -32,11 +28,6 @@ interface ZipSourceFile {
 
 /**
  * ZIP圧縮を実行する。
- *
- * - ZIP内のファイル名は元ファイルの basename を使用する
- * - ZIP内の更新日時は元ファイルの mtime を使用する
- * - 圧縮対象は通常ファイルに限定する
- * - 指定された圧縮対象に問題があればエラーにする
  */
 async function compressFiles(
   files: ZipSourceFile[],
@@ -114,70 +105,46 @@ async function compressFiles(
 
 /**
  * 指定されたファイル群を、日付入りのZIPアーカイブとして作成する。
+ * @returns 作成成功時は作成されたZIPファイルのフルパス、失敗時は null
  */
 export async function createZipArchive(
   options: CreateZipOptions,
-  logger: JobLogger,
-): Promise<string> {
-  const { filePaths, outputDir, zipPrefix, includeFileList = false } = options;
-
-  logger.log(`出力先ディレクトリ : ${outputDir}`);
-  logger.log(`ZIPファイル接頭辞 : ${zipPrefix}`);
-  logger.log(`対象ファイル数 : ${filePaths.length}件`);
+): Promise<string | null> {
+  const { filePaths, outputDir, zipPrefix } = options;
 
   if (filePaths.length === 0) {
-    throw new Error("圧縮対象のファイルが指定されていません。");
+    return null;
   }
 
-  if (!(await directoryExists(outputDir))) {
-    throw new Error(`出力先ディレクトリが存在しません: ${outputDir}`);
-  }
-
-  const files: ZipSourceFile[] = [];
-
-  for (const filePath of filePaths) {
-    const stat = await fs.stat(filePath);
-
-    if (!stat.isFile()) {
-      throw new Error(`圧縮対象がファイルではありません: ${filePath}`);
+  try {
+    if (!(await directoryExists(outputDir))) {
+      return null;
     }
 
-    const fileName = path.basename(filePath);
+    const files: ZipSourceFile[] = [];
 
-    files.push({
-      filePath,
-      fileName,
-      mtime: stat.mtime,
-    });
+    for (const filePath of filePaths) {
+      const stat = await fs.stat(filePath);
 
-    logger.log(`ファイル名 : ${fileName}`);
+      if (!stat.isFile()) {
+        return null;
+      }
+
+      files.push({
+        filePath,
+        fileName: path.basename(filePath),
+        mtime: stat.mtime,
+      });
+    }
+
+    const todayStr = getDateKey();
+    const zipFileName = `${zipPrefix}_${todayStr}.zip`;
+    const outputZipPath = path.join(outputDir, zipFileName);
+
+    await compressFiles(files, outputZipPath);
+
+    return outputZipPath;
+  } catch {
+    return null;
   }
-
-  const todayStr = getDateKey();
-  const zipFileName = `${zipPrefix}_${todayStr}.zip`;
-  const outputZipPath = path.join(outputDir, zipFileName);
-
-  logger.log(`ZIP出力先 : ${outputZipPath}`);
-  logger.log("ZIPファイルを作成しています...");
-
-  await compressFiles(files, outputZipPath);
-
-  logger.log(`ZIP作成完了 : ${zipFileName}`);
-
-  let message = `${zipFileName} を作成しました (${filePaths.length}件)`;
-
-  if (includeFileList) {
-    const fileList = files
-      .map((file, index) => `\n  ${index + 1}. ${file.fileName}`)
-      .join("");
-
-    message += `\n\n${fileList}`;
-
-    logger.log("圧縮対象ファイル一覧 :");
-    files.forEach((file, index) => {
-      logger.log(`  ${index + 1}. ${file.fileName}`);
-    });
-  }
-
-  return message;
 }

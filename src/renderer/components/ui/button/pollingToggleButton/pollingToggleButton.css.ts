@@ -1,7 +1,8 @@
 // src/renderer/components/ui/button/pollingToggleButton/pollingToggleButton.css.ts
 
 import { keyframes, style } from "@vanilla-extract/css";
-import { tokens } from "@renderer/styles/tokens/semantic.contract.js";
+import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { baseButton } from "../buttonBase.css";
 
 // オンライン時のシアン発光パルス（サイズ変更なし・光の波紋のみ）
 const pulse = keyframes({
@@ -20,56 +21,57 @@ const pulse = keyframes({
 const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
 
-export const button = style({
-  position: "relative",
-  display: "inline-flex",
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  whiteSpace: "nowrap",
-  gap: tokens.space.md,
-  width: "13rem",
-  height: "3rem",
-  padding: `0 ${tokens.space.lg}`,
-  border: `1px solid ${tokens.color.border.default}`,
-  borderRadius: tokens.radius.full,
-  outline: "none",
-  cursor: "pointer",
-  fontFamily: tokens.font.base,
-  fontSize: tokens.font.size.md,
-  fontWeight: tokens.font.weight.bold,
-  backgroundColor: tokens.color.bg.base,
-  color: tokens.color.text.base,
-  boxShadow: tokens.shadow.raised.md,
-  // 位置変化（transform）は一切含めず、背景・枠線・影のみ遷移
-  transition: `background-color ${t}, border-color ${smoothGlow}, box-shadow ${t}`,
-
-  // シアンの光（外側グロー）とインセット影を重ねるレイヤー
-  "::before": {
-    content: '""',
-    position: "absolute",
-    inset: -1,
+export const button = style([
+  baseButton,
+  {
+    flexDirection: "row",
+    whiteSpace: "nowrap",
+    gap: tokens.space.md,
+    width: "13rem",
+    height: "3rem",
+    padding: `0 ${tokens.space.lg}`,
+    border: `1px solid ${tokens.color.border.default}`,
     borderRadius: tokens.radius.full,
-    boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
-    opacity: 0,
-    transition: `opacity ${smoothGlow}`,
-    pointerEvents: "none",
-  },
+    fontFamily: tokens.font.base,
+    fontSize: tokens.font.size.md,
+    fontWeight: tokens.font.weight.bold,
+    backgroundColor: tokens.color.bg.base,
+    color: tokens.color.text.base,
+    boxShadow: tokens.shadow.raised.md,
+    // 位置変化（transform）は一切含めず、背景・枠線・影・文字色を遷移
+    transition: `background-color ${t}, border-color ${smoothGlow}, box-shadow ${t}, color ${t}`,
 
-  selectors: {
-    // ホバー時に 0.8秒かけてシアンの光とインセット影をじわーっと最大化
-    "&:hover::before": {
-      opacity: 1,
+    // シアンの光（外側グロー）とインセット影を重ねるレイヤー
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: -1,
+      borderRadius: tokens.radius.full,
+      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
+      opacity: 0,
+      transition: `opacity ${smoothGlow}`,
+      pointerEvents: "none",
     },
-    // 監視中（ON状態）は常時発光
-    "&[aria-pressed='true']": {
-      borderColor: tokens.color.border.accent,
-    },
-    "&[aria-pressed='true']::before": {
-      opacity: 1,
+
+    selectors: {
+      // 1. ボタン本体のテキスト色
+      "&:hover:not(:disabled)": {
+        color: tokens.color.text.hover,
+      },
+      // ホバー時に 0.8秒かけてシアンの光とインセット影をじわーっと最大化
+      "&:hover:not(:disabled)::before": {
+        opacity: 1,
+      },
+      // 監視中（ON状態）は常時発光
+      "&[aria-pressed='true']": {
+        borderColor: tokens.color.border.accent,
+      },
+      "&[aria-pressed='true']::before": {
+        opacity: 1,
+      },
     },
   },
-});
+]);
 
 export const indicator = style({
   position: "relative",
@@ -87,7 +89,6 @@ export const dot = style({
   borderRadius: tokens.radius.full,
   backgroundColor: tokens.color.text.base,
   opacity: 0.5,
-  // scale を排除し、背景色・背景画像・透明度の遷移に限定
   transition: `background-color ${t}, opacity ${t}`,
 
   selectors: {
@@ -109,11 +110,12 @@ export const label = style({
 
 export const textSpan = style({
   display: "inline-block",
-  color: tokens.color.text.base,
+  // 親要素 (button) の文字色を常に継承
+  color: "inherit",
   transition: `color ${t}`,
 
   selectors: {
-    // 監視中（ON状態）はブランドグラデーションテキストを適用
+    // 監視中（ON状態）のブランドグラデーションテキストを適用
     [`${button}[aria-pressed='true'] &`]: {
       backgroundImage: tokens.gradient.brand,
       WebkitBackgroundClip: "text",

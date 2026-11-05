@@ -37,6 +37,7 @@ export interface OperationMaster {
   autoManualUrl?: string;
   gmail?: boolean;
   ScriptKeys?: OperationScriptKey[];
+  RdpKeys?: OperationRdpKey[];
   links?: OperationLink[];
 
   /** スプレッドシートのリンク先パス */
@@ -67,6 +68,7 @@ export interface IrregularMaster {
   autoManualUrl?: string;
   gmail?: boolean;
   ScriptKeys?: OperationScriptKey[];
+  RdpKeys?: OperationRdpKey[];
   links?: OperationLink[];
 
   /** スプレッドシートのリンク先パス */
@@ -97,6 +99,7 @@ export const OPERATION_SCRIPT_KEY_IDS = [
   "E29",
   "E30",
   "E41",
+  "E51",
   // Nシリーズ
   "N12",
   "N25",
@@ -128,6 +131,7 @@ export const OPERATION_SCRIPT_KEY_IDS = [
   // 特殊手動キー
   "webedi",
   "webedi_db",
+  "md",
 ] as const;
 
 export type OperationScriptKeyId = (typeof OPERATION_SCRIPT_KEY_IDS)[number];
@@ -139,6 +143,13 @@ export interface OperationScriptKey {
   label?: string;
   executionTypes?: ScriptExecutionType[];
   requiresFileSelection?: boolean;
+}
+
+/** RDP接続先キー */
+export interface OperationRdpKey {
+  key: string;
+  label?: string;
+  executionTypes?: ScriptExecutionType[];
 }
 
 export type ScriptFilePath = string | string[];

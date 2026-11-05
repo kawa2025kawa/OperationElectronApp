@@ -6,6 +6,10 @@ import { tokens } from "@renderer/styles/tokens/semantic.contract";
 const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
 
+// ============================================================
+// Container
+// ============================================================
+
 export const containerBase = style({
   position: "relative",
   display: "flex",
@@ -28,6 +32,10 @@ export const containerWidth = styleVariants({
   auto: { width: "auto" },
 });
 
+// ============================================================
+// Slider
+// ============================================================
+
 export const slider = style({
   position: "absolute",
   inset: 0,
@@ -36,7 +44,6 @@ export const slider = style({
   boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
   zIndex: 0,
 
-  // 0.8秒のふわっとしたシアン光とインセット影
   "::before": {
     content: '""',
     position: "absolute",
@@ -48,6 +55,10 @@ export const slider = style({
     pointerEvents: "none",
   },
 });
+
+// ============================================================
+// Item Button
+// ============================================================
 
 export const itemButtonBase = style({
   flex: 1,
@@ -68,15 +79,31 @@ export const itemButtonBase = style({
   transition: `color ${t}`,
   whiteSpace: "nowrap",
 
+  "::before": {
+    content: '""',
+    position: "absolute",
+    inset: -1,
+    borderRadius: tokens.radius.full,
+    boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.low}`,
+    opacity: 0,
+    transition: `opacity ${smoothGlow}`,
+    pointerEvents: "none",
+    zIndex: 0,
+  },
+
   selectors: {
     "&:hover": {
       color: tokens.color.text.hover,
     },
-    '&:hover:not([data-active="true"])': {
-      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.low}`,
+    '&:hover:not([data-active="true"])::before': {
+      opacity: 1,
     },
   },
 });
+
+// ============================================================
+// Item Button Size
+// ============================================================
 
 export const itemButtonSize = styleVariants({
   sm: { fontSize: tokens.font.size.xs },
@@ -84,13 +111,16 @@ export const itemButtonSize = styleVariants({
   lg: { fontSize: tokens.font.size.md },
 });
 
+// ============================================================
+// Item Text
+// ============================================================
+
 export const itemText = style({
   position: "relative",
   zIndex: 1,
   transition: `color ${t}`,
 
   selectors: {
-    // 自身の data-active 属性でブランドグラデーションを適用
     '&[data-active="true"]': {
       backgroundImage: tokens.gradient.brand,
       WebkitBackgroundClip: "text",

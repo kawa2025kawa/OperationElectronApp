@@ -4,7 +4,7 @@ import { memo } from "react";
 import type { Shop } from "@shared/types/spreadsheet/shop";
 import { SpreadSheetBaseTable } from "../../components/table/SpreadSheetBaseTable";
 import { SHOP_COLUMNS } from "@shared/types/spreadsheet/spreadsheetTypes";
-import * as styles from "@renderer/styles/global/globalTable.css";
+import * as styles from "@renderer/features/spreadSheet/components/table/spreadsheetTable.css";
 
 export interface ShopTableProps {
   rows: readonly Shop[];
@@ -22,6 +22,7 @@ export const ShopTable = memo(
         row.shopCode ? String(row.shopCode).trim() : String(index)
       }
       onRowClick={onRowClick}
+      headerType="single"
       styles={styles}
     />
   ),

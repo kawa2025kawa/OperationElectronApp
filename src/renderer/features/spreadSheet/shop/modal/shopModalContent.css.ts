@@ -83,24 +83,45 @@ export const terminalHeaderGrid = style([
   },
 ]);
 
+// 🎯 根本解決：box-shadow の直接補間を廃止し、::before の opacity フェードに統一
 export const terminalRow = style([
   themeTransition,
   rowBase,
   {
+    position: "relative",
     backgroundColor: tokens.color.bg.base,
     borderRadius: tokens.radius.md,
     boxShadow: tokens.shadow.raised.low,
     fontSize: tokens.font.fluid.md,
+    color: tokens.color.text.base,
+    transition: `color ${tokens.transition.fast}`,
+
+    // あらかじめ完成形のシャドウを乗せた擬似要素
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      borderRadius: tokens.radius.md,
+      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      opacity: 0,
+      transition: `opacity ${tokens.transition.normal}`,
+      pointerEvents: "none",
+    },
+
     selectors: {
       "&:hover": {
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
         color: tokens.color.text.hover,
+      },
+      "&:hover::before": {
+        opacity: 1,
       },
     },
   },
 ]);
 
 export const terminalBadge = style({
+  position: "relative",
+  zIndex: 1,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -110,9 +131,9 @@ export const terminalBadge = style({
   backgroundColor: tokens.color.bg.base,
   borderRadius: tokens.radius.sm,
   boxShadow: tokens.shadow.pressed.md,
-  color: tokens.color.accent.base,
   fontWeight: tokens.font.weight.bold,
   letterSpacing: "0.5px",
+  transition: `color ${tokens.transition.fast}`,
 });
 
 export const nonTrBadge = style([
@@ -125,6 +146,8 @@ export const nonTrBadge = style([
 ]);
 
 export const flexCell = style({
+  position: "relative",
+  zIndex: 1,
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
@@ -132,17 +155,16 @@ export const flexCell = style({
   flex: 1,
 });
 
-export const terminalGrid = style([gridBase]);
+export const terminalGrid = style([
+  gridBase,
+  {
+    position: "relative",
+    zIndex: 1,
+  },
+]);
 
 export const cellValue = style({
   ...ellipsisStyle,
   fontWeight: tokens.font.weight.bold,
-  color: tokens.color.text.base,
   transition: tokens.transition.fast,
-  selectors: {
-    [`${terminalRow}:hover &`]: {
-      color: tokens.color.text.hover,
-    },
-  },
 });
-

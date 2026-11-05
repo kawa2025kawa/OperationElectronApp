@@ -4,7 +4,9 @@ import { memo, useCallback, useLayoutEffect, useRef } from "react";
 import type { Column } from "@shared/types/table/tableType";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { useAppStore } from "@renderer/store";
-import * as defaultStyles from "@renderer/styles/global/globalTable.css";
+import * as defaultStyles from "./spreadsheetTable.css";
+import { SpreadSheetTableHeaderSingle } from "./SpreadSheetTableHeaderSingle";
+import { SpreadSheetTableHeaderGroup } from "./SpreadSheetTableHeaderGroup";
 
 export type SpreadSheetTableStyles = typeof defaultStyles;
 
@@ -19,6 +21,7 @@ export interface SpreadSheetBaseTableProps<T> {
     col: Column<T>,
     value: unknown,
   ) => React.ReactNode;
+  readonly headerType?: "single" | "group";
   readonly styles?: SpreadSheetTableStyles;
 }
 
@@ -106,6 +109,7 @@ export function SpreadSheetBaseTable<T>({
   getRowId,
   onRowClick,
   renderCell,
+  headerType = "single",
   styles = defaultStyles,
 }: SpreadSheetBaseTableProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -116,7 +120,6 @@ export function SpreadSheetBaseTable<T>({
 
   const scrollKey = currentView;
 
-  // データが表示可能になったタイミングで保存位置を復元する
   useLayoutEffect(() => {
     if (restoredScrollKeyRef.current === scrollKey) {
       return;
@@ -127,24 +130,20 @@ export function SpreadSheetBaseTable<T>({
     }
 
     const container = containerRef.current;
-
     if (!container) {
       return;
     }
 
     const savedPosition = useAppStore.getState().scrollPositions[scrollKey];
-
     container.scrollTop = savedPosition?.top ?? 0;
     container.scrollLeft = savedPosition?.left ?? 0;
 
     restoredScrollKeyRef.current = scrollKey;
   }, [scrollKey, rows.length]);
 
-  // スクロール位置を画面ID単位で保存する
   const handleScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
       const container = event.currentTarget;
-
       setScrollPosition(scrollKey, {
         top: container.scrollTop,
         left: container.scrollLeft,
@@ -162,24 +161,11 @@ export function SpreadSheetBaseTable<T>({
       <div className={styles.headerWrapper}>
         <table className={styles.headerTable}>
           {renderColumnGroup(columns)}
-          <thead>
-            <tr>
-              {columns.map((column) => {
-                const alignClass =
-                  styles.alignVariants[column.align ?? "left"] ??
-                  styles.alignVariants.left;
-
-                return (
-                  <th
-                    key={String(column.key)}
-                    className={`${styles.thBase} ${alignClass}`}
-                  >
-                    {column.label}
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
+          {headerType === "group" ? (
+            <SpreadSheetTableHeaderGroup columns={columns} styles={styles} />
+          ) : (
+            <SpreadSheetTableHeaderSingle columns={columns} styles={styles} />
+          )}
         </table>
       </div>
 

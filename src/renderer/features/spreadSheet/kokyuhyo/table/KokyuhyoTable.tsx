@@ -5,7 +5,7 @@ import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
 import type { Column } from "@shared/types/table/tableType";
 import { SpreadSheetBaseTable } from "../../components/table/SpreadSheetBaseTable";
 import { KOKYUHYO_COLUMNS } from "../../utils/spreadsheetDateUtils";
-import * as styles from "@renderer/styles/global/globalTable.css";
+import * as styles from "@renderer/features/spreadSheet/components/table/spreadsheetTable.css";
 
 export interface KokyuhyoTableProps {
   rows: readonly Kokyuhyo[];
@@ -57,6 +57,7 @@ export const KokyuhyoTable = memo(
         }
         onRowClick={onRowClick}
         renderCell={renderCell}
+        headerType="group"
         styles={styles}
       />
     );

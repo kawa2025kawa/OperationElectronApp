@@ -234,7 +234,7 @@ export const darkThemeClass = createTheme(
 
       glow: {
         brand: "0 0 12px rgba(0, 200, 180, 0.5)",
-        cyan: "0 0 15px rgba(0, 220, 255, 0.6)",
+        cyan: "0 0 10px rgba(0, 220, 255, 0.6)",
         white: "0 0 14px rgba(255, 255, 255, 0.8)",
         ...darkStatusGlow,
       },

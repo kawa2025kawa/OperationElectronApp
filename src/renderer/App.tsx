@@ -13,7 +13,7 @@ import { GlobalModalManager } from "@renderer/components/ui/modal/GlobalModalMan
 import {
   AppStartupLoader,
   ProcessingLoader,
-} from "@renderer/components/ui/overlay/LoadingOverlay";
+} from "@renderer/components/ui/overlay/Overlay";
 import { MainView } from "@renderer/layout/MainView";
 
 export const App = () => {

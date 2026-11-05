@@ -1,4 +1,4 @@
-﻿// src\renderer\components\ui\fileDropZone\fileDropZoneTypes.ts
+﻿// src/renderer/components/ui/fileDropZone/fileDropZoneTypes.ts
 
 export const ORDER_TIME_OPTIONS = [
   { value: "1", timeLabel: "09時20分" },
@@ -23,5 +23,5 @@ export interface FileDropZoneProps {
   onFileSelect: (files: File[]) => void;
   onReorderFile?: (fromIndex: number, toIndex: number) => void;
   onRemoveFile?: (index: number) => void;
-  onRenameFile?: (index: number, newName: string) => void;
+  onRenameFile?: (filePath: string, newName: string) => void | Promise<void>;
 }

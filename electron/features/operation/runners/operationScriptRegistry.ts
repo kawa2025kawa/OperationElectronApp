@@ -94,12 +94,6 @@ const DEFAULT_OPERATION_KEYS: Readonly<
   "64": makeKeys("64", "Script", ["manual"]),
   "66": makeKeys("66", "ロック状態", ["manual"]),
   N12: makeKeys("N12", "Script", ["manual"]),
-  N27: [
-    { key: "webedi_db", label: "webedi_db", executionTypes: ["manual"] },
-    { key: "webedi", label: "webedi", executionTypes: ["manual"] },
-  ],
-  N28: makeKeys("webedi", "webedi", ["manual"]),
-
   E1: makeKeys("E1", "Script", ["manual"]),
   E8: makeKeys("E8", "Script", ["manual"]),
   E9: makeKeys("E9", "Script", ["manual"]),

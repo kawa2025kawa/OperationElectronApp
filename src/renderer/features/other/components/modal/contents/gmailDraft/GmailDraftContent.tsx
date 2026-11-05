@@ -1,6 +1,5 @@
 // src/renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent.tsx
 
-// src/renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent.tsx
 import { memo } from "react";
 import { AuthView } from "@renderer/features/auth/AuthView";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";

@@ -10,7 +10,7 @@ export { EMPTY_VALUE_FALLBACK };
 export const SHOP_MODAL_CONSTANTS = {
   TAB_TITLES: {
     BASIC: "基本情報",
-    STAFF: "スタッフ",
+    STAFF: "人員/エリア",
     PRINTER_K: "プリンター (K)",
     PRINTER_B: "プリンター (B)",
     PRINTER_O: "プリンター (O)",
@@ -18,8 +18,8 @@ export const SHOP_MODAL_CONSTANTS = {
   },
   TR_HEADER_BADGE: "TR",
   FILES: {
-    EXCEL_LABEL: "店舗情報.xlsx",
-    PDF_LABEL: "店舗情報.pdf",
+    EXCEL_LABEL: "完成図書.xlsx",
+    PDF_LABEL: "完成図書.pdf",
   },
 } as const;
 
@@ -49,9 +49,8 @@ const PRINTER_FIELD_LABELS = {
   MODEL: "機種名",
   SERIAL: "シリアル",
   PHONE: "連絡先",
-  HOLIDAY_PHONE: "休保",
-  HOLIDAY_PHONE_O: "土日祝連絡先",
-  CONTRACT_ID: "契約ID",
+  HOLIDAY_PHONE: "休日連絡先",
+  CONTRACT_ID: "土日祝契約ID",
 } as const;
 
 export const SHOP_MODAL_GROUPS: readonly TabGroupConfig<keyof Shop>[] = [
@@ -117,7 +116,7 @@ export const SHOP_MODAL_GROUPS: readonly TabGroupConfig<keyof Shop>[] = [
       { key: "printerPhoneO", label: PRINTER_FIELD_LABELS.PHONE },
       {
         key: "printerHolidayPhoneO",
-        label: PRINTER_FIELD_LABELS.HOLIDAY_PHONE_O,
+        label: PRINTER_FIELD_LABELS.HOLIDAY_PHONE,
       },
       { key: "printerContractIdO", label: PRINTER_FIELD_LABELS.CONTRACT_ID },
     ],
