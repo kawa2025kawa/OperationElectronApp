@@ -5,7 +5,10 @@ import fs from "fs-extra";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { getStatus } from "@electron/features/operation/application/statusManager";
-import { JOB_STATUS } from "@shared/types/operation/operationTypes";
+import {
+  JOB_STATUS,
+  type JobResult,
+} from "@shared/types/operation/operationTypes";
 
 const TARGET_KEYWORDS = [
   "098_FTRDCSND",
@@ -42,14 +45,17 @@ type JobResultData = {
  * - 管理番号49が READY / WAITING: \\172.25.101.51\if\WMSSLIP\RCV
  * - それ以外: \\172.25.101.51\if\WMSSLIP\RCV\SV
  *
- * 業務上の要対応:
- * - 対象キーワードのファイルが存在しない（未検出）場合
+ * 監視継続 (running):
+ * - 対象キーワードのファイルが存在しない（未検出）場合（ポーリング監視へ委ねる）
+ *
+ * 正常終了 (success):
+ * - すべての対象キーワードのファイルが検出された場合
  *
  * システムエラー:
  * - ディレクトリへのアクセス失敗
  * - ファイル情報取得失敗
  */
-export async function runJobN12(): Promise<string> {
+export async function runJobN12(): Promise<JobResult> {
   const logger = new JobLogger();
 
   try {
@@ -144,10 +150,10 @@ async function checkTargetFiles(): Promise<JobResultData> {
 }
 
 /**
- * 検索結果をログに出力し、最終ステータスを判定する。
+ * 検索結果をログに出力し、JobResult を返却する。
  */
-function writeResultLog(logger: JobLogger, result: JobResultData): string {
-  logger.section("確認対象フォルダ");
+function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {
+  logger.section("対象フォルダ");
   logger.log(result.targetDir);
 
   if (result.matchedFiles.length > 0) {
@@ -160,13 +166,23 @@ function writeResultLog(logger: JobLogger, result: JobResultData): string {
   if (result.missingKeywords.length > 0) {
     logger.section("未検出ファイル");
     for (const keyword of result.missingKeywords) {
-      logger.log(`[${keyword}] ファイルが見つかりません`);
+      logger.log(`[${keyword}] ファイルが見つかりません（配置待ち）`);
     }
 
-    return logger.needsAction(
-      `未検出ファイルあり (対象: ${result.missingKeywords.join(", ")})`,
-    );
+    return {
+      success: true,
+      kind: "running",
+      message: logger.complete(
+        `ファイル未検出 (対象: ${result.missingKeywords.join(", ")})。バックグラウンドで監視中`,
+      ),
+      data: result,
+    };
   }
 
-  return logger.complete();
+  return {
+    success: true,
+    kind: "success",
+    message: logger.complete(),
+    data: result,
+  };
 }

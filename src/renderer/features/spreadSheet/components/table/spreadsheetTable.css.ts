@@ -1,4 +1,4 @@
-﻿// src/renderer/features/spreadSheet/styles/spreadsheetTable.css.ts
+// src/renderer/features/spreadSheet/styles/spreadsheetTable.css.ts
 
 import { createVar, style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -117,6 +117,9 @@ export const tableRowBase = style([
     boxShadow: rowShadow,
     isolation: "isolate",
     transform: "translateZ(0)",
+    willChange: "box-shadow",
+    backfaceVisibility: "hidden",
+    WebkitBackfaceVisibility: "hidden",
     zIndex: 0,
     outline: "none",
     transition: `box-shadow ${t}, background-color ${t}, color ${t}`,
@@ -179,7 +182,6 @@ export const tableRowStates = styleVariants({
 // Header Styles
 // ============================================================
 
-// 1段ヘッダー（Shop等）用：列ごとの凸ではなく1行フラットなセル
 export const thBase = style([
   themeTransition,
   {
@@ -199,7 +201,6 @@ export const thBase = style([
   },
 ]);
 
-// 2段ヘッダー（Jugyoin / Kokyuhyo）用：外枠セル
 export const thCellBase = style({
   padding: 0,
   verticalAlign: "top",
@@ -207,7 +208,6 @@ export const thCellBase = style({
   backgroundColor: "transparent",
 });
 
-// 2段ヘッダーの単独列（部門・氏名）の凸カード
 export const thCardSingle = style([
   themeTransition,
   {
@@ -235,7 +235,6 @@ export const thCardSingle = style([
   },
 ]);
 
-// 「本日」「明日」のグループ凸カード
 export const thCardGroup = style([
   themeTransition,
   {
@@ -252,7 +251,6 @@ export const thCardGroup = style([
   },
 ]);
 
-// 凸カード内の上段（日付タイトル）
 export const thCardTitle = style({
   height: "32px",
   lineHeight: "32px",
@@ -267,7 +265,6 @@ export const thCardTitle = style({
   paddingInline: tokens.space.sm,
 });
 
-// 凸カード内の下段（区分・午前・区分・午後）
 export const thCardSubRow = style({
   display: "flex",
   width: "100%",

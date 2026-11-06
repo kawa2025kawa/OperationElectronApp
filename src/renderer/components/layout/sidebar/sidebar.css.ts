@@ -1,14 +1,10 @@
-﻿// src/renderer/components/layout/sidebar/sidebar.css.ts
+// src/renderer/components/layout/sidebar/sidebar.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
-
-// ============================================================
-// Sidebar Container
-// ============================================================
 
 export const sidebar = style({
   position: "fixed",
@@ -25,7 +21,6 @@ export const sidebar = style({
   borderRight: `1px solid ${tokens.color.border.subtle}`,
   zIndex: tokens.zIndex.modal,
   transform: "translateX(-100%)",
-  // 開閉時の横スライドとテーマ切り替え時の色フェードを両立
   transition: `transform ${tokens.transition.ease}, background-color ${t}, border-color ${t}, box-shadow ${t}`,
   isolation: "isolate",
   overflow: "hidden",
@@ -34,10 +29,6 @@ export const sidebar = style({
 export const sidebarOpen = style({
   transform: "translateX(0)",
 });
-
-// ============================================================
-// Header
-// ============================================================
 
 export const header = style({
   flexShrink: 0,
@@ -60,10 +51,6 @@ export const headerTitle = style({
   letterSpacing: "1px",
   userSelect: "none",
 });
-
-// ============================================================
-// Menu List & Items
-// ============================================================
 
 export const menuList = style({
   flex: 1,
@@ -105,19 +92,30 @@ export const menuButton = style({
   boxShadow: tokens.shadow.raised.md,
   cursor: "pointer",
   outline: "none",
-  // 🎯 全体を tokens.transition.normal (0.8s) で統一
-  transition: `background-color ${tokens.transition.normal}, color ${tokens.transition.normal}, box-shadow ${tokens.transition.normal}`,
+  transition: `background-color ${t}, color ${t}`,
+
+  "::before": {
+    content: '""',
+    position: "absolute",
+    inset: 0,
+    borderRadius: tokens.radius.md,
+    boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+    opacity: 0,
+    transition: `opacity ${t}`,
+    pointerEvents: "none",
+  },
 
   selectors: {
     "&:hover": {
       color: tokens.color.text.hover,
-      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+    },
+    "&:hover::before": {
+      opacity: 1,
     },
     "&[data-active='true']": {
       backgroundColor: tokens.color.bg.base,
       boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
     },
-    // 💡 個別に素早く反応させたい箇所は fast (0.18s) で上書き可能
     "&:active": {
       transition: `background-color ${tokens.transition.fast}, box-shadow ${tokens.transition.fast}`,
       outline: "none",
@@ -139,10 +137,6 @@ export const menuText = style({
     },
   },
 });
-
-// ============================================================
-// Footer & Theme Toggle
-// ============================================================
 
 export const sidebarFooter = style({
   flexShrink: 0,

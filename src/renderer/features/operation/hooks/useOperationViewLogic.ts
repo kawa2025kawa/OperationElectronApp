@@ -15,7 +15,7 @@ import { rdpIpcService } from "@renderer/services/rdpIpcService";
 import { systemIpcService } from "@renderer/services/systemIpcService";
 import { useAppStore, type AppState } from "@renderer/store";
 import { selectActiveItemStatusFlags } from "@renderer/store/selectors/operationSelectors";
-import { normalizeKanriNo } from "@shared/utils/statusUtils";
+import { isRunningStatus, normalizeKanriNo } from "@shared/utils/statusUtils";
 
 import type {
   OperationViewItem,
@@ -103,6 +103,7 @@ function createActiveActions(
   const actions: ViewAction[] = [];
   const rawItem = item as unknown as Record<string, unknown>;
   const kanriNo = normalizeKanriNo(item.kanriNo);
+  const isRunning = isRunningStatus(item.status);
 
   // RDPに登録されているキーを取得
   const rdpKeys = new Set(
@@ -132,7 +133,10 @@ function createActiveActions(
     actions.push({
       key: "jc",
       label: "JC",
-      execute: () => operationService.executeJcJob(kanriNo),
+      execute: () => {
+        if (isRunning) return;
+        void operationService.executeJcJob(kanriNo);
+      },
     });
   }
 
@@ -154,8 +158,13 @@ function createActiveActions(
 
       actions.push({
         key: `script:${index}:${key}`,
-        label,
+        label: isRunning ? `${label} (処理中)` : label,
         execute: () => {
+          if (isRunning) {
+            toast.info("バックグラウンド処理中のため実行できません");
+            return;
+          }
+
           if (isPdfAction) {
             openPdfUploadModal(openGlobalModal);
           } else {

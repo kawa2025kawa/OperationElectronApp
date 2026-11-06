@@ -1,4 +1,4 @@
-﻿// src/renderer/components/ui/fileDropZone/fileDropZone.css.ts
+// src/renderer/components/ui/fileDropZone/fileDropZone.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -29,11 +29,6 @@ const glassSurface = {
   backgroundColor: tokens.glass.surface,
   backdropFilter: "blur(12px) saturate(180%)",
   WebkitBackdropFilter: "blur(12px) saturate(180%)",
-} as const;
-
-const fileRowHighlight = {
-  borderColor: tokens.color.accent.neonCyan,
-  boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
 } as const;
 
 export const hiddenInput = style({
@@ -138,6 +133,7 @@ export const emptyFileSubText = style([
 export const selectedFileRow = style([
   themeTransition,
   {
+    position: "relative",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
@@ -149,8 +145,26 @@ export const selectedFileRow = style([
     border: `1px solid ${tokens.color.border.subtle}`,
     boxShadow: tokens.shadow.raised.low,
     boxSizing: "border-box",
+    transition: `border-color ${tokens.transition.fast}`,
+
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: -1,
+      borderRadius: tokens.radius.sm,
+      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      opacity: 0,
+      transition: `opacity ${tokens.transition.normal}`,
+      pointerEvents: "none",
+    },
+
     selectors: {
-      "&:hover": fileRowHighlight,
+      "&:hover": {
+        borderColor: tokens.color.accent.neonCyan,
+      },
+      "&:hover::before": {
+        opacity: 1,
+      },
     },
   },
 ]);
@@ -161,11 +175,13 @@ export const selectedFileRowDragging = style({
 });
 
 export const selectedFileRowDropTarget = style({
-  ...fileRowHighlight,
+  borderColor: tokens.color.accent.neonCyan,
   transform: "scale(1.01)",
 });
 
 export const selectedFileContent = style({
+  position: "relative",
+  zIndex: 1,
   display: "flex",
   flexDirection: "column",
   width: "100%",
@@ -214,6 +230,8 @@ export const selectedFilePath = style([
 ]);
 
 export const rowActions = style({
+  position: "relative",
+  zIndex: 1,
   display: "flex",
   alignItems: "center",
   gap: tokens.space.sm,
@@ -328,7 +346,6 @@ export const dropdownItem = style([
   },
 ]);
 
-// 既存互換用スタイル
 export const rowRenameSelect = style([
   themeTransition,
   {
@@ -371,4 +388,3 @@ export const removeFileButton = style([
     },
   },
 ]);
-

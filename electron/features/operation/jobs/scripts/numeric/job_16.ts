@@ -19,20 +19,6 @@ type JobResultData = {
   targetFile: string | null;
 };
 
-/**
- * 当日分の SANSAN エラーファイルを確認する。
- *
- * 確認先:
- * - 08:30以前: 通常ディレクトリ
- * - 08:30以降: ファーマーズエラーディレクトリ
- *
- * 業務上の要対応:
- * - エラーファイルを検出した場合、確認済フォルダへ移動する
- *
- * システムエラー:
- * - ディレクトリへのアクセス失敗
- * - ファイルの移動失敗
- */
 export async function runJob16(): Promise<string> {
   const logger = new JobLogger();
 

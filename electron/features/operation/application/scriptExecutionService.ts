@@ -99,6 +99,11 @@ function finalizeStatus(
   status: JobStatus,
   comment: string,
 ): void {
+  if (status === JOB_STATUS.SCRIPT_RUNNING) {
+    updateStatus({ kanriNo, status, comment });
+    return;
+  }
+
   updateStatus({ kanriNo, status, endTime: new Date().toISOString(), comment });
 }
 
@@ -109,9 +114,11 @@ export function applyScriptExecutionResult(
   const status =
     result.success === false || result.kind === "error"
       ? JOB_STATUS.ERROR
-      : result.kind === "needsAction"
-        ? JOB_STATUS.NEEDS_ACTION
-        : JOB_STATUS.SUCCESS;
+      : result.kind === "running"
+        ? JOB_STATUS.SCRIPT_RUNNING
+        : result.kind === "needsAction"
+          ? JOB_STATUS.NEEDS_ACTION
+          : JOB_STATUS.SUCCESS;
 
   finalizeStatus(
     kanriNo,
@@ -119,9 +126,11 @@ export function applyScriptExecutionResult(
     result.message ||
       (status === JOB_STATUS.ERROR
         ? "スクリプト実行失敗"
-        : status === JOB_STATUS.NEEDS_ACTION
-          ? "要対応"
-          : "スクリプト実行完了"),
+        : status === JOB_STATUS.SCRIPT_RUNNING
+          ? "バックグラウンド監視中"
+          : status === JOB_STATUS.NEEDS_ACTION
+            ? "要対応"
+            : "スクリプト実行完了"),
   );
 }
 

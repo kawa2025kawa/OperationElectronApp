@@ -1,4 +1,4 @@
-﻿// src/renderer/features/spreadSheet/shop/modal/shopModalContent.css.ts
+// src/renderer/features/spreadSheet/shop/modal/shopModalContent.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -96,7 +96,6 @@ export const terminalRow = style([
     color: tokens.color.text.base,
     transition: `color ${tokens.transition.fast}`,
 
-    // あらかじめ完成形のシャドウを乗せた擬似要素
     "::before": {
       content: '""',
       position: "absolute",

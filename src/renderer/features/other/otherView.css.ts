@@ -1,4 +1,4 @@
-﻿//src\renderer\features\other\otherView.css.ts
+// src/renderer/features/other/otherView.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -42,19 +42,31 @@ export const card = style([
     border: "none",
     outline: "none",
 
-    // 💡 タイトル用のフォント・テキストスタイルを直接統合
     fontSize: tokens.font.size.lg,
     fontWeight: tokens.font.weight.bold,
     textAlign: "center",
     wordBreak: "break-all",
 
-    transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
+    transition: `transform ${tokens.transition.ease}, color ${tokens.transition.fast}`,
+
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      borderRadius: tokens.radius.lg,
+      boxShadow: tokens.shadow.glow.cyan,
+      opacity: 0,
+      transition: `opacity ${tokens.transition.normal}`,
+      pointerEvents: "none",
+    },
+
     selectors: {
       "&:hover": {
         color: tokens.color.text.hover,
-        boxShadow: tokens.shadow.glow.cyan,
+      },
+      "&:hover::before": {
+        opacity: 1,
       },
     },
   },
 ]);
-

@@ -1,4 +1,4 @@
-﻿// src/renderer/features/spreadSheet/components/modal/ScheduleModalContent.css.ts
+// src/renderer/features/spreadSheet/components/modal/ScheduleModalContent.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -48,6 +48,7 @@ export const profileGrid = style({
 export const profileItem = style([
   themeTransition,
   {
+    position: "relative",
     display: "inline-flex",
     alignItems: "center",
     padding: `${tokens.space.xs} ${tokens.space.sm}`,
@@ -58,10 +59,25 @@ export const profileItem = style([
     fontWeight: tokens.font.weight.bold,
     whiteSpace: "nowrap",
     color: tokens.color.text.base,
+    transition: `color ${tokens.transition.fast}`,
+
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      borderRadius: tokens.radius.md,
+      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      opacity: 0,
+      transition: `opacity ${tokens.transition.normal}`,
+      pointerEvents: "none",
+    },
+
     selectors: {
       "&:hover": {
         color: tokens.color.text.hover,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      },
+      "&:hover::before": {
+        opacity: 1,
       },
     },
   },
@@ -70,6 +86,7 @@ export const profileItem = style([
 export const tableGrid = style([
   themeTransition,
   {
+    position: "relative",
     display: "grid",
     flex: 1,
     minHeight: 0,
@@ -81,10 +98,25 @@ export const tableGrid = style([
     boxSizing: "border-box",
     overflow: "hidden",
     color: tokens.color.text.base,
+    transition: `color ${tokens.transition.fast}`,
+
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      borderRadius: tokens.radius.lg,
+      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
+      opacity: 0,
+      transition: `opacity ${tokens.transition.normal}`,
+      pointerEvents: "none",
+    },
+
     selectors: {
       "&:hover": {
         color: tokens.color.text.hover,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
+      },
+      "&:hover::before": {
+        opacity: 1,
       },
     },
   },
@@ -93,6 +125,8 @@ export const tableGrid = style([
 const baseCell = style([
   themeTransition,
   {
+    position: "relative",
+    zIndex: 1,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -139,8 +173,8 @@ export const cell = styleVariants({
     baseCell,
     {
       color: tokens.color.text.hover,
-      boxShadow: "none", // 影を消す
-      borderRadius: 0, // 個別の角丸を消す
+      boxShadow: "none",
+      borderRadius: 0,
     },
   ],
   section: [

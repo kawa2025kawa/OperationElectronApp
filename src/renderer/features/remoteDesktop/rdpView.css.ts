@@ -1,4 +1,4 @@
-﻿// src/renderer/features/remoteDesktop/rdpView.css.ts
+// src/renderer/features/remoteDesktop/rdpView.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -28,6 +28,7 @@ export const grid = style({
 export const card = style([
   themeTransition,
   {
+    position: "relative",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -42,16 +43,30 @@ export const card = style([
     outline: "none",
     cursor: "pointer",
 
-    transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
+    transition: `transform ${tokens.transition.ease}`,
+
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      borderRadius: tokens.radius.lg,
+      boxShadow: tokens.shadow.glow.cyan,
+      opacity: 0,
+      transition: `opacity ${tokens.transition.normal}`,
+      pointerEvents: "none",
+    },
+
     selectors: {
-      "&:hover": {
-        boxShadow: tokens.shadow.glow.cyan,
+      "&:hover::before": {
+        opacity: 1,
       },
     },
   },
 ]);
 
 export const cardTitle = style({
+  position: "relative",
+  zIndex: 1,
   fontSize: tokens.font.size.lg,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.hover,
@@ -59,7 +74,6 @@ export const cardTitle = style({
   wordBreak: "break-all",
   transition: `color ${tokens.transition.normal}`,
   selectors: {
-    // 💡 card ホバー時のタイトル色
     [`${card}:hover &`]: {
       color: tokens.color.accent.base,
     },
@@ -67,17 +81,17 @@ export const cardTitle = style({
 });
 
 export const cardHost = style({
+  position: "relative",
+  zIndex: 1,
   fontSize: tokens.font.size.sm,
   fontWeight: tokens.font.weight.normal,
   color: tokens.color.text.base,
   opacity: 0.8,
   transition: `color ${tokens.transition.normal}`,
   selectors: {
-    // 💡 card ホバー時のホスト名色
     [`${card}:hover &`]: {
       color: tokens.color.text.hover,
       opacity: 1,
     },
   },
 });
-

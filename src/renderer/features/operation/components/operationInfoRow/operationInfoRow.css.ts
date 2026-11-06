@@ -1,4 +1,4 @@
-﻿// src/renderer/features/operation/components/operationInfoRow/operationInfoRow.css.ts
+// src/renderer/features/operation/components/operationInfoRow/operationInfoRow.css.ts
 
 import { style, globalStyle } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";

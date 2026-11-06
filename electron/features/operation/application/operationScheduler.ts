@@ -32,8 +32,13 @@ const readyQueue: StatusTarget[] = [];
 const queuedKanriNos = new Set<string>();
 let isProcessingReadyQueue = false;
 
-const isReady = (kanriNo: string): boolean =>
-  getStatus(kanriNo)?.status === JOB_STATUS.READY;
+const isReadyOrRunning = (kanriNo: string): boolean => {
+  const currentStatus = getStatus(kanriNo)?.status;
+  return (
+    currentStatus === JOB_STATUS.READY ||
+    currentStatus === JOB_STATUS.SCRIPT_RUNNING
+  );
+};
 
 async function executeScript(
   kanriNo: string,
@@ -51,7 +56,7 @@ async function executeScript(
 
 async function executeReadyJob(item: OperationViewItem): Promise<void> {
   const { kanriNo } = item;
-  if (!isReady(kanriNo)) return;
+  if (!isReadyOrRunning(kanriNo)) return;
 
   const scriptKeys = getScriptKeysForOperation(kanriNo, item.ScriptKeys)
     .filter((e) => e.executionTypes?.includes("auto"))
@@ -60,15 +65,16 @@ async function executeReadyJob(item: OperationViewItem): Promise<void> {
 
   if (scriptKeys.length === 0) return;
 
-  updateStatus({
-    kanriNo,
-    status: JOB_STATUS.RUNNING,
-    startTime: new Date().toISOString(),
-  });
   try {
     for (const key of scriptKeys) {
       const result = await executeScript(kanriNo, key);
-      if (result.success === false || result.kind === "needsAction") return;
+      if (
+        result.success === false ||
+        result.kind === "needsAction" ||
+        result.kind === "running"
+      ) {
+        return;
+      }
     }
   } catch (error) {
     console.error(
@@ -80,10 +86,10 @@ async function executeReadyJob(item: OperationViewItem): Promise<void> {
 
 async function processReadyTarget(target: StatusTarget): Promise<void> {
   const kanriNo = normalizeKanriNo(target.kanriNo);
-  if (!kanriNo || !isReady(kanriNo)) return;
+  if (!kanriNo || !isReadyOrRunning(kanriNo)) return;
 
   await syncReadyTrackerStatus(target);
-  if (isReady(kanriNo)) {
+  if (isReadyOrRunning(kanriNo)) {
     await executeReadyJob(target);
   }
 }
@@ -102,7 +108,7 @@ async function processReadyQueue(): Promise<void> {
         await processReadyTarget(target);
       } catch (error) {
         console.error(
-          `[Scheduler] READYジョブ処理失敗 (kanriNo=${kanriNo}):`,
+          `[Scheduler] ジョブ処理失敗 (kanriNo=${kanriNo}):`,
           error,
         );
       }
@@ -114,7 +120,9 @@ async function processReadyQueue(): Promise<void> {
 
 function enqueueReadyTarget(target: StatusTarget): void {
   const kanriNo = normalizeKanriNo(target.kanriNo);
-  if (!kanriNo || !isReady(kanriNo) || queuedKanriNos.has(kanriNo)) return;
+  if (!kanriNo || !isReadyOrRunning(kanriNo) || queuedKanriNos.has(kanriNo)) {
+    return;
+  }
 
   queuedKanriNos.add(kanriNo);
   readyQueue.push(target);
@@ -129,7 +137,9 @@ async function runPollingCycle(): Promise<void> {
     if (targets.length > 0) {
       await syncStatuses(targets);
       recalculateAllStatuses();
-      for (const target of targets) enqueueReadyTarget(target);
+      for (const target of targets) {
+        enqueueReadyTarget(target);
+      }
     }
   } catch (error) {
     console.error("[Scheduler] ポーリングエラー:", error);

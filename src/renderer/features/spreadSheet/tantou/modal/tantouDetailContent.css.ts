@@ -1,10 +1,9 @@
-﻿// src/renderer/features/spreadSheet/tantou/modal/tantouDetailContent.css.ts
+// src/renderer/features/spreadSheet/tantou/modal/tantouDetailContent.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
-// 他コンポーネントと共通の 0.8秒イージング
 const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
 
@@ -50,7 +49,6 @@ export const tabSlider = style({
   boxShadow: tokens.shadow.raised.high,
   zIndex: 0,
 
-  // シアンの光（外側グロー）とインセット影を重ねるレイヤー
   "::before": {
     content: '""',
     position: "absolute",
@@ -83,7 +81,6 @@ export const tabButton = style({
   transition: `color ${t}`,
   whiteSpace: "nowrap",
 
-  // 押し込み（scale）は排除し、非アクティブ時のホバーで文字色を強調
   selectors: {
     "&:hover": {
       color: tokens.color.text.hover,
@@ -131,19 +128,38 @@ export const detailRow = style([
   themeTransition,
   detailRowBase,
   {
+    position: "relative",
     backgroundColor: tokens.color.bg.base,
     borderRadius: tokens.radius.md,
     boxShadow: tokens.shadow.raised.low,
+    color: tokens.color.text.base,
+    transition: `color ${tokens.transition.fast}`,
+
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      borderRadius: tokens.radius.md,
+      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      opacity: 0,
+      transition: `opacity ${tokens.transition.normal}`,
+      pointerEvents: "none",
+    },
+
     selectors: {
       "&:hover": {
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
         color: tokens.color.text.hover,
+      },
+      "&:hover::before": {
+        opacity: 1,
       },
     },
   },
 ]);
 
 export const fieldLabel = style({
+  position: "relative",
+  zIndex: 1,
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-start",
@@ -161,6 +177,8 @@ export const fieldLabel = style({
 });
 
 export const fieldValueContainer = style({
+  position: "relative",
+  zIndex: 1,
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
@@ -170,16 +188,9 @@ export const fieldValueContainer = style({
 
 export const fieldValue = style({
   overflow: "hidden",
-  color: tokens.color.text.base,
   fontSize: tokens.font.fluid.md,
   fontWeight: tokens.font.weight.bold,
   whiteSpace: "nowrap",
   textOverflow: "ellipsis",
   transition: tokens.transition.fast,
-  selectors: {
-    [`${detailRow}:hover &`]: {
-      color: tokens.color.text.hover,
-    },
-  },
 });
-

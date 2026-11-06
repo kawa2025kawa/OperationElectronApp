@@ -239,7 +239,8 @@ export type JobResultKind =
   | "difference"
   | "needsAction"
   | "error"
-  | "retrying";
+  | "retrying"
+  | "running";
 
 export interface JobRetryPolicy {
   intervalMs: number;

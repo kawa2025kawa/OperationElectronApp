@@ -1,4 +1,4 @@
-﻿// src/renderer/styles/global/globalTable.css.ts
+// src/renderer/styles/global/globalTable.css.ts
 
 import { createVar, style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -56,7 +56,6 @@ export const headerWrapper = style({
   boxShadow: tokens.shadow.raised.high,
 });
 
-// 🎯 テーブルスクロールバーを備考欄と同じピンク系に設定
 export const bodyWrapper = style({
   position: "relative",
   zIndex: 0,
@@ -89,7 +88,7 @@ export const bodyWrapper = style({
 });
 
 // ============================================================
-// Tables (列幅を完全一致させるため、横の borderSpacing は共に 0 に固定)
+// Tables
 // ============================================================
 
 export const headerTable = style({
@@ -119,6 +118,9 @@ export const tableRowBase = style([
     boxShadow: rowShadow,
     isolation: "isolate",
     transform: "translateZ(0)",
+    willChange: "box-shadow",
+    backfaceVisibility: "hidden",
+    WebkitBackfaceVisibility: "hidden",
     zIndex: 0,
     outline: "none",
     transition: `box-shadow ${t}, background-color ${t}, color ${t}`,
@@ -178,10 +180,9 @@ export const tableRowStates = styleVariants({
 });
 
 // ============================================================
-// Header Cells & Convex Cards (行の列幅と完全同期)
+// Header Cells & Convex Cards
 // ============================================================
 
-// th 自体は padding を設けず、列幅（colgroup）のグリッド枠を厳格に保持
 export const thCellBase = style({
   padding: 0,
   verticalAlign: "top",
@@ -189,14 +190,13 @@ export const thCellBase = style({
   backgroundColor: "transparent",
 });
 
-// 単独列（部門・氏名）の凸カード
 export const thCardSingle = style([
   themeTransition,
   {
     display: "flex",
     alignItems: "center",
     height: "64px",
-    marginInline: "3px", // カード間の余白
+    marginInline: "3px",
     paddingInline: tokens.space.lg,
     backgroundColor: tokens.color.bg.base,
     color: tokens.color.text.base,
@@ -217,11 +217,10 @@ export const thCardSingle = style([
   },
 ]);
 
-// 「本日」「明日」のグループ凸カード
 export const thCardGroup = style([
   themeTransition,
   {
-    marginInline: "3px", // カード間の余白
+    marginInline: "3px",
     backgroundColor: tokens.color.bg.base,
     borderRadius: tokens.radius.md,
     boxShadow: tokens.shadow.raised.high,
@@ -234,7 +233,6 @@ export const thCardGroup = style([
   },
 ]);
 
-// 凸カード内の上段（日付タイトル）
 export const thCardTitle = style({
   height: "32px",
   lineHeight: "32px",
@@ -249,7 +247,6 @@ export const thCardTitle = style({
   paddingInline: tokens.space.sm,
 });
 
-// 凸カード内の下段（区分・午前・区分・午後）
 export const thCardSubRow = style({
   display: "flex",
   width: "100%",

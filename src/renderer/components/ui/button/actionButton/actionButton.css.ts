@@ -1,13 +1,38 @@
-﻿// src/renderer/components/ui/button/actionButton/actionButton.css.ts
+// src/renderer/components/ui/button/actionButton/actionButton.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { baseButton } from "../buttonBase.css";
 
+const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
+const t = tokens.transition.normal;
+
 export const actionButton = style([
   baseButton,
   {
+    position: "relative",
     fontWeight: tokens.font.weight.bold,
+    transition: `background-color ${t}, border-color ${smoothGlow}, color ${t}`,
+
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: -1,
+      borderRadius: "inherit",
+      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      opacity: 0,
+      transition: `opacity ${smoothGlow}`,
+      pointerEvents: "none",
+    },
+
+    selectors: {
+      "&:hover:not(:disabled)::before": {
+        opacity: 1,
+      },
+      "&[data-active='true']::before": {
+        opacity: 1,
+      },
+    },
   },
 ]);
 
@@ -15,7 +40,7 @@ export const variants = styleVariants({
   default: {
     padding: "1.2vmin 3vmin",
     minWidth: "120px",
-    minHeight: "44px", // 🎯 下部ボタンの高さをしっかり確保
+    minHeight: "44px",
     borderRadius: tokens.radius.md,
     fontSize: tokens.font.fluid.sm,
     backgroundColor: tokens.color.bg.base,
@@ -26,7 +51,6 @@ export const variants = styleVariants({
     selectors: {
       "&:hover:not(:disabled)": {
         borderColor: tokens.color.accent.neonCyan,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}, 0 6px 16px rgba(0, 0, 0, 0.5)`,
         color: tokens.color.text.onAccent,
       },
       "&:active:not(:disabled)": {
@@ -54,7 +78,6 @@ export const variants = styleVariants({
         backgroundColor: tokens.color.bg.base,
         color: tokens.color.accent.neonCyan,
         borderColor: tokens.color.accent.neonCyan,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
       },
     },
   },
@@ -71,7 +94,6 @@ export const variants = styleVariants({
       "&:hover:not(:disabled)": {
         borderColor: tokens.color.accent.neonCyan,
         color: tokens.color.accent.neonCyan,
-        boxShadow: tokens.shadow.glow.cyan,
       },
       "&:active:not(:disabled)": {
         boxShadow: tokens.shadow.pressed.md,

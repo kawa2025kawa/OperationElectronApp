@@ -49,13 +49,39 @@ export const terminalRow = style([
   rowBaseStyle,
   themeTransition,
   {
+    position: "relative",
     backgroundColor: tokens.color.bg.base,
     borderRadius: tokens.radius.md,
     boxShadow: tokens.shadow.raised.low,
+    fontSize: tokens.font.fluid.md,
+    color: tokens.color.text.base,
+    transition: `color ${tokens.transition.fast}`,
+
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      borderRadius: tokens.radius.md,
+      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      opacity: 0,
+      transition: `opacity ${tokens.transition.normal}`,
+      pointerEvents: "none",
+    },
+
+    selectors: {
+      "&:hover": {
+        color: tokens.color.text.hover,
+      },
+      "&:hover::before": {
+        opacity: 1,
+      },
+    },
   },
 ]);
 
-const terminalBadge = style({
+export const terminalBadge = style({
+  position: "relative",
+  zIndex: 1,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -67,18 +93,18 @@ const terminalBadge = style({
   backgroundColor: tokens.color.bg.base,
   borderRadius: tokens.radius.sm,
   boxShadow: tokens.shadow.pressed.md,
-  color: tokens.color.accent.base,
+  color: "inherit", // 🎯 button の既定黒文字を打ち消し、親の文字色（ホバー連動含む）を継承
   fontWeight: tokens.font.weight.bold,
   fontSize: tokens.font.size.md,
   letterSpacing: "0.5px",
   lineHeight: "1.2",
   wordBreak: "break-all",
   cursor: "pointer",
+  outline: "none",
+  border: "none",
+  transition: `color ${tokens.transition.fast}`,
+
   selectors: {
-    "&:hover, &:focus-visible": {
-      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-      outline: "none",
-    },
     "&:active": {
       boxShadow: tokens.shadow.pressed.low,
     },
@@ -93,6 +119,8 @@ export const nonTrBadge = style([
 ]);
 
 export const flexCell = style({
+  position: "relative",
+  zIndex: 1,
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
@@ -103,17 +131,11 @@ export const flexCell = style({
 export const cellValue = style({
   fontSize: tokens.font.fluid.md,
   fontWeight: tokens.font.weight.bold,
-  color: tokens.color.text.base,
+  color: "inherit",
   cursor: "text",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
   userSelect: "text",
   transition: tokens.transition.fast,
-  selectors: {
-    [`${terminalRow}:hover &`]: {
-      color: tokens.color.text.hover,
-    },
-  },
 });
-

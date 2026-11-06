@@ -117,7 +117,7 @@ async function checkAndArchiveFiles(): Promise<JobE9ResultData> {
  * 検証結果をログに出力し、最終ステータスを判定する。
  */
 function writeResultLog(logger: JobLogger, result: JobE9ResultData): string {
-  logger.section("確認対象フォルダ");
+  logger.section("対象フォルダ");
   logger.log(CONFIG.targetDir);
 
   logger.section("検出ファイル");
