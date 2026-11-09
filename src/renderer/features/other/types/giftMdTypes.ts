@@ -9,10 +9,3 @@ export interface GiftMessage {
   text: string;
   type: "info" | "success" | "error" | "warning";
 }
-
-export interface GiftMdState {
-  selectedFile: GiftMdFile | null;
-  isProcessing: boolean;
-  infoMessage: GiftMessage;
-}
-

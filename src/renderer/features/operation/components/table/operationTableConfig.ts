@@ -17,7 +17,7 @@ export interface OperationColumnMeta {
   readonly align?: keyof typeof styles.alignVariants;
 }
 
-export const OPERATION_COLUMN_CONFIG = {
+const OPERATION_COLUMN_CONFIG = {
   kanriNo: {
     label: OPERATION_FIELD_LABELS.kanriNo,
     width: "90px",
@@ -48,7 +48,7 @@ export const OPERATION_COLUMN_CONFIG = {
 
 export type OperationColumn = keyof typeof OPERATION_COLUMN_CONFIG;
 
-export const VISIBLE_OPERATION_COLUMNS = {
+const VISIBLE_OPERATION_COLUMNS = {
   operation: ["kanriNo", "scheduledTime", "workName", "jobId", "status"],
   irregular: ["kanriNo", "scheduledTime", "cycle", "workName"],
   today: ["kanriNo", "scheduledTime", "workName", "status"],
@@ -82,7 +82,7 @@ export function getOperationColumnAlignment(column: OperationColumn): string {
 
 /**
  * セルの表示値を取得する。
- * プロパティが存在しない場合に限り、欠損プレースホルダーを返す。
+ * プロパティが存在しない場合に限り、欠落プレースホルダーを返す。
  */
 export function getOperationCellDisplayValue(
   row: OperationViewItem,

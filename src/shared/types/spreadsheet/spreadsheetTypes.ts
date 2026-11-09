@@ -1,10 +1,6 @@
 // src/shared/types/spreadsheet/spreadsheetTypes.ts
 
 import type { Column } from "@shared/types/table/tableType";
-import type { Jugyoin } from "./jugyoin";
-import type { Kokyuhyo } from "./kokyuhyo";
-import type { Shop } from "./shop";
-import type { Tantou } from "./tantou";
 import type {
   IrregularMaster,
   OperationMaster,
@@ -12,10 +8,204 @@ import type {
 import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
 
 /* =========================
+ * Sheet Entity Types & Field Labels
+ * ========================= */
+
+const PRINTER_TYPES = ["B", "K", "O"] as const;
+type PrinterType = (typeof PRINTER_TYPES)[number];
+type PrinterSuffix = PrinterType;
+
+const TR_INDICES = [1, 2, 3, 4] as const;
+type TrIndex = (typeof TR_INDICES)[number];
+
+const BASE_SHOP_FIELD_LABELS = {
+  shopCode: "店舗コード",
+  shopName: "店舗名",
+  shopKana: "店舗カナ",
+  openTime: "開店時間",
+  closeTime: "閉店時間",
+  centerName: "センタ",
+  areaName: "エリア",
+  phoneNumber: "電話番号",
+  postalCode: "郵便番号",
+  address: "住所",
+  mobileSales: "移動販売",
+
+  storeManagerName: "店長",
+  assistantManagerName1: "副店長1",
+  assistantManagerName2: "副店長2",
+  areaManagerName: "マネージャ",
+
+  excelFilePath: "Excelパス",
+  pdfFilePath: "PDFパス",
+
+  deviceCount: "端末台数",
+  comment: "コメント",
+  hubImageUrl: "HUB",
+  outletImageUrl: "コンセント",
+} as const;
+
+const PRINTER_FIELD_LABELS = {
+  ...Object.fromEntries(
+    PRINTER_TYPES.flatMap((t) => [
+      [`printerModel${t}`, `プリンター(${t}) 機種名`],
+      [`printerSerialNumber${t}`, `プリンター(${t}) シリアル`],
+      [`printerPhone${t}`, `プリンター(${t}) 連絡先`],
+      [`printerHolidayPhone${t}`, `プリンター(${t}) 休日連絡先`],
+      [`printerContractId${t}`, `プリンター(${t}) 土日祝ID`],
+    ]),
+  ),
+} as {
+  [K in PrinterType as
+    | `printerModel${K}`
+    | `printerSerialNumber${K}`
+    | `printerPhone${K}`
+    | `printerHolidayPhone${K}`
+    | `printerContractId${K}`]: string;
+};
+
+const TR_FIELD_LABELS = {
+  ...Object.fromEntries(
+    TR_INDICES.flatMap((i) => [
+      [`tr${i}Name`, `TR${i} 端末名`],
+      [`tr${i}Ip`, `TR${i} IP`],
+      [`tr${i}Model`, `TR${i} 型番`],
+      [`tr${i}LogicalName`, `TR${i} 論理`],
+      [`tr${i}PhysicalName`, `TR${i} 物理`],
+      [`tr${i}ImageUrl`, `TR${i} 画像`],
+    ]),
+  ),
+} as {
+  [K in TrIndex as
+    | `tr${K}Name`
+    | `tr${K}Ip`
+    | `tr${K}Model`
+    | `tr${K}LogicalName`
+    | `tr${K}PhysicalName`
+    | `tr${K}ImageUrl`]: string;
+};
+
+export const SHOP_FIELD_LABELS = {
+  ...BASE_SHOP_FIELD_LABELS,
+  ...PRINTER_FIELD_LABELS,
+  ...TR_FIELD_LABELS,
+} as const;
+
+type ShopPrinterKeys =
+  | `printerModel${PrinterSuffix}`
+  | `printerSerialNumber${PrinterSuffix}`
+  | `printerPhone${PrinterSuffix}`
+  | `printerHolidayPhone${PrinterSuffix}`
+  | `printerContractId${PrinterSuffix}`;
+
+type ShopTrKeys =
+  | `tr${TrIndex}Name`
+  | `tr${TrIndex}Ip`
+  | `tr${TrIndex}Model`
+  | `tr${TrIndex}LogicalName`
+  | `tr${TrIndex}PhysicalName`
+  | `tr${TrIndex}ImageUrl`;
+
+type ShopBaseKeys =
+  | "shopCode"
+  | "shopName"
+  | "shopKana"
+  | "openTime"
+  | "closeTime"
+  | "centerName"
+  | "areaName"
+  | "phoneNumber"
+  | "postalCode"
+  | "address"
+  | "mobileSales"
+  | "storeManagerName"
+  | "assistantManagerName1"
+  | "assistantManagerName2"
+  | "areaManagerName"
+  | "excelFilePath"
+  | "pdfFilePath"
+  | "deviceCount"
+  | "comment"
+  | "hubImageUrl"
+  | "outletImageUrl";
+
+type ShopKey = ShopBaseKeys | ShopPrinterKeys | ShopTrKeys;
+export type Shop = Record<ShopKey, string>;
+
+export type Jugyoin = Record<
+  | "id"
+  | "bumon"
+  | "bumonKana"
+  | "name"
+  | "nameKana"
+  | "todayAmStatus"
+  | "todayAmDetail"
+  | "todayPmStatus"
+  | "todayPmDetail"
+  | "tomorrowAmStatus"
+  | "tomorrowAmDetail"
+  | "tomorrowPmStatus"
+  | "tomorrowPmDetail"
+  | "naisen"
+  | "tanshuku"
+  | "contactMobile"
+  | "scheduleLink"
+  | "position"
+  | "email",
+  string
+>;
+
+export type Kokyuhyo = Record<
+  | "id"
+  | "name"
+  | "nameKana"
+  | "todayAmStatus"
+  | "todayAmDetail"
+  | "todayPmStatus"
+  | "todayPmDetail"
+  | "tomorrowAmStatus"
+  | "tomorrowAmDetail"
+  | "tomorrowPmStatus"
+  | "tomorrowPmDetail"
+  | "naisen"
+  | "tanshuku"
+  | "contactMobile"
+  | "scheduleLink"
+  | "position"
+  | "email",
+  string
+>;
+
+export type Tantou = Record<
+  | "id"
+  | "todayHayaban"
+  | "todayShikai"
+  | "todayUketsuke"
+  | "todayDenwa"
+  | "todayNimotsu"
+  | "today2F"
+  | "today3F"
+  | "todayTensou"
+  | "todayAmAttendanceRate"
+  | "todayPmAttendanceRate"
+  | "tomorrowHayaban"
+  | "tomorrowShikai"
+  | "tomorrowUketsuke"
+  | "tomorrowDenwa"
+  | "tomorrowNimotsu"
+  | "tomorrow2F"
+  | "tomorrow3F"
+  | "tomorrowTensou"
+  | "tomorrowAmAttendanceRate"
+  | "tomorrowPmAttendanceRate",
+  string
+>;
+
+/* =========================
  * Spreadsheet ID
  * ========================= */
 
-export const SPREADSHEET_ID = {
+const SPREADSHEET_ID = {
   MASTER: "1VdlHfI2Z3eker8vvqTNEeO0rI5kqV-d_6UlRZOHNV2Q",
 } as const;
 
@@ -72,7 +262,7 @@ type SheetRowMap = {
   [SHEETS.RDP.sheetName]: RdpTarget;
 };
 
-export type SheetRow<TSheetId extends SheetId> = SheetRowMap[TSheetId];
+type SheetRow<TSheetId extends SheetId> = SheetRowMap[TSheetId];
 
 export type SheetData<TSheetId extends SheetId> = SheetRow<TSheetId>[];
 

@@ -346,23 +346,6 @@ export const dropdownItem = style([
   },
 ]);
 
-export const rowRenameSelect = style([
-  themeTransition,
-  {
-    height: "32px",
-    padding: "0 12px",
-    borderRadius: tokens.radius.sm,
-    backgroundColor: tokens.glass.surface,
-    color: tokens.color.text.hover,
-    border: `1px solid ${tokens.color.border.default}`,
-    fontSize: tokens.font.size.xs,
-    fontWeight: tokens.font.weight.bold,
-    outline: "none",
-    cursor: "pointer",
-    boxSizing: "border-box",
-  },
-]);
-
 export const removeFileButton = style([
   themeTransition,
   {

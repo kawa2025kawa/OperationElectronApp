@@ -6,7 +6,7 @@ import { addDays, format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
-export interface JobN25ResultData {
+interface JobN25ResultData {
   expectedDate: string;
   actualDate: string | null;
   isMatched: boolean;

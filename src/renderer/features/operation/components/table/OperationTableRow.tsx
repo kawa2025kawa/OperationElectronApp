@@ -27,6 +27,20 @@ interface OperationTableRowProps {
   readonly onMarkSuccess: (kanriNo: string) => void;
 }
 
+function arePropsEqual(
+  prevProps: OperationTableRowProps,
+  nextProps: OperationTableRowProps,
+): boolean {
+  return (
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.kanriNo === nextProps.kanriNo &&
+    prevProps.row === nextProps.row &&
+    prevProps.columns === nextProps.columns &&
+    prevProps.onRowClick === nextProps.onRowClick &&
+    prevProps.onMarkSuccess === nextProps.onMarkSuccess
+  );
+}
+
 export const OperationTableRow = memo(function OperationTableRow({
   row,
   columns,
@@ -93,6 +107,6 @@ export const OperationTableRow = memo(function OperationTableRow({
       })}
     </tr>
   );
-});
+}, arePropsEqual);
 
 OperationTableRow.displayName = "OperationTableRow";

@@ -11,7 +11,7 @@ import {
 } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { normalizeSpreadsheetRows } from "./spreadsheetDataNormalizer";
 
-export const SPREADSHEET_CLIENT_CONFIG = {
+const SPREADSHEET_CLIENT_CONFIG = {
   apiBaseUrl: "https://sheets.googleapis.com/v4/spreadsheets",
   headerMappings: {
     AutoManualUrl: "autoManualUrl",
@@ -20,7 +20,7 @@ export const SPREADSHEET_CLIENT_CONFIG = {
 
 type DefaultSheetRow<TSheetId extends SheetId> = SheetData<TSheetId>[number];
 
-export interface FetchSheetResult<
+export interface SheetDataResult<
   TSheetId extends SheetId,
   TRow extends object = DefaultSheetRow<TSheetId>,
 > {
@@ -29,11 +29,6 @@ export interface FetchSheetResult<
   data: TRow[];
   error?: string;
 }
-
-export type SheetDataResult<
-  TSheetId extends SheetId,
-  TRow extends object = DefaultSheetRow<TSheetId>,
-> = FetchSheetResult<TSheetId, TRow>;
 
 // シートの列名をアプリケーション側のプロパティ名に合わせる。
 function normalizeHeader(header: string): string {
@@ -71,7 +66,7 @@ function parseSheetRows<T>(rows: string[][]): T[] {
 }
 
 // シートの行データをレコードに変換し、文字列を正規化する。
-export function normalizeSheetData<
+function normalizeSheetData<
   TSheetId extends SheetId,
   TRow extends object = DefaultSheetRow<TSheetId>,
 >(_sheetId: TSheetId, rows: string[][]): TRow[] {

@@ -35,14 +35,14 @@ export const Overlay = ({ isOpen, onClick }: OverlayProps) => {
    Loading Content & Target
 ========================================= */
 
-export interface LoadingContentProps {
+interface LoadingContentProps {
   message?: string;
   statusMessage?: string;
 }
 
 const DOT_DELAYS = [0, 0.2, 0.4];
 
-export const LoadingContent = ({
+const LoadingContent = ({
   message = "LOADING...",
   statusMessage = "INITIALIZING SYSTEM CORE",
 }: LoadingContentProps) => {

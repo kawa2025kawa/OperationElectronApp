@@ -44,7 +44,7 @@ type JobResultData = {
  * システムエラー:
  * - 入力ファイル未指定・複数指定・不在
  * - 対象キーワード未検出
- * - バックアップディレクトリまたはバックアップファイル不在
+ * - バックアップフォルダまたはバックアップファイル不在
  * - ファイル読み書き失敗
  */
 export async function runJobE41(filePath?: ScriptFilePath): Promise<string> {

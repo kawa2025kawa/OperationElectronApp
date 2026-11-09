@@ -21,7 +21,7 @@ import {
   updateTokenProfile,
 } from "./token";
 
-// Google認証に関するエラーを表す。
+// Google認証に関するエラーを表す
 export class GoogleAuthError extends Error {
   constructor(message: string) {
     super(message);
@@ -29,11 +29,11 @@ export class GoogleAuthError extends Error {
   }
 }
 
-export interface GoogleApiRequestOptions extends RequestInit {
+interface GoogleApiRequestOptions extends RequestInit {
   retryOnUnauthorized?: boolean;
 }
 
-export const AUTH_SERVICE_CONFIG = {
+const AUTH_SERVICE_CONFIG = {
   defaultPort: 8888,
   redirectHost: OAUTH_LISTENER_CONFIG.host,
   scopes: [
@@ -47,8 +47,6 @@ export const AUTH_SERVICE_CONFIG = {
   ] as const,
 } as const;
 
-export type GoogleScope = (typeof AUTH_SERVICE_CONFIG.scopes)[number];
-
 interface InFlightRequest {
   generation: number;
   accessToken: string;
@@ -59,7 +57,7 @@ class AuthService {
   private refreshRequest: InFlightRequest | null = null;
   private profileRequest: InFlightRequest | null = null;
 
-  // ブラウザー認証を開始し、セッションを作成する。
+  // ブラウザー認証を開始し、セッションを作成する
   async login(port = AUTH_SERVICE_CONFIG.defaultPort): Promise<AuthSession> {
     const generation = getTokenGeneration();
     const client = createOAuthClient(
@@ -100,7 +98,7 @@ class AuthService {
     return saveToken(token, profile, generation);
   }
 
-  // 保存済みセッションを取得し、必要に応じてリフレッシュやプロフィール補完を行う。
+  // 保存済みセッションを取得し、必要に応じてリフレッシュやプロフィール補完を行う
   async loadSession(forceRefresh = false): Promise<AuthSession | null> {
     const session = await loadToken();
     if (!session) {
@@ -122,14 +120,14 @@ class AuthService {
     return this.restoreProfile(refreshed);
   }
 
-  // セッションを破棄する。
+  // セッションを破棄する
   async clearSession(): Promise<void> {
     this.refreshRequest = null;
     this.profileRequest = null;
     await clearToken();
   }
 
-  // 401応答時や期限切れ時にトークンを更新する。
+  // 401応答時や期限切れ時にトークンを更新する
   async refreshSessionFor(session: AuthSession): Promise<AuthSession | null> {
     const generation = getTokenGeneration();
     const currentSession = await loadToken();
@@ -154,7 +152,7 @@ class AuthService {
     return this.performCoalescedRefresh(currentSession, generation);
   }
 
-  // 同一セッションに対するトークン更新要求を集約する。
+  // 同一セッションに対するトークン更新要求を集約する
   private async performCoalescedRefresh(
     session: AuthSession,
     generation: number,
@@ -185,7 +183,7 @@ class AuthService {
     }
   }
 
-  // トークンの再取得と保存を実行する。
+  // トークンの再取得と保存を実行する
   private async executeRefresh(
     session: AuthSession,
     generation: number,
@@ -229,7 +227,7 @@ class AuthService {
     );
   }
 
-  // 不足しているプロフィール情報を取得して反映する。
+  // 不足しているプロフィール情報を取得して反映する
   private async restoreProfile(
     session: AuthSession,
   ): Promise<AuthSession | null> {
@@ -284,7 +282,7 @@ class AuthService {
     }
   }
 
-  // 認証トークンを付与してGoogle APIへ送信する。
+  // 認証トークンを付与してGoogle APIへ送信する
   private async fetchWithToken(
     url: string,
     init: RequestInit,
@@ -297,7 +295,7 @@ class AuthService {
     return fetch(url, { ...init, headers });
   }
 
-  // Google APIへ認証済みリクエストを送信する。
+  // Google APIへ認証済みリクエストを送信する
   async request(
     url: string,
     init: GoogleApiRequestOptions = {},
@@ -327,7 +325,7 @@ class AuthService {
     return this.fetchWithToken(url, requestInit, session.accessToken);
   }
 
-  // Google APIのレスポンスをJSONとして取得する。
+  // Google APIのレスポンスをJSONとして取得する
   async getJson<T>(
     url: string,
     init: GoogleApiRequestOptions = {},

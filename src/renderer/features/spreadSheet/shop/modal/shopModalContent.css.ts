@@ -1,4 +1,4 @@
-// src/renderer/features/spreadSheet/shop/modal/shopModalContent.css.ts
+﻿// src/renderer/features/spreadSheet/shop/modal/shopModalContent.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -33,6 +33,7 @@ export const mainContainer = style({
   height: "100%",
   minHeight: 0,
   gap: tokens.space.md,
+  isolation: "isolate",
 });
 
 export const contentContainer = style({
@@ -43,18 +44,22 @@ export const contentContainer = style({
   overflowY: "auto",
   gap: tokens.space.md,
   padding: "4px",
+  isolation: "isolate",
 });
 
 export const trTabWrapper = style({
   display: "flex",
   flexDirection: "column",
   gap: tokens.space.md,
+  isolation: "isolate",
 });
 
 export const terminalSection = style({
   display: "flex",
   flexDirection: "column",
   gap: "6px",
+  width: "100%",
+  isolation: "isolate",
 });
 
 export const terminalHeaderRow = style([
@@ -67,6 +72,7 @@ export const terminalHeaderRow = style([
     fontSize: tokens.font.fluid.md,
     fontWeight: tokens.font.weight.bold,
     color: tokens.color.text.hover,
+    isolation: "isolate",
   },
 ]);
 
@@ -83,7 +89,6 @@ export const terminalHeaderGrid = style([
   },
 ]);
 
-// 🎯 根本解決：box-shadow の直接補間を廃止し、::before の opacity フェードに統一
 export const terminalRow = style([
   themeTransition,
   rowBase,
@@ -94,6 +99,8 @@ export const terminalRow = style([
     boxShadow: tokens.shadow.raised.low,
     fontSize: tokens.font.fluid.md,
     color: tokens.color.text.base,
+    isolation: "isolate",
+    transform: "translateZ(0)",
     transition: `color ${tokens.transition.fast}`,
 
     "::before": {
@@ -105,6 +112,7 @@ export const terminalRow = style([
       opacity: 0,
       transition: `opacity ${tokens.transition.normal}`,
       pointerEvents: "none",
+      willChange: "opacity",
     },
 
     selectors: {
@@ -165,5 +173,14 @@ export const terminalGrid = style([
 export const cellValue = style({
   ...ellipsisStyle,
   fontWeight: tokens.font.weight.bold,
-  transition: tokens.transition.fast,
+  transition: `color ${tokens.transition.fast}`,
+});
+
+export const buttonContainer = style({
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: tokens.space.sm,
+  marginTop: tokens.space.xs,
+  isolation: "isolate",
 });

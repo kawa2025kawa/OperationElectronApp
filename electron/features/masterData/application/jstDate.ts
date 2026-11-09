@@ -1,8 +1,8 @@
 // electron/features/masterData/application/jstDate.ts
 
-export const JST_TIME_ZONE = "Asia/Tokyo" as const;
+const JST_TIME_ZONE = "Asia/Tokyo" as const;
 
-export const WEEKDAY_MAP: Readonly<Record<string, string>> = {
+const WEEKDAY_MAP: Readonly<Record<string, string>> = {
   Mon: "月",
   Tue: "火",
   Wed: "水",
@@ -20,7 +20,7 @@ export interface JstDatePartsResult {
   lastDay: number;
 }
 
-// 日本時間の年月日・曜日・月末日を取得する。
+// 日本時間の年月日・曜日・月末日を取得する
 export function getJstDateParts(value: Date): JstDatePartsResult {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: JST_TIME_ZONE,
@@ -46,8 +46,8 @@ export function getJstDateParts(value: Date): JstDatePartsResult {
   };
 }
 
-// 指定日時を日本時間の YYYY-MM-DD 形式に変換する。
-export function getJstDateKey(value: Date): string {
+// 指定日時を日本時間の YYYY-MM-DD 形式に変換する
+function getJstDateKey(value: Date): string {
   const { year, month, day } = getJstDateParts(value);
 
   return [
@@ -57,7 +57,7 @@ export function getJstDateKey(value: Date): string {
   ].join("-");
 }
 
-// 指定日時が現在の日本時間の日付と一致するか判定する。
+// 指定日時が現在の日本時間の日付と一致するか判定する
 export function isSameJstDay(value: string): boolean {
   const date = new Date(value);
 

@@ -104,6 +104,9 @@ export const topControls = style({
   flexDirection: "column",
   gap: tokens.space.sm,
   flexShrink: 0,
+  // 描画レイヤーを隔離し、ボタンのホバー演出（影や枠線）の再描画を下部に波及させない
+  isolation: "isolate",
+  transform: "translateZ(0)",
 });
 
 // ============================================================
@@ -121,5 +124,8 @@ export const infoList = style([
     paddingTop: tokens.space.xs,
     paddingBottom: tokens.space.xs,
     gap: tokens.space.md,
+    // 独立した合成レイヤーとして保持
+    isolation: "isolate",
+    transform: "translateZ(0)",
   },
 ]);

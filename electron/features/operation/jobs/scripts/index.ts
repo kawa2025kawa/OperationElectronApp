@@ -1,7 +1,8 @@
-//electron\features\operation\jobs\scripts\index.ts
+// electron/features/operation/jobs/scripts/index.ts
 
 // Eシリーズ
 export * from "./eseries/job_e1";
+export * from "./eseries/job_e4";
 export * from "./eseries/job_e14";
 export * from "./eseries/job_e29";
 export * from "./eseries/job_e30";

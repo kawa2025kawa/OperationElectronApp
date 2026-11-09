@@ -1,16 +1,16 @@
-// src/renderer/features/spreadSheet/kokyuhyo/table/KokyuhyoTable.tsx
+﻿// src/renderer/features/spreadSheet/kokyuhyo/table/KokyuhyoTable.tsx
 
-import { memo, useCallback } from "react";
-import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
+import { memo } from "react";
+import type { Kokyuhyo } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { Column } from "@shared/types/table/tableType";
 import { SpreadSheetBaseTable } from "../../components/table/SpreadSheetBaseTable";
 import { KOKYUHYO_COLUMNS } from "../../utils/spreadsheetDateUtils";
 import * as styles from "@renderer/features/spreadSheet/components/table/spreadsheetTable.css";
 
 export interface KokyuhyoTableProps {
-  rows: readonly Kokyuhyo[];
-  selectedId?: string;
-  onRowClick?: (item: Kokyuhyo) => void;
+  readonly rows: readonly Kokyuhyo[];
+  readonly selectedId?: string;
+  readonly onRowClick?: (item: Kokyuhyo) => void;
 }
 
 function getCellText(value: unknown): string {
@@ -32,36 +32,40 @@ function checkIsHolidayText(value: unknown): boolean {
   );
 }
 
-export const KokyuhyoTable = memo(
-  ({ rows, selectedId, onRowClick }: KokyuhyoTableProps) => {
-    const renderCell = useCallback(
-      (_row: Kokyuhyo, _col: Column<Kokyuhyo>, value: unknown) => (
-        <span
-          className={`${styles.cellText} ${
-            checkIsHolidayText(value) ? styles.cellTextHoliday : ""
-          }`}
-        >
-          {getCellText(value)}
-        </span>
-      ),
-      [],
-    );
+const getKokyuhyoRowId = (row: Kokyuhyo, index: number): string =>
+  row.name ? String(row.name).trim() : String(index);
 
-    return (
-      <SpreadSheetBaseTable
-        rows={rows}
-        columns={KOKYUHYO_COLUMNS}
-        selectedId={selectedId}
-        getRowId={(row, index) =>
-          row.name ? String(row.name).trim() : String(index)
-        }
-        onRowClick={onRowClick}
-        renderCell={renderCell}
-        headerType="group"
-        styles={styles}
-      />
-    );
-  },
+const renderKokyuhyoCell = (
+  _row: Kokyuhyo,
+  _col: Column<Kokyuhyo>,
+  value: unknown,
+) => (
+  <span
+    className={`${styles.cellText} ${
+      checkIsHolidayText(value) ? styles.cellTextHoliday : ""
+    }`}
+  >
+    {getCellText(value)}
+  </span>
 );
+
+export const KokyuhyoTable = memo(function KokyuhyoTable({
+  rows,
+  selectedId,
+  onRowClick,
+}: KokyuhyoTableProps) {
+  return (
+    <SpreadSheetBaseTable
+      rows={rows}
+      columns={KOKYUHYO_COLUMNS}
+      selectedId={selectedId}
+      getRowId={getKokyuhyoRowId}
+      onRowClick={onRowClick}
+      renderCell={renderKokyuhyoCell}
+      headerType="group"
+      styles={styles}
+    />
+  );
+});
 
 KokyuhyoTable.displayName = "KokyuhyoTable";

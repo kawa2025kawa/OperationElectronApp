@@ -1,11 +1,11 @@
 // src/shared/types/operation/operationTypes.ts
 
-export interface StatusUpdatedEvent {
+interface StatusUpdatedEvent {
   type: "updated";
   update: OperationStatusState;
 }
 
-export interface StatusClearedEvent {
+interface StatusClearedEvent {
   type: "cleared";
   kanriNo: string;
 }
@@ -84,67 +84,14 @@ export interface IrregularMaster {
 
 export type TodayIrregularMaster = IrregularMaster;
 
-/* =========================
- * Script
- * ========================= */
-
-export const OPERATION_SCRIPT_KEY_IDS = [
-  // Eシリーズ
-  "E1",
-  "E5",
-  "E55",
-  "E8",
-  "E9",
-  "E14",
-  "E29",
-  "E30",
-  "E41",
-  "E51",
-  // Nシリーズ
-  "N12",
-  "N25",
-  "N27",
-  "N28",
-  "N31",
-  "N33",
-  // 数字系
-  "16",
-  "20",
-  "25",
-  "28",
-  "30",
-  "34",
-  "37",
-  "39",
-  "43",
-  "45",
-  "48",
-  "54",
-  "56",
-  "60",
-  "62",
-  "64",
-  "66",
-  "68",
-  "80",
-  "114",
-  // 特殊手動キー
-  "webedi",
-  "webedi_db",
-  "md",
-] as const;
-
-export type OperationScriptKeyId = (typeof OPERATION_SCRIPT_KEY_IDS)[number];
-
 export type ScriptExecutionType = "manual" | "auto";
 
 export interface OperationScriptKey {
-  key: OperationScriptKeyId | string;
+  key: string;
   label?: string;
   executionTypes?: ScriptExecutionType[];
   requiresFileSelection?: boolean;
 }
-
 /** RDP接続先キー */
 export interface OperationRdpKey {
   key: string;
@@ -226,8 +173,6 @@ export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
  * Common
  * ========================= */
 
-export type ScheduledTime = string;
-
 export interface JobArtifact {
   name: string;
   path?: string;
@@ -242,7 +187,7 @@ export type JobResultKind =
   | "retrying"
   | "running";
 
-export interface JobRetryPolicy {
+interface JobRetryPolicy {
   intervalMs: number;
   timeoutMs: number;
 }
@@ -254,27 +199,6 @@ export interface JobResult {
   data?: unknown;
   artifacts?: JobArtifact[];
   retryPolicy?: JobRetryPolicy;
-}
-
-export interface JobDependency {
-  dependsOn?: string | string[] | null;
-}
-
-export interface JobDependenciesConfig {
-  dependencies: Record<string, JobDependency>;
-}
-
-export interface GmailTemplate {
-  to?: string;
-  cc?: string;
-  subject?: string;
-  body?: string;
-}
-
-export interface ScriptConfig {
-  key: string;
-  label: string;
-  scriptKanriNo?: string;
 }
 
 export interface LinkConfig {
@@ -331,5 +255,3 @@ export const OPERATION_FIELD_LABELS = {
   endTime: "終了時刻",
   comment: "備考",
 } as const;
-
-export type OperationFieldKey = keyof typeof OPERATION_FIELD_LABELS;

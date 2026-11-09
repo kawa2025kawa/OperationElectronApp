@@ -3,6 +3,8 @@
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
+const t = tokens.transition.normal;
+
 export const formContainer = style({
   display: "flex",
   flex: 1,
@@ -13,6 +15,7 @@ export const formContainer = style({
   boxSizing: "border-box",
   overflowY: "auto",
   paddingRight: tokens.space.xs,
+  isolation: "isolate",
 });
 
 export const fieldGroup = style({
@@ -43,14 +46,14 @@ export const input = style({
   width: "100%",
   padding: `${tokens.space.sm} ${tokens.space.md}`,
   borderRadius: tokens.radius.md,
-  backgroundColor: tokens.color.bg.base, // 🎯 インセット背景色
-  border: `1px solid ${tokens.color.border.subtle}`, // 🎯 控えめな境界線
+  backgroundColor: tokens.color.bg.base,
+  border: `1px solid ${tokens.color.border.subtle}`,
   color: tokens.color.text.base,
   fontSize: tokens.font.size.sm,
   outline: "none",
   boxSizing: "border-box",
-  boxShadow: tokens.shadow.pressed.low, // 🎯 凹のシャドウを適用
-  transition: tokens.transition.normal,
+  boxShadow: tokens.shadow.pressed.low,
+  transition: `border-color ${t}, box-shadow ${t}`,
 
   selectors: {
     "&:focus": {
@@ -75,9 +78,9 @@ export const selectInput = style([
     MozAppearance: "none",
     paddingRight: "32px",
     cursor: "pointer",
-    backgroundColor: tokens.color.bg.base, // 🎯 通常背景色
+    backgroundColor: tokens.color.bg.base,
     border: `1px solid ${tokens.color.border.default}`,
-    boxShadow: tokens.shadow.raised.low, // 🎯 凸のシャドウを適用
+    boxShadow: tokens.shadow.raised.low,
 
     backgroundImage: `url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8"><path fill="%2300C8B4" d="M0 0l6 7 6-7z"/></svg>')`,
     backgroundRepeat: "no-repeat",
@@ -124,4 +127,3 @@ export const bodyTextarea = style([
     minHeight: "150px",
   },
 ]);
-

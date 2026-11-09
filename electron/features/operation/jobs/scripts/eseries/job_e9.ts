@@ -9,14 +9,14 @@ import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/job
 import { createZipArchive } from "@electron/features/operation/jobs/scripts/helpers/zipHelper";
 import { formatDateTime } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
-export interface FileStatusE9 {
+interface FileStatusE9 {
   fileName: string;
   filePath: string;
   mtime: Date;
   isToday: boolean;
 }
 
-export interface JobE9ResultData {
+interface JobE9ResultData {
   matchedFiles: FileStatusE9[];
   dateIssueFiles: FileStatusE9[];
   zipFilePath?: string | null;

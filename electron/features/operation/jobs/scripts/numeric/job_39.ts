@@ -25,14 +25,14 @@ type JobResultData = {
 };
 
 /**
- * 時間帯（午前・午後）に応じたディレクトリの対象ファイル存在・更新日を確認する。
+ * 時間帯（午前・午後）に応じたフォルダの対象ファイル存在・更新日を確認する。
  *
  * 業務上の要対応:
  * - 対象ファイルが存在しない、または本日更新でない場合
  * - ファイル件数が上限を超えている場合
  *
  * システムエラー:
- * - ディレクトリが存在しない、アクセス不能などのシステム障害
+ * - フォルダが存在しない、アクセス不能などのシステム障害
  */
 export async function runJob39(): Promise<string> {
   const logger = new JobLogger();
@@ -52,7 +52,7 @@ export async function runJob39(): Promise<string> {
 }
 
 /**
- * ディレクトリ検証および対象ファイル群の存在チェックを行う。
+ * フォルダ検証および対象ファイル群の存在チェックを行う。
  */
 async function checkTargetFiles(): Promise<JobResultData> {
   const now = new Date();
@@ -62,7 +62,7 @@ async function checkTargetFiles(): Promise<JobResultData> {
 
   const dirStat = await fs.stat(targetDir);
   if (!dirStat.isDirectory()) {
-    throw new Error(`ディレクトリではありません: ${targetDir}`);
+    throw new Error(`フォルダではありません: ${targetDir}`);
   }
 
   let results: FileCheckResult[];
@@ -133,7 +133,7 @@ function writeResultLog(logger: JobLogger, result: JobResultData): string {
   logger.log(
     `時間帯判定       : ${result.isBeforeNoon ? "午前 (12時前)" : "午後 (12時以降)"}`,
   );
-  logger.log(`対象ディレクトリ : ${result.targetDir}`);
+  logger.log(`対象フォルダ : ${result.targetDir}`);
 
   logger.section("確認結果");
   const errors: string[] = [];

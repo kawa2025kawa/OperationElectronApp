@@ -1,4 +1,4 @@
-// src/renderer/components/layout/sidebar/sidebar.css.ts
+﻿// src/renderer/components/layout/sidebar/sidebar.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -65,6 +65,7 @@ export const menuList = style({
   flexDirection: "column",
   gap: tokens.space.md,
   scrollbarWidth: "none",
+  isolation: "isolate",
   selectors: {
     "&::-webkit-scrollbar": {
       display: "none",
@@ -75,6 +76,7 @@ export const menuList = style({
 export const menuItem = style({
   width: "100%",
   flexShrink: 0,
+  isolation: "isolate",
 });
 
 export const menuButton = style({
@@ -92,6 +94,8 @@ export const menuButton = style({
   boxShadow: tokens.shadow.raised.md,
   cursor: "pointer",
   outline: "none",
+  isolation: "isolate",
+  transform: "translateZ(0)",
   transition: `background-color ${t}, color ${t}`,
 
   "::before": {
@@ -103,6 +107,7 @@ export const menuButton = style({
     opacity: 0,
     transition: `opacity ${t}`,
     pointerEvents: "none",
+    willChange: "opacity",
   },
 
   selectors: {
@@ -148,6 +153,7 @@ export const sidebarFooter = style({
   justifyContent: "space-between",
   alignItems: "center",
   backgroundColor: tokens.color.bg.base,
+  isolation: "isolate",
   transition: `background-color ${t}, border-color ${t}`,
 });
 
@@ -172,22 +178,36 @@ export const toggleTrack = style({
   padding: 0,
   display: "block",
   flexShrink: 0,
+  isolation: "isolate",
+  transform: "translateZ(0)",
   transition: `border-color ${smoothGlow}, box-shadow ${smoothGlow}, background-color ${t}`,
 
+  // ホバーグロー用の独立擬似要素
+  "::before": {
+    content: '""',
+    position: "absolute",
+    inset: -1,
+    borderRadius: tokens.radius.full,
+    boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
+    opacity: 0,
+    transition: `opacity ${smoothGlow}`,
+    pointerEvents: "none",
+    willChange: "opacity",
+  },
+
   selectors: {
-    "&:hover": {
-      borderColor: tokens.color.accent.neonCyan,
-      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
+    "&:hover::before, &:focus-visible::before": {
+      opacity: 1,
     },
-    "&:focus-visible": {
+    "&:hover, &:focus-visible": {
       borderColor: tokens.color.accent.neonCyan,
-      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
     },
   },
 });
 
 export const toggleThumb = style({
-  position: "absolute",
+  position: "relative",
+  zIndex: 1,
   top: "2px",
   left: "2px",
   width: "16px",
@@ -195,16 +215,17 @@ export const toggleThumb = style({
   borderRadius: tokens.radius.full,
   display: "block",
   pointerEvents: "none",
+  transform: "translateZ(0)",
   transition: `transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color ${t}, box-shadow ${smoothGlow}`,
 
   selectors: {
     "&[data-state='dark']": {
-      transform: "translateX(22px)",
+      transform: "translateX(22px) translateZ(0)",
       backgroundColor: tokens.color.accent.neonCyan,
       boxShadow: "0 0 8px rgba(0, 255, 225, 0.6)",
     },
     "&[data-state='light']": {
-      transform: "translateX(0)",
+      transform: "translateX(0) translateZ(0)",
       backgroundColor: tokens.color.text.base,
       boxShadow: tokens.shadow.raised.low,
     },

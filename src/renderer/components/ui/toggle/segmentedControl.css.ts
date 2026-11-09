@@ -19,6 +19,10 @@ export const containerBase = style({
   backgroundColor: tokens.color.bg.base,
   boxShadow: tokens.shadow.pressed.high,
   boxSizing: "border-box",
+  // ホバー時の影や発光の再描画をコンテナ内に封じ込める
+  isolation: "isolate",
+  transform: "translateZ(0)",
+  contain: "paint",
 });
 
 export const containerSize = styleVariants({
@@ -43,6 +47,7 @@ export const slider = style({
   backgroundColor: tokens.color.bg.base,
   boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
   zIndex: 0,
+  transform: "translateZ(0)",
 
   "::before": {
     content: '""',
@@ -78,6 +83,7 @@ export const itemButtonBase = style({
   color: tokens.color.text.base,
   transition: `color ${t}`,
   whiteSpace: "nowrap",
+  transform: "translateZ(0)",
 
   "::before": {
     content: '""',
@@ -89,6 +95,7 @@ export const itemButtonBase = style({
     transition: `opacity ${smoothGlow}`,
     pointerEvents: "none",
     zIndex: 0,
+    willChange: "opacity",
   },
 
   selectors: {

@@ -57,12 +57,12 @@ function formatModifiedTime(date: Date): string {
 }
 
 /**
- * ログディレクトリの存在・アクセス可否を確認（システムエラー検知用）
+ * ログフォルダの存在・アクセス可否を確認（システムエラー検知用）
  */
 async function validateLogDirectory(): Promise<void> {
   const stats = await fs.stat(CONFIG.logDir);
   if (!stats.isDirectory()) {
-    throw new Error(`ディレクトリではありません: ${CONFIG.logDir}`);
+    throw new Error(`フォルダではありません: ${CONFIG.logDir}`);
   }
 }
 

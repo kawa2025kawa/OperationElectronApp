@@ -1,6 +1,6 @@
 // src/renderer/features/other/useOtherViewLogic.ts
 
-import { createElement } from "react";
+import { createElement, useCallback } from "react";
 
 import { GiftMdModalContent } from "@renderer/features/other/components/modal/contents/giftMd/GiftMdModalContent";
 import { GmailDraftContent } from "@renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent";
@@ -19,36 +19,36 @@ const OKI_URL = "https://oki-corefido-connect.accel-mart.com/imart/login";
 export function useOtherViewLogic() {
   const openGlobalModal = useAppStore((state) => state.openGlobalModal);
 
-  const handleOpenPdfModal = () => {
+  const handleOpenPdfModal = useCallback(() => {
     openGlobalModal(createElement(PdfUploadModalContent), {
       title: "Tempomatic PDF",
       ...MODAL_SIZE,
     });
-  };
+  }, [openGlobalModal]);
 
-  const handleOpenGmailModal = () => {
+  const handleOpenGmailModal = useCallback(() => {
     openGlobalModal(createElement(GmailDraftContent), {
       title: "Gmail",
       ...MODAL_SIZE,
     });
-  };
+  }, [openGlobalModal]);
 
-  const handleOpenGiftMdModal = () => {
+  const handleOpenGiftMdModal = useCallback(() => {
     openGlobalModal(createElement(GiftMdModalContent), {
       title: "ギフトMD処理",
       ...MODAL_SIZE,
     });
-  };
+  }, [openGlobalModal]);
 
-  const handleResetStatuses = () => {
+  const handleResetStatuses = useCallback(() => {
     openGlobalModal(createElement(ResetStatusModalContent), {
       title: "ステータスの全リセット",
     });
-  };
+  }, [openGlobalModal]);
 
-  const handleOpenOKIURL = () => {
+  const handleOpenOKIURL = useCallback(() => {
     void systemIpcService.openExternal(OKI_URL);
-  };
+  }, []);
 
   return {
     handleOpenPdfModal,

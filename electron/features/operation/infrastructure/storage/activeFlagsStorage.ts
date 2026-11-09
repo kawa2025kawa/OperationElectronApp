@@ -11,7 +11,7 @@ import {
   writeJsonSafely,
 } from "./storageHelper";
 
-export const ACTIVE_FLAGS_STORAGE_CONFIG = {
+const ACTIVE_FLAGS_STORAGE_CONFIG = {
   filePrefix: "activeFlags_",
 } as const;
 

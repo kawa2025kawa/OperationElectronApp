@@ -1,19 +1,15 @@
 // src/renderer/components/layout/sidebar/Sidebar.tsx
 
+import { memo } from "react";
 import { clsx } from "clsx";
 
 import { Overlay } from "@renderer/components/ui/overlay/Overlay";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-import { useSidebarLogic } from "./useSidebarLogic";
-import { APP_REGISTRY } from "@renderer/registry/appRegistry";
+import { ORDERED_MENU_ITEMS, useSidebarLogic } from "./useSidebarLogic";
 
 import * as styles from "./sidebar.css";
 
-const ORDERED_MENU_ITEMS = Object.values(APP_REGISTRY)
-  .filter((item) => item.sidebarMenu?.show)
-  .sort((a, b) => (a.sidebarMenu?.order ?? 0) - (b.sidebarMenu?.order ?? 0));
-
-export const Sidebar = () => {
+export const Sidebar = memo(function Sidebar() {
   const {
     currentView,
     isSidebarOpen,
@@ -41,6 +37,7 @@ export const Sidebar = () => {
           {ORDERED_MENU_ITEMS.map((item) => (
             <li key={item.id} className={styles.menuItem}>
               <button
+                type="button"
                 className={styles.menuButton}
                 data-active={currentView === item.id}
                 onClick={() => handleItemClick(item.id)}
@@ -66,6 +63,6 @@ export const Sidebar = () => {
       </aside>
     </>
   );
-};
+});
 
 Sidebar.displayName = "Sidebar";

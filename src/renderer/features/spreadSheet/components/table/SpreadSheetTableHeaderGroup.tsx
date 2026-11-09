@@ -1,6 +1,6 @@
 ﻿// src/renderer/features/spreadSheet/components/table/SpreadSheetTableHeaderGroup.tsx
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import type { Column } from "@shared/types/table/tableType";
 import type { SpreadSheetTableStyles } from "./SpreadSheetBaseTable";
 
@@ -61,7 +61,7 @@ function SpreadSheetTableHeaderGroupInner<T>({
   columns,
   styles,
 }: SpreadSheetTableHeaderGroupProps<T>) {
-  const headerCards = buildGroupCards(columns);
+  const headerCards = useMemo(() => buildGroupCards(columns), [columns]);
 
   return (
     <thead>

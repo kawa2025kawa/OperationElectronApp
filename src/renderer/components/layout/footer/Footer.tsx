@@ -9,7 +9,7 @@ import type { CenterId } from "@shared/types/operation/operationTypes";
 
 const APP_VERSION = import.meta.env.APP_VERSION ?? "1.0.0";
 
-export const Footer = memo(() => {
+export const Footer = memo(function Footer() {
   const logic = useFooterLogic();
 
   return (
@@ -27,7 +27,6 @@ export const Footer = memo(() => {
       </div>
 
       <div className={styles.controlsContainer}>
-        {/* 🎯 logic.centers のオブジェクトキー/値を直接ループさせる */}
         {Object.entries(logic.centers).map(([id, isActive]) => (
           <FooterActionButton
             key={id}
@@ -40,3 +39,5 @@ export const Footer = memo(() => {
     </footer>
   );
 });
+
+Footer.displayName = "Footer";

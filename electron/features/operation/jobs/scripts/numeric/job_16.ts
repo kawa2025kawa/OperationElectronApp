@@ -43,10 +43,10 @@ export async function runJob16(): Promise<string> {
  * 実行時刻に応じた確認先を選択する。
  *
  * 08:30以前:
- * - 通常ディレクトリ
+ * - 通常フォルダ
  *
  * 08:30以降:
- * - ファーマーズエラーディレクトリ
+ * - ファーマーズエラーフォルダ
  */
 function selectDirectoryByTime(now: Date): string {
   const cutoff = new Date(now);

@@ -1,4 +1,4 @@
-// src/renderer/features/operation/components/operationInfoRow/operationInfoRow.css.ts
+﻿// src/renderer/features/operation/components/operationInfoRow/operationInfoRow.css.ts
 
 import { style, globalStyle } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -22,6 +22,9 @@ export const row = style({
   boxShadow: tokens.shadow.raised.low,
   transition: `color ${t}, background-color ${t}`,
   minHeight: "44px",
+  // 外部からのリペイント波及を遮断
+  isolation: "isolate",
+  transform: "translateZ(0)",
 
   // 🎯 完成形シャドウを固定描画した擬似要素レイヤー
   "::before": {
@@ -33,6 +36,7 @@ export const row = style({
     opacity: 0,
     transition: `opacity ${t}`,
     pointerEvents: "none",
+    willChange: "opacity",
   },
 
   selectors: {

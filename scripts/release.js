@@ -38,7 +38,7 @@ function getVersion() {
 }
 
 /**
- * release ディレクトリから最新の Setup.exe を取得
+ * release フォルダから最新の Setup.exe を取得
  *
  * ⚠️【重要警告・変更厳禁】⚠️
  * ここでファイル名の文字列比較やバージョン番号（version）でのフィルター判定を行わないこと！
@@ -48,9 +48,7 @@ function getVersion() {
  */
 function findInstaller(version) {
   if (!fs.existsSync(RELEASE_DIR)) {
-    throw new Error(
-      `[Release] release ディレクトリが存在しません: ${RELEASE_DIR}`,
-    );
+    throw new Error(`[Release] release フォルダが存在しません: ${RELEASE_DIR}`);
   }
 
   // 🎯 【重要】ファイル名文字列ではなく、ファイルの更新日時（mtimeMs）で最新の EXE を特定する
@@ -71,7 +69,7 @@ function findInstaller(version) {
 
   if (exeFiles.length === 0) {
     throw new Error(
-      `[Release] release ディレクトリに .exe ファイルが見つかりません: ${RELEASE_DIR}`,
+      `[Release] release フォルダに .exe ファイルが見つかりません: ${RELEASE_DIR}`,
     );
   }
 

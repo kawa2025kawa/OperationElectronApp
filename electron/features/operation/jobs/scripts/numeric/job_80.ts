@@ -33,7 +33,7 @@ type JobResultData = {
  * - すべての対象ファイルが存在する場合
  *
  * システムエラー:
- * - ディレクトリへのアクセス失敗、ステータス取得失敗
+ * - フォルダへのアクセス失敗、ステータス取得失敗
  */
 export async function runJob80(): Promise<JobResult> {
   const logger = new JobLogger();

@@ -20,7 +20,7 @@ export const overlay = style({
   padding: tokens.space.md,
   boxSizing: "border-box",
 
-  // 🎯 描画隔離
+  // 描画隔離
   isolation: "isolate",
 });
 
@@ -45,7 +45,7 @@ export const modalWindow = style([
     maxHeight: "90vh",
     maxWidth: "92vw",
 
-    // 🎯 描画隔離（モーダル内部操作時の背景ビューへのRepaint波及を完全遮断）
+    // 描画隔離（モーダル内部操作時の背景ビューへのRepaint波及を完全遮断）
     isolation: "isolate",
     transform: "translateZ(0)",
   },
@@ -95,7 +95,7 @@ export const body = style({
 export const footer = style({
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
+  justifyContent: "flex-end",
   padding: `${tokens.space.md} ${tokens.space.lg}`,
   borderTop: `1px solid ${tokens.color.border.subtle}`,
   backgroundColor: tokens.color.bg.base,
@@ -107,17 +107,9 @@ export const footer = style({
 export const footerContainer = style({
   display: "flex",
   width: "100%",
-  justifyContent: "space-between",
+  justifyContent: "flex-end",
   alignItems: "center",
   gap: tokens.space.md,
-  minWidth: 0,
-});
-
-export const footerLeft = style({
-  display: "flex",
-  alignItems: "center",
-  gap: tokens.space.xs,
-  flex: 1,
   minWidth: 0,
 });
 
@@ -126,15 +118,6 @@ export const footerRight = style({
   alignItems: "center",
   gap: tokens.space.xs,
   flexShrink: 0,
-});
-
-export const footerLeftButton = style({
-  flex: 1,
-  minWidth: 0,
-  padding: `${tokens.space.xs} ${tokens.space.sm}`,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
 });
 
 // ============================================================
@@ -180,4 +163,3 @@ export const messageTypes = styleVariants({
     boxShadow: tokens.shadow.glow.running,
   },
 });
-

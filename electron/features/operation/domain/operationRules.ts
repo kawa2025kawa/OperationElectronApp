@@ -8,33 +8,15 @@ import {
 import {
   isProtectedStatus,
   isRunningStatus,
-  isSuccessStatus,
   normalizeKanriNo,
 } from "@shared/utils/statusUtils";
 
-export {
-  isProtectedStatus,
-  isRunningStatus,
-  isSuccessStatus,
-  normalizeKanriNo,
-};
+export { isProtectedStatus, isRunningStatus, normalizeKanriNo };
 
-export const CENTER_FLAG_KEYS: readonly CenterId[] = [
-  "1C",
-  "2C",
-  "3C",
-] as const;
+const CENTER_FLAG_KEYS: readonly CenterId[] = ["1C", "2C", "3C"] as const;
 const CENTER_FLAGS = new Set<string>(CENTER_FLAG_KEYS);
 
-export const PREVIOUS_DAY_KANRI_NO_LIST = [
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-] as const;
-export type PreviousDayKanriNo = (typeof PREVIOUS_DAY_KANRI_NO_LIST)[number];
+const PREVIOUS_DAY_KANRI_NO_LIST = ["2", "3", "4", "5", "6", "7"] as const;
 const PREVIOUS_DAY_SET = new Set<string>(PREVIOUS_DAY_KANRI_NO_LIST);
 
 export interface ParsedTime {

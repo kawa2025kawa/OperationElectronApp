@@ -11,19 +11,17 @@ import {
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
 
-export type { ParsedTime } from "@electron/features/operation/domain/operationRules";
-
-export interface TrackerApiResponseItem {
+interface TrackerApiResponseItem {
   start_time: string | null;
   end_time: string | null;
   status: string[];
 }
 
-export interface TrackerApiResponse {
+interface TrackerApiResponse {
   data: TrackerApiResponseItem[];
 }
 
-export const TRACKER_CONFIG = {
+const TRACKER_CONFIG = {
   apiKey: "71e7f0bcc0f995c1d2d322cbdde23543a5be8f91",
   apiBaseUrl: "http://192.88.1.152/api/v2/trackers",
   timezoneOffsetHours: 9,
@@ -48,7 +46,7 @@ const STATUS_ALIAS_MAP: Readonly<Record<string, JobStatus>> = {
 
 let requestSequence = 0;
 
-export function isValidTrackerJobId(
+function isValidTrackerJobId(
   jobId: string | null | undefined,
 ): jobId is string {
   const norm = jobId?.trim();

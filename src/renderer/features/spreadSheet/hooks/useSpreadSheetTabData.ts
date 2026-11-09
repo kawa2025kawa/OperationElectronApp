@@ -15,7 +15,7 @@ export interface TabGroupConfig<K extends string = string> {
   }[];
 }
 
-export interface TabDisplayItem {
+interface TabDisplayItem {
   label: string;
   value: string;
 }
@@ -24,6 +24,8 @@ export interface TabGroupDisplay {
   title: string;
   items: TabDisplayItem[];
 }
+
+const EMPTY_ITEMS: readonly TabDisplayItem[] = Object.freeze([]);
 
 export function useSpreadSheetTabData<
   T extends SpreadSheetEntity,
@@ -55,10 +57,12 @@ export function useSpreadSheetTabData<
     [data, groupConfigs],
   );
 
+  const displayItems = groups[selectedIndex]?.items ?? EMPTY_ITEMS;
+
   return {
     selectedIndex,
     setSelectedIndex,
     groups,
-    displayItems: groups[selectedIndex]?.items ?? [],
+    displayItems,
   };
 }

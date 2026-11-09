@@ -8,8 +8,6 @@ export const ORDER_TIME_OPTIONS = [
   { value: "5", timeLabel: "16時00分" },
 ] as const;
 
-export type OrderTimeOptionKey = (typeof ORDER_TIME_OPTIONS)[number]["value"];
-
 export interface FileDropZoneItem {
   name: string;
   path: string;

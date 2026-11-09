@@ -1,9 +1,9 @@
 // src/renderer/features/spreadSheet/tantou/modal/TantouDetailContent.tsx
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { motion } from "motion/react";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-import type { Tantou } from "@shared/types/spreadsheet/tantou";
+import type { Tantou } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
 import {
   formatDateForHeader,
@@ -41,19 +41,37 @@ const TANTOU_DETAIL_GROUPS = [
   createDetailGroup("tomorrow", "明日"),
 ] as const;
 
+interface TantouDetailRowProps {
+  label: string;
+  value: string;
+}
+
+const TantouDetailRow = memo(function TantouDetailRow({
+  label,
+  value,
+}: TantouDetailRowProps) {
+  return (
+    <div className={styles.detailRow}>
+      <div className={styles.fieldLabel}>{label}</div>
+      <div className={styles.fieldValueContainer}>
+        <div className={styles.fieldValue}>{value || "-"}</div>
+      </div>
+    </div>
+  );
+});
+
 export const TantouDetailContent: GlobalModalComponent<TantouDetailContentProps> =
   memo(({ data }) => {
     const { selectedIndex, setSelectedIndex, displayItems } =
       useSpreadSheetTabData(data, TANTOU_DETAIL_GROUPS);
 
-    const now = new Date();
-    const todayLabel = `本日 ${formatDateForHeader(now)}`;
-    const tomorrowLabel = `明日 ${formatDateForHeader(getOffsetDate(1, now))}`;
-
-    const tabs = [
-      { id: 0, label: todayLabel },
-      { id: 1, label: tomorrowLabel },
-    ];
+    const tabs = useMemo(() => {
+      const now = new Date();
+      return [
+        { id: 0, label: `本日 ${formatDateForHeader(now)}` },
+        { id: 1, label: `明日 ${formatDateForHeader(getOffsetDate(1, now))}` },
+      ];
+    }, []);
 
     return (
       <div className={styles.container}>
@@ -91,12 +109,7 @@ export const TantouDetailContent: GlobalModalComponent<TantouDetailContentProps>
         <div className={styles.listContainer}>
           <div className={styles.detailList}>
             {displayItems.map(({ label, value }) => (
-              <div key={label} className={styles.detailRow}>
-                <div className={styles.fieldLabel}>{label}</div>
-                <div className={styles.fieldValueContainer}>
-                  <div className={styles.fieldValue}>{value || "-"}</div>
-                </div>
-              </div>
+              <TantouDetailRow key={label} label={label} value={value} />
             ))}
           </div>
         </div>

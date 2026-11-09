@@ -6,7 +6,7 @@ import type { AppViewId, ViewMode } from "@renderer/registry/appRegistry";
 
 type SelectedIds = Record<ViewMode, string | null>;
 
-export interface ScrollPosition {
+interface ScrollPosition {
   top: number;
   left: number;
 }

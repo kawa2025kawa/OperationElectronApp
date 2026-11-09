@@ -1,12 +1,13 @@
 // src/renderer/components/layout/sidebar/useSidebarLogic.ts
 
+import { useCallback } from "react";
 import { useShallow } from "zustand/shallow";
 
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";
 import { useAppStore } from "@renderer/store";
 import type { AppViewId } from "@renderer/registry/appRegistry";
 
-const ORDERED_MENU_ITEMS = Object.values(APP_REGISTRY)
+export const ORDERED_MENU_ITEMS = Object.values(APP_REGISTRY)
   .filter((item) => item.sidebarMenu?.show)
   .sort((a, b) => (a.sidebarMenu?.order ?? 0) - (b.sidebarMenu?.order ?? 0));
 
@@ -31,10 +32,13 @@ export const useSidebarLogic = () => {
     })),
   );
 
-  const handleItemClick = (view: AppViewId) => {
-    setSidebarOpen(false);
-    setCurrentView(view);
-  };
+  const handleItemClick = useCallback(
+    (view: AppViewId) => {
+      setSidebarOpen(false);
+      setCurrentView(view);
+    },
+    [setSidebarOpen, setCurrentView],
+  );
 
   return {
     currentView,

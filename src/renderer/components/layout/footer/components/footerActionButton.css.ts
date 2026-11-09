@@ -20,6 +20,9 @@ export const actionButton = style({
   cursor: "pointer",
   backgroundColor: tokens.color.bg.base,
   boxShadow: tokens.shadow.raised.md,
+  // 独立した描画レイヤーとして隔離し、Footer 全体へのリペイント波及を遮断
+  isolation: "isolate",
+  transform: "translateZ(0)",
   // 位置変化（transform）は一切含めず、背景・枠線・影のみ遷移
   transition: `background-color ${t}, border-color ${smoothGlow}, box-shadow ${t}`,
 
@@ -33,6 +36,7 @@ export const actionButton = style({
     opacity: 0,
     transition: `opacity ${smoothGlow}`,
     pointerEvents: "none",
+    willChange: "opacity",
   },
 
   selectors: {
@@ -64,4 +68,3 @@ export const actionButtonText = style({
     },
   },
 });
-

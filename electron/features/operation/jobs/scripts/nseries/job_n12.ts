@@ -17,8 +17,6 @@ const TARGET_KEYWORDS = [
   "FTRDCSNDSD",
 ] as const;
 
-export type JobN12Keyword = (typeof TARGET_KEYWORDS)[number];
-
 const CONFIG = {
   targetDirSv: "\\\\172.25.101.51\\if\\WMSSLIP\\RCV\\SV",
   targetDirRcv: "\\\\172.25.101.51\\if\\WMSSLIP\\RCV",
@@ -39,7 +37,7 @@ type JobResultData = {
 };
 
 /**
- * 管理番号49のステータスに応じた受信ディレクトリから、対象キーワードを含む最新ファイルの存在を確認する。
+ * 管理番号49のステータスに応じた受信フォルダから、対象キーワードを含む最新ファイルの存在を確認する。
  *
  * 確認先:
  * - 管理番号49が READY / WAITING: \\172.25.101.51\if\WMSSLIP\RCV
@@ -52,7 +50,7 @@ type JobResultData = {
  * - すべての対象キーワードのファイルが検出された場合
  *
  * システムエラー:
- * - ディレクトリへのアクセス失敗
+ * - フォルダへのアクセス失敗
  * - ファイル情報取得失敗
  */
 export async function runJobN12(): Promise<JobResult> {
@@ -74,7 +72,7 @@ export async function runJobN12(): Promise<JobResult> {
 }
 
 /**
- * 管理番号49のステータスを基に対象ディレクトリを決定する。
+ * 管理番号49のステータスを基に対象フォルダを決定する。
  */
 function resolveTargetDir(): string {
   const status = getStatus(CONFIG.refKanriNo)?.status;
@@ -90,7 +88,7 @@ function resolveTargetDir(): string {
 }
 
 /**
- * 対象ディレクトリから指定キーワードを含む最新ファイルを探索する。
+ * 対象フォルダから指定キーワードを含む最新ファイルを探索する。
  */
 async function findLatestFile(
   directory: string,
@@ -119,13 +117,13 @@ async function findLatestFile(
 }
 
 /**
- * 対象ディレクトリを走査し、キーワードごとのファイル存在を検証する。
+ * 対象フォルダを走査し、キーワードごとのファイル存在を検証する。
  */
 async function checkTargetFiles(): Promise<JobResultData> {
   const targetDir = resolveTargetDir();
 
   if (!(await fs.pathExists(targetDir))) {
-    throw new Error(`ディレクトリが存在しません: ${targetDir}`);
+    throw new Error(`フォルダが存在しません: ${targetDir}`);
   }
 
   const files = await fs.readdir(targetDir);

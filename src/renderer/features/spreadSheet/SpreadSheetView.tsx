@@ -7,9 +7,9 @@ import {
   SHEETS,
   type SheetId,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
-import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
-import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
-import type { Shop } from "@shared/types/spreadsheet/shop";
+import type { Jugyoin } from "@shared/types/spreadsheet/spreadsheetTypes";
+import type { Kokyuhyo } from "@shared/types/spreadsheet/spreadsheetTypes";
+import type { Shop } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 import { useSpreadSheetDomainLogic } from "@renderer/features/spreadSheet/hooks/useSpreadSheetDomainLogic";
 import { ScheduleModalContent } from "@renderer/features/spreadSheet/components/modal/ScheduleModalContent";
@@ -148,3 +148,5 @@ export const ShopView = memo(function ShopView() {
   );
 });
 ShopView.displayName = "ShopView";
+
+

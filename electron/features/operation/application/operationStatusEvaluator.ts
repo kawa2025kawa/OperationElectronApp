@@ -35,7 +35,7 @@ const isTrackerTarget = (t: StatusTarget): t is OperationTarget =>
 const canSyncTrackerStatus = (s?: JobStatus): boolean =>
   s === JOB_STATUS.READY || s === JOB_STATUS.RUNNING;
 
-export function evaluateTrackerStatus(
+function evaluateTrackerStatus(
   trackerStatus: OperationStatusState,
 ): OperationStatusState {
   if (trackerStatus.status !== JOB_STATUS.SUCCESS) return trackerStatus;
@@ -56,7 +56,7 @@ export function evaluateTrackerStatus(
       };
 }
 
-export function applyTrackerStatus(
+function applyTrackerStatus(
   trackerStatus: OperationStatusState,
 ): OperationStatusState {
   const evaluated = evaluateTrackerStatus(trackerStatus);
@@ -64,7 +64,7 @@ export function applyTrackerStatus(
   return evaluated;
 }
 
-export async function fetchTrackerStatus(
+async function fetchTrackerStatus(
   target: OperationTarget,
 ): Promise<OperationStatusState | undefined> {
   const jobId = getJobId(target);

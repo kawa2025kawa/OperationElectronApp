@@ -10,7 +10,7 @@ import {
 
 export type PersistedStatus = OperationStatusState;
 
-export const STATUS_STORAGE_CONFIG = {
+const STATUS_STORAGE_CONFIG = {
   filePrefix: "operationStatuses_",
   dateFormatPattern: "yyyyMMdd",
   debounceDelayMs: 1000,

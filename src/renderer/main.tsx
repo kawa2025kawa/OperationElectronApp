@@ -1,4 +1,5 @@
 // src/renderer/main.tsx
+
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 

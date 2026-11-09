@@ -32,7 +32,7 @@ type Job25CheckResult = {
  * - いずれかの対象ファイルが1件以外
  *
  * システムエラー:
- * - 対象ディレクトリへのアクセス失敗
+ * - 対象フォルダへのアクセス失敗
  */
 export async function runJob25(): Promise<string> {
   const logger = new JobLogger();
@@ -48,7 +48,7 @@ export async function runJob25(): Promise<string> {
     const detail = error instanceof Error ? ` (${error.message})` : "";
 
     throw logger.fail(
-      `ディレクトリにアクセスできません: ${CONFIG.targetDir}${detail}`,
+      `フォルダにアクセスできません: ${CONFIG.targetDir}${detail}`,
     );
   }
 }
@@ -89,7 +89,7 @@ async function findTargetFiles(): Promise<Job25CheckResult> {
  * 検索結果と不足ファイルをログに出力する。
  */
 function writeResultLog(logger: JobLogger, result: Job25CheckResult): string {
-  logger.log(`対象ディレクトリ : ${result.targetDir}`);
+  logger.log(`対象フォルダ : ${result.targetDir}`);
 
   logger.section("検索結果");
 

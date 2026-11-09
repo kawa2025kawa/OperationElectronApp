@@ -1,6 +1,6 @@
 ﻿// src/renderer/components/ui/statusSummary/useStatusSummary.ts
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
 
 import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes";
@@ -15,6 +15,13 @@ export interface UseStatusSummaryParams {
   openModal: (items: SummaryDetailRow[], title: string) => void;
 }
 
+export interface StatusSummaryItemData {
+  key: SummaryDisplayKey;
+  label: string;
+  displayValue: string | number;
+  badgeClass: string;
+}
+
 type StatusSummaryBadgeKey = keyof typeof styles.valueBadgeVariants;
 
 const getBadgeClass = (key: SummaryDisplayKey): string => {
@@ -24,16 +31,18 @@ const getBadgeClass = (key: SummaryDisplayKey): string => {
 export const useStatusSummary = ({ openModal }: UseStatusSummaryParams) => {
   const summary = useAppStore(useShallow((state) => state.summary));
 
-  const items = SUMMARY_DISPLAY_ORDER.map((key) => {
-    const value = summary[key] ?? 0;
+  const items = useMemo<StatusSummaryItemData[]>(() => {
+    return SUMMARY_DISPLAY_ORDER.map((key) => {
+      const value = summary[key] ?? 0;
 
-    return {
-      key,
-      label: getSummaryLabel(key),
-      displayValue: key === "progress" ? `${value}%` : value,
-      badgeClass: getBadgeClass(key),
-    };
-  });
+      return {
+        key,
+        label: getSummaryLabel(key),
+        displayValue: key === "progress" ? `${value}%` : value,
+        badgeClass: getBadgeClass(key),
+      };
+    });
+  }, [summary]);
 
   const handleClick = useCallback(
     async (key: SummaryDisplayKey, label: string) => {

@@ -39,7 +39,7 @@ function createOperationTargetList(
   ];
 }
 
-export async function resetAllStatusesAndTargets(): Promise<void> {
+async function resetAllStatusesAndTargets(): Promise<void> {
   await deleteStatusFile();
 
   statusState.propagator.clearAll();
@@ -52,7 +52,7 @@ export async function resetAllStatusesAndTargets(): Promise<void> {
   };
 }
 
-export function registerTargets(
+function registerTargets(
   targetList: StatusTarget[],
   masterData: SpreadsheetMasterData,
 ): void {
@@ -149,7 +149,7 @@ export async function deleteAllStatuses(): Promise<void> {
   }
 }
 
-export function saveStatusesImmediately(): void {
+function saveStatusesImmediately(): void {
   void persistStatusesImmediately(statusState.statuses);
 }
 

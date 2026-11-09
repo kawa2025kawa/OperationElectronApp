@@ -1,6 +1,12 @@
 // src/renderer/features/operation/hooks/useOperationViewLogic.ts
 
-import { createElement, useCallback, useMemo } from "react";
+import {
+  createElement,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { toast } from "sonner";
 import { useShallow } from "zustand/shallow";
 
@@ -27,6 +33,8 @@ export interface ViewAction {
   readonly label: string;
   readonly execute: (item: OperationViewItem) => void | Promise<void>;
 }
+
+const EMPTY_ACTIONS: readonly ViewAction[] = Object.freeze([]);
 
 const GMAIL_MODAL_CONFIG = {
   title: "Gmail",
@@ -270,24 +278,35 @@ export function useOperationViewLogic(rowsInput?: OperationViewItem[]) {
 
   const activeActions = useMemo(
     () =>
-      selectedItem ? createActiveActions(selectedItem, openGlobalModal) : [],
+      selectedItem
+        ? createActiveActions(selectedItem, openGlobalModal)
+        : (EMPTY_ACTIONS as ViewAction[]),
     [openGlobalModal, selectedItem],
   );
 
-  const executeAction = useCallback(
-    async (key: string) => {
-      if (!selectedItem) {
-        return;
-      }
+  // レンダー外（useLayoutEffect）で ref を同期し、eslint(react-hooks/refs) エラーを解消
+  const selectedItemRef = useRef(selectedItem);
+  const activeActionsRef = useRef(activeActions);
 
-      const action = activeActions.find((candidate) => candidate.key === key);
+  useLayoutEffect(() => {
+    selectedItemRef.current = selectedItem;
+    activeActionsRef.current = activeActions;
+  }, [selectedItem, activeActions]);
 
-      if (action) {
-        await action.execute(selectedItem);
-      }
-    },
-    [activeActions, selectedItem],
-  );
+  const executeAction = useCallback(async (key: string) => {
+    const currentItem = selectedItemRef.current;
+    if (!currentItem) {
+      return;
+    }
+
+    const action = activeActionsRef.current.find(
+      (candidate) => candidate.key === key,
+    );
+
+    if (action) {
+      await action.execute(currentItem);
+    }
+  }, []);
 
   return {
     currentMode,

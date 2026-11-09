@@ -7,7 +7,7 @@ export type {
   GmailDraft,
 } from "@shared/types/gmail/gmailDraftTypes";
 
-export interface GmailSendAs {
+interface GmailSendAs {
   isPrimary?: boolean;
   signature?: string;
 }

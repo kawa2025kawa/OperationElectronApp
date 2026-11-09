@@ -1,10 +1,17 @@
 ﻿// src/renderer/components/ui/statusSummary/statusSummary.css.ts
 
-import { style, styleVariants, type StyleRule } from "@vanilla-extract/css";
+import {
+  createVar,
+  style,
+  styleVariants,
+  type StyleRule,
+} from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { themeTransition } from "@renderer/styles/tokens/theme.css";
 import { getStatusTheme } from "@renderer/styles/tokens/statusTheme";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
+
+const glowShadowVar = createVar();
 
 export const container = style([
   themeTransition,
@@ -16,11 +23,8 @@ export const container = style([
     width: "100%",
     flex: 1,
     minWidth: 0,
-
-    // 🎯 描写隔離（ホバー時の Glow 効果による全域ペイント波及の遮断）
     position: "relative",
     isolation: "isolate",
-    transform: "translateZ(0)",
   },
 ]);
 
@@ -30,17 +34,22 @@ export const statusItem = style({
   alignItems: "center",
   gap: tokens.space.xs,
   flex: 1,
-  minWidth: "max-content", // 🎯 コンテンツ（ラベル・バッジ）の最小幅以下への潰れを防止
+  minWidth: "max-content",
   background: "none",
   border: "none",
   padding: 0,
   cursor: "pointer",
+  // 各ボタン単位で描画レイヤーを完全隔離
+  position: "relative",
+  isolation: "isolate",
+  transform: "translateZ(0)",
 });
 
 /** 🎯 数値バッジのベーススタイル */
 export const valueBadge = style([
   themeTransition,
   {
+    position: "relative",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -52,6 +61,26 @@ export const valueBadge = style([
     fontWeight: tokens.font.weight.bold,
     backgroundColor: tokens.color.bg.base,
     boxShadow: tokens.shadow.raised.low,
+    transform: "translateZ(0)",
+
+    // ホバー時の発光をリペイントなしの GPU 合成（opacity 遷移）で処理する擬似要素
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      borderRadius: tokens.radius.md,
+      boxShadow: glowShadowVar,
+      opacity: 0,
+      transition: `opacity ${tokens.transition.ease}`,
+      pointerEvents: "none",
+      willChange: "opacity",
+    },
+
+    selectors: {
+      [`${statusItem}:hover &::before`]: {
+        opacity: 1,
+      },
+    },
   },
 ]);
 
@@ -61,7 +90,7 @@ export const label = style({
   color: tokens.color.text.base,
   textTransform: "uppercase",
   letterSpacing: "0.05em",
-  whiteSpace: "nowrap", // 🎯 ラベル文字列のテキスト折り返しを防止
+  whiteSpace: "nowrap",
   transition: `color ${tokens.transition.ease}`,
   selectors: {
     [`${statusItem}:hover &`]: {
@@ -75,12 +104,10 @@ const createVariantStyle = (
   glow: string | undefined,
 ): StyleRule => ({
   color,
-  selectors: {
-    [`${statusItem}:hover &`]: {
-      boxShadow: glow
-        ? `${tokens.shadow.raised.low}, ${glow}`
-        : tokens.shadow.raised.low,
-    },
+  vars: {
+    [glowShadowVar]: glow
+      ? `${tokens.shadow.raised.low}, ${glow}`
+      : tokens.shadow.raised.low,
   },
 });
 

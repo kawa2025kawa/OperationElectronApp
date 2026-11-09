@@ -258,14 +258,13 @@ export function usePdfUploadModalContent() {
   useEffect(() => {
     updateModalConfig({
       message: infoMessage,
-      leftActions: [
+      rightActions: [
         {
           id: PDF_UPLOAD_ACTIONS.CANCEL.id,
           label: PDF_UPLOAD_ACTIONS.CANCEL.label,
           onClick: closeGlobalModal,
+          variant: "default",
         },
-      ],
-      rightActions: [
         {
           id: PDF_UPLOAD_ACTIONS.UPLOAD.id,
           label: PDF_UPLOAD_ACTIONS.UPLOAD.label,

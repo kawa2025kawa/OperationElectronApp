@@ -8,21 +8,20 @@ import readline from "node:readline";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
-export const TARGET_CODES = ["S330", "S332"] as const;
-export type JobN33TargetCode = (typeof TARGET_CODES)[number];
+const TARGET_CODES = ["S330", "S332"] as const;
 
-export interface UnassignedDetail {
+interface UnassignedDetail {
   code: string;
   detail: string;
 }
 
-export interface TargetCodeResult {
+interface TargetCodeResult {
   codeName: string;
   fileName: string | null;
   unassignedItems: UnassignedDetail[];
 }
 
-export interface JobN33ResultData {
+interface JobN33ResultData {
   today: string;
   results: TargetCodeResult[];
   missingCodes: string[];
@@ -61,7 +60,7 @@ const CONFIG = {
  * - 除外店舗以外の未格納データが存在する場合
  *
  * システムエラー:
- * - FTP接続・ディレクトリ移動失敗
+ * - FTP接続・フォルダ移動失敗
  * - ファイル一覧取得・ストリームダウンロード失敗
  */
 export async function runJobN33(): Promise<string> {
@@ -218,7 +217,7 @@ async function checkFtpCsvFiles(): Promise<JobN33ResultData> {
 function writeResultLog(logger: JobLogger, result: JobN33ResultData): string {
   logger.section("FTP接続情報");
   logger.log(`接続先        : ${CONFIG.ftp.host}:${CONFIG.ftp.port}`);
-  logger.log(`ディレクトリ  : ${CONFIG.ftpDir}`);
+  logger.log(`フォルダ  : ${CONFIG.ftpDir}`);
   logger.log(`対象日付      : ${result.today}`);
 
   logger.section("チェック結果");

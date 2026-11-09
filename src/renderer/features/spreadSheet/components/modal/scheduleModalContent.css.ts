@@ -1,4 +1,4 @@
-// src/renderer/features/spreadSheet/components/modal/ScheduleModalContent.css.ts
+﻿// src/renderer/features/spreadSheet/components/modal/scheduleModalContent.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -17,6 +17,7 @@ export const contentContainer = style({
   boxSizing: "border-box",
   color: tokens.color.text.base,
   fontSize: tokens.font.fluid.md,
+  isolation: "isolate",
 });
 
 export const profileCard = style([
@@ -33,6 +34,7 @@ export const profileCard = style([
     boxSizing: "border-box",
     flexShrink: 0,
     color: tokens.color.text.base,
+    isolation: "isolate",
   },
 ]);
 
@@ -43,6 +45,7 @@ export const profileGrid = style({
   gap: tokens.space.xs,
   flex: 1,
   minWidth: 0,
+  isolation: "isolate",
 });
 
 export const profileItem = style([
@@ -59,6 +62,8 @@ export const profileItem = style([
     fontWeight: tokens.font.weight.bold,
     whiteSpace: "nowrap",
     color: tokens.color.text.base,
+    isolation: "isolate",
+    transform: "translateZ(0)",
     transition: `color ${tokens.transition.fast}`,
 
     "::before": {
@@ -70,6 +75,7 @@ export const profileItem = style([
       opacity: 0,
       transition: `opacity ${tokens.transition.normal}`,
       pointerEvents: "none",
+      willChange: "opacity",
     },
 
     selectors: {
@@ -98,6 +104,8 @@ export const tableGrid = style([
     boxSizing: "border-box",
     overflow: "hidden",
     color: tokens.color.text.base,
+    isolation: "isolate",
+    transform: "translateZ(0)",
     transition: `color ${tokens.transition.fast}`,
 
     "::before": {
@@ -109,6 +117,7 @@ export const tableGrid = style([
       opacity: 0,
       transition: `opacity ${tokens.transition.normal}`,
       pointerEvents: "none",
+      willChange: "opacity",
     },
 
     selectors: {

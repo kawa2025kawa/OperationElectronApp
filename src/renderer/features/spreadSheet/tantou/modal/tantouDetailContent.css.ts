@@ -1,4 +1,4 @@
-// src/renderer/features/spreadSheet/tantou/modal/tantouDetailContent.css.ts
+﻿// src/renderer/features/spreadSheet/tantou/modal/tantouDetailContent.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -22,6 +22,7 @@ export const container = style({
   height: "100%",
   minHeight: 0,
   gap: tokens.space.md,
+  isolation: "isolate",
 });
 
 // ============================================================
@@ -39,6 +40,7 @@ export const tabBar = style({
   boxShadow: tokens.shadow.pressed.high,
   boxSizing: "border-box",
   flexShrink: 0,
+  isolation: "isolate",
 });
 
 export const tabSlider = style({
@@ -48,6 +50,8 @@ export const tabSlider = style({
   backgroundColor: tokens.color.bg.base,
   boxShadow: tokens.shadow.raised.high,
   zIndex: 0,
+  transform: "translateZ(0)",
+  willChange: "transform",
 
   "::before": {
     content: '""',
@@ -80,6 +84,7 @@ export const tabButton = style({
   color: tokens.color.text.base,
   transition: `color ${t}`,
   whiteSpace: "nowrap",
+  isolation: "isolate",
 
   selectors: {
     "&:hover": {
@@ -115,6 +120,7 @@ export const listContainer = style({
   gap: tokens.space.md,
   padding: "4px",
   boxSizing: "border-box",
+  isolation: "isolate",
 });
 
 export const detailList = style({
@@ -133,6 +139,8 @@ export const detailRow = style([
     borderRadius: tokens.radius.md,
     boxShadow: tokens.shadow.raised.low,
     color: tokens.color.text.base,
+    isolation: "isolate",
+    transform: "translateZ(0)",
     transition: `color ${tokens.transition.fast}`,
 
     "::before": {
@@ -144,6 +152,7 @@ export const detailRow = style([
       opacity: 0,
       transition: `opacity ${tokens.transition.normal}`,
       pointerEvents: "none",
+      willChange: "opacity",
     },
 
     selectors: {
@@ -192,5 +201,5 @@ export const fieldValue = style({
   fontWeight: tokens.font.weight.bold,
   whiteSpace: "nowrap",
   textOverflow: "ellipsis",
-  transition: tokens.transition.fast,
+  transition: `color ${tokens.transition.fast}`,
 });

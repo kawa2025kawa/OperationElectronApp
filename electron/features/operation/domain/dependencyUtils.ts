@@ -1,4 +1,4 @@
-// src/shared/utils/dependency/dependencyUtils.ts
+// electron/features/operation/domain/dependencyUtils.ts
 
 import {
   type ActiveFlags,
@@ -10,10 +10,7 @@ import {
 } from "@shared/types/operation/operationTypes";
 import { isRunningStatus, isSuccessStatus } from "@shared/utils/statusUtils";
 
-export type MasterItem =
-  | OperationMaster
-  | IrregularMaster
-  | TodayIrregularMaster;
+type MasterItem = OperationMaster | IrregularMaster | TodayIrregularMaster;
 
 export interface MissingDependency {
   kanriNo: string;

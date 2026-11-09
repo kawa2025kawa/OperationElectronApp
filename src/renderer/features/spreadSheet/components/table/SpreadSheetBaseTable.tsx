@@ -1,6 +1,6 @@
 ﻿// src/renderer/features/spreadSheet/components/table/SpreadSheetBaseTable.tsx
 
-import { memo, useCallback, useLayoutEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type { Column } from "@shared/types/table/tableType";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { useAppStore } from "@renderer/store";
@@ -56,6 +56,20 @@ function renderColumnGroup<T>(columns: readonly Column<T>[]) {
   );
 }
 
+function areRowPropsEqual<T>(
+  prev: TableRowProps<T>,
+  next: TableRowProps<T>,
+): boolean {
+  return (
+    prev.row === next.row &&
+    prev.isSelected === next.isSelected &&
+    prev.columns === next.columns &&
+    prev.styles === next.styles &&
+    prev.onRowClick === next.onRowClick &&
+    prev.renderCell === next.renderCell
+  );
+}
+
 function SpreadSheetBaseTableRowInner<T>({
   row,
   columns,
@@ -100,6 +114,7 @@ function SpreadSheetBaseTableRowInner<T>({
 
 const SpreadSheetBaseTableRow = memo(
   SpreadSheetBaseTableRowInner,
+  areRowPropsEqual,
 ) as typeof SpreadSheetBaseTableRowInner;
 
 export function SpreadSheetBaseTable<T>({
@@ -114,6 +129,7 @@ export function SpreadSheetBaseTable<T>({
 }: SpreadSheetBaseTableProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const restoredScrollKeyRef = useRef<string | null>(null);
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentView = useAppStore((state) => state.currentView);
   const setScrollPosition = useAppStore((state) => state.setScrollPosition);
@@ -141,16 +157,36 @@ export function SpreadSheetBaseTable<T>({
     restoredScrollKeyRef.current = scrollKey;
   }, [scrollKey, rows.length]);
 
-  const handleScroll = useCallback(
-    (event: React.UIEvent<HTMLDivElement>) => {
-      const container = event.currentTarget;
+  // スクロール位置の Zustand 反映を間引き、アンマウント時に確実に同期
+  const saveScrollPosition = useCallback(() => {
+    const container = containerRef.current;
+    if (container) {
       setScrollPosition(scrollKey, {
         top: container.scrollTop,
         left: container.scrollLeft,
       });
-    },
-    [scrollKey, setScrollPosition],
-  );
+    }
+  }, [scrollKey, setScrollPosition]);
+
+  const handleScroll = useCallback(() => {
+    if (scrollTimerRef.current !== null) {
+      return;
+    }
+
+    scrollTimerRef.current = setTimeout(() => {
+      saveScrollPosition();
+      scrollTimerRef.current = null;
+    }, 150);
+  }, [saveScrollPosition]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimerRef.current !== null) {
+        clearTimeout(scrollTimerRef.current);
+      }
+      saveScrollPosition();
+    };
+  }, [saveScrollPosition]);
 
   if (rows.length === 0) {
     return <EmptyState />;

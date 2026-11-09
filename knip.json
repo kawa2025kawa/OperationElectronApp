@@ -6,6 +6,5 @@
     "electron/features/operation/jobs/tools/scrapeApi.ts!"
   ],
   "project": ["src/**/*.{ts,tsx}", "electron/**/*.{ts,tsx}"],
-  "ignore": ["src/shared/types/electron/index.d.ts"],
-  "ignoreBinaries": ["mstsc"]
+  "ignore": ["src/shared/types/electron/index.d.ts"]
 }

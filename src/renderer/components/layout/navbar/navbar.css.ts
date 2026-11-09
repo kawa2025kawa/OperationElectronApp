@@ -16,6 +16,7 @@ export const container = style([
     boxShadow: tokens.shadow.raised.high,
     zIndex: tokens.zIndex.content,
     position: "relative",
+    isolation: "isolate",
   },
 ]);
 
@@ -44,12 +45,14 @@ export const centerItem = style({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  isolation: "isolate",
 });
 
 export const centerSummaryWrapper = style({
   width: "80%",
   flexShrink: 1,
   minWidth: 0,
+  isolation: "isolate",
 
   "@media": {
     "screen and (max-width: 900px)": {
@@ -70,5 +73,5 @@ export const rightGroup = style({
   alignItems: "center",
   gap: tokens.space.md,
   flexShrink: 0,
+  isolation: "isolate",
 });
-

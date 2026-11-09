@@ -4,13 +4,13 @@ import { chromium, type Page } from "playwright";
 import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
-export interface JobN31ResultData {
+interface JobN31ResultData {
   orderDate: string;
   departmentCode: string;
   supplierCode: string;
 }
 
-export interface JobN31Selectors {
+interface JobN31Selectors {
   readonly entry: string;
   readonly userId: string;
   readonly password: string;
@@ -144,9 +144,9 @@ async function executeWebEdiOrder(): Promise<JobN31ResultData> {
  */
 function writeResultLog(logger: JobLogger, result: JobN31ResultData): string {
   logger.section("WEB-EDI 操作情報");
-  logger.log(`接続先URL     : ${CONFIG.url}`);
-  logger.log(`発注日       : ${result.orderDate}`);
-  logger.log(`部門コード   : ${result.departmentCode}`);
+  logger.log(`接続先URL      : ${CONFIG.url}`);
+  logger.log(`発注日        : ${result.orderDate}`);
+  logger.log(`部門コード    : ${result.departmentCode}`);
   logger.log(`仕入先コード : ${result.supplierCode}`);
 
   return logger.complete(CONFIG.completionMessage);

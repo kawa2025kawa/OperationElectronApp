@@ -34,8 +34,6 @@ export const MODAL_SIZES = {
   },
 } as const satisfies Record<string, ModalDimension>;
 
-export type ModalSizePresetKey = keyof typeof MODAL_SIZES;
-
 /**
  * モーダルタイトルの定義（一元管理）
  */
@@ -61,9 +59,9 @@ export const MODAL_PRESETS = {
   },
 } as const satisfies Record<string, ModalConfig>;
 
-export type ModalMessageType = "info" | "success" | "error" | "warning";
+type ModalMessageType = "info" | "success" | "error" | "warning";
 
-export interface ModalMessageConfig {
+interface ModalMessageConfig {
   text: string;
   type?: ModalMessageType;
 }
@@ -83,7 +81,6 @@ export interface ModalConfig {
   title?: string;
   hideFooter?: boolean;
 
-  leftActions?: ModalAction[];
   rightActions?: ModalAction[];
 
   footerContent?: ReactNode;
@@ -103,8 +100,7 @@ export interface ModalState {
   content: ReactNode | null;
   config: ModalConfig | null;
 }
-
-export interface ModalMeta {
+interface ModalMeta {
   id: string;
   name: string;
 }

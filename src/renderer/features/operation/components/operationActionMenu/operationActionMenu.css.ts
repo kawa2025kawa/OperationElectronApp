@@ -1,13 +1,11 @@
-﻿// src/renderer/features/operation/components/operationActionMenu/operationActionMenu.css.ts
-
-import { style, keyframes } from "@vanilla-extract/css";
+﻿import { style, keyframes } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 const t = tokens.transition.normal;
 
 // ============================================================
-// Keyframes (移動・変形を排除し、純粋な opacity フェードに統一)
+// Keyframes
 // ============================================================
 
 const fadeIn = keyframes({
@@ -97,12 +95,14 @@ export const menuDropdownContent = style([
     padding: tokens.space.sm,
     borderRadius: tokens.radius.lg,
 
-    border: `2px solid ${tokens.color.border.subtle}`,
-    backgroundColor: tokens.glass.surface,
-    backdropFilter: "blur(12px) saturate(180%)",
-    WebkitBackdropFilter: "blur(24px) saturate(200%) brightness(1.2)",
+    // Context Menu 共通 Glass トークン
+    border: `1px solid ${tokens.glass.contextMenu.border}`,
+    backgroundColor: tokens.glass.contextMenu.surface,
 
-    boxShadow: tokens.shadow.raised.high,
+    backdropFilter: `blur(${tokens.glass.contextMenu.blur}) saturate(${tokens.glass.contextMenu.saturation})`,
+    WebkitBackdropFilter: `blur(${tokens.glass.contextMenu.blur}) saturate(${tokens.glass.contextMenu.saturation})`,
+
+    boxShadow: tokens.shadow.contextMenu,
     zIndex: `calc(${tokens.zIndex.dropdown} + 1)`,
 
     selectors: {

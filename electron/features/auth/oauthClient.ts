@@ -6,12 +6,12 @@ import path from "node:path";
 import { OAuth2Client } from "google-auth-library";
 import type { GoogleUserInfo, OAuthToken } from "@shared/types/auth";
 
-export const GOOGLE_AUTH_CONFIG = {
+const GOOGLE_AUTH_CONFIG = {
   credentialFileName: "google-oauth-credentials.json",
   userInfoUrl: "https://www.googleapis.com/oauth2/v2/userinfo",
 } as const;
 
-export interface GoogleCredentials {
+interface GoogleCredentials {
   clientId: string;
   clientSecret?: string;
 }
@@ -27,7 +27,7 @@ function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// 認証情報ファイルのパスを取得する。
+// 認証情報ファイルのパスを取得する
 function getCredentialsFilePath(): string {
   return app.isPackaged
     ? path.join(process.resourcesPath, GOOGLE_AUTH_CONFIG.credentialFileName)
@@ -38,8 +38,8 @@ function getCredentialsFilePath(): string {
       );
 }
 
-// Google OAuth の認証情報ファイルを読み込み、client ID と任意の client secret を返す。
-export function getGoogleCredentials(): GoogleCredentials {
+// Google OAuth の認証情報ファイルを読み込み、client ID と任意の client secret を返す
+function getGoogleCredentials(): GoogleCredentials {
   const filePath = getCredentialsFilePath();
 
   if (!existsSync(filePath)) {
@@ -86,7 +86,7 @@ export function getGoogleCredentials(): GoogleCredentials {
   }
 }
 
-// OAuthクライアントを生成する。
+// OAuthクライアントを生成する
 export function createOAuthClient(redirectUri?: string): OAuth2Client {
   const credentials = getGoogleCredentials();
 
@@ -97,7 +97,7 @@ export function createOAuthClient(redirectUri?: string): OAuth2Client {
   });
 }
 
-// Google OAuthの認証情報をアプリ内のトークン形式に変換する。
+// Google OAuthの認証情報をアプリ内のトークン形式に変換する
 function toOAuthToken(credentials: OAuth2Client["credentials"]): OAuthToken {
   if (!credentials.access_token) {
     throw new Error("Google OAuth access_token not found");
@@ -113,7 +113,7 @@ function toOAuthToken(credentials: OAuth2Client["credentials"]): OAuthToken {
   };
 }
 
-// 認可コードをトークンに交換する。
+// 認可コードをトークンに交換する
 export async function exchangeAuthorizationCode(
   client: OAuth2Client,
   code: string,
@@ -127,7 +127,7 @@ export async function exchangeAuthorizationCode(
   return toOAuthToken(tokens);
 }
 
-// リフレッシュトークンからアクセストークンを更新する。
+// リフレッシュトークンからアクセストークンを更新する
 export async function refreshAccessToken(
   refreshToken: string,
 ): Promise<OAuthToken> {
@@ -139,7 +139,7 @@ export async function refreshAccessToken(
   return toOAuthToken(client.credentials);
 }
 
-// OAuthエラーがinvalid_grantか判定する。
+// OAuthエラーがinvalid_grantか判定する
 export function isInvalidGrantError(error: unknown): boolean {
   if (typeof error !== "object" || error === null) {
     return false;
@@ -158,7 +158,7 @@ export function isInvalidGrantError(error: unknown): boolean {
   return response?.data?.error === "invalid_grant";
 }
 
-// Google UserInfo APIからプロフィールを取得する。
+// Google UserInfo APIからプロフィールを取得する
 export async function fetchGoogleUserInfo(
   accessToken: string,
 ): Promise<GoogleUserProfile> {

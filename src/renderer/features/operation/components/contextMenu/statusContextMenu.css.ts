@@ -8,14 +8,23 @@ export const content = style({
   minWidth: "160px",
   padding: tokens.space.xs,
   borderRadius: tokens.radius.lg,
-  backgroundColor: tokens.glass.surface,
-  backdropFilter: "blur(12px) saturate(180%)",
-  WebkitBackdropFilter: "blur(12px) saturate(180%)",
-  border: `2px solid ${tokens.color.border.subtle}`,
-  boxShadow: tokens.shadow.raised.high,
+
+  // 🎯 すりガラス感を残す濃色アルファ
+  backgroundColor: "rgba(18, 20, 24, 0.1)",
+
+  // 🎯 背後をしっかりぼかすフロスト効果
+  backdropFilter: "blur(20px) saturate(180%)",
+  WebkitBackdropFilter: "blur(20px) saturate(180%)",
+
+  // 🎯 外線を黒い縁（ダークボーダー）にする
+  border: "1px solid #000000",
+
+  // 🎯 黒い縁取りをより引き締め、立体感を出すドロップシャドウ
+  boxShadow:
+    "0 0 0 1px rgba(0, 0, 0, 0.8), 0 12px 36px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.5)",
   zIndex: tokens.zIndex.contextMenu,
 
-  // 描画隔離（コンテキストメニュー開閉時の背景テーブル領域への不要なRepaint遮断）
+  // 描画隔離
   position: "relative",
   isolation: "isolate",
   transform: "translateZ(0)",
@@ -88,4 +97,3 @@ export const itemVariants = styleVariants({
     color: tokens.color.status.error,
   },
 });
-

@@ -306,7 +306,7 @@ async function executeJob(
   logger: JobLogger,
   context: JobContext,
 ): Promise<JobResult> {
-  logger.log(`監視フォルダ: ${context.targetDir}`);
+  logger.log(`対象フォルダ: ${context.targetDir}`);
 
   if (!(await fs.pathExists(context.targetDir))) {
     return createNeedsActionResult(

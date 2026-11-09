@@ -22,20 +22,6 @@ export const GlobalModalManager = () => {
 
   const footerContent = state.footerContent ?? (
     <div className={styles.footerContainer}>
-      <div className={styles.footerLeft}>
-        {state.leftActions.map((action) => (
-          <ActionButton
-            key={action.id}
-            className={styles.footerLeftButton}
-            variant={action.variant ?? "default"}
-            onClick={() => void action.onClick()}
-            disabled={action.disabled || state.isProcessing}
-          >
-            {action.label}
-          </ActionButton>
-        ))}
-      </div>
-
       <div className={styles.footerRight}>
         {state.rightActions.map((action) => (
           <ActionButton

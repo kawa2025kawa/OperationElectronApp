@@ -9,22 +9,20 @@ import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/job
 import { createZipArchive } from "@electron/features/operation/jobs/scripts/helpers/zipHelper";
 import { formatDateTime } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
-export const TARGET_FILES_E8 = [
+const TARGET_FILES_E8 = [
   "JCATANAWARI.TXT",
   "JCAPRIPC2.TXT",
   "SHELF_ERR_DATA.TXT",
 ] as const;
 
-export type JobE8TargetFileName = (typeof TARGET_FILES_E8)[number];
-
-export interface FileStatusE8 {
+interface FileStatusE8 {
   fileName: string;
   filePath: string;
   mtime: Date;
   isToday: boolean;
 }
 
-export interface JobE8ResultData {
+interface JobE8ResultData {
   matchedFiles: FileStatusE8[];
   missingFiles: string[];
   dateIssueFiles: FileStatusE8[];

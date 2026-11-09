@@ -1,10 +1,6 @@
-// src/renderer/features/other/types/gmailDraftTypes.ts
+// src/renderer/features/other/types/gmailDraftUiTypes.ts
 
-import type {
-  EmailTemplateKey,
-  GmailDraftFormValues,
-  EmailTemplateOption,
-} from "@shared/types/gmail/gmailDraftTypes";
+import type { EmailTemplateOption } from "@shared/types/gmail/gmailDraftTypes";
 
 export type { EmailTemplateKey } from "@shared/types/gmail/gmailDraftTypes";
 export type { GmailDraftFormValues } from "@shared/types/gmail/gmailDraftTypes";
@@ -15,9 +11,3 @@ export const EMAIL_TEMPLATE_OPTIONS = [
   { key: "E10", label: "TV売上集計&メール" },
   { key: "E88", label: "新店シェルフラベル発注" },
 ] as const satisfies readonly EmailTemplateOption[];
-
-export interface GmailDraftState {
-  templateKey: EmailTemplateKey | null;
-  formValues: GmailDraftFormValues;
-  isProcessing: boolean;
-}

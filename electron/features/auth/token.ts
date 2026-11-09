@@ -5,7 +5,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { AuthSession, OAuthToken } from "@shared/types/auth";
 
-export const TOKEN_STORAGE_CONFIG = {
+const TOKEN_STORAGE_CONFIG = {
   fileName: "google-oauth-session.dat",
 } as const;
 

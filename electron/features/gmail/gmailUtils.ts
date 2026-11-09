@@ -2,19 +2,6 @@
 
 import type { BuildRawMessageParams } from "./gmailTypes";
 
-export function getNextTuesdayString(now: Date = new Date()): string {
-  const dayOfWeek = now.getDay();
-  const offset = (2 - dayOfWeek + 7) % 7 || 7;
-
-  const target = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() + offset,
-  );
-
-  return `${target.getMonth() + 1}月${target.getDate()}日`;
-}
-
 export function getPreviousYearMonth(): string {
   const date = new Date();
   date.setDate(1);
@@ -50,14 +37,6 @@ export function formatEmailAddresses(input: string): string {
     .map((address) => address.trim())
     .filter(Boolean)
     .join(", ");
-}
-
-export function formatLinks(links?: Record<string, string> | null): string {
-  if (!links) return "";
-
-  return Object.entries(links)
-    .map(([key, value]) => `${key}: ${value}`)
-    .join("\n");
 }
 
 function encodeMimeHeader(value: string): string {

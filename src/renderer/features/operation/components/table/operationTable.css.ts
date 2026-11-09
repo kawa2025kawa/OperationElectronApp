@@ -1,4 +1,4 @@
-// src/renderer/features/operation/components/table/operationTable.css.ts
+﻿// src/renderer/features/operation/components/table/operationTable.css.ts
 
 import { createVar, style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -36,7 +36,7 @@ const defaultRowVars = {
 // Layout
 // ============================================================
 
-export const tableContainer = style({
+export const container = style({
   display: "flex",
   flexDirection: "column",
   width: "100%",
@@ -44,8 +44,6 @@ export const tableContainer = style({
   overflow: "hidden",
   outline: "none",
 });
-
-export const container = tableContainer;
 
 export const headerWrapper = style({
   position: "relative",
@@ -219,9 +217,6 @@ export const alignVariants = styleVariants({
   center: { textAlign: "center" },
   right: { textAlign: "right" },
 });
-
-export const thAlignVariants = alignVariants;
-export const tdAlignVariants = alignVariants;
 
 // ============================================================
 // Cell Text

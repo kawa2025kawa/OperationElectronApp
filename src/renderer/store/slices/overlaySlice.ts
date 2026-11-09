@@ -3,7 +3,7 @@
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
 
-export interface GlobalProcessingState {
+interface GlobalProcessingState {
   message: string;
   target?: string;
 }

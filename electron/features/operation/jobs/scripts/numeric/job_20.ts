@@ -43,7 +43,7 @@ type Job20CheckResult = {
  * - ファイルサイズの差分が許容閾値を超えている
  *
  * システムエラー:
- * - 対象ディレクトリへのアクセス失敗
+ * - 対象フォルダへのアクセス失敗
  * - ファイル情報の取得失敗
  */
 export async function runJob20(): Promise<string> {

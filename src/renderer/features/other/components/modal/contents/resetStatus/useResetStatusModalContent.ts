@@ -1,6 +1,7 @@
 ﻿// src/renderer/features/other/components/modal/contents/resetStatus/useResetStatusModalContent.ts
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import type { ModalAction } from "@shared/types/ui/modal";
 import { useAppStore } from "@renderer/store";
 
 export function useResetStatusModalContent() {
@@ -27,24 +28,29 @@ export function useResetStatusModalContent() {
     }
   }, [resetAllOperationStatuses, closeGlobalModal, updateModalConfig]);
 
+  const rightActions = useMemo<ModalAction[]>(
+    () => [
+      {
+        id: "cancel",
+        label: "キャンセル",
+        onClick: closeGlobalModal,
+      },
+      {
+        id: "execute",
+        label: "リセット実行",
+        onClick: handleReset,
+        variant: "default",
+      },
+    ],
+    [closeGlobalModal, handleReset],
+  );
+
   useEffect(() => {
     updateModalConfig({
       message: undefined,
-      rightActions: [
-        {
-          id: "cancel",
-          label: "キャンセル",
-          onClick: closeGlobalModal,
-        },
-        {
-          id: "execute",
-          label: "リセット実行",
-          onClick: handleReset,
-          variant: "default",
-        },
-      ],
+      rightActions,
     });
-  }, [closeGlobalModal, handleReset, updateModalConfig]);
+  }, [rightActions, updateModalConfig]);
 
   return {};
 }

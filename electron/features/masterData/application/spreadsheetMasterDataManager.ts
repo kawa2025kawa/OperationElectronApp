@@ -14,7 +14,7 @@ import { loadSpreadsheetMasterData } from "../infrastructure/spreadsheetMasterLo
 import { buildTodayIrregulars } from "./todayIrregularFilter";
 import { createMasterDataCacheService } from "./masterDataCacheService";
 
-export const SPREADSHEET_MASTER_CACHE_CONFIG = {
+const SPREADSHEET_MASTER_CACHE_CONFIG = {
   fileName: "spreadsheet-master-data.json",
   version: 2,
   logPrefix: "[SpreadsheetMasterDataManager]",

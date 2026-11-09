@@ -3,7 +3,6 @@
 import { addDays, format, getDay } from "date-fns";
 import { ja } from "date-fns/locale/ja";
 import {
-  SHOP_COLUMNS,
   getKokyuhyoColumns,
   getJugyoinColumns,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
@@ -28,7 +27,7 @@ export function formatDateWithDay(date: Date) {
   };
 }
 
-export function getSpreadSheetDateLabels() {
+function getSpreadSheetDateLabels() {
   const now = new Date();
 
   return {
@@ -37,8 +36,7 @@ export function getSpreadSheetDateLabels() {
   } as const;
 }
 
-export const DATE_LABELS = getSpreadSheetDateLabels();
+const DATE_LABELS = getSpreadSheetDateLabels();
 
-export { SHOP_COLUMNS };
 export const KOKYUHYO_COLUMNS = getKokyuhyoColumns(DATE_LABELS);
 export const JUGYOIN_COLUMNS = getJugyoinColumns(DATE_LABELS);

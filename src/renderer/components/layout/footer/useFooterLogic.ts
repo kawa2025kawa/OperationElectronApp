@@ -1,6 +1,13 @@
 // src/renderer/components/layout/footer/useFooterLogic.ts
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import type { ChangeEvent } from "react";
 import { useShallow } from "zustand/shallow";
 
@@ -76,15 +83,26 @@ export const useFooterLogic = () => {
     [searchTerm, setSearchTerm],
   );
 
-  const handleToggleCenter = (id: CenterId) => toggleCenter(id);
+  const handleToggleCenter = useCallback(
+    (id: CenterId) => {
+      toggleCenter(id);
+    },
+    [toggleCenter],
+  );
+
   const currentViewDef = getAppViewConfig(currentView);
 
-  return {
-    centers: {
+  const centers = useMemo<Record<string, boolean>>(
+    () => ({
       "1C": is1CActive,
       "2C": is2CActive,
       "3C": is3CActive,
-    },
+    }),
+    [is1CActive, is2CActive, is3CActive],
+  );
+
+  return {
+    centers,
     isOperationView: currentView === APP_VIEW_IDS.OPERATION,
     searchTerm: searchInput.value,
     searchPlaceholder: currentViewDef?.search?.placeholder ?? null,

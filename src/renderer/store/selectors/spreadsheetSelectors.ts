@@ -2,7 +2,7 @@
 
 import type { AppState } from "@renderer/store";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
-import type { Tantou } from "@shared/types/spreadsheet/tantou";
+import type { Tantou } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { getValueByPath } from "@shared/utils/getValueByPath";
 
 const EMPTY_MASTERS = Object.freeze([]) as readonly never[];
@@ -71,4 +71,3 @@ export const selectFilteredSheetRows =
       matchesSearchTerm(row as Record<string, unknown>, term, searchKeys),
     );
   };
-

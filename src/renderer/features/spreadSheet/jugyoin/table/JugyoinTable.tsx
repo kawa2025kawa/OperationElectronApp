@@ -1,31 +1,36 @@
-// src/renderer/features/spreadSheet/jugyoin/table/JugyoinTable.tsx
+﻿// src/renderer/features/spreadSheet/jugyoin/table/JugyoinTable.tsx
 
 import { memo } from "react";
-import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
+import type { Jugyoin } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { SpreadSheetBaseTable } from "../../components/table/SpreadSheetBaseTable";
 import { JUGYOIN_COLUMNS } from "../../utils/spreadsheetDateUtils";
 import * as styles from "@renderer/features/spreadSheet/components/table/spreadsheetTable.css";
 
 export interface JugyoinTableProps {
-  rows: readonly Jugyoin[];
-  selectedId?: string;
-  onRowClick?: (item: Jugyoin) => void;
+  readonly rows: readonly Jugyoin[];
+  readonly selectedId?: string;
+  readonly onRowClick?: (item: Jugyoin) => void;
 }
 
-export const JugyoinTable = memo(
-  ({ rows, selectedId, onRowClick }: JugyoinTableProps) => (
+const getJugyoinRowId = (row: Jugyoin, index: number): string =>
+  row.name ? String(row.name).trim() : String(index);
+
+export const JugyoinTable = memo(function JugyoinTable({
+  rows,
+  selectedId,
+  onRowClick,
+}: JugyoinTableProps) {
+  return (
     <SpreadSheetBaseTable
       rows={rows}
       columns={JUGYOIN_COLUMNS}
       selectedId={selectedId}
-      getRowId={(row, index) =>
-        row.name ? String(row.name).trim() : String(index)
-      }
+      getRowId={getJugyoinRowId}
       onRowClick={onRowClick}
       headerType="group"
       styles={styles}
     />
-  ),
-);
+  );
+});
 
 JugyoinTable.displayName = "JugyoinTable";

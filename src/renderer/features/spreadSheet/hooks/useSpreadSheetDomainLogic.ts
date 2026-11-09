@@ -1,5 +1,6 @@
 // src/renderer/features/spreadSheet/hooks/useSpreadSheetDomainLogic.ts
 
+import { useMemo } from "react";
 import { useShallow } from "zustand/shallow";
 import { useAppStore, type AppState } from "@renderer/store";
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";
@@ -15,17 +16,22 @@ export function useSpreadSheetDomainLogic<T>(sheetId: SheetId) {
   );
 
   // APP_REGISTRY 内から該当する sheetId を持つ設定を特定
-  const viewConfig = Object.values(APP_REGISTRY).find(
-    (config) => config.sheetId === sheetId,
+  const viewConfig = useMemo(
+    () =>
+      Object.values(APP_REGISTRY).find((config) => config.sheetId === sheetId),
+    [sheetId],
   );
+
   const searchKeys = viewConfig?.search?.searchKeys;
   const skipFilter = viewConfig?.search?.skipFilter;
 
-  const data = useAppStore(
-    useShallow((state: AppState) =>
-      selectFilteredSheetRows<T>(sheetId, searchKeys, skipFilter)(state),
-    ),
+  // セレクターファクトリを useMemo で安定化
+  const rowSelector = useMemo(
+    () => selectFilteredSheetRows<T>(sheetId, searchKeys, skipFilter),
+    [sheetId, searchKeys, skipFilter],
   );
+
+  const data = useAppStore(useShallow(rowSelector));
 
   return {
     isAuthenticated,

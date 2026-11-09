@@ -107,7 +107,6 @@ export function useGlobalModalManager() {
       message: config?.message ?? null,
       modalRoot,
       dimensions: { width, height },
-      leftActions: config?.leftActions ?? [],
       rightActions: computedRightActions,
       footerContent: config?.footerContent,
       hideFooter: config?.hideFooter ?? false,

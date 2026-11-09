@@ -13,7 +13,7 @@ export interface TempomaticTargetFile {
   name?: string;
 }
 
-export const TEMPOMATIC_DEFAULT_CATEGORIES = [
+const TEMPOMATIC_DEFAULT_CATEGORIES = [
   "990",
   "1059",
   "1189",
@@ -39,14 +39,11 @@ export const TEMPOMATIC_DEFAULT_CATEGORIES = [
   "998",
 ] as const;
 
-export type TempomaticCategoryId =
-  (typeof TEMPOMATIC_DEFAULT_CATEGORIES)[number];
-
 // ============================================================
 // Constants
 // ============================================================
 
-export const TEMPOMATIC_CONFIG = {
+const TEMPOMATIC_CONFIG = {
   baseUrl: "https://belc.tempomatic.jp/h2",
   uploadIntervalMs: 1000,
   defaultPubGroupId: "a4c0532b-6dc0-446d-bd3f-bb6cbb60aab9",

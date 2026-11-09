@@ -1,5 +1,3 @@
-// src/renderer/styles/tokens/theme.css.ts
-
 import { createTheme, style } from "@vanilla-extract/css";
 import { tokens } from "./semantic.contract.js";
 
@@ -49,8 +47,8 @@ const commonValues = {
   },
 
   transition: {
-    fast: "0.18s cubic-bezier(0.4, 0, 0.2, 1)", // 🎯 クリックや即時反応用（個別指定用）
-    normal: "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)", // 🎯 全体の基底：0.8s 統一フェード
+    fast: "0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+    normal: "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)",
     ease: "0.3s ease-out",
   },
 
@@ -185,6 +183,13 @@ export const darkThemeClass = createTheme(
       blur: "18px",
       blurStrong: "28px",
       saturation: "140%",
+
+      contextMenu: {
+        surface: "rgba(18, 20, 24, 0.1)",
+        border: "#000000",
+        blur: "20px",
+        saturation: "180%",
+      },
     },
 
     gradient: {
@@ -197,6 +202,9 @@ export const darkThemeClass = createTheme(
         "inset 0 0 0 1px rgba(255, 255, 255, 0.08)",
         "0 2px 8px rgba(0, 0, 0, 0.12)",
       ].join(", "),
+
+      contextMenu:
+        "0 0 0 1px rgba(0, 0, 0, 0.8), 0 12px 36px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.5)",
 
       raised: {
         low: [
@@ -291,6 +299,13 @@ export const lightThemeClass = createTheme(
       blur: "18px",
       blurStrong: "28px",
       saturation: "140%",
+
+      contextMenu: {
+        surface: "rgba(18, 20, 24, 0.1)",
+        border: "#000000",
+        blur: "20px",
+        saturation: "180%",
+      },
     },
 
     gradient: {
@@ -303,6 +318,9 @@ export const lightThemeClass = createTheme(
         "inset 0 0 0 1px rgba(0, 0, 0, 0.06)",
         "0 2px 8px rgba(0, 0, 0, 0.08)",
       ].join(", "),
+
+      contextMenu:
+        "0 0 0 1px rgba(0, 0, 0, 0.8), 0 12px 36px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.5)",
 
       raised: {
         low: [

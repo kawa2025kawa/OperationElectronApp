@@ -16,7 +16,6 @@ import {
   type JobResult,
   type JobStatus,
   type ManualScriptExecutionInput,
-  type ScriptExecutionRequirement,
   type ScriptFilePath,
 } from "@shared/types/operation/operationTypes";
 import {
@@ -24,11 +23,7 @@ import {
   formatMissingKanriNos,
 } from "@electron/features/operation/domain/dependencyUtils";
 
-export type {
-  ManualScriptExecutionInput,
-  ScriptExecutionRequirement,
-  ScriptFilePath,
-};
+export type { ManualScriptExecutionInput };
 export { getScriptExecutionRequirement };
 
 function extractZipPath(error: unknown): string | null {
@@ -65,7 +60,7 @@ async function confirmAndRemoveZip(zipPath: string): Promise<boolean> {
   }
 }
 
-export function validateScriptExecutionInput(
+function validateScriptExecutionInput(
   scriptKey: string,
   filePath?: ScriptFilePath,
 ): void {
@@ -107,10 +102,7 @@ function finalizeStatus(
   updateStatus({ kanriNo, status, endTime: new Date().toISOString(), comment });
 }
 
-export function applyScriptExecutionResult(
-  kanriNo: string,
-  result: JobResult,
-): void {
+function applyScriptExecutionResult(kanriNo: string, result: JobResult): void {
   const status =
     result.success === false || result.kind === "error"
       ? JOB_STATUS.ERROR

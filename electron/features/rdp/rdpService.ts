@@ -9,7 +9,7 @@ import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
 
 const execFilePromise = util.promisify(execFile);
 
-export interface LaunchRdpParams {
+interface LaunchRdpParams {
   ipAddress: string;
   userName?: string;
   password?: string;
@@ -31,7 +31,7 @@ export async function getRdpTargets(): Promise<RdpTarget[]> {
 }
 
 /** Main 側で指定名称に一致する RDP 接続情報を取得する。 */
-export async function findRdpTarget(name: string): Promise<RdpMaster> {
+async function findRdpTarget(name: string): Promise<RdpMaster> {
   const cleanName = name.trim().toUpperCase();
 
   if (!cleanName) {
@@ -55,7 +55,7 @@ export async function findRdpTarget(name: string): Promise<RdpMaster> {
 }
 
 /** Windows の mstsc コマンドを起動して対象ホストへの接続を開く。 */
-export async function launchRdp(params: LaunchRdpParams): Promise<void> {
+async function launchRdp(params: LaunchRdpParams): Promise<void> {
   const cleanIp = params.ipAddress.trim();
 
   if (!cleanIp) {

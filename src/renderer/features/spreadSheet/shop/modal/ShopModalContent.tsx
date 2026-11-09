@@ -1,10 +1,10 @@
-// src/renderer/features/spreadSheet/shop/modal/ShopModalContent.tsx
+﻿// src/renderer/features/spreadSheet/shop/modal/ShopModalContent.tsx
 
-import { memo, useEffect, useMemo } from "react";
-import { useAppStore } from "@renderer/store";
+import { memo, useMemo } from "react";
 import { SegmentedControl } from "@renderer/components/ui/toggle/SegmentedControl";
+import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-import type { Shop } from "@shared/types/spreadsheet/shop";
+import type { Shop } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { useShopModalContent } from "./useShopModalContent";
 import {
   TERMINAL_TYPES,
@@ -18,6 +18,55 @@ export interface ShopModalContentProps {
   data: Shop;
 }
 
+interface ShopTerminalRowProps {
+  readonly type: (typeof TERMINAL_TYPES)[number];
+  readonly data: Shop;
+}
+
+const ShopTerminalRow = memo(function ShopTerminalRow({
+  type,
+  data,
+}: ShopTerminalRowProps) {
+  const upperType = type.toUpperCase();
+
+  return (
+    <div className={styles.terminalRow}>
+      <div className={styles.terminalBadge}>{upperType}</div>
+      <div className={styles.terminalGrid}>
+        {TERMINAL_FIELDS.map(({ suffix }) => {
+          const fieldKey = `${type}${suffix}` as keyof Shop;
+          const val = data[fieldKey] || EMPTY_VALUE_FALLBACK;
+
+          return (
+            <div key={suffix} className={styles.cellValue}>
+              {val}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
+
+interface ShopStandardRowProps {
+  readonly label: string;
+  readonly value: string;
+}
+
+const ShopStandardRow = memo(function ShopStandardRow({
+  label,
+  value,
+}: ShopStandardRowProps) {
+  return (
+    <div className={styles.terminalRow}>
+      <div className={styles.nonTrBadge}>{label}</div>
+      <div className={styles.flexCell}>
+        <div className={styles.cellValue}>{value || EMPTY_VALUE_FALLBACK}</div>
+      </div>
+    </div>
+  );
+});
+
 export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
   memo(({ data }) => {
     const {
@@ -26,18 +75,8 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
       groups,
       displayItems,
       isTimeRecorderTab,
-      leftActions,
+      timeRecorderActions,
     } = useShopModalContent({ data });
-
-    const updateModalConfig = useAppStore((s) => s.updateModalConfig);
-
-    useEffect(() => {
-      updateModalConfig({ leftActions });
-
-      return () => {
-        updateModalConfig({ leftActions: [] });
-      };
-    }, [leftActions, updateModalConfig]);
 
     const tabItems = useMemo(
       () =>
@@ -74,42 +113,34 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
                   </div>
                 </div>
 
-                {TERMINAL_TYPES.map((type) => {
-                  const upperType = type.toUpperCase();
-
-                  return (
-                    <div key={type} className={styles.terminalRow}>
-                      <div className={styles.terminalBadge}>{upperType}</div>
-
-                      <div className={styles.terminalGrid}>
-                        {TERMINAL_FIELDS.map(({ suffix }) => {
-                          const fieldKey = `${type}${suffix}` as keyof Shop;
-                          const val = data[fieldKey] || EMPTY_VALUE_FALLBACK;
-
-                          return (
-                            <div key={suffix} className={styles.cellValue}>
-                              {val}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+                {TERMINAL_TYPES.map((type) => (
+                  <ShopTerminalRow key={type} type={type} data={data} />
+                ))}
               </div>
+
+              {timeRecorderActions.length > 0 && (
+                <div className={styles.buttonContainer}>
+                  {timeRecorderActions.map((action) => (
+                    <ActionButton
+                      key={action.id}
+                      variant={action.variant ?? "default"}
+                      onClick={action.onClick}
+                      disabled={action.disabled}
+                    >
+                      {action.label}
+                    </ActionButton>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <div className={styles.terminalSection}>
               {displayItems.map((item) => (
-                <div key={item.label} className={styles.terminalRow}>
-                  <div className={styles.nonTrBadge}>{item.label}</div>
-
-                  <div className={styles.flexCell}>
-                    <div className={styles.cellValue}>
-                      {item.value || EMPTY_VALUE_FALLBACK}
-                    </div>
-                  </div>
-                </div>
+                <ShopStandardRow
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                />
               ))}
             </div>
           )}

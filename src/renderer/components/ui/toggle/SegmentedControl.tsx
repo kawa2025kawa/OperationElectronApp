@@ -4,7 +4,7 @@ import { memo } from "react";
 import { motion } from "motion/react";
 import * as styles from "./segmentedControl.css";
 
-export interface SegmentedControlItem<T extends string | number> {
+interface SegmentedControlItem<T extends string | number> {
   readonly id: T;
   readonly label: string;
 }

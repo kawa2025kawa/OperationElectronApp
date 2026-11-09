@@ -1,7 +1,7 @@
-// src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
+﻿// src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
 
 import { useMemo, useCallback } from "react";
-import type { Shop } from "@shared/types/spreadsheet/shop";
+import type { Shop } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { ModalAction } from "@shared/types/ui/modal";
 import { systemIpcService } from "@renderer/services/systemIpcService";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
@@ -49,7 +49,7 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     }
   }, []);
 
-  const leftActions = useMemo<ModalAction[]>(() => {
+  const timeRecorderActions = useMemo<ModalAction[]>(() => {
     if (!isTimeRecorderTab) return [];
 
     const imageActions: ModalAction[] = TIME_RECORDER_IMAGE_ITEMS.map(
@@ -60,7 +60,9 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
         return {
           id: `image-${key}`,
           label,
-          onClick: () => void handleOpenPath(rawValue),
+          onClick: () => {
+            void handleOpenPath(rawValue);
+          },
           disabled: !hasUrl,
           variant: "default",
         };
@@ -73,7 +75,9 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
       fileActions.push({
         id: "excel",
         label: SHOP_MODAL_CONSTANTS.FILES.EXCEL_LABEL,
-        onClick: () => void handleOpenPath(excelPath),
+        onClick: () => {
+          void handleOpenPath(excelPath);
+        },
         variant: "default",
       });
     }
@@ -82,7 +86,9 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
       fileActions.push({
         id: "pdf",
         label: SHOP_MODAL_CONSTANTS.FILES.PDF_LABEL,
-        onClick: () => void handleOpenPath(pdfPath),
+        onClick: () => {
+          void handleOpenPath(pdfPath);
+        },
         variant: "default",
       });
     }
@@ -96,6 +102,6 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     groups,
     displayItems,
     isTimeRecorderTab,
-    leftActions,
+    timeRecorderActions,
   };
 };

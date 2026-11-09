@@ -1,11 +1,13 @@
-// src/shared/types/registry/viewDefinition.ts
+﻿// src/shared/types/registry/viewDefinition.ts
 
 import type { ComponentType, ReactNode } from "react";
 
 import type { OperationViewItem } from "@shared/types/operation/operationTypes";
-import type { Jugyoin } from "@shared/types/spreadsheet/jugyoin";
-import type { Kokyuhyo } from "@shared/types/spreadsheet/kokyuhyo";
-import type { Shop } from "@shared/types/spreadsheet/shop";
+import type {
+  Jugyoin,
+  Kokyuhyo,
+  Shop,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { Column } from "@shared/types/table/tableType";
 import type { ModalConfig } from "@shared/types/ui/modal";
 
@@ -69,7 +71,7 @@ export const APP_VIEW_METADATA = {
 } as const satisfies Record<AppViewId, AppViewMetadata>;
 
 /**
- * 画面 ID ごとのエンティティ型マッピング（一元管理定義）
+ * 画面 ID ごとのエンティティ型のマッピング（一元管理定義）
  */
 export type ViewEntityMap = {
   [APP_VIEW_IDS.OPERATION]: OperationViewItem;
@@ -89,7 +91,7 @@ export const VIEW_MODES = {
 
 export type ViewMode = (typeof VIEW_MODES)[keyof typeof VIEW_MODES];
 
-export interface ActionStoreContext {
+interface ActionStoreContext {
   openGlobalModal: (content: ReactNode, config?: ModalConfig) => void;
   closeGlobalModal: () => void;
 }
@@ -100,16 +102,9 @@ export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   [VIEW_MODES.TODAY]: "Today",
 } as const;
 
-export const VIEW_ACTION_TYPES = {
-  MODAL: "modal",
-  EXTERNAL: "external",
-  CUSTOM: "custom",
-} as const;
+type ViewActionType = "modal" | "external" | "custom";
 
-export type ViewActionType =
-  (typeof VIEW_ACTION_TYPES)[keyof typeof VIEW_ACTION_TYPES];
-
-export interface ViewActionDefinition<TItem = unknown> {
+interface ViewActionDefinition<TItem = unknown> {
   readonly key: string;
   readonly label: string;
   readonly type: ViewActionType;

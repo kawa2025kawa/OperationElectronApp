@@ -13,7 +13,7 @@ export interface CreateZipOptions {
   /** 圧縮対象のファイルパス一覧 */
   filePaths: string[];
 
-  /** ZIPを出力するディレクトリパス */
+  /** ZIPを出力するフォルダパス */
   outputDir: string;
 
   /** ZIPファイル名の接頭辞 (例: "ORDER_DATA") */

@@ -26,13 +26,13 @@ type JobResultData = {
 };
 
 /**
- * 指定ディレクトリ内のキーワード別ファイル件数が想定通りであるかを確認する。
+ * 指定フォルダ内のキーワード別ファイル件数が想定通りであるかを確認する。
  *
  * 業務上の要対応:
  * - 各キーワードのファイル件数が一致しない場合
  *
  * システムエラー:
- * - 対象ディレクトリへのアクセス失敗
+ * - 対象フォルダへのアクセス失敗
  */
 export async function runJob62(): Promise<string> {
   const logger = new JobLogger();
@@ -52,7 +52,7 @@ export async function runJob62(): Promise<string> {
 }
 
 /**
- * ディレクトリを走査し、期待されるファイル件数との突合を行う。
+ * フォルダを走査し、期待されるファイル件数との突合を行う。
  */
 async function checkExpectedFiles(): Promise<JobResultData> {
   const entries = await fs.readdir(CONFIG.targetDir, {
@@ -94,7 +94,7 @@ async function checkExpectedFiles(): Promise<JobResultData> {
  * 突合結果をログに出力し、ステータスを判定する。
  */
 function writeResultLog(logger: JobLogger, result: JobResultData): string {
-  logger.log(`監視ディレクトリ : ${result.targetDir}`);
+  logger.log(`対象フォルダ : ${result.targetDir}`);
 
   logger.section("検出ファイル");
   for (const item of result.results) {

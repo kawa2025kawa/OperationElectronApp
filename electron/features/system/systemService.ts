@@ -10,13 +10,13 @@ import type { UpdateInfo } from "@shared/types/system";
 // System Configuration & Types
 // ============================================================
 
-export interface SystemServiceConfig {
+interface SystemServiceConfig {
   readonly updateDirectory: string;
   readonly updateInfoFileName: string;
   readonly manualBaseUrl: string;
 }
 
-export const SYSTEM_CONFIG: SystemServiceConfig = {
+const SYSTEM_CONFIG: SystemServiceConfig = {
   updateDirectory:
     "\\\\192.88.1.210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp",
   updateInfoFileName: "OperationElectronApp_update.json",
@@ -74,7 +74,7 @@ export async function openExternalOrPath(target: string): Promise<void> {
   }
 }
 
-// 共有ディレクトリからアプリの最新アップデート情報を読み込んで返す。
+// 共有フォルダからアプリの最新アップデート情報を読み込んで返す。
 export async function readUpdateInfo(): Promise<UpdateInfo | null> {
   try {
     const content = await fs.readFile(UPDATE_INFO_PATH, "utf-8");

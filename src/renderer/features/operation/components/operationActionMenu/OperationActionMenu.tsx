@@ -1,6 +1,4 @@
-﻿// src/renderer/features/operation/components/OperationActionMenu.tsx
-
-import { memo } from "react";
+﻿import { memo } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
 import * as styles from "./operationActionMenu.css";
@@ -13,7 +11,7 @@ interface OperationActionMenuItem {
 interface OperationActionMenuProps {
   readonly actions: readonly OperationActionMenuItem[];
   readonly onActionSelect: (key: string) => void;
-  readonly disabled?: boolean; // 🎯 未選択時の無効化フラグを追加
+  readonly disabled?: boolean;
 }
 
 export const OperationActionMenu = memo(function OperationActionMenu({

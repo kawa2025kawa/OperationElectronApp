@@ -1,12 +1,6 @@
 // electron/features/operation/application/statusManager.ts
 
-export type {
-  ApplyStatusOptions,
-  ReadyStatusListener,
-  StatusTarget,
-} from "./statusTypes";
-
-export { statusState } from "./statusState";
+export type { StatusTarget } from "./statusTypes";
 
 export {
   getDependencyMasters,
@@ -18,12 +12,7 @@ export {
   getRegisteredTargets,
 } from "./statusState";
 
-export {
-  notifyStatusUpdated,
-  notifyStatusCleared,
-  notifyReady,
-  onReadyStatus,
-} from "./statusNotifier";
+export { onReadyStatus } from "./statusNotifier";
 
 export {
   recalculateTargetStatus,
@@ -39,11 +28,8 @@ export {
 } from "./statusFlagService";
 
 export {
-  resetAllStatusesAndTargets,
-  registerTargets,
   initializeStatuses,
   deleteAllStatuses,
-  saveStatusesImmediately,
   registerOperationTargets,
   resetOperationStatuses,
 } from "./statusLifecycleService";

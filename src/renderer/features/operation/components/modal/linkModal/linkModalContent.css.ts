@@ -79,7 +79,7 @@ export const terminalRow = style([
   },
 ]);
 
-export const terminalBadge = style({
+const terminalBadge = style({
   position: "relative",
   zIndex: 1,
   display: "flex",

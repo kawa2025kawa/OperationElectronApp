@@ -81,13 +81,13 @@ export async function runJob56(): Promise<string> {
   const today = format(new Date(), "yyyyMMdd");
   const filePrefix = `SEIKYUDT_${today}`;
 
-  logger.log(`監視ディレクトリ : ${CONFIG.targetDir}`);
+  logger.log(`対象フォルダ : ${CONFIG.targetDir}`);
 
   try {
     const dirStats = await fs.stat(CONFIG.targetDir);
 
     if (!dirStats.isDirectory()) {
-      throw new Error(`ディレクトリではありません: ${CONFIG.targetDir}`);
+      throw new Error(`フォルダではありません: ${CONFIG.targetDir}`);
     }
 
     const targetFiles = (

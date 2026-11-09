@@ -35,14 +35,14 @@ export interface AuthProfile {
 
 export type AuthState = "loading" | "loggedIn" | "loggedOut";
 
-export interface AuthSliceState {
+interface AuthSliceState {
   isAuthenticated: boolean;
   isChecking: boolean;
   userEmail: string | null;
   familyName: string | null;
 }
 
-export interface AuthSliceActions {
+interface AuthSliceActions {
   login: () => Promise<boolean>;
   checkAuthStatus: (forceRefresh?: boolean) => Promise<boolean>;
   logout: () => Promise<void>;

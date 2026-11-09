@@ -1,4 +1,4 @@
-// src/renderer/features/spreadSheet/styles/spreadsheetTable.css.ts
+// src/renderer/features/spreadSheet/components/table/spreadsheetTable.css.ts
 
 import { createVar, style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -7,7 +7,6 @@ import { themeTransition } from "@renderer/styles/tokens/theme.css";
 const t = tokens.transition.normal;
 
 const rowTextColor = createVar();
-const rowShadow = createVar();
 const rowBgColor = createVar();
 
 const commonTable = {
@@ -27,23 +26,21 @@ const rowEdgeRadius = {
 const defaultRowVars = {
   [rowBgColor]: tokens.color.bg.base,
   [rowTextColor]: tokens.color.text.base,
-  [rowShadow]: tokens.shadow.raised.low,
 };
 
 // ============================================================
 // Layout
 // ============================================================
 
-export const tableContainer = style({
+export const container = style({
   display: "flex",
   flexDirection: "column",
   width: "100%",
   height: "100%",
   overflow: "hidden",
   outline: "none",
+  isolation: "isolate",
 });
-
-export const container = tableContainer;
 
 export const headerWrapper = style({
   position: "relative",
@@ -52,6 +49,7 @@ export const headerWrapper = style({
   paddingInline: tokens.space.md,
   borderRadius: tokens.radius.md,
   boxShadow: tokens.shadow.raised.high,
+  isolation: "isolate",
 });
 
 export const bodyWrapper = style({
@@ -66,6 +64,7 @@ export const bodyWrapper = style({
   scrollbarGutter: "stable",
   scrollbarWidth: "thin",
   scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
+  isolation: "isolate",
 
   selectors: {
     "&::-webkit-scrollbar": {
@@ -114,15 +113,28 @@ export const tableRowBase = style([
     height: "56px",
     backgroundColor: rowBgColor,
     color: rowTextColor,
-    boxShadow: rowShadow,
+    boxShadow: tokens.shadow.raised.low,
     isolation: "isolate",
     transform: "translateZ(0)",
-    willChange: "box-shadow",
     backfaceVisibility: "hidden",
     WebkitBackfaceVisibility: "hidden",
     zIndex: 0,
     outline: "none",
-    transition: `box-shadow ${t}, background-color ${t}, color ${t}`,
+    transition: `background-color ${t}, color ${t}`,
+
+    // ホバー時の発光をリペイントなしの GPU 合成（opacity 遷移）で処理する擬似要素
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      borderRadius: tokens.radius.md,
+      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
+      opacity: 0,
+      transition: `opacity ${t}`,
+      pointerEvents: "none",
+      willChange: "opacity",
+    },
+
     selectors: {
       "&:focus": {
         outline: "none",
@@ -146,15 +158,17 @@ export const tableRowStates = styleVariants({
       "&:hover": {
         vars: {
           [rowTextColor]: tokens.color.text.hover,
-          [rowShadow]: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
         },
         zIndex: 1,
+      },
+      "&:hover::before": {
+        opacity: 1,
       },
       "&:active": {
         vars: {
           [rowTextColor]: tokens.color.text.hover,
-          [rowShadow]: tokens.shadow.pressed.low,
         },
+        boxShadow: tokens.shadow.pressed.low,
       },
     },
   },
@@ -163,8 +177,8 @@ export const tableRowStates = styleVariants({
     vars: {
       ...defaultRowVars,
       [rowTextColor]: tokens.color.text.base,
-      [rowShadow]: tokens.shadow.pressed.low,
     },
+    boxShadow: tokens.shadow.pressed.low,
     zIndex: 1,
   },
 
@@ -303,9 +317,6 @@ export const alignVariants = styleVariants({
   center: { textAlign: "center", justifyContent: "center" },
   right: { textAlign: "right", justifyContent: "flex-end" },
 });
-
-export const thAlignVariants = alignVariants;
-export const tdAlignVariants = alignVariants;
 
 // ============================================================
 // Cell Text & Special Styling

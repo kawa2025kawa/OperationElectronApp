@@ -102,8 +102,6 @@ export const tokens = createGlobalThemeContract(
     glass: {
       /**
        * 標準 Glass surface
-       *
-       * background-color に使用する。
        */
       surface: null,
 
@@ -136,6 +134,16 @@ export const tokens = createGlobalThemeContract(
        * 色の彩度
        */
       saturation: null,
+
+      /**
+       * Context Menu 専用 Glass
+       */
+      contextMenu: {
+        surface: null,
+        border: null,
+        blur: null,
+        saturation: null,
+      },
     },
 
     /* ==========================================================
@@ -155,6 +163,11 @@ export const tokens = createGlobalThemeContract(
        * ハイライト・選択状態用のドロップシャドウ
        */
       highlight: null,
+
+      /**
+       * Context Menu 専用シャドウ
+       */
+      contextMenu: null,
 
       /**
        * Neumorphism:
@@ -211,10 +224,9 @@ export const tokens = createGlobalThemeContract(
         xl: null,
       },
 
-      // ★ 可変レスポンシブテキスト用のトークン階層を追加
       fluid: {
         sm: null,
-        md: null, // ★ "clamp(16px, 2.2vmin, 20px)" 用
+        md: null,
         lg: null,
       },
 

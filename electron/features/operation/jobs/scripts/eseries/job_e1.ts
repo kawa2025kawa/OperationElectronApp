@@ -5,15 +5,14 @@ import fs from "fs-extra";
 import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
-export const TARGET_KEYWORDS_E1 = ["EOB_DSP_001"] as const;
-export type JobE1Keyword = (typeof TARGET_KEYWORDS_E1)[number];
+const TARGET_KEYWORDS_E1 = ["EOB_DSP_001"] as const;
 
-export interface MatchedFileE1 {
+interface MatchedFileE1 {
   keyword: string;
   fileName: string;
 }
 
-export interface JobE1ResultData {
+interface JobE1ResultData {
   matchedFiles: MatchedFileE1[];
   missingKeywords: string[];
 }
@@ -27,13 +26,13 @@ const CONFIG = {
  * 当日分の EOB棚割ファイルを受信しているか確認する。
  *
  * 確認先:
- * - SND ディレクトリ
+ * - SND フォルダ
  *
  * 業務上の要対応:
  * - 本日更新された対象ファイルが存在しない（未受信）場合
  *
  * システムエラー:
- * - ディレクトリへのアクセス失敗
+ * - フォルダへのアクセス失敗
  * - ファイルステータス取得失敗
  */
 export async function runJobE1(): Promise<string> {
@@ -55,7 +54,7 @@ export async function runJobE1(): Promise<string> {
 }
 
 /**
- * 対象ディレクトリからキーワードに一致する本日更新ファイルを検索・確認する。
+ * 対象フォルダからキーワードに一致する本日更新ファイルを検索・確認する。
  */
 async function checkTargetFiles(): Promise<JobE1ResultData> {
   const today = format(new Date(), "yyyy-MM-dd");

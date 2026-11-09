@@ -14,13 +14,13 @@ interface UseFileDropZoneProps {
   onRenameFile?: (filePath: string, newName: string) => void | Promise<void>;
 }
 
-export function getTodayString(): string {
+function getTodayString(): string {
   const now = new Date();
 
   return `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, "0")}月${String(now.getDate()).padStart(2, "0")}日`;
 }
 
-export function generateOrderErrorFileName(timeLabel: string): string {
+function generateOrderErrorFileName(timeLabel: string): string {
   return `${getTodayString()}_${timeLabel}発注_発注エラーリスト.pdf`;
 }
 

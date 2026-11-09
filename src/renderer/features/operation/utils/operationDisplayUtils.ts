@@ -22,7 +22,7 @@ const JAPAN_DATE_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
   hourCycle: "h23",
 });
 
-export type InfoRowField =
+type InfoRowField =
   | "kanriNo"
   | "workName"
   | "scheduleTime"
@@ -32,24 +32,24 @@ export type InfoRowField =
   | "comment"
   | "cycle";
 
-export type InfoRowType = "text" | "status" | "remarks";
+type InfoRowType = "text" | "status" | "remarks";
 
-export interface InfoRowDefinition {
+interface InfoRowDefinition {
   readonly field: InfoRowField;
   readonly label: string;
   readonly type: InfoRowType;
 }
 
 export interface InfoRowData extends InfoRowDefinition {
-  readonly value: string; // string型
+  readonly value: string;
 }
 
-export interface InfoRowValue {
+interface InfoRowValue {
   readonly exists: boolean;
   readonly value: unknown;
 }
 
-export const OPERATION_INFO_ROW_DEFINITIONS = {
+const OPERATION_INFO_ROW_DEFINITIONS = {
   operation: [
     { field: "kanriNo", label: OPERATION_FIELD_LABELS.kanriNo, type: "text" },
     { field: "workName", label: OPERATION_FIELD_LABELS.workName, type: "text" },
@@ -106,7 +106,7 @@ function isValidDate(date: Date): boolean {
   return !Number.isNaN(date.getTime());
 }
 
-// プロパティが存在しない場合の欠損プレースホルダー表示値を返す。
+// プロパティが存在しない場合の欠落プレースホルダー表示値を返す。
 export function toMissingPropertyDisplayValue(): string {
   return EMPTY_VALUE_FALLBACK;
 }

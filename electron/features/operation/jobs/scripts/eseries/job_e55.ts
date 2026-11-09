@@ -6,13 +6,13 @@ import { isSameDay } from "date-fns";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
-export type JobE55CheckStatus =
+type JobE55CheckStatus =
   | "SUCCESS"
   | "NOT_UPDATED_TODAY"
   | "LINE_NOT_FOUND"
   | "LINE_MISMATCH";
 
-export interface TargetLineDetailE55 {
+interface TargetLineDetailE55 {
   dept: string;
   store: string;
   purchase: string;
@@ -22,7 +22,7 @@ export interface TargetLineDetailE55 {
   endDate: string;
 }
 
-export interface JobE55ResultData {
+interface JobE55ResultData {
   status: JobE55CheckStatus;
   invalidFilePath?: string;
   detail?: TargetLineDetailE55;
@@ -33,12 +33,12 @@ const CONFIG = {
   targetPath: "\\\\C0088150\\nec\\ftp\\TENF0140.dat",
   encoding: "Windows-31J",
   targetLinePrefix: "01,012,",
-  targetStoreName: "宮地店 (012)",
+  targetStoreName: "12.すねおり店",
   targetDeptName: "01",
 } as const;
 
 /**
- * e5 仕入原価リストデータ作成完了後の整合性チェックを行う（対象: 3.宮地店）。
+ * e5 仕入原価リストデータ作成完了後の整合性チェックを行う（対象: 12.すねおり店
  *
  * 確認先:
  * - PC0140.dat: \\192.12.2.1\d$\BELC\ftp\PC0140.dat

@@ -2,19 +2,19 @@
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 
-export interface HaitaRecord {
+interface HaitaRecord {
   SYOHINCD?: string;
   MTN_USERNAME?: string;
   MTN_DATE?: string;
   MTN_TIME?: string;
 }
 
-export interface HaitaApiResponse {
+interface HaitaApiResponse {
   status?: string;
   datas?: HaitaRecord[];
 }
 
-export type ValidHaitaRecord = HaitaRecord & {
+type ValidHaitaRecord = HaitaRecord & {
   SYOHINCD: string;
   MTN_USERNAME: string;
   MTN_DATE: string;
@@ -93,9 +93,9 @@ export async function runJob6066(): Promise<string> {
 
   const updatedAt = `${formatDate(record.MTN_DATE)} ${formatTime(record.MTN_TIME)}`;
 
-  logger.log(`  状態             : ${record.SYOHINCD}`);
-  logger.log(`  更新者           : ${record.MTN_USERNAME}`);
-  logger.log(`  更新日時         : ${updatedAt}`);
+  logger.log(`  状態              : ${record.SYOHINCD}`);
+  logger.log(`  更新者            : ${record.MTN_USERNAME}`);
+  logger.log(`  更新日時          : ${updatedAt}`);
 
   return logger.complete();
 }
