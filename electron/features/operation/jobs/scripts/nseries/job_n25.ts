@@ -40,6 +40,8 @@ const CONFIG = {
  * - ネットワーク不通、ログイン画面アクセス失敗、DOM要素取得失敗
  */
 export async function runJobN25(): Promise<JobResult> {
+  console.info(`[N25][Runner] runJobN25開始: ${new Date().toISOString()}`);
+
   const logger = new JobLogger();
 
   if (!CONFIG.userId || !CONFIG.password) {
@@ -51,6 +53,13 @@ export async function runJobN25(): Promise<JobResult> {
   try {
     const expectedDate = format(addDays(new Date(), 1), "yyyy/MM/dd");
     const result = await fetchAndValidateBusinessDate(expectedDate);
+
+    console.info("[N25][Runner] 業務日付取得結果:", {
+      取得日時: new Date().toISOString(),
+      期待する翌日: result.expectedDate,
+      BELCTA取得日付: result.actualDate,
+      一致判定: result.isMatched,
+    });
 
     return writeResultLog(logger, result);
   } catch (error: unknown) {

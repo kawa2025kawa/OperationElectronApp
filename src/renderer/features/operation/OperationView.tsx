@@ -1,6 +1,6 @@
 // src/renderer/features/operation/OperationView.tsx
 
-import { memo, useMemo, useTransition } from "react";
+import { memo, useCallback, useMemo, useTransition } from "react";
 import { motion } from "motion/react";
 
 import { OperationTable } from "@renderer/features/operation/components/table/OperationTable";
@@ -32,17 +32,23 @@ export const OperationView = memo(function OperationView() {
     [currentMode, selectedItem, status],
   );
 
-  const handleModeChange = (mode: ViewMode): void => {
-    startTransition(() => {
-      setMode(mode);
-    });
-  };
+  const handleModeChange = useCallback(
+    (mode: ViewMode): void => {
+      startTransition(() => {
+        setMode(mode);
+      });
+    },
+    [setMode],
+  );
 
-  const handleActionSelect = (key: string): void => {
-    requestAnimationFrame(() => {
-      void executeAction(key);
-    });
-  };
+  const handleActionSelect = useCallback(
+    (key: string): void => {
+      requestAnimationFrame(() => {
+        void executeAction(key);
+      });
+    },
+    [executeAction],
+  );
 
   return (
     <div className={styles.container}>
@@ -60,7 +66,6 @@ export const OperationView = memo(function OperationView() {
               onModeChange={handleModeChange}
             />
 
-            {/* 🎯 常に表示し、未選択・無効時は disabled を渡す */}
             <OperationActionMenu
               actions={activeActions}
               onActionSelect={handleActionSelect}
@@ -68,7 +73,6 @@ export const OperationView = memo(function OperationView() {
             />
           </div>
 
-          {/* 行の選択IDが変わるたびに opacity 0 → 1 でフワッと表示 */}
           <motion.div
             key={selectedId || "empty"}
             className={styles.infoList}

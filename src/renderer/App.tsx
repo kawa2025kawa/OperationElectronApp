@@ -1,6 +1,6 @@
 // src/renderer/App.tsx
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
@@ -12,18 +12,26 @@ import { PollingToast } from "@renderer/components/ui/toast/PollingToast";
 import { GlobalModalManager } from "@renderer/components/ui/modal/GlobalModalManager";
 import {
   AppStartupLoader,
+  Overlay,
   ProcessingLoader,
 } from "@renderer/components/ui/overlay/Overlay";
 import { MainView } from "@renderer/layout/MainView";
 
 export const App = () => {
-  const { theme, showAppLoader, initializeApp } = useAppStore(
-    useShallow((state) => ({
-      theme: state.theme ?? "dark",
-      showAppLoader: state.showAppLoader ?? true,
-      initializeApp: state.initializeApp,
-    })),
-  );
+  const { theme, showAppLoader, isSidebarOpen, initializeApp, setSidebarOpen } =
+    useAppStore(
+      useShallow((state) => ({
+        theme: state.theme ?? "dark",
+        showAppLoader: state.showAppLoader ?? true,
+        isSidebarOpen: state.isSidebarOpen ?? false,
+        initializeApp: state.initializeApp,
+        setSidebarOpen: state.setSidebarOpen,
+      })),
+    );
+
+  const handleOverlayClick = useCallback(() => {
+    setSidebarOpen(false);
+  }, [setSidebarOpen]);
 
   useEffect(() => {
     void initializeApp();
@@ -45,6 +53,9 @@ export const App = () => {
       {!showAppLoader && (
         <>
           <MainView />
+
+          <Overlay isOpen={isSidebarOpen} onClick={handleOverlayClick} />
+
           <PollingToast />
           <GlobalModalManager />
           <ProcessingLoader />

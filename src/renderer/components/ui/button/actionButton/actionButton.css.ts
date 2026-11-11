@@ -1,4 +1,4 @@
-// src/renderer/components/ui/button/actionButton/actionButton.css.ts
+﻿// src/renderer/components/ui/button/actionButton/actionButton.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -23,6 +23,7 @@ export const actionButton = style([
       opacity: 0,
       transition: `opacity ${smoothGlow}`,
       pointerEvents: "none",
+      willChange: "opacity",
     },
 
     selectors: {

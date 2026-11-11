@@ -30,6 +30,7 @@ export const contentContainer = style({
   flexDirection: "column",
   width: "100%",
   height: "100%",
+  isolation: "isolate",
 });
 
 export const terminalSection = style({
@@ -39,6 +40,7 @@ export const terminalSection = style({
   width: "100%",
   overflowY: "auto",
   padding: tokens.space.xs,
+  isolation: "isolate",
 });
 
 /* ============================================================
@@ -55,6 +57,10 @@ export const terminalRow = style([
     boxShadow: tokens.shadow.raised.low,
     fontSize: tokens.font.fluid.md,
     color: tokens.color.text.base,
+    isolation: "isolate",
+    transform: "translateZ(0)",
+    backfaceVisibility: "hidden",
+    WebkitBackfaceVisibility: "hidden",
     transition: `color ${tokens.transition.fast}`,
 
     "::before": {
@@ -66,6 +72,7 @@ export const terminalRow = style([
       opacity: 0,
       transition: `opacity ${tokens.transition.normal}`,
       pointerEvents: "none",
+      willChange: "opacity",
     },
 
     selectors: {
@@ -93,7 +100,7 @@ const terminalBadge = style({
   backgroundColor: tokens.color.bg.base,
   borderRadius: tokens.radius.sm,
   boxShadow: tokens.shadow.pressed.md,
-  color: "inherit", // 🎯 button の既定黒文字を打ち消し、親の文字色（ホバー連動含む）を継承
+  color: "inherit",
   fontWeight: tokens.font.weight.bold,
   fontSize: tokens.font.size.md,
   letterSpacing: "0.5px",
@@ -137,5 +144,5 @@ export const cellValue = style({
   overflow: "hidden",
   textOverflow: "ellipsis",
   userSelect: "text",
-  transition: tokens.transition.fast,
+  transition: `color ${tokens.transition.fast}`,
 });

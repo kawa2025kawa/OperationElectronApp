@@ -1,6 +1,6 @@
 // src/renderer/features/operation/components/modal/summaryModal/SummaryModalContent.tsx
 
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { clsx } from "clsx";
 
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
@@ -31,13 +31,17 @@ interface TableColGroupProps {
   columns: readonly Column<SummaryDetailRow>[];
 }
 
-const TableColGroup = ({ columns }: TableColGroupProps) => (
-  <colgroup>
-    {columns.map((column) => (
-      <col key={String(column.key)} style={{ width: column.width }} />
-    ))}
-  </colgroup>
-);
+const TableColGroup = memo(function TableColGroup({
+  columns,
+}: TableColGroupProps) {
+  return (
+    <colgroup>
+      {columns.map((column) => (
+        <col key={String(column.key)} style={{ width: column.width }} />
+      ))}
+    </colgroup>
+  );
+});
 
 interface TableRowProps {
   item: SummaryDetailRow;
@@ -61,9 +65,13 @@ const TableRowInner = ({
 }: TableRowProps) => {
   const rowState = getRowState(isSelected, Boolean(onRowClick));
 
+  const handleClick = useCallback(() => {
+    onRowClick?.(item);
+  }, [item, onRowClick]);
+
   return (
     <tr
-      onClick={() => onRowClick?.(item)}
+      onClick={handleClick}
       className={clsx(styles.tableRowBase, styles.tableRowStates[rowState])}
     >
       {columns.map((column) => {

@@ -1,17 +1,14 @@
 ﻿// src/renderer/features/operation/components/table/operationTable.css.ts
 
-import { createVar, style, styleVariants } from "@vanilla-extract/css";
+import { style, styleVariants } from "@vanilla-extract/css";
+
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
-const t = tokens.transition.normal;
+// 共通値
 
-// Internal CSS variables
-const rowTextColor = createVar();
-const rowShadow = createVar();
-const rowBgColor = createVar();
+const transition = tokens.transition.normal;
 
-// Shared table styles
 const commonTable = {
   width: "100%",
   tableLayout: "fixed",
@@ -26,15 +23,7 @@ const rowEdgeRadius = {
   },
 };
 
-const defaultRowVars = {
-  [rowBgColor]: tokens.color.bg.base,
-  [rowTextColor]: tokens.color.text.base,
-  [rowShadow]: tokens.shadow.raised.low,
-};
-
-// ============================================================
-// Layout
-// ============================================================
+// レイアウト
 
 export const container = style({
   display: "flex",
@@ -43,33 +32,25 @@ export const container = style({
   height: "100%",
   overflow: "hidden",
   outline: "none",
+  isolation: "isolate",
 });
 
-export const headerWrapper = style({
+export const scrollContainer = style({
   position: "relative",
-  zIndex: 10,
-  flexShrink: 0,
-  paddingInline: tokens.space.md,
-  borderRadius: tokens.radius.md,
-  boxShadow: tokens.shadow.raised.high,
-});
-
-export const bodyWrapper = style({
-  position: "relative",
-  zIndex: 0,
   flex: 1,
   minHeight: 0,
-  overflowX: "hidden",
-  overflowY: "auto",
+  width: "100%",
+  overflow: "auto",
   paddingInline: tokens.space.md,
-  paddingTop: tokens.space.sm,
   scrollbarGutter: "stable",
   scrollbarWidth: "thin",
   scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
+  isolation: "isolate",
 
   selectors: {
     "&::-webkit-scrollbar": {
       width: "4px",
+      height: "4px",
       display: "block",
     },
     "&::-webkit-scrollbar-track": {
@@ -85,44 +66,38 @@ export const bodyWrapper = style({
   },
 });
 
-// ============================================================
-// Tables
-// ============================================================
+// テーブル
 
-export const headerTable = style({
-  ...commonTable,
-  borderCollapse: "collapse",
-  backgroundColor: tokens.color.bg.base,
-  borderRadius: tokens.radius.md,
-  overflow: "hidden",
-});
-
-export const bodyTable = style({
+export const table = style({
   ...commonTable,
   borderCollapse: "separate",
   borderSpacing: `0 ${tokens.space.md}`,
 });
 
-// ============================================================
-// Rows
-// ============================================================
+export const thead = style({
+  position: "sticky",
+  top: 0,
+  zIndex: 10,
+  backgroundColor: tokens.color.bg.base,
+});
+
+export const headerRow = style({
+  backgroundColor: tokens.color.bg.base,
+  boxShadow: tokens.shadow.raised.high,
+});
+
+// 行
 
 export const tableRowBase = style([
   themeTransition,
   {
-    position: "relative",
     height: "56px",
-    backgroundColor: rowBgColor,
-    color: rowTextColor,
-    boxShadow: rowShadow,
-    isolation: "isolate",
-    transform: "translateZ(0)",
-    willChange: "box-shadow",
-    backfaceVisibility: "hidden",
-    WebkitBackfaceVisibility: "hidden",
-    zIndex: 0,
+    backgroundColor: tokens.color.bg.base,
+    color: tokens.color.text.base,
+    boxShadow: tokens.shadow.raised.low,
     outline: "none",
-    transition: `box-shadow ${t}, background-color ${t}, color ${t}`,
+    transition: `color ${tokens.transition.fast}, box-shadow ${transition}`,
+
     selectors: {
       "&:focus": {
         outline: "none",
@@ -135,52 +110,33 @@ export const tableRowBase = style([
 ]);
 
 export const tableRowStates = styleVariants({
-  idle: {
-    vars: { ...defaultRowVars },
-  },
+  idle: {},
 
   clickable: {
-    vars: { ...defaultRowVars },
     cursor: "pointer",
     selectors: {
       "&:hover": {
-        vars: {
-          [rowTextColor]: tokens.color.text.hover,
-          [rowShadow]: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
-        },
-        zIndex: 1,
+        color: tokens.color.text.hover,
+        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
       },
       "&:active": {
-        vars: {
-          [rowTextColor]: tokens.color.text.hover,
-          [rowShadow]: tokens.shadow.pressed.low,
-        },
+        boxShadow: tokens.shadow.pressed.low,
       },
     },
   },
 
   selected: {
-    vars: {
-      ...defaultRowVars,
-      [rowTextColor]: tokens.color.text.base,
-      [rowShadow]: tokens.shadow.pressed.low,
-    },
-    zIndex: 1,
+    boxShadow: tokens.shadow.pressed.low,
   },
 
   disabled: {
-    vars: {
-      ...defaultRowVars,
-    },
     opacity: 0.5,
     pointerEvents: "none",
     filter: "grayscale(0.8)",
   },
 });
 
-// ============================================================
-// Cells
-// ============================================================
+// セル
 
 export const thBase = style([
   themeTransition,
@@ -205,22 +161,26 @@ export const tdBase = style({
   color: "inherit",
   fontSize: tokens.font.size.md,
   fontWeight: tokens.font.weight.medium,
+  position: "relative",
+  zIndex: 1,
   selectors: rowEdgeRadius,
 });
 
-// ============================================================
-// Alignment
-// ============================================================
+// 配置
 
 export const alignVariants = styleVariants({
-  left: { textAlign: "left" },
-  center: { textAlign: "center" },
-  right: { textAlign: "right" },
+  left: {
+    textAlign: "left",
+  },
+  center: {
+    textAlign: "center",
+  },
+  right: {
+    textAlign: "right",
+  },
 });
 
-// ============================================================
-// Cell Text
-// ============================================================
+// セル内テキスト
 
 export const cellText = style({
   display: "inline-block",
@@ -229,7 +189,8 @@ export const cellText = style({
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   verticalAlign: "middle",
-  transition: `color ${t}, filter ${t}`,
+  transition: `color ${transition}, filter ${transition}`,
+
   selectors: {
     [`${tableRowStates.selected} &`]: {
       backgroundImage: tokens.gradient.brand,
@@ -241,9 +202,7 @@ export const cellText = style({
   },
 });
 
-// ============================================================
-// Operation Specific Styles
-// ============================================================
+// 運用テーブル固有
 
 export const statusCellWrapper = style({
   display: "flex",

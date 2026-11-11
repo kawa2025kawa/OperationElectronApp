@@ -49,6 +49,13 @@ async function executeScript(
     status: JOB_STATUS.SCRIPT_RUNNING,
     startTime: new Date().toISOString(),
   });
+
+  if (normalizeKanriNo(kanriNo) === "N25") {
+    console.info(
+      `[N25][Scheduler] 自動実行開始: ${new Date().toLocaleString("ja-JP")}`,
+    );
+  }
+
   return executeScriptAndApplyStatus(kanriNo, () =>
     executeSingleScriptJob(kanriNo, scriptKey),
   );

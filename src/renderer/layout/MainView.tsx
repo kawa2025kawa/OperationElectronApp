@@ -2,10 +2,8 @@
 
 import { memo } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { clsx } from "clsx";
-import { useShallow } from "zustand/react/shallow";
 
-import { useAppStore, type AppState } from "@renderer/store";
+import { useAppStore } from "@renderer/store";
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";
 
 import { Footer } from "@renderer/components/layout/footer/Footer";
@@ -16,12 +14,7 @@ import { UnknownView } from "./UnknownView";
 import * as styles from "./mainView.css";
 
 export const MainView = memo(() => {
-  const { currentView, isSidebarOpen } = useAppStore(
-    useShallow((state: AppState) => ({
-      currentView: state.currentView,
-      isSidebarOpen: state.isSidebarOpen ?? false,
-    })),
-  );
+  const currentView = useAppStore((state) => state.currentView);
 
   const ViewComponent = APP_REGISTRY[currentView]?.component ?? null;
 
@@ -30,15 +23,6 @@ export const MainView = memo(() => {
       <Navbar />
 
       <div className={styles.contentWrapper}>
-        <aside
-          className={clsx(
-            styles.sidebarBase,
-            styles.sidebarCollapsed[String(!isSidebarOpen) as "true" | "false"],
-          )}
-        >
-          <Sidebar />
-        </aside>
-
         <main className={styles.mainContent}>
           <div className={styles.viewWrapper}>
             <AnimatePresence mode="wait" initial={false}>
@@ -68,6 +52,8 @@ export const MainView = memo(() => {
           <Footer />
         </main>
       </div>
+
+      <Sidebar />
     </div>
   );
 });

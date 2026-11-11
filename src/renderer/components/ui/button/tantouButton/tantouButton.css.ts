@@ -22,9 +22,8 @@ export const button = style([
     color: tokens.color.text.base,
     border: `1px solid ${tokens.color.border.default}`,
     boxShadow: tokens.shadow.raised.md,
-    transition: `background-color ${t}, border-color ${smoothGlow}, box-shadow ${t}, color ${t}`,
+    transition: `background-color ${t}, border-color ${smoothGlow}, color ${t}`,
 
-    // シアンの光（外側グロー）とインセット影を重ねるレイヤー（PollingToggleButton と共通仕様）
     "::before": {
       content: '""',
       position: "absolute",
@@ -34,14 +33,13 @@ export const button = style([
       opacity: 0,
       transition: `opacity ${smoothGlow}`,
       pointerEvents: "none",
+      willChange: "opacity",
     },
 
     selectors: {
-      // 1. ボタン本体のテキスト色とスタイル
       "&:hover:not(:disabled)": {
         color: tokens.color.text.hover,
       },
-      // 2. 背景のグローエフェクト（擬似要素）
       "&:hover:not(:disabled)::before": {
         opacity: 1,
       },

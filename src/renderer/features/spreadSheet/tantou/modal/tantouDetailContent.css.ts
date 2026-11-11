@@ -121,6 +121,28 @@ export const listContainer = style({
   padding: "4px",
   boxSizing: "border-box",
   isolation: "isolate",
+
+  scrollbarGutter: "stable",
+  scrollbarWidth: "thin",
+  scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
+
+  selectors: {
+    "&::-webkit-scrollbar": {
+      width: "4px",
+      height: "4px",
+      display: "block",
+    },
+    "&::-webkit-scrollbar-track": {
+      backgroundColor: "transparent",
+    },
+    "&::-webkit-scrollbar-thumb": {
+      backgroundColor: tokens.color.accent.neonPink,
+      borderRadius: tokens.radius.full,
+    },
+    "&::-webkit-scrollbar-thumb:hover": {
+      backgroundColor: tokens.color.accent.neonPink,
+    },
+  },
 });
 
 export const detailList = style({

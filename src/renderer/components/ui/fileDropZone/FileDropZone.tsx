@@ -1,7 +1,6 @@
 // src/renderer/components/ui/fileDropZone/FileDropZone.tsx
 
-import { memo, useEffect, useRef, useState } from "react";
-import type { MouseEvent } from "react";
+import { memo, type MouseEvent } from "react";
 
 import * as styles from "./fileDropZone.css";
 
@@ -11,6 +10,10 @@ import {
 } from "./fileDropZoneTypes";
 
 import { useFileDropZone } from "./useFileDropZone";
+
+const stopPropagation = (event: MouseEvent) => {
+  event.stopPropagation();
+};
 
 export const FileDropZone = memo<FileDropZoneProps>(
   ({
@@ -27,7 +30,10 @@ export const FileDropZone = memo<FileDropZoneProps>(
       isDragOverMain,
       draggedFileIndex,
       dragOverFileIndex,
+      openMenuPath,
+      menuContainerRef,
       mainInputRef,
+      handleToggleMenu,
       handleMainDragOver,
       handleMainDragLeave,
       handleMainDrop,
@@ -47,35 +53,9 @@ export const FileDropZone = memo<FileDropZoneProps>(
       onRenameFile,
     });
 
-    const [openMenuPath, setOpenMenuPath] = useState<string | null>(null);
-
-    const menuContainerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      if (openMenuPath === null) return;
-
-      const handleOutsideClick = (event: globalThis.MouseEvent) => {
-        if (!menuContainerRef.current?.contains(event.target as Node)) {
-          setOpenMenuPath(null);
-        }
-      };
-
-      document.addEventListener("mousedown", handleOutsideClick);
-
-      return () => {
-        document.removeEventListener("mousedown", handleOutsideClick);
-      };
-    }, [openMenuPath]);
-
-    useEffect(() => {
-      if (disabled) {
-        setOpenMenuPath(null);
-      }
-    }, [disabled]);
-
-    const stopPropagation = (event: MouseEvent) => {
-      event.stopPropagation();
-    };
+    const canReorder = Boolean(onReorderFile);
+    const canRename = Boolean(onRenameFile);
+    const canRemove = Boolean(onRemoveFile);
 
     return (
       <div className={styles.container}>
@@ -98,21 +78,24 @@ export const FileDropZone = memo<FileDropZoneProps>(
             role="button"
             tabIndex={disabled ? -1 : 0}
             aria-disabled={disabled}
-            className={`${styles.unifiedEmptyDropArea} ${isDragOverMain ? styles.unifiedEmptyDropAreaActive : ""}`}
+            className={`${styles.unifiedEmptyDropArea}${
+              isDragOverMain ? " is-active" : ""
+            }`}
             onDragOver={handleMainDragOver}
             onDragLeave={handleMainDragLeave}
             onDrop={handleMainDrop}
             onClick={() => !disabled && mainInputRef.current?.click()}
           >
-            <span className={styles.emptyFilePrimaryText}>{label}</span>
-
-            <span className={styles.emptyFileSubText}>
+            <span className="primary-label">{label}</span>
+            <span className="sub-label">
               （クリックまたはドロップして追加）
             </span>
           </div>
         ) : (
           <div
-            className={`${styles.unifiedFilesList} ${isDragOverMain ? styles.unifiedFilesListActive : ""}`}
+            className={`${styles.unifiedFilesList}${
+              isDragOverMain ? " is-active" : ""
+            }`}
             onDragOver={handleMainDragOver}
             onDragLeave={handleMainDragLeave}
             onDrop={handleMainDrop}
@@ -120,14 +103,15 @@ export const FileDropZone = memo<FileDropZoneProps>(
             title="ダブルクリックまたはドロップでファイルを追加できます"
           >
             {files.map((file, index) => {
+              const isMenuOpen = openMenuPath === file.path;
               const isDragging = draggedFileIndex === index;
               const isDropTarget = dragOverFileIndex === index;
-              const isMenuOpen = openMenuPath === file.path;
 
               const rowClassName = [
                 styles.selectedFileRow,
-                isDragging && styles.selectedFileRowDragging,
-                isDropTarget && styles.selectedFileRowDropTarget,
+                isMenuOpen && "is-open",
+                isDragging && "is-dragging",
+                isDropTarget && "is-drop-target",
               ]
                 .filter(Boolean)
                 .join(" ");
@@ -136,33 +120,26 @@ export const FileDropZone = memo<FileDropZoneProps>(
                 <div
                   key={file.path}
                   className={rowClassName}
-                  draggable={!disabled && Boolean(onReorderFile)}
-                  onDragStart={(event) => handleFileDragStart(event, index)}
-                  onDragOver={(event) => handleFileDragOver(event, index)}
-                  onDrop={(event) => handleFileDrop(event, index)}
+                  draggable={!disabled && canReorder}
+                  onDragStart={(e) => handleFileDragStart(e, index)}
+                  onDragOver={(e) => handleFileDragOver(e, index)}
+                  onDrop={(e) => handleFileDrop(e, index)}
                   onDragEnd={handleFileDragEnd}
                 >
-                  <div className={styles.selectedFileContent}>
-                    <div className={styles.selectedFileNameRow}>
-                      <span className={styles.selectedFileIndex}>
-                        {index + 1}.
-                      </span>
-
-                      <span
-                        className={styles.selectedFileName}
-                        title={file.name}
-                      >
+                  <div className="file-info">
+                    <div className="file-title">
+                      <span className="index">{index + 1}.</span>
+                      <span className="name" title={file.name}>
                         {file.name}
                       </span>
                     </div>
-
-                    <span className={styles.selectedFilePath} title={file.path}>
+                    <span className="path" title={file.path}>
                       {file.path}
                     </span>
                   </div>
 
-                  <div className={styles.rowActions} onClick={stopPropagation}>
-                    {onRenameFile && (
+                  <div className="file-actions" onClick={stopPropagation}>
+                    {canRename && (
                       <div
                         className={styles.dropdownWrapper}
                         ref={isMenuOpen ? menuContainerRef : undefined}
@@ -171,55 +148,46 @@ export const FileDropZone = memo<FileDropZoneProps>(
                           type="button"
                           className={styles.dropdownTrigger}
                           disabled={disabled}
-                          onClick={(event) => {
-                            stopPropagation(event);
-
-                            setOpenMenuPath((previous) =>
-                              previous === file.path ? null : file.path,
-                            );
+                          onClick={(e) => {
+                            stopPropagation(e);
+                            handleToggleMenu(file.path);
                           }}
                           title="発注エラーリスト名にリネーム"
                         >
                           <span>ファイル名リネーム</span>
-
-                          <span className={styles.dropdownArrow}>▼</span>
+                          <span className="arrow">▼</span>
                         </button>
 
                         {isMenuOpen && (
                           <div className={styles.dropdownMenu}>
-                            <div className={styles.dropdownList}>
-                              {ORDER_TIME_OPTIONS.map((option) => (
-                                <button
-                                  key={option.value}
-                                  type="button"
-                                  className={styles.dropdownItem}
-                                  disabled={disabled}
-                                  onClick={(event) => {
-                                    stopPropagation(event);
-
-                                    handleRowSelectRename(
-                                      file.path,
-                                      option.value,
-                                    );
-
-                                    setOpenMenuPath(null);
-                                  }}
-                                >
-                                  {option.value} ({option.timeLabel}発注)
-                                </button>
-                              ))}
-                            </div>
+                            {ORDER_TIME_OPTIONS.map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                className={styles.dropdownItem}
+                                disabled={disabled}
+                                onClick={(e) => {
+                                  stopPropagation(e);
+                                  handleRowSelectRename(
+                                    file.path,
+                                    option.value,
+                                  );
+                                }}
+                              >
+                                {option.value} ({option.timeLabel}発注)
+                              </button>
+                            ))}
                           </div>
                         )}
                       </div>
                     )}
 
-                    {!disabled && onRemoveFile && (
+                    {!disabled && canRemove && (
                       <button
                         type="button"
                         className={styles.removeFileButton}
-                        onClick={(event) => {
-                          stopPropagation(event);
+                        onClick={(e) => {
+                          stopPropagation(e);
                           handleRemoveFileItem(index);
                         }}
                         title="削除"

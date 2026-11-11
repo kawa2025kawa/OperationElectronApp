@@ -1,4 +1,4 @@
-// src/renderer/components/ui/searchField/searchField.css.ts
+﻿// src/renderer/components/ui/searchField/searchField.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -15,7 +15,6 @@ export const inner = style({
   isolation: "isolate",
   transform: "translateZ(0)",
 
-  // 🎯 外光用の擬似要素
   "::before": {
     content: '""',
     position: "absolute",
@@ -25,6 +24,7 @@ export const inner = style({
     opacity: 0,
     transition: `opacity ${smoothGlow}`,
     pointerEvents: "none",
+    willChange: "opacity",
   },
 
   selectors: {
@@ -80,7 +80,7 @@ export const searchField = style({
     "&:active": {
       outline: "none",
     },
-    "&::-webkit-search-cancel-button": {
+    "&:::-webkit-search-cancel-button": {
       cursor: "pointer",
     },
   },

@@ -1,7 +1,6 @@
 // src/renderer/components/ui/overlay/Overlay.tsx
 
 import type { ReactNode } from "react";
-import { m } from "motion/react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
@@ -9,7 +8,7 @@ import type { InitStatus } from "@shared/types/initializationTypes";
 import * as styles from "./overlay.css";
 
 /* =========================================
-   汎用バックドロップ Overlay
+   豎守畑繝舌ャ繧ｯ繝峨Ο繝・・ Overlay
 ========================================= */
 
 interface OverlayProps {
@@ -21,11 +20,8 @@ export const Overlay = ({ isOpen, onClick }: OverlayProps) => {
   const state = isOpen ? "open" : "closed";
 
   return (
-    <m.div
+    <div
       className={`${styles.backdropBase} ${styles.backdropStates[state]}`}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: isOpen ? 1 : 0 }}
-      transition={{ duration: 0.2 }}
       onClick={onClick}
     />
   );
@@ -80,7 +76,7 @@ const LoaderTarget = ({ value }: LoaderTargetProps) => (
 );
 
 /* =========================================
-   LoadingOverlay (内部共通ラッパー)
+   LoadingOverlay (蜀・Κ蜈ｱ騾壹Λ繝・ヱ繝ｼ)
 ========================================= */
 
 interface LoadingOverlayProps {
@@ -109,7 +105,7 @@ const LoadingOverlay = ({
 };
 
 /* =========================================
-   AppStartupLoader (アプリ起動専用)
+   AppStartupLoader (繧｢繝励Μ襍ｷ蜍募ｰら畑)
 ========================================= */
 
 const PANEL_LABELS: Record<keyof InitStatus, string> = {
@@ -173,7 +169,7 @@ export const AppStartupLoader = () => {
 };
 
 /* =========================================
-   ProcessingLoader (処理中専用)
+   ProcessingLoader (蜃ｦ逅・ｸｭ蟆ら畑)
 ========================================= */
 
 export const ProcessingLoader = () => {

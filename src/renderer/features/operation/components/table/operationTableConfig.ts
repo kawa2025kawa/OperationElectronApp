@@ -11,13 +11,15 @@ import {
 } from "@shared/types/operation/operationTypes";
 import * as styles from "./operationTable.css";
 
+// 列定義
+
 export interface OperationColumnMeta {
   readonly label: string;
   readonly width: string;
   readonly align?: keyof typeof styles.alignVariants;
 }
 
-const OPERATION_COLUMN_CONFIG = {
+export const OPERATION_COLUMN_CONFIG = {
   kanriNo: {
     label: OPERATION_FIELD_LABELS.kanriNo,
     width: "90px",
@@ -28,8 +30,15 @@ const OPERATION_COLUMN_CONFIG = {
   },
   cycle: {
     label: OPERATION_FIELD_LABELS.cycle,
-    width: "100px",
-    align: "center",
+    width: "140px",
+  },
+  cycle1: {
+    label: "サイクル1",
+    width: "140px",
+  },
+  cycle2: {
+    label: "サイクル2",
+    width: "140px",
   },
   workName: {
     label: OPERATION_FIELD_LABELS.workName,
@@ -42,48 +51,45 @@ const OPERATION_COLUMN_CONFIG = {
   status: {
     label: OPERATION_FIELD_LABELS.status,
     width: "140px",
-    align: "center",
   },
 } as const satisfies Record<string, OperationColumnMeta>;
 
 export type OperationColumn = keyof typeof OPERATION_COLUMN_CONFIG;
 
-const VISIBLE_OPERATION_COLUMNS = {
+// 表示モードごとの列定義
+
+export const VISIBLE_OPERATION_COLUMNS = {
   operation: ["kanriNo", "scheduledTime", "workName", "jobId", "status"],
-  irregular: ["kanriNo", "scheduledTime", "cycle", "workName"],
+  irregular: ["kanriNo", "scheduledTime", "cycle1", "cycle2", "workName"],
   today: ["kanriNo", "scheduledTime", "workName", "status"],
 } as const satisfies Record<ViewMode, readonly OperationColumn[]>;
 
+// 空データ
+
 export const EMPTY_OPERATION_ROWS = [] as const;
 
-type AlignmentVariant = keyof typeof styles.alignVariants;
+// 列定義の取得
 
-/** 表示モードに対応する列を取得する。 */
 export function getVisibleOperationColumns(
   mode: ViewMode,
 ): readonly OperationColumn[] {
   return VISIBLE_OPERATION_COLUMNS[mode];
 }
 
-/** 列のメタデータを取得する。 */
 export function getOperationColumnMeta(
   column: OperationColumn,
 ): OperationColumnMeta {
   return OPERATION_COLUMN_CONFIG[column];
 }
 
-/** 列の配置に対応する CSS クラスを取得する。 */
 export function getOperationColumnAlignment(column: OperationColumn): string {
-  const alignment: AlignmentVariant =
-    getOperationColumnMeta(column).align ?? "left";
+  const alignment = getOperationColumnMeta(column).align ?? "left";
 
-  return styles.alignVariants[alignment] ?? styles.alignVariants.left;
+  return styles.alignVariants[alignment];
 }
 
-/**
- * セルの表示値を取得する。
- * プロパティが存在しない場合に限り、欠落プレースホルダーを返す。
- */
+// セル表示値の取得
+
 export function getOperationCellDisplayValue(
   row: OperationViewItem,
   column: OperationColumn,

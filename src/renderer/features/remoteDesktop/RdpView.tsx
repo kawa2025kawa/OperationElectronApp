@@ -1,13 +1,36 @@
 // src/renderer/features/remoteDesktop/RdpView.tsx
 
-import { useEffect } from "react";
+import { memo, useCallback, useEffect } from "react";
 
 import { UnknownView } from "@renderer/layout/UnknownView";
 
 import { useRdp } from "./useRdp";
 import * as styles from "./rdpView.css";
 
-export const RdpView = () => {
+interface RdpCardProps {
+  readonly name: string;
+  readonly ipAddress: string;
+  readonly onRun: (name: string) => void;
+}
+
+const RdpCard = memo(function RdpCard({
+  name,
+  ipAddress,
+  onRun,
+}: RdpCardProps) {
+  const handleClick = useCallback(() => {
+    onRun(name);
+  }, [name, onRun]);
+
+  return (
+    <button className={styles.card} onClick={handleClick} type="button">
+      <span className={styles.cardTitle}>{name}</span>
+      <span className={styles.cardHost}>{ipAddress}</span>
+    </button>
+  );
+});
+
+export const RdpView = memo(function RdpView() {
   const { rdpTargets, isRdpLoading, fetchRdpTargets, runRdp } = useRdp();
 
   useEffect(() => {
@@ -26,17 +49,16 @@ export const RdpView = () => {
     <div className={styles.rdpContainer}>
       <div className={styles.grid}>
         {rdpTargets.map(({ name, ipAddress }) => (
-          <button
+          <RdpCard
             key={name}
-            className={styles.card}
-            onClick={() => void runRdp(name)}
-            type="button"
-          >
-            <span className={styles.cardTitle}>{name}</span>
-            <span className={styles.cardHost}>{ipAddress}</span>
-          </button>
+            name={name}
+            ipAddress={ipAddress}
+            onRun={runRdp}
+          />
         ))}
       </div>
     </div>
   );
-};
+});
+
+RdpView.displayName = "RdpView";

@@ -4,6 +4,8 @@ import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
+const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
+
 /* =======================================
  * スクロールバー設定
  * ======================================= */
@@ -43,6 +45,7 @@ export const contentFlexContainer = style({
   minHeight: 0,
   overflow: "hidden",
   boxSizing: "border-box",
+  isolation: "isolate",
 });
 
 /* =======================================
@@ -122,6 +125,7 @@ export const mainContainer = style([
     boxShadow: tokens.shadow.pressed.md,
     border: `1px solid ${tokens.color.border.subtle}`,
     boxSizing: "border-box",
+    isolation: "isolate",
   },
 ]);
 
@@ -140,15 +144,17 @@ export const artifactList = style({
   flexDirection: "column",
   gap: "8px",
   marginTop: "16px",
+  isolation: "isolate",
 });
 
 /* =======================================
- * 成果物リンクボタン
+ * 成果物リンクボタン (GPU合成発光に一本化)
  * ======================================= */
 
 export const linkCardButton = style([
   themeTransition,
   {
+    position: "relative",
     appearance: "none",
     display: "flex",
     flexDirection: "row",
@@ -164,10 +170,30 @@ export const linkCardButton = style([
     textAlign: "left",
     gap: "1vmin",
     outline: "none",
+    isolation: "isolate",
+    transform: "translateZ(0)",
+    backfaceVisibility: "hidden",
+    WebkitBackfaceVisibility: "hidden",
+    transition: `border-color ${tokens.transition.fast}`,
+
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: -1,
+      borderRadius: tokens.radius.md,
+      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      opacity: 0,
+      transition: `opacity ${smoothGlow}`,
+      pointerEvents: "none",
+      willChange: "opacity",
+    },
+
     selectors: {
       "&:hover, &:focus-visible": {
         borderColor: tokens.color.accent.neonCyan,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      },
+      "&:hover::before, &:focus-visible::before": {
+        opacity: 1,
       },
       "&:active": {
         boxShadow: tokens.shadow.pressed.low,
@@ -177,6 +203,8 @@ export const linkCardButton = style([
 ]);
 
 export const linkLabel = style({
+  position: "relative",
+  zIndex: 1,
   fontSize: tokens.font.fluid.md,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.accent.neonCyan,
@@ -185,6 +213,8 @@ export const linkLabel = style({
 });
 
 export const linkValue = style({
+  position: "relative",
+  zIndex: 1,
   fontSize: tokens.font.fluid.md,
   color: tokens.color.text.base,
   opacity: 0.8,
@@ -194,4 +224,3 @@ export const linkValue = style({
   width: "100%",
   minWidth: 0,
 });
-

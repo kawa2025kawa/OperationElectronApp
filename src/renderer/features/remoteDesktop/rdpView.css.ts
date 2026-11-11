@@ -15,6 +15,7 @@ export const rdpContainer = style([
     width: "100%",
     boxSizing: "border-box",
     overflowY: "auto",
+    isolation: "isolate",
   },
 ]);
 
@@ -23,6 +24,7 @@ export const grid = style({
   gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
   gap: tokens.space.lg,
   width: "100%",
+  isolation: "isolate",
 });
 
 export const card = style([
@@ -43,6 +45,10 @@ export const card = style([
     outline: "none",
     cursor: "pointer",
 
+    isolation: "isolate",
+    transform: "translateZ(0)",
+    backfaceVisibility: "hidden",
+    WebkitBackfaceVisibility: "hidden",
     transition: `transform ${tokens.transition.ease}`,
 
     "::before": {
@@ -54,6 +60,7 @@ export const card = style([
       opacity: 0,
       transition: `opacity ${tokens.transition.normal}`,
       pointerEvents: "none",
+      willChange: "opacity",
     },
 
     selectors: {

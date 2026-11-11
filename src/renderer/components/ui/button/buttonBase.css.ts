@@ -4,6 +4,9 @@ import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
+const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
+const t = tokens.transition.normal;
+
 /**
  * 全ボタン共通の基底スタイル
  * - 描画分離（ホバー・クリック時の周囲領域へのペイント波及を防止）
@@ -25,7 +28,9 @@ export const baseButton = style([
     position: "relative",
     isolation: "isolate",
     transform: "translateZ(0)",
-    transition: `transform ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}, color ${tokens.transition.ease}, border-color ${tokens.transition.ease}, background-color ${tokens.transition.normal}, opacity ${tokens.transition.fast}`,
+    backfaceVisibility: "hidden",
+    WebkitBackfaceVisibility: "hidden",
+    transition: `transform ${tokens.transition.ease}, color ${tokens.transition.ease}, border-color ${tokens.transition.ease}, background-color ${t}, opacity ${tokens.transition.fast}`,
 
     selectors: {
       "&:disabled": {
@@ -45,6 +50,7 @@ export const baseButton = style([
 
 /**
  * ネオンシアン発光・ホバー・アクティブ共通スタイル
+ * ホバー発光を ::before の opacity 遷移（GPU 合成）に統一
  */
 export const neonGlowButton = style([
   baseButton,
@@ -54,11 +60,25 @@ export const neonGlowButton = style([
     border: `1px solid ${tokens.color.border.default}`,
     boxShadow: tokens.shadow.raised.high,
 
+    "::before": {
+      content: '""',
+      position: "absolute",
+      inset: -1,
+      borderRadius: "inherit",
+      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
+      opacity: 0,
+      transition: `opacity ${smoothGlow}`,
+      pointerEvents: "none",
+      willChange: "opacity",
+    },
+
     selectors: {
       "&:hover:not(:disabled)": {
         color: tokens.color.accent.neonCyan,
         borderColor: tokens.color.accent.neonCyan,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
+      },
+      "&:hover:not(:disabled)::before": {
+        opacity: 1,
       },
       "&:active:not(:disabled)": {
         boxShadow: tokens.shadow.pressed.low,

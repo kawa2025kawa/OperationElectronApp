@@ -1,5 +1,19 @@
-﻿import { style, keyframes, styleVariants } from "@vanilla-extract/css";
+﻿// src/renderer/components/ui/overlay/overlay.css.ts
+
+import { style, keyframes, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
+
+/* =========================================
+   Constants
+========================================= */
+
+const OVERLAY_FADE_DURATION = "450ms";
+const OVERLAY_FADE_EASING = "ease";
+
+const BACKDROP_BACKGROUND = "rgba(0, 0, 0, 0.7)";
+const BACKDROP_BLUR = "blur(12px)";
+
+const TARGET_SWEEP_DURATION = "4s";
 
 /* =========================================
    Animations
@@ -36,10 +50,6 @@ const flicker = keyframes({
    Processing Target Animations
 ========================================= */
 
-/**
- * Target表示開始時のマテリアライズ
- * リフローを避けるため opacity と transform のみで滑らかに出現
- */
 const targetMaterialize = keyframes({
   "0%": {
     opacity: 0,
@@ -51,9 +61,6 @@ const targetMaterialize = keyframes({
   },
 });
 
-/**
- * Targetの微細な明滅（cyan glow）
- */
 const targetPulse = keyframes({
   "0%, 100%": {
     opacity: 0.85,
@@ -67,9 +74,6 @@ const targetPulse = keyframes({
   },
 });
 
-/**
- * 約5秒に1回だけ発生する微細グリッチ
- */
 const targetGlitch = keyframes({
   "0%, 92%, 100%": {
     transform: "translateX(0)",
@@ -88,9 +92,6 @@ const targetGlitch = keyframes({
   },
 });
 
-/**
- * Target領域を横切る光
- */
 const targetSweep = keyframes({
   "0%": {
     transform: "translateX(-140%) skewX(-20deg)",
@@ -109,25 +110,48 @@ const targetSweep = keyframes({
 });
 
 /* =========================================
-   Base Overlay & Layout
+   Shared Styles
 ========================================= */
 
-const overlayBase = style({
-  position: "fixed",
+const fixedOverlayLayout = {
+  position: "fixed" as const,
   inset: 0,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+};
+
+const overlayFadeTransition = `opacity ${OVERLAY_FADE_DURATION} ${OVERLAY_FADE_EASING}`;
+
+const backdropTransition = [
+  overlayFadeTransition,
+  `backdrop-filter ${OVERLAY_FADE_DURATION} ${OVERLAY_FADE_EASING}`,
+  `visibility 0s linear ${OVERLAY_FADE_DURATION}`,
+].join(", ");
+
+const backdropOpenTransition = [
+  overlayFadeTransition,
+  `backdrop-filter ${OVERLAY_FADE_DURATION} ${OVERLAY_FADE_EASING}`,
+  "visibility 0s",
+].join(", ");
+
+/* =========================================
+   Backdrop Overlay
+========================================= */
+
+const overlayBase = style({
+  ...fixedOverlayLayout,
   zIndex: tokens.zIndex.overlay,
-  transition: `opacity ${tokens.transition.normal}, visibility ${tokens.transition.normal}`,
 });
 
 export const backdropBase = style([
   overlayBase,
   {
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
-    backdropFilter: "blur(8px)",
-    WebkitBackdropFilter: "blur(8px)",
+    backgroundColor: BACKDROP_BACKGROUND,
+    backdropFilter: BACKDROP_BLUR,
+    WebkitBackdropFilter: BACKDROP_BLUR,
+    transition: backdropTransition,
+    willChange: "opacity",
   },
 ]);
 
@@ -136,6 +160,7 @@ export const backdropStates = styleVariants({
     opacity: 1,
     visibility: "visible",
     pointerEvents: "auto",
+    transition: backdropOpenTransition,
   },
   closed: {
     opacity: 0,
@@ -144,12 +169,12 @@ export const backdropStates = styleVariants({
   },
 });
 
+/* =========================================
+   Full Screen Loader
+========================================= */
+
 export const fullScreenLoaderBase = style({
-  position: "fixed",
-  inset: 0,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
+  ...fixedOverlayLayout,
   overflow: "hidden",
   background: "rgba(0, 0, 0, 0.88)",
   color: tokens.color.accent.base,
@@ -162,12 +187,12 @@ export const fullScreenLoaderStates = styleVariants({
   active: {
     opacity: 1,
     pointerEvents: "auto",
-    transition: `opacity ${tokens.transition.normal}`,
+    transition: overlayFadeTransition,
   },
   inactive: {
     opacity: 0,
     pointerEvents: "none",
-    transition: `opacity ${tokens.transition.normal}`,
+    transition: overlayFadeTransition,
   },
 });
 
@@ -326,7 +351,7 @@ export const processingTargetPanel = style({
       background:
         "linear-gradient(105deg, transparent 35%, rgba(220, 255, 255, 0.1) 48%, transparent 58%)",
       pointerEvents: "none",
-      animation: `${targetSweep} 4s ease-in-out infinite`,
+      animation: `${targetSweep} ${TARGET_SWEEP_DURATION} ease-in-out infinite`,
       willChange: "transform, opacity",
     },
   },
@@ -361,4 +386,3 @@ export const processingTargetValue = style({
     ${targetGlitch} 5s steps(1, end) infinite
   `,
 });
-

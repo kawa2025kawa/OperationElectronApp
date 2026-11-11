@@ -3,7 +3,6 @@
 import { memo } from "react";
 import { clsx } from "clsx";
 
-import { Overlay } from "@renderer/components/ui/overlay/Overlay";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import { ORDERED_MENU_ITEMS, useSidebarLogic } from "./useSidebarLogic";
 
@@ -15,53 +14,48 @@ export const Sidebar = memo(function Sidebar() {
     isSidebarOpen,
     theme,
     toggleSidebar,
-    setSidebarOpen,
     toggleTheme,
     handleItemClick,
   } = useSidebarLogic();
 
   return (
-    <>
-      <Overlay isOpen={isSidebarOpen} onClick={() => setSidebarOpen(false)} />
+    <aside
+      className={clsx(styles.sidebar, isSidebarOpen && styles.sidebarOpen)}
+    >
+      <div className={styles.header}>
+        <span className={styles.headerTitle}>SideMenu</span>
 
-      <aside
-        className={clsx(styles.sidebar, isSidebarOpen && styles.sidebarOpen)}
-      >
-        <div className={styles.header}>
-          <span className={styles.headerTitle}>SideMenu</span>
+        <CloseButton onClick={toggleSidebar} />
+      </div>
 
-          <CloseButton onClick={toggleSidebar} />
-        </div>
+      <ul className={styles.menuList}>
+        {ORDERED_MENU_ITEMS.map((item) => (
+          <li key={item.id} className={styles.menuItem}>
+            <button
+              type="button"
+              className={styles.menuButton}
+              data-active={currentView === item.id}
+              onClick={() => handleItemClick(item.id)}
+            >
+              <span className={styles.menuText}>{item.title}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
 
-        <ul className={styles.menuList}>
-          {ORDERED_MENU_ITEMS.map((item) => (
-            <li key={item.id} className={styles.menuItem}>
-              <button
-                type="button"
-                className={styles.menuButton}
-                data-active={currentView === item.id}
-                onClick={() => handleItemClick(item.id)}
-              >
-                <span className={styles.menuText}>{item.title}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+      <div className={styles.sidebarFooter}>
+        <span className={styles.footerLabel}>Dark Mode</span>
 
-        <div className={styles.sidebarFooter}>
-          <span className={styles.footerLabel}>Dark Mode</span>
-
-          <button
-            type="button"
-            className={styles.toggleTrack}
-            onClick={toggleTheme}
-            aria-label="テーマ切り替え"
-          >
-            <div className={styles.toggleThumb} data-state={theme} />
-          </button>
-        </div>
-      </aside>
-    </>
+        <button
+          type="button"
+          className={styles.toggleTrack}
+          onClick={toggleTheme}
+          aria-label="テーマ切り替え"
+        >
+          <div className={styles.toggleThumb} data-state={theme} />
+        </button>
+      </div>
+    </aside>
   );
 });
 

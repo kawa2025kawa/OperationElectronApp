@@ -17,7 +17,6 @@ export const button = style([
     padding: tokens.space.sm,
     zIndex: tokens.zIndex.content,
 
-    // シアンの光（外側グロー）とインセット影を重ねるレイヤー
     "::before": {
       content: '""',
       position: "absolute",
@@ -27,6 +26,7 @@ export const button = style([
       opacity: 0,
       transition: `opacity ${smoothGlow}`,
       pointerEvents: "none",
+      willChange: "opacity",
     },
 
     selectors: {

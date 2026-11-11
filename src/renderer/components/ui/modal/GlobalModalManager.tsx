@@ -1,5 +1,6 @@
 // src/renderer/components/ui/modal/GlobalModalManager.tsx
 
+import { useMemo } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -12,30 +13,35 @@ import { useGlobalModalManager } from "./useGlobalModalManager";
 export const GlobalModalManager = () => {
   const { state, actions } = useGlobalModalManager();
 
-  if (!state.modalRoot) {
-    return null;
-  }
-
   const messageType = state.message?.type ?? "info";
   const messageClass =
     styles.messageTypes[messageType] ?? styles.messageTypes.info;
 
-  const footerContent = state.footerContent ?? (
-    <div className={styles.footerContainer}>
-      <div className={styles.footerRight}>
-        {state.rightActions.map((action) => (
-          <ActionButton
-            key={action.id}
-            variant={action.variant ?? "default"}
-            onClick={() => void action.onClick()}
-            disabled={action.disabled || state.isProcessing}
-          >
-            {action.label}
-          </ActionButton>
-        ))}
+  const defaultFooter = useMemo(
+    () => (
+      <div className={styles.footerContainer}>
+        <div className={styles.footerRight}>
+          {state.rightActions.map((action) => (
+            <ActionButton
+              key={action.id}
+              variant={action.variant ?? "default"}
+              onClick={action.onClick}
+              disabled={action.disabled || state.isProcessing}
+            >
+              {action.label}
+            </ActionButton>
+          ))}
+        </div>
       </div>
-    </div>
+    ),
+    [state.rightActions, state.isProcessing],
   );
+
+  const footerContent = state.footerContent ?? defaultFooter;
+
+  if (!state.modalRoot) {
+    return null;
+  }
 
   return createPortal(
     <AnimatePresence>
