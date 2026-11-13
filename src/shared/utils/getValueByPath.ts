@@ -1,5 +1,7 @@
 // src/shared/utils/getValueByPath.ts
 
+import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
+
 const isObject = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
 };
@@ -21,7 +23,7 @@ export const getValueByPath = (
   obj: object | null | undefined,
   path: string | undefined,
 ): string => {
-  if (!obj || !path) return "-";
+  if (!obj || !path) return EMPTY_VALUE_FALLBACK;
 
   const keys = getPathKeys(path);
   let current: unknown = obj;
@@ -30,12 +32,11 @@ export const getValueByPath = (
     if (isObject(current)) {
       current = current[key];
     } else {
-      return "-";
+      return EMPTY_VALUE_FALLBACK;
     }
   }
 
   return current !== null && current !== undefined && current !== ""
     ? String(current)
-    : "-";
+    : EMPTY_VALUE_FALLBACK;
 };
-

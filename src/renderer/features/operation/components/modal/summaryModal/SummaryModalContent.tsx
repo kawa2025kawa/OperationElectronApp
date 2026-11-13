@@ -1,122 +1,93 @@
 // src/renderer/features/operation/components/modal/summaryModal/SummaryModalContent.tsx
 
-import { memo, useCallback } from "react";
+import { memo, useMemo } from "react";
 import { clsx } from "clsx";
+import { tableFeatures, useTable, type ColumnDef } from "@tanstack/react-table";
 
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-import type { Column } from "@shared/types/table/tableType";
 import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes";
-import { useSummaryModalContent } from "./useSummaryModalContent";
+import type { JobStatus } from "@shared/types/operation/operationTypes";
+import {
+  toDisplayValue,
+  toMissingPropertyDisplayValue,
+} from "@renderer/features/operation/utils/operationDisplayUtils";
+
 import * as styles from "./summaryModalContent.css";
 
 interface SummaryModalContentProps {
   items?: SummaryDetailRow[];
 }
 
-const SUMMARY_COLUMNS: readonly Column<SummaryDetailRow>[] = [
-  { key: "kanriNo", label: "管理No", width: "15%" },
-  { key: "workName", label: "作業名", width: "55%" },
-  { key: "jobId", label: "Job ID", width: "15%" },
+const SUMMARY_TABLE_FEATURES = tableFeatures({});
+type SummaryTableFeaturesType = typeof SUMMARY_TABLE_FEATURES;
+
+interface SummaryColumnMeta {
+  readonly width: string;
+  readonly align?: keyof typeof styles.alignVariants;
+}
+
+const EMPTY_SUMMARY_ITEMS: SummaryDetailRow[] = [];
+
+function renderSummaryCell(value: unknown, exists = true) {
+  const displayValue = exists
+    ? toDisplayValue(value)
+    : toMissingPropertyDisplayValue();
+
+  return <span className={styles.cellText}>{displayValue}</span>;
+}
+
+const SUMMARY_COLUMNS: ColumnDef<SummaryTableFeaturesType, SummaryDetailRow>[] = [
   {
-    key: "status",
-    label: "ステータス",
-    width: "15%",
-    render: (item) => <StatusBadge status={item.status} />,
+    id: "kanriNo",
+    header: "管理No",
+    meta: { width: "15%", align: "left" } satisfies SummaryColumnMeta,
+    accessorFn: (row) => row.kanriNo,
+    cell: (info) => renderSummaryCell(info.getValue()),
+  },
+  {
+    id: "workName",
+    header: "作業名",
+    meta: { width: "55%", align: "left" } satisfies SummaryColumnMeta,
+    accessorFn: (row) => row.workName,
+    cell: (info) => renderSummaryCell(info.getValue()),
+  },
+  {
+    id: "jobId",
+    header: "Job ID",
+    meta: { width: "15%", align: "left" } satisfies SummaryColumnMeta,
+    accessorFn: (row) => row.jobId,
+    cell: (info) =>
+      renderSummaryCell(info.getValue(), "jobId" in info.row.original),
+  },
+  {
+    id: "status",
+    header: "ステータス",
+    meta: { width: "15%", align: "center" } satisfies SummaryColumnMeta,
+    accessorFn: (row) => row.status,
+    cell: (info) => (
+      <StatusBadge status={info.getValue<JobStatus | undefined>()} />
+    ),
   },
 ];
 
-interface TableColGroupProps {
-  columns: readonly Column<SummaryDetailRow>[];
-}
-
-const TableColGroup = memo(function TableColGroup({
-  columns,
-}: TableColGroupProps) {
-  return (
-    <colgroup>
-      {columns.map((column) => (
-        <col key={String(column.key)} style={{ width: column.width }} />
-      ))}
-    </colgroup>
-  );
-});
-
-interface TableRowProps {
-  item: SummaryDetailRow;
-  columns: readonly Column<SummaryDetailRow>[];
-  isSelected: boolean;
-  onRowClick?: (item: SummaryDetailRow) => void;
-  formatCellDisplay: (item: SummaryDetailRow, key: string) => string;
-  getRowState: (
-    isSelected: boolean,
-    hasClickHandler: boolean,
-  ) => "selected" | "clickable" | "idle";
-}
-
-const TableRowInner = ({
-  item,
-  columns,
-  isSelected,
-  onRowClick,
-  formatCellDisplay,
-  getRowState,
-}: TableRowProps) => {
-  const rowState = getRowState(isSelected, Boolean(onRowClick));
-
-  const handleClick = useCallback(() => {
-    onRowClick?.(item);
-  }, [item, onRowClick]);
-
-  return (
-    <tr
-      onClick={handleClick}
-      className={clsx(styles.tableRowBase, styles.tableRowStates[rowState])}
-    >
-      {columns.map((column) => {
-        const key = String(column.key);
-        const align = column.align ?? "left";
-        const alignClass =
-          styles.alignVariants[align] ?? styles.alignVariants.left;
-        const rendered = column.render ? column.render(item) : null;
-
-        if (rendered != null) {
-          return (
-            <td key={key} className={clsx(styles.tdBase, alignClass)}>
-              {rendered}
-            </td>
-          );
-        }
-
-        return (
-          <td key={key} className={clsx(styles.tdBase, alignClass)}>
-            <span className={styles.cellText}>
-              {formatCellDisplay(item, key)}
-            </span>
-          </td>
-        );
-      })}
-    </tr>
-  );
-};
-
-const TableRow = memo(
-  TableRowInner,
-  (prev, next) =>
-    prev.isSelected === next.isSelected &&
-    prev.item === next.item &&
-    prev.onRowClick === next.onRowClick,
-);
-
-TableRow.displayName = "SummaryTableRow";
-
 export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps> =
   memo((props) => {
-    const { isEmpty, items, formatCellDisplay, getRowState, getRowKey } =
-      useSummaryModalContent(props?.items);
+    const rawItems = props?.items;
+    const items = useMemo(
+      () => (Array.isArray(rawItems) ? rawItems : EMPTY_SUMMARY_ITEMS),
+      [rawItems],
+    );
 
-    if (isEmpty) {
+    const table = useTable({
+      features: SUMMARY_TABLE_FEATURES,
+      columns: SUMMARY_COLUMNS,
+      data: items,
+      getRowId: (row, index) => row.kanriNo || String(index),
+    });
+
+    if (items.length === 0) {
       return (
         <div className={styles.container}>
           <EmptyState />
@@ -124,46 +95,93 @@ export const SummaryModalContent: GlobalModalComponent<SummaryModalContentProps>
       );
     }
 
+    const leafColumns = table.getAllLeafColumns();
+    const tableRows = table.getRowModel().rows;
+
     return (
       <div className={styles.container}>
         <div className={styles.tableContainer}>
           <div className={styles.headerWrapper}>
             <table className={styles.headerTable}>
-              <TableColGroup columns={SUMMARY_COLUMNS} />
+              <colgroup>
+                {leafColumns.map((col) => {
+                  const meta = col.columnDef.meta as SummaryColumnMeta | undefined;
+                  return (
+                    <col
+                      key={col.id}
+                      style={{ width: meta?.width ?? "auto" }}
+                    />
+                  );
+                })}
+              </colgroup>
               <thead>
-                <tr>
-                  {SUMMARY_COLUMNS.map((column) => {
-                    const align = column.align ?? "left";
-                    const alignClass =
-                      styles.alignVariants[align] ?? styles.alignVariants.left;
+                {table.getHeaderGroups().map((group) => (
+                  <tr key={group.id}>
+                    {group.headers.map((header) => {
+                      const meta = header.column.columnDef.meta as
+                        | SummaryColumnMeta
+                        | undefined;
+                      const align = meta?.align ?? "left";
+                      const alignClass =
+                        styles.alignVariants[align] ?? styles.alignVariants.left;
 
-                    return (
-                      <th
-                        key={String(column.key)}
-                        className={clsx(styles.thBase, alignClass)}
-                      >
-                        {column.label}
-                      </th>
-                    );
-                  })}
-                </tr>
+                      return (
+                        <th
+                          key={header.id}
+                          className={clsx(styles.thBase, alignClass)}
+                        >
+                          {header.isPlaceholder ? null : (
+                            <table.FlexRender header={header} />
+                          )}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                ))}
               </thead>
             </table>
           </div>
 
           <div className={styles.bodyWrapper}>
             <table className={styles.bodyTable}>
-              <TableColGroup columns={SUMMARY_COLUMNS} />
+              <colgroup>
+                {leafColumns.map((col) => {
+                  const meta = col.columnDef.meta as SummaryColumnMeta | undefined;
+                  return (
+                    <col
+                      key={col.id}
+                      style={{ width: meta?.width ?? "auto" }}
+                    />
+                  );
+                })}
+              </colgroup>
               <tbody>
-                {items.map((item, index) => (
-                  <TableRow
-                    key={getRowKey(item, index)}
-                    item={item}
-                    columns={SUMMARY_COLUMNS}
-                    isSelected={false}
-                    formatCellDisplay={formatCellDisplay}
-                    getRowState={getRowState}
-                  />
+                {tableRows.map((row) => (
+                  <tr
+                    key={row.id}
+                    className={clsx(
+                      styles.tableRowBase,
+                      styles.tableRowStates.idle,
+                    )}
+                  >
+                    {row.getAllCells().map((cell) => {
+                      const meta = cell.column.columnDef.meta as
+                        | SummaryColumnMeta
+                        | undefined;
+                      const align = meta?.align ?? "left";
+                      const alignClass =
+                        styles.alignVariants[align] ?? styles.alignVariants.left;
+
+                      return (
+                        <td
+                          key={cell.id}
+                          className={clsx(styles.tdBase, alignClass)}
+                        >
+                          <table.FlexRender cell={cell} />
+                        </td>
+                      );
+                    })}
+                  </tr>
                 ))}
               </tbody>
             </table>

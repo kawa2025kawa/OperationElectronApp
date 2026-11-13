@@ -6,6 +6,11 @@ import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 const BADGE_WIDTH = "60px";
 
+const flexColumn = style({
+  display: "flex",
+  flexDirection: "column",
+});
+
 const rowBase = style({
   display: "flex",
   alignItems: "center",
@@ -21,68 +26,138 @@ const gridBase = style({
   alignItems: "center",
 });
 
-const ellipsisStyle = {
-  whiteSpace: "nowrap" as const,
-  overflow: "hidden" as const,
-  textOverflow: "ellipsis" as const,
-};
+export const mainContainer = style([
+  flexColumn,
+  {
+    height: "100%",
+    minHeight: 0,
+    gap: tokens.space.md,
+  },
+]);
 
-export const mainContainer = style({
+export const tabBar = style({
+  position: "relative",
   display: "flex",
-  flexDirection: "column",
-  height: "100%",
-  minHeight: 0,
-  gap: tokens.space.md,
+  alignItems: "center",
+  width: "100%",
+  height: "40px",
+  padding: tokens.space.xs,
+  borderRadius: tokens.radius.full,
+  backgroundColor: tokens.color.bg.base,
+  boxShadow: tokens.shadow.pressed.high,
+  boxSizing: "border-box",
+  flexShrink: 0,
   isolation: "isolate",
 });
 
-export const contentContainer = style({
-  display: "flex",
-  flexDirection: "column",
-  flex: 1,
-  minHeight: 0,
-  overflowY: "auto",
-  gap: tokens.space.md,
-  padding: "4px",
-  isolation: "isolate",
+export const tabSlider = style({
+  position: "absolute",
+  inset: 0,
+  borderRadius: tokens.radius.full,
+  backgroundColor: tokens.color.bg.base,
+  boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
+  zIndex: 0,
+  transform: "translateZ(0)",
+  willChange: "transform",
 
-  scrollbarGutter: "stable",
-  scrollbarWidth: "thin",
-  scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
+  "::before": {
+    content: '""',
+    position: "absolute",
+    inset: -1,
+    borderRadius: tokens.radius.full,
+    boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
+    pointerEvents: "none",
+  },
+});
+
+export const tabButton = style({
+  flex: 1,
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  height: "100%",
+  padding: "0 0.75rem",
+  border: "none",
+  borderRadius: tokens.radius.full,
+  outline: "none",
+  cursor: "pointer",
+  backgroundColor: "transparent",
+  fontFamily: tokens.font.base,
+  fontSize: tokens.font.size.sm,
+  fontWeight: tokens.font.weight.bold,
+  color: tokens.color.text.base,
+  transition: `color ${tokens.transition.normal}`,
+  whiteSpace: "nowrap",
 
   selectors: {
-    "&::-webkit-scrollbar": {
-      width: "4px",
-      height: "4px",
-      display: "block",
+    "&:hover": {
+      color: tokens.color.text.hover,
     },
-    "&::-webkit-scrollbar-track": {
-      backgroundColor: "transparent",
-    },
-    "&::-webkit-scrollbar-thumb": {
-      backgroundColor: tokens.color.accent.neonPink,
-      borderRadius: tokens.radius.full,
-    },
-    "&::-webkit-scrollbar-thumb:hover": {
-      backgroundColor: tokens.color.accent.neonPink,
+    "&:focus-visible": {
+      outline: `2px solid ${tokens.color.accent.neonCyan}`,
+      outlineOffset: "2px",
     },
   },
 });
 
-export const trTabWrapper = style({
-  display: "flex",
-  flexDirection: "column",
-  gap: tokens.space.md,
-  isolation: "isolate",
+export const buttonText = style({
+  position: "relative",
+  zIndex: 1,
+
+  selectors: {
+    [`${tabButton}[data-active] &`]: {
+      backgroundImage: tokens.gradient.brand,
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text",
+      color: "transparent",
+    },
+  },
 });
 
-export const terminalSection = style({
-  display: "flex",
-  flexDirection: "column",
-  gap: "6px",
-  width: "100%",
-  isolation: "isolate",
-});
+export const contentContainer = style([
+  flexColumn,
+  {
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    gap: tokens.space.md,
+    padding: "4px",
+    scrollbarGutter: "stable",
+    scrollbarWidth: "thin",
+    scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
+
+    selectors: {
+      "&::-webkit-scrollbar": {
+        width: "4px",
+        height: "4px",
+      },
+      "&::-webkit-scrollbar-track": {
+        backgroundColor: "transparent",
+      },
+      "&::-webkit-scrollbar-thumb": {
+        backgroundColor: tokens.color.accent.neonPink,
+        borderRadius: tokens.radius.full,
+      },
+    },
+  },
+]);
+
+export const trTabWrapper = style([
+  flexColumn,
+  {
+    gap: tokens.space.md,
+  },
+]);
+
+export const terminalSection = style([
+  flexColumn,
+  {
+    gap: "6px",
+    width: "100%",
+  },
+]);
 
 export const terminalHeaderRow = style([
   rowBase,
@@ -94,7 +169,6 @@ export const terminalHeaderRow = style([
     fontSize: tokens.font.fluid.md,
     fontWeight: tokens.font.weight.bold,
     color: tokens.color.text.hover,
-    isolation: "isolate",
   },
 ]);
 
@@ -104,12 +178,7 @@ export const terminalHeaderBadge = style({
   textAlign: "center",
 });
 
-export const terminalHeaderGrid = style([
-  gridBase,
-  {
-    ...ellipsisStyle,
-  },
-]);
+export const terminalHeaderGrid = gridBase;
 
 export const terminalRow = style([
   themeTransition,
@@ -162,7 +231,6 @@ export const terminalBadge = style({
   boxShadow: tokens.shadow.pressed.md,
   fontWeight: tokens.font.weight.bold,
   letterSpacing: "0.5px",
-  transition: `color ${tokens.transition.fast}`,
 });
 
 export const nonTrBadge = style([
@@ -193,9 +261,10 @@ export const terminalGrid = style([
 ]);
 
 export const cellValue = style({
-  ...ellipsisStyle,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
   fontWeight: tokens.font.weight.bold,
-  transition: `color ${tokens.transition.fast}`,
 });
 
 export const buttonContainer = style({
@@ -204,5 +273,4 @@ export const buttonContainer = style({
   flexWrap: "wrap",
   gap: tokens.space.sm,
   marginTop: tokens.space.xs,
-  isolation: "isolate",
 });

@@ -1,6 +1,6 @@
 // src/renderer/components/ui/modal/useGlobalModalManager.ts
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
@@ -25,20 +25,6 @@ export function useGlobalModalManager() {
     await config?.onConfirm?.();
   }, [config]);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isOpen) {
-        handleCancel();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOpen, handleCancel]);
-
   const modalRoot =
     typeof document !== "undefined"
       ? document.getElementById("modal-root")
@@ -54,9 +40,7 @@ export function useGlobalModalManager() {
   const isProcessing = config?.isProcessing;
 
   const computedRightActions = useMemo<ModalAction[]>(() => {
-    if (rightActions?.length) {
-      return rightActions;
-    }
+    if (rightActions?.length) return rightActions;
 
     if (confirmText || cancelText) {
       const actions: ModalAction[] = [

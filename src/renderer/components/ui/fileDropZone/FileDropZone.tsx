@@ -1,6 +1,7 @@
 // src/renderer/components/ui/fileDropZone/FileDropZone.tsx
 
-import { memo, type MouseEvent } from "react";
+import { memo, type SyntheticEvent } from "react";
+import { Menu } from "@base-ui/react/menu";
 
 import * as styles from "./fileDropZone.css";
 
@@ -11,7 +12,7 @@ import {
 
 import { useFileDropZone } from "./useFileDropZone";
 
-const stopPropagation = (event: MouseEvent) => {
+const stopPropagation = (event: SyntheticEvent) => {
   event.stopPropagation();
 };
 
@@ -31,9 +32,8 @@ export const FileDropZone = memo<FileDropZoneProps>(
       draggedFileIndex,
       dragOverFileIndex,
       openMenuPath,
-      menuContainerRef,
       mainInputRef,
-      handleToggleMenu,
+      handleMenuOpenChange,
       handleMainDragOver,
       handleMainDragLeave,
       handleMainDrop,
@@ -120,7 +120,7 @@ export const FileDropZone = memo<FileDropZoneProps>(
                 <div
                   key={file.path}
                   className={rowClassName}
-                  draggable={!disabled && canReorder}
+                  draggable={!disabled && canReorder && !isMenuOpen}
                   onDragStart={(e) => handleFileDragStart(e, index)}
                   onDragOver={(e) => handleFileDragOver(e, index)}
                   onDrop={(e) => handleFileDrop(e, index)}
@@ -138,47 +138,58 @@ export const FileDropZone = memo<FileDropZoneProps>(
                     </span>
                   </div>
 
-                  <div className="file-actions" onClick={stopPropagation}>
+                  <div
+                    className="file-actions"
+                    onClick={stopPropagation}
+                    onDoubleClick={stopPropagation}
+                    onMouseDown={stopPropagation}
+                    onPointerDown={stopPropagation}
+                  >
                     {canRename && (
-                      <div
-                        className={styles.dropdownWrapper}
-                        ref={isMenuOpen ? menuContainerRef : undefined}
-                      >
-                        <button
-                          type="button"
-                          className={styles.dropdownTrigger}
+                      <div className={styles.dropdownWrapper}>
+                        <Menu.Root
+                          open={isMenuOpen}
                           disabled={disabled}
-                          onClick={(e) => {
-                            stopPropagation(e);
-                            handleToggleMenu(file.path);
-                          }}
-                          title="発注エラーリスト名にリネーム"
+                          onOpenChange={(open) =>
+                            handleMenuOpenChange(file.path, open)
+                          }
                         >
-                          <span>ファイル名リネーム</span>
-                          <span className="arrow">▼</span>
-                        </button>
+                          <Menu.Trigger
+                            type="button"
+                            className={styles.dropdownTrigger}
+                            disabled={disabled}
+                            title="発注エラーリスト名にリネーム"
+                          >
+                            <span>ファイル名リネーム</span>
+                            <span className="arrow">▼</span>
+                          </Menu.Trigger>
 
-                        {isMenuOpen && (
-                          <div className={styles.dropdownMenu}>
-                            {ORDER_TIME_OPTIONS.map((option) => (
-                              <button
-                                key={option.value}
-                                type="button"
-                                className={styles.dropdownItem}
-                                disabled={disabled}
-                                onClick={(e) => {
-                                  stopPropagation(e);
-                                  handleRowSelectRename(
-                                    file.path,
-                                    option.value,
-                                  );
-                                }}
-                              >
-                                {option.value} ({option.timeLabel}発注)
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                          <Menu.Portal>
+                            <Menu.Positioner
+                              className={styles.dropdownPositioner}
+                              side="bottom"
+                              align="start"
+                              sideOffset={4}
+                            >
+                              <Menu.Popup className={styles.dropdownMenu}>
+                                {ORDER_TIME_OPTIONS.map((option) => (
+                                  <Menu.Item
+                                    key={option.value}
+                                    className={styles.dropdownItem}
+                                    onClick={() => {
+                                      handleRowSelectRename(
+                                        file.path,
+                                        option.value,
+                                      );
+                                    }}
+                                  >
+                                    {option.value} ({option.timeLabel}発注)
+                                  </Menu.Item>
+                                ))}
+                              </Menu.Popup>
+                            </Menu.Positioner>
+                          </Menu.Portal>
+                        </Menu.Root>
                       </div>
                     )}
 
@@ -186,8 +197,7 @@ export const FileDropZone = memo<FileDropZoneProps>(
                       <button
                         type="button"
                         className={styles.removeFileButton}
-                        onClick={(e) => {
-                          stopPropagation(e);
+                        onClick={() => {
                           handleRemoveFileItem(index);
                         }}
                         title="削除"

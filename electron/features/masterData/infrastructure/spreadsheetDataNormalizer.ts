@@ -1,5 +1,6 @@
 ﻿// electron/features/masterData/infrastructure/spreadsheetDataNormalizer.ts
 
+import { randomUUID } from "node:crypto";
 import type { SpreadsheetMasterData } from "../types/internalSpreadsheetMasterDataTypes";
 import type {
   IrregularMaster,
@@ -11,11 +12,25 @@ const DEFAULT_LINK_LABELS = ["リンク1", "リンク2", "リンク3"] as const;
 
 // レコードのキーと文字列値を正規化する。
 function normalizeRow<T extends object>(row: T): T {
+  if (row == null || typeof row !== "object") {
+    return {} as T;
+  }
+
   const normalized = Object.fromEntries(
-    Object.entries(row).map(([rawKey, value]) => [
-      rawKey.replace(/^\uFEFF/, "").trim(),
-      typeof value === "string" ? value.trim() : value,
-    ]),
+    Object.entries(row).map(([rawKey, value]) => {
+      const cleanKey = rawKey.replace(/^\uFEFF/, "").trim();
+      let cleanValue = value;
+
+      if (typeof value === "string") {
+        cleanValue = value.trim();
+      } else if (value === null || value === undefined) {
+        cleanValue = "";
+      } else if (typeof value === "number") {
+        cleanValue = String(value);
+      }
+
+      return [cleanKey, cleanValue];
+    }),
   );
 
   if (typeof normalized.gmail === "string") {
@@ -33,7 +48,22 @@ function normalizeRow<T extends object>(row: T): T {
 
 // レコード一覧を正規化する。
 export function normalizeSpreadsheetRows<T extends object>(rows: T[]): T[] {
+  if (!Array.isArray(rows)) {
+    return [];
+  }
+
   return rows.map(normalizeRow);
+}
+
+// アプリ内部で使用する行IDを付与する。
+function normalizeRowsWithId<T extends { id: string }>(rows: T[]): T[] {
+  return normalizeSpreadsheetRows(rows).map((row) => ({
+    ...row,
+    id:
+      typeof row.id === "string" && row.id.trim()
+        ? row.id.trim()
+        : randomUUID(),
+  }));
 }
 
 // シートのリンク先パスとラベルをOperationLink形式に変換する。
@@ -88,8 +118,8 @@ export function normalizeSpreadsheetMasterData(
 ): SpreadsheetMasterData {
   return {
     stores: normalizeSpreadsheetRows(data.stores ?? []),
-    kokyuhyos: normalizeSpreadsheetRows(data.kokyuhyos ?? []),
-    jugyoin: normalizeSpreadsheetRows(data.jugyoin ?? []),
+    kokyuhyos: normalizeRowsWithId(data.kokyuhyos ?? []),
+    jugyoin: normalizeRowsWithId(data.jugyoin ?? []),
     kokyuhyoTantous: normalizeSpreadsheetRows(data.kokyuhyoTantous ?? []),
     operations: normalizeSpreadsheetRows(data.operations ?? []).map(
       normalizeLinks,

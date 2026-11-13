@@ -16,7 +16,7 @@ import { createMasterDataCacheService } from "./masterDataCacheService";
 
 const SPREADSHEET_MASTER_CACHE_CONFIG = {
   fileName: "spreadsheet-master-data.json",
-  version: 2,
+  version: 3,
   logPrefix: "[SpreadsheetMasterDataManager]",
 } as const;
 

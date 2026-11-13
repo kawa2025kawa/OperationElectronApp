@@ -57,11 +57,15 @@ export const button = style([
       "&:hover:not(:disabled)::before": {
         opacity: 1,
       },
-      "&[aria-pressed='true']": {
+      "&[data-pressed]": {
         borderColor: tokens.color.border.accent,
       },
-      "&[aria-pressed='true']::before": {
+      "&[data-pressed]::before": {
         opacity: 1,
+      },
+      "&:focus-visible": {
+        outline: `2px solid ${tokens.color.accent.neonCyan}`,
+        outlineOffset: "2px",
       },
     },
   },
@@ -86,7 +90,7 @@ export const dot = style({
   transition: `background-color ${t}, opacity ${t}`,
 
   selectors: {
-    [`${button}[aria-pressed='true'] &`]: {
+    [`${button}[data-pressed] &`]: {
       backgroundColor: "transparent",
       backgroundImage: tokens.gradient.brand,
       opacity: 1,
@@ -108,7 +112,7 @@ export const textSpan = style({
   transition: `color ${t}`,
 
   selectors: {
-    [`${button}[aria-pressed='true'] &`]: {
+    [`${button}[data-pressed] &`]: {
       backgroundImage: tokens.gradient.brand,
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent",

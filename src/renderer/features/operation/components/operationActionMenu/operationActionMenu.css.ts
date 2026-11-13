@@ -1,22 +1,11 @@
-﻿import { style, keyframes } from "@vanilla-extract/css";
+﻿// src/renderer/features/operation/components/operationActionMenu/operationActionMenu.css.ts
+
+import { style } from "@vanilla-extract/css";
+
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 const t = tokens.transition.normal;
-
-// ============================================================
-// Keyframes
-// ============================================================
-
-const fadeIn = keyframes({
-  "0%": { opacity: 0 },
-  "100%": { opacity: 1 },
-});
-
-const fadeOut = keyframes({
-  "0%": { opacity: 1 },
-  "100%": { opacity: 0 },
-});
 
 // ============================================================
 // Menu Button
@@ -74,21 +63,30 @@ export const menuButton = style([
 ]);
 
 // ============================================================
+// Dropdown Positioner
+// ============================================================
+
+export const menuDropdownPositioner = style({
+  zIndex: `calc(${tokens.zIndex.dropdown} + 1)`,
+});
+
+// ============================================================
 // Dropdown Content
 // ============================================================
 
 export const menuDropdownContent = style([
   themeTransition,
   {
-    width: "var(--radix-dropdown-menu-trigger-width)",
+    width: "var(--anchor-width)",
     boxSizing: "border-box",
-    height: "200px",
-    maxHeight: "var(--radix-dropdown-menu-content-available-height, 60vh)",
+    minHeight: "200px",
+    maxHeight: "var(--available-height, 60vh)",
     overflowY: "auto",
-    scrollbarWidth: "none",
+    scrollbarWidth: "thin",
+    scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
-    gridTemplateRows: "repeat(2, 1fr)",
+    gridAutoRows: "minmax(80px, auto)",
     justifyItems: "center",
     alignItems: "center",
     gap: tokens.space.xs,
@@ -103,29 +101,38 @@ export const menuDropdownContent = style([
     WebkitBackdropFilter: `blur(${tokens.glass.contextMenu.blur}) saturate(${tokens.glass.contextMenu.saturation})`,
 
     boxShadow: tokens.shadow.contextMenu,
-    zIndex: `calc(${tokens.zIndex.dropdown} + 1)`,
+    opacity: 1,
+    transition: "opacity 180ms ease-out",
 
     selectors: {
       "&::-webkit-scrollbar": {
-        display: "none",
+        width: "4px",
       },
-      "&[data-state='open']": {
-        animation: `${fadeIn} 180ms ease-out`,
+      "&::-webkit-scrollbar-track": {
+        backgroundColor: "transparent",
       },
-      "&[data-state='closed']": {
-        animation: `${fadeOut} 150ms ease-out`,
+      "&::-webkit-scrollbar-thumb": {
+        backgroundColor: tokens.color.accent.neonPink,
+        borderRadius: tokens.radius.full,
+      },
+      "&[data-starting-style]": {
+        opacity: 0,
+      },
+      "&[data-ending-style]": {
+        opacity: 0,
       },
     },
   },
 ]);
 
 // ============================================================
-// Dropdown Item (丸ボタン)
+// Dropdown Item (丸ボタン：通常時は白、ホバー時のみブランドグラデーション)
 // ============================================================
 
 export const menuItem = style([
   themeTransition,
   {
+    position: "relative",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -135,32 +142,62 @@ export const menuItem = style([
     borderRadius: "50%",
     boxSizing: "border-box",
 
-    padding: tokens.space.xs,
-    backgroundColor: tokens.color.bg.base,
-
-    border: `2px solid ${tokens.color.text.onAccent}`,
+    padding: "2px",
+    border: "none",
+    backgroundColor: tokens.color.text.onAccent,
+    backgroundImage: "none",
     boxShadow: `${tokens.shadow.glow.white}, ${tokens.shadow.raised.low}`,
 
     outline: "none",
-    fontSize: tokens.font.size.xs,
-    fontWeight: tokens.font.weight.bold,
-    color: tokens.color.text.onAccent,
     cursor: "pointer",
-    textAlign: "center",
-    whiteSpace: "normal",
-    wordBreak: "normal",
-    overflowWrap: "normal",
-    lineHeight: 1.15,
 
-    transition: `box-shadow ${t}, border-color ${t}, color ${t}`,
+    transition: `box-shadow ${t}, background-color ${t}`,
 
     selectors: {
-      "&:hover, &:focus, &:focus-visible": {
-        borderColor: tokens.color.accent.neonCyan,
+      "&:hover, &[data-highlighted]": {
+        backgroundColor: "transparent",
+        backgroundImage: tokens.gradient.brand,
         boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-        color: tokens.color.accent.neonCyan,
         outline: "none",
       },
     },
   },
 ]);
+
+export const menuItemInner = style([
+  themeTransition,
+  {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    height: "100%",
+    borderRadius: "50%",
+    boxSizing: "border-box",
+    padding: tokens.space.xs,
+    backgroundColor: tokens.color.bg.base,
+  },
+]);
+
+export const menuItemLabel = style({
+  display: "inline-block",
+  fontSize: tokens.font.size.xs,
+  fontWeight: tokens.font.weight.bold,
+  color: tokens.color.text.onAccent,
+  textAlign: "center",
+  whiteSpace: "normal",
+  wordBreak: "normal",
+  overflowWrap: "normal",
+  lineHeight: 1.15,
+  transition: `color ${t}`,
+
+  selectors: {
+    [`${menuItem}:hover &, ${menuItem}[data-highlighted] &`]: {
+      backgroundImage: tokens.gradient.brand,
+      WebkitBackgroundClip: "text",
+      backgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      color: "transparent",
+    },
+  },
+});

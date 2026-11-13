@@ -35,7 +35,6 @@ export const mainContent = style({
   position: "relative",
   zIndex: 10,
   isolation: "isolate",
-  transform: "translateZ(0)",
 });
 
 export const viewWrapper = style({
@@ -45,6 +44,5 @@ export const viewWrapper = style({
   flexDirection: "column",
   position: "relative",
   isolation: "isolate",
-  transform: "translateZ(0)",
   overflow: "hidden",
 });

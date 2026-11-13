@@ -39,9 +39,6 @@ export const label = style({
   color: tokens.color.text.base,
 });
 
-/* ------------------------------------------------------------
- * ベース Input スタイル (凹: Inset/Pressed 表現)
- * ------------------------------------------------------------ */
 export const input = style({
   width: "100%",
   padding: `${tokens.space.sm} ${tokens.space.md}`,
@@ -67,17 +64,18 @@ export const input = style({
   },
 });
 
-/* ------------------------------------------------------------
- * テンプレート選択のみ 凸 (Raised) スタイル
- * ------------------------------------------------------------ */
 export const selectInput = style([
   input,
   {
     appearance: "none",
     WebkitAppearance: "none",
     MozAppearance: "none",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingRight: "32px",
     cursor: "pointer",
+    textAlign: "left",
     backgroundColor: tokens.color.bg.base,
     border: `1px solid ${tokens.color.border.default}`,
     boxShadow: tokens.shadow.raised.low,
@@ -92,17 +90,75 @@ export const selectInput = style([
         borderColor: tokens.color.accent.base,
         boxShadow: `${tokens.shadow.raised.low}, ${tokens.shadow.glow.brand}`,
       },
-      "&:focus": {
+      "&:focus-visible": {
+        outline: `2px solid ${tokens.color.accent.base}`,
+        outlineOffset: "2px",
         borderColor: tokens.color.accent.base,
         boxShadow: `${tokens.shadow.raised.low}, ${tokens.shadow.glow.brand}`,
+      },
+      "&:disabled": {
+        cursor: "not-allowed",
+        opacity: 0.7,
       },
     },
   },
 ]);
 
-/* ------------------------------------------------------------
- * Textarea スタイル (すべて input を継承して凹型)
- * ------------------------------------------------------------ */
+export const selectPositioner = style({
+  width: "var(--anchor-width)",
+  zIndex: `calc(${tokens.zIndex.modal} + 10)`,
+});
+
+export const selectPopup = style({
+  width: "100%",
+  maxHeight: "var(--available-height, 50vh)",
+  overflowY: "auto",
+  padding: tokens.space.xs,
+  borderRadius: tokens.radius.md,
+  backgroundColor: tokens.color.bg.base,
+  border: `1px solid ${tokens.color.border.default}`,
+  boxShadow: tokens.shadow.raised.high,
+  outline: "none",
+});
+
+export const selectList = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2px",
+});
+
+export const selectItem = style({
+  display: "flex",
+  alignItems: "center",
+  width: "100%",
+  minHeight: "36px",
+  padding: `${tokens.space.sm} ${tokens.space.md}`,
+  border: "none",
+  borderRadius: tokens.radius.sm,
+  backgroundColor: "transparent",
+  color: tokens.color.text.base,
+  fontSize: tokens.font.size.sm,
+  textAlign: "left",
+  cursor: "pointer",
+  outline: "none",
+  transition: `background-color ${t}, color ${t}`,
+
+  selectors: {
+    "&[data-highlighted]": {
+      backgroundColor: tokens.color.bg.frostedGlass,
+      color: tokens.color.accent.base,
+    },
+    "&[data-selected]": {
+      color: tokens.color.accent.base,
+      fontWeight: tokens.font.weight.bold,
+    },
+    "&[data-disabled]": {
+      opacity: 0.5,
+      cursor: "not-allowed",
+    },
+  },
+});
+
 const baseTextarea = style([
   input,
   {

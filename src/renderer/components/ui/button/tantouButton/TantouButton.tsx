@@ -3,14 +3,21 @@
 import { memo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@renderer/store";
-import { selectTantouMasters } from "@renderer/store/selectors/spreadsheetSelectors";
+import {
+  SHEETS,
+  type Tantou,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 import { TantouDetailContent } from "@renderer/features/spreadSheet/tantou/modal/TantouDetailContent";
 import * as styles from "./tantouButton.css";
+
+const EMPTY_TANTOU_MASTERS: readonly Tantou[] = Object.freeze([]);
 
 export const TantouButton = memo(() => {
   const { tantouData, openGlobalModal } = useAppStore(
     useShallow((state) => ({
-      tantouData: selectTantouMasters(state),
+      tantouData:
+        state.sheetData[SHEETS.KOKYUHYO_TANTOU.sheetName]?.data ??
+        EMPTY_TANTOU_MASTERS,
       openGlobalModal: state.openGlobalModal,
     })),
   );

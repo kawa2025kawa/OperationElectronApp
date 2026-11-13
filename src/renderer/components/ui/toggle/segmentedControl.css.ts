@@ -6,10 +6,6 @@ import { tokens } from "@renderer/styles/tokens/semantic.contract";
 const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
 
-// ============================================================
-// Container
-// ============================================================
-
 export const containerBase = style({
   position: "relative",
   display: "flex",
@@ -35,10 +31,6 @@ export const containerWidth = styleVariants({
   auto: { width: "auto" },
 });
 
-// ============================================================
-// Slider
-// ============================================================
-
 export const slider = style({
   position: "absolute",
   inset: 0,
@@ -60,10 +52,6 @@ export const slider = style({
     pointerEvents: "none",
   },
 });
-
-// ============================================================
-// Item Button
-// ============================================================
 
 export const itemButtonBase = style({
   flex: 1,
@@ -102,25 +90,21 @@ export const itemButtonBase = style({
     "&:hover": {
       color: tokens.color.text.hover,
     },
-    '&:hover:not([data-active="true"])::before': {
+    "&:hover:not([data-pressed])::before": {
       opacity: 1,
+    },
+    "&:focus-visible": {
+      outline: `2px solid ${tokens.color.accent.neonCyan}`,
+      outlineOffset: "2px",
     },
   },
 });
-
-// ============================================================
-// Item Button Size
-// ============================================================
 
 export const itemButtonSize = styleVariants({
   sm: { fontSize: tokens.font.size.xs },
   md: { fontSize: tokens.font.size.sm },
   lg: { fontSize: tokens.font.size.md },
 });
-
-// ============================================================
-// Item Text
-// ============================================================
 
 export const itemText = style({
   position: "relative",

@@ -11,20 +11,12 @@ import {
 import { useShallow } from "zustand/shallow";
 
 import { useAppStore } from "@renderer/store";
-import {
-  OPERATION_TABLE_SEARCH_KEYS,
-  selectFilteredTableRows,
-} from "@renderer/store/selectors/operationSelectors";
 import { JOB_STATUS } from "@shared/types/operation/operationTypes";
 
-/**
- * 運用テーブルのデータ・状態・操作・スクロール制御を提供するフック
- */
 export function useOperationTable() {
   const {
     currentView,
     currentMode,
-    selectedId,
     searchTerm,
     setSelectedId,
     tableRows,
@@ -38,7 +30,6 @@ export function useOperationTable() {
     useShallow((state) => ({
       currentView: state.currentView,
       currentMode: state.currentMode,
-      selectedId: state.selectedIds[state.currentMode] ?? "",
       searchTerm: state.searchTerm,
       setSelectedId: state.setSelectedId,
       tableRows: state.tableRows,
@@ -58,6 +49,7 @@ export function useOperationTable() {
   const scrollKey = `${currentView}:${currentMode}`;
 
   // データ取得
+
   useEffect(() => {
     const hasCache = (tableRowsByMode[currentMode]?.length ?? 0) > 0;
 
@@ -72,29 +64,28 @@ export function useOperationTable() {
     }
   }, [currentMode, tableRowsMode, tableRowsByMode, fetchTableData]);
 
-  // 表示行の絞り込み
-  const rows = useMemo(() => {
-    const activeRows =
-      tableRowsMode === currentMode
-        ? tableRows
-        : (tableRowsByMode[currentMode] ?? tableRows);
+  // 表示対象データ（切り替え直後の前モードデータ混入を防止）
 
-    return selectFilteredTableRows(
-      activeRows,
-      searchTerm,
-      OPERATION_TABLE_SEARCH_KEYS,
-    );
-  }, [tableRowsMode, currentMode, tableRows, tableRowsByMode, searchTerm]);
+  const rows = useMemo(() => {
+    if (tableRowsMode === currentMode) {
+      return tableRows;
+    }
+
+    return tableRowsByMode[currentMode] ?? [];
+  }, [tableRowsMode, currentMode, tableRows, tableRowsByMode]);
+
+  const isSwitchingMode =
+    isLoading || (tableRowsMode !== currentMode && rows.length === 0);
 
   // 行選択
+
   const handleRowClick = useCallback(
-    (kanriNo: string) => {
-      setSelectedId(currentMode, kanriNo);
-    },
+    (kanriNo: string) => setSelectedId(currentMode, kanriNo),
     [currentMode, setSelectedId],
   );
 
-  // ステータスを成功に変更
+  // ステータス更新
+
   const handleMarkSuccess = useCallback(
     (kanriNo: string) => {
       updateOperationStatus({
@@ -106,15 +97,18 @@ export function useOperationTable() {
     [updateOperationStatus],
   );
 
-  // データ再取得
+  // 再取得
+
   const refetch = useCallback(
     () => fetchTableData(currentMode, true),
     [currentMode, fetchTableData],
   );
 
-  // スクロール位置の復元
+  // スクロール位置復元
+
   const restoreScrollPosition = useCallback(() => {
     const container = containerRef.current;
+
     if (!container) return;
 
     const position = useAppStore.getState().scrollPositions[scrollKey];
@@ -123,27 +117,24 @@ export function useOperationTable() {
     container.scrollLeft = position?.left ?? 0;
   }, [scrollKey]);
 
-  // 表示モード切り替え時のスクロール位置復元
-  useLayoutEffect(() => {
-    if (
-      restoredScrollKeyRef.current === scrollKey ||
-      tableRowsMode !== currentMode ||
-      rows.length === 0
-    ) {
-      return;
-    }
+  const restoreInitialScrollPosition = useCallback(
+    (hasVisibleRows: boolean) => {
+      if (
+        restoredScrollKeyRef.current === scrollKey ||
+        tableRowsMode !== currentMode ||
+        !hasVisibleRows
+      ) {
+        return;
+      }
 
-    restoreScrollPosition();
-    restoredScrollKeyRef.current = scrollKey;
-  }, [
-    scrollKey,
-    currentMode,
-    tableRowsMode,
-    rows.length,
-    restoreScrollPosition,
-  ]);
+      restoreScrollPosition();
+      restoredScrollKeyRef.current = scrollKey;
+    },
+    [scrollKey, currentMode, tableRowsMode, restoreScrollPosition],
+  );
 
   // 検索解除時のスクロール位置復元
+
   useLayoutEffect(() => {
     const previousSearchTerm = previousSearchTermRef.current;
     previousSearchTermRef.current = searchTerm;
@@ -153,7 +144,8 @@ export function useOperationTable() {
     restoreScrollPosition();
   }, [searchTerm, rows, restoreScrollPosition]);
 
-  // スクロール位置の保存
+  // スクロール位置保存
+
   const handleScroll = useCallback(
     (event: UIEvent<HTMLDivElement>) => {
       if (searchTerm) return;
@@ -169,14 +161,16 @@ export function useOperationTable() {
   );
 
   return {
+    currentView,
     currentMode,
     rows,
-    selectedId,
-    isLoading,
+    searchTerm,
+    isLoading: isSwitchingMode,
     containerRef,
     handleScroll,
     handleRowClick,
     handleMarkSuccess,
+    restoreInitialScrollPosition,
     refetch,
   };
 }

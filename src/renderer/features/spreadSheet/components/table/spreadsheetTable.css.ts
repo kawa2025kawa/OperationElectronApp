@@ -1,42 +1,24 @@
-// src/renderer/features/spreadSheet/components/table/spreadsheetTable.css.ts
+﻿// src/renderer/features/spreadSheet/components/table/spreadSheetTable.css.ts
 
 import { createVar, style, styleVariants } from "@vanilla-extract/css";
+
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
-// ============================================================
-// Variables
-// ============================================================
-
 const rowTextColor = createVar();
 const rowBgColor = createVar();
-
-const rowTransition = `background-color ${tokens.transition.normal}, color ${tokens.transition.normal}, box-shadow ${tokens.transition.normal}`;
-
-const cellTextTransition = `color ${tokens.transition.normal}, filter ${tokens.transition.normal}`;
-
-// ============================================================
-// Shared Styles
-// ============================================================
-
-const commonTable = {
-  width: "100%",
-  tableLayout: "fixed",
-} satisfies Parameters<typeof style>[0];
-
-const rowEdgeRadius = {
-  "tr > &:first-child": {
-    borderRadius: `${tokens.radius.md} 0 0 ${tokens.radius.md}`,
-  },
-  "tr > &:last-child": {
-    borderRadius: `0 ${tokens.radius.md} ${tokens.radius.md} 0`,
-  },
-};
 
 const defaultRowVars = {
   [rowBgColor]: tokens.color.bg.base,
   [rowTextColor]: tokens.color.text.base,
 };
+
+const commonTable = {
+  width: "100%",
+  minWidth: "100%",
+  tableLayout: "fixed",
+  borderCollapse: "separate",
+} satisfies Parameters<typeof style>[0];
 
 const headerTextStyle = {
   color: tokens.color.text.base,
@@ -49,62 +31,24 @@ const headerTextStyle = {
   textOverflow: "ellipsis",
 } satisfies Parameters<typeof style>[0];
 
-const cardBorder = {
+const headerCardBase = {
+  backgroundColor: tokens.color.bg.base,
+  borderRadius: tokens.radius.md,
+  boxShadow: tokens.shadow.raised.high,
   borderTop: `1px solid ${tokens.color.border.highlight}`,
   borderLeft: `1px solid ${tokens.color.border.default}`,
   borderRight: `1px solid ${tokens.color.border.subtle}`,
   borderBottom: `1px solid ${tokens.color.border.subtle}`,
-};
-
-const cardSurface = {
-  backgroundColor: tokens.color.bg.base,
-  borderRadius: tokens.radius.md,
-  boxShadow: tokens.shadow.raised.high,
-  ...cardBorder,
   boxSizing: "border-box",
 } satisfies Parameters<typeof style>[0];
 
-// ============================================================
-// Layout
-// ============================================================
-
-export const container = style({
-  display: "flex",
-  flexDirection: "column",
-  width: "100%",
-  height: "100%",
-  overflow: "hidden",
-  outline: "none",
-  isolation: "isolate",
-});
-
-export const headerWrapper = style({
-  position: "relative",
-  zIndex: 10,
-  flexShrink: 0,
-  paddingInline: tokens.space.md,
-  borderRadius: tokens.radius.md,
-  boxShadow: tokens.shadow.raised.high,
-  isolation: "isolate",
-});
-
-export const bodyWrapper = style({
-  position: "relative",
-  zIndex: 0,
-  flex: 1,
-  minHeight: 0,
-  overflowX: "hidden",
-  overflowY: "auto",
-  paddingInline: tokens.space.md,
-  paddingTop: tokens.space.sm,
-  scrollbarGutter: "stable",
+const scrollbar = {
   scrollbarWidth: "thin",
   scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
-  isolation: "isolate",
-
   selectors: {
     "&::-webkit-scrollbar": {
       width: "4px",
+      height: "4px",
       display: "block",
     },
     "&::-webkit-scrollbar-track": {
@@ -118,29 +62,56 @@ export const bodyWrapper = style({
       backgroundColor: tokens.color.accent.neonPink,
     },
   },
+} satisfies Parameters<typeof style>[0];
+
+export const container = style({
+  display: "flex",
+  flexDirection: "column",
+  width: "100%",
+  height: "100%",
+  minHeight: 0,
+  overflow: "hidden",
+  outline: "none",
+  isolation: "isolate",
 });
 
-// ============================================================
-// Tables
-// ============================================================
-
-export const headerTable = style({
-  ...commonTable,
-  borderCollapse: "separate",
-  borderSpacing: 0,
+export const headerWrapper = style({
+  position: "relative",
+  zIndex: 2,
+  flexShrink: 0,
+  width: "100%",
+  overflow: "hidden",
+  paddingInline: tokens.space.md,
+  paddingTop: tokens.space.sm,
+  scrollbarGutter: "stable",
   backgroundColor: tokens.color.bg.base,
-  borderRadius: tokens.radius.md,
+  boxShadow: tokens.shadow.raised.high,
 });
 
-export const bodyTable = style({
+export const bodyWrapper = style({
+  position: "relative",
+  zIndex: 0,
+  flex: 1,
+  minHeight: 0,
+  overflow: "auto",
+  paddingInline: tokens.space.md,
+  scrollbarGutter: "stable",
+  ...scrollbar,
+});
+
+export const table = style({
   ...commonTable,
-  borderCollapse: "separate",
   borderSpacing: `0 ${tokens.space.md}`,
 });
 
-// ============================================================
-// Rows
-// ============================================================
+export const headerTable = style({
+  ...commonTable,
+  borderSpacing: 0,
+});
+
+export const tableHeader = style({
+  backgroundColor: tokens.color.bg.base,
+});
 
 export const tableRowBase = style([
   themeTransition,
@@ -150,96 +121,58 @@ export const tableRowBase = style([
     color: rowTextColor,
     boxShadow: tokens.shadow.raised.low,
     outline: "none",
-    transition: rowTransition,
+    transition: `background-color ${tokens.transition.normal}, color ${tokens.transition.normal}, box-shadow ${tokens.transition.normal}`,
   },
 ]);
 
 export const tableRowStates = styleVariants({
   idle: {
-    vars: {
-      ...defaultRowVars,
-    },
+    vars: defaultRowVars,
   },
-
   clickable: {
-    vars: {
-      ...defaultRowVars,
-    },
+    vars: defaultRowVars,
     cursor: "pointer",
-
     selectors: {
       "&:hover": {
-        vars: {
-          [rowTextColor]: tokens.color.text.hover,
-        },
+        vars: { [rowTextColor]: tokens.color.text.hover },
         boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
         zIndex: 1,
       },
-
       "&:active": {
-        vars: {
-          [rowTextColor]: tokens.color.text.hover,
-        },
+        vars: { [rowTextColor]: tokens.color.text.hover },
         boxShadow: tokens.shadow.pressed.low,
       },
     },
   },
-
-  selected: {
-    vars: {
-      ...defaultRowVars,
-      [rowTextColor]: tokens.color.text.base,
-    },
-    boxShadow: tokens.shadow.pressed.low,
-    zIndex: 1,
-  },
-
-  disabled: {
-    vars: {
-      ...defaultRowVars,
-    },
-    opacity: 0.5,
-    pointerEvents: "none",
-    filter: "grayscale(0.8)",
-  },
 });
-
-// ============================================================
-// Header
-// ============================================================
-
-export const thBase = style([
-  themeTransition,
-  {
-    height: "56px",
-    paddingInline: tokens.space.lg,
-    backgroundColor: "transparent",
-    ...headerTextStyle,
-    verticalAlign: "middle",
-    selectors: rowEdgeRadius,
-  },
-]);
 
 export const thCellBase = style({
   padding: 0,
   verticalAlign: "top",
   border: "none",
-  backgroundColor: "transparent",
+  borderBottom: `1px solid ${tokens.color.border.subtle}`,
+  backgroundColor: tokens.color.bg.base,
 });
 
-// ============================================================
-// Header Cards
-// ============================================================
+export const thPlaceholderContent = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+  height: "64px",
+  boxSizing: "border-box",
+});
 
 export const thCardSingle = style([
   themeTransition,
   {
     display: "flex",
     alignItems: "center",
+    minWidth: 0,
     height: "64px",
     marginInline: "3px",
     paddingInline: tokens.space.lg,
-    ...cardSurface,
+    ...headerCardBase,
     ...headerTextStyle,
   },
 ]);
@@ -247,81 +180,95 @@ export const thCardSingle = style([
 export const thCardGroup = style([
   themeTransition,
   {
-    marginInline: "3px",
-    ...cardSurface,
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
+    height: "64px",
+    minWidth: 0,
     overflow: "hidden",
+    ...headerCardBase,
   },
 ]);
 
-export const thCardTitle = style({
-  height: "32px",
-  lineHeight: "32px",
-  textAlign: "center",
-  color: tokens.color.text.base,
-  fontSize: tokens.font.size.sm,
-  fontWeight: tokens.font.weight.bold,
-  letterSpacing: "0.05em",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  paddingInline: tokens.space.sm,
+export const thCardGroupTop = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  height: "30px",
+  flexShrink: 0,
+  paddingInline: tokens.space.md,
+  borderBottom: `1px solid ${tokens.color.border.default}`,
+  ...headerTextStyle,
 });
 
 export const thCardSubRow = style({
   display: "flex",
+  flex: 1,
   width: "100%",
-  height: "32px",
+  minWidth: 0,
+  overflow: "hidden",
 });
 
 export const thCardSubCell = style({
   display: "flex",
   alignItems: "center",
-  paddingInline: tokens.space.sm,
-  color: tokens.color.text.base,
-  fontSize: tokens.font.size.xs,
-  fontWeight: tokens.font.weight.bold,
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
+  minWidth: 0,
+  paddingInline: tokens.space.lg,
   boxSizing: "border-box",
+  ...headerTextStyle,
 });
 
-// ============================================================
-// Data Cells
-// ============================================================
+export const thRowCard = style({});
+
+export const thCellStandard = style({
+  height: "64px",
+  paddingInline: tokens.space.lg,
+  backgroundColor: tokens.color.bg.base,
+  borderTop: `1px solid ${tokens.color.border.highlight}`,
+  borderBottom: `1px solid ${tokens.color.border.subtle}`,
+  boxSizing: "border-box",
+  verticalAlign: "middle",
+  ...headerTextStyle,
+
+  selectors: {
+    [`${thRowCard} &:first-child`]: {
+      borderLeft: `1px solid ${tokens.color.border.default}`,
+      borderTopLeftRadius: tokens.radius.md,
+      borderBottomLeftRadius: tokens.radius.md,
+    },
+    [`${thRowCard} &:last-child`]: {
+      borderRight: `1px solid ${tokens.color.border.subtle}`,
+      borderTopRightRadius: tokens.radius.md,
+      borderBottomRightRadius: tokens.radius.md,
+    },
+  },
+});
+
+export const dayTone = styleVariants({
+  saturday: { color: "#3b9eff" },
+  holiday: { color: "#ff4d4f" },
+});
 
 export const tdBase = style({
   paddingInline: tokens.space.lg,
   color: "inherit",
   fontSize: tokens.font.size.md,
   fontWeight: tokens.font.weight.medium,
-  selectors: rowEdgeRadius,
+  selectors: {
+    "tr > &:first-child": {
+      borderRadius: `${tokens.radius.md} 0 0 ${tokens.radius.md}`,
+    },
+    "tr > &:last-child": {
+      borderRadius: `0 ${tokens.radius.md} ${tokens.radius.md} 0`,
+    },
+  },
 });
-
-// ============================================================
-// Alignment
-// ============================================================
 
 export const alignVariants = styleVariants({
-  left: {
-    textAlign: "left",
-    justifyContent: "flex-start",
-  },
-  center: {
-    textAlign: "center",
-    justifyContent: "center",
-  },
-  right: {
-    textAlign: "right",
-    justifyContent: "flex-end",
-  },
+  left: { textAlign: "left", justifyContent: "flex-start" },
+  center: { textAlign: "center", justifyContent: "center" },
+  right: { textAlign: "right", justifyContent: "flex-end" },
 });
-
-// ============================================================
-// Cell Text
-// ============================================================
 
 export const cellText = style({
   display: "inline-block",
@@ -330,17 +277,7 @@ export const cellText = style({
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   verticalAlign: "middle",
-  transition: cellTextTransition,
-
-  selectors: {
-    [`${tableRowStates.selected} &`]: {
-      backgroundImage: tokens.gradient.brand,
-      backgroundClip: "text",
-      WebkitBackgroundClip: "text",
-      color: "transparent",
-      WebkitTextFillColor: "transparent",
-    },
-  },
+  transition: `color ${tokens.transition.normal}, filter ${tokens.transition.normal}`,
 });
 
 export const cellTextHoliday = style({

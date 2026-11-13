@@ -1,10 +1,6 @@
 // src/renderer/features/spreadSheet/hooks/useSpreadSheetTabData.ts
 
 import { useMemo, useState } from "react";
-import {
-  EMPTY_VALUE_FALLBACK,
-  type SpreadSheetEntity,
-} from "@shared/types/spreadsheet/spreadsheetTypes";
 import { getValueByPath } from "@shared/utils/getValueByPath";
 
 export interface TabGroupConfig<K extends string = string> {
@@ -28,7 +24,7 @@ export interface TabGroupDisplay {
 const EMPTY_ITEMS: readonly TabDisplayItem[] = Object.freeze([]);
 
 export function useSpreadSheetTabData<
-  T extends SpreadSheetEntity,
+  T extends object,
   K extends string = string,
 >(data: T | undefined, groupConfigs: readonly TabGroupConfig<K>[]) {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -38,20 +34,10 @@ export function useSpreadSheetTabData<
       data
         ? groupConfigs.map((group) => ({
             title: group.title,
-            items: group.items.map(({ key, label }) => {
-              const value = getValueByPath(
-                data as Record<string, unknown>,
-                key,
-              );
-
-              return {
-                label,
-                value:
-                  value === "" || value == null
-                    ? EMPTY_VALUE_FALLBACK
-                    : String(value),
-              };
-            }),
+            items: group.items.map(({ key, label }) => ({
+              label,
+              value: getValueByPath(data, key),
+            })),
           }))
         : [],
     [data, groupConfigs],

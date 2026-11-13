@@ -24,11 +24,15 @@ const StatusSummaryButton = memo(function StatusSummaryButton({
   item,
   onClick,
 }: StatusSummaryButtonProps) {
+  const handleButtonClick = useCallback(() => {
+    onClick(item.key, item.label);
+  }, [onClick, item.key, item.label]);
+
   return (
     <button
       type="button"
       className={styles.statusItem}
-      onClick={() => onClick(item.key, item.label)}
+      onClick={handleButtonClick}
     >
       <span className={`${styles.valueBadge} ${item.badgeClass}`}>
         {item.displayValue}

@@ -1,9 +1,9 @@
-﻿// src/renderer/features/spreadSheet/components/modal/useScheduleModalContent.ts
+// src/renderer/features/spreadSheet/components/modal/useScheduleModalContent.ts
 
 import { useCallback, useMemo } from "react";
 import type { Jugyoin } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { Kokyuhyo } from "@shared/types/spreadsheet/spreadsheetTypes";
-import { EMPTY_VALUE_FALLBACK } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
 import { systemIpcService } from "@renderer/services/systemIpcService";
 import {
   formatDateWithDay,

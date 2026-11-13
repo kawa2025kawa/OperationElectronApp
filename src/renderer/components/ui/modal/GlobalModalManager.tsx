@@ -1,8 +1,7 @@
 // src/renderer/components/ui/modal/GlobalModalManager.tsx
 
 import { useMemo } from "react";
-import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { Dialog } from "@base-ui/react/dialog";
 
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
@@ -43,33 +42,30 @@ export const GlobalModalManager = () => {
     return null;
   }
 
-  return createPortal(
-    <AnimatePresence>
-      {state.isOpen && state.content && (
-        <motion.div
-          key="modal-overlay"
-          className={styles.overlay}
-          onClick={actions.handleCancel}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
-        >
-          <motion.div
-            key="modal-window"
+  return (
+    <Dialog.Root
+      open={state.isOpen && Boolean(state.content)}
+      onOpenChange={(open) => {
+        if (!open) {
+          actions.handleCancel();
+        }
+      }}
+    >
+      <Dialog.Portal container={state.modalRoot}>
+        <Dialog.Backdrop className={styles.overlay} />
+
+        <Dialog.Viewport className={styles.viewport}>
+          <Dialog.Popup
             className={styles.modalWindow}
             style={{
               width: state.dimensions.width,
               height: state.dimensions.height,
             }}
-            onClick={(event) => event.stopPropagation()}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
           >
             <header className={styles.header}>
-              <h2 className={styles.title}>{state.title}</h2>
+              <Dialog.Title className={styles.title}>
+                {state.title}
+              </Dialog.Title>
 
               <CloseButton
                 onClick={actions.handleCancel}
@@ -88,10 +84,9 @@ export const GlobalModalManager = () => {
             {!state.hideFooter && (
               <footer className={styles.footer}>{footerContent}</footer>
             )}
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    state.modalRoot,
+          </Dialog.Popup>
+        </Dialog.Viewport>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 };

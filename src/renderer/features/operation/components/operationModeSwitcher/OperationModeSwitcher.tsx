@@ -1,6 +1,6 @@
 ﻿// src/renderer/features/operation/components/operationModeSwitcher/OperationModeSwitcher.tsx
 
-import { memo, useMemo, useTransition } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { SegmentedControl } from "@renderer/components/ui/toggle/SegmentedControl";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
@@ -18,7 +18,20 @@ export const OperationModeSwitcher = memo(function OperationModeSwitcher({
   currentMode,
   onModeChange,
 }: OperationModeSwitcherProps) {
-  const [, startTransition] = useTransition();
+  const [optimisticMode, setOptimisticMode] = useState<ViewMode>(currentMode);
+  const rafIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setOptimisticMode(currentMode);
+  }, [currentMode]);
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
 
   const items = useMemo(
     () =>
@@ -29,18 +42,31 @@ export const OperationModeSwitcher = memo(function OperationModeSwitcher({
     [],
   );
 
-  const handleModeChange = (mode: ViewMode): void => {
-    if (mode === currentMode) return;
-    startTransition(() => {
-      onModeChange(mode);
-    });
-  };
+  const handleModeChange = useCallback(
+    (mode: ViewMode): void => {
+      if (mode === optimisticMode) return;
+
+      setOptimisticMode(mode);
+
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = requestAnimationFrame(() => {
+          rafIdRef.current = null;
+          onModeChange(mode);
+        });
+      });
+    },
+    [optimisticMode, onModeChange],
+  );
 
   return (
     <SegmentedControl
       id="operationMode"
       items={items}
-      value={currentMode}
+      value={optimisticMode}
       onChange={handleModeChange}
       size="md"
       fullWidth

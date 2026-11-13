@@ -3,7 +3,6 @@
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
-// 0.8秒かけてふわっと光らせるイージング
 const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
 
@@ -20,13 +19,10 @@ export const actionButton = style({
   cursor: "pointer",
   backgroundColor: tokens.color.bg.base,
   boxShadow: tokens.shadow.raised.md,
-  // 独立した描画レイヤーとして隔離し、Footer 全体へのリペイント波及を遮断
   isolation: "isolate",
   transform: "translateZ(0)",
-  // 位置変化（transform）は一切含めず、背景・枠線・影のみ遷移
   transition: `background-color ${t}, border-color ${smoothGlow}, box-shadow ${t}`,
 
-  // シアンの光（外側グロー）とインセット影を重ねるレイヤー
   "::before": {
     content: '""',
     position: "absolute",
@@ -40,16 +36,18 @@ export const actionButton = style({
   },
 
   selectors: {
-    // ホバー時に 0.8秒かけてふわっと光らせる
     "&:hover::before": {
       opacity: 1,
     },
-    // ON (isActive) 状態のスタイル
-    "&[aria-pressed='true']": {
+    "&[data-pressed]": {
       borderColor: tokens.color.border.accent,
     },
-    "&[aria-pressed='true']::before": {
+    "&[data-pressed]::before": {
       opacity: 1,
+    },
+    "&:focus-visible": {
+      outline: `2px solid ${tokens.color.accent.neonCyan}`,
+      outlineOffset: "2px",
     },
   },
 });
@@ -63,7 +61,7 @@ export const actionButtonText = style({
   transition: `color ${t}`,
 
   selectors: {
-    [`${actionButton}[aria-pressed='true'] &`]: {
+    [`${actionButton}[data-pressed] &`]: {
       color: tokens.color.accent.base,
     },
   },

@@ -3,9 +3,16 @@
 import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
 
-import type { SummaryDetailRow } from "@shared/types/statusSummary/statusSummaryTypes";
+import type {
+  SummaryDetailRow,
+  SummaryDisplayKey,
+} from "@shared/types/statusSummary/statusSummaryTypes";
+import type {
+  JobStatus,
+  OperationViewItem,
+} from "@shared/types/operation/operationTypes";
+import { isRunningStatus } from "@shared/utils/statusUtils";
 import { useAppStore } from "@renderer/store";
-import type { SummaryDisplayKey } from "@shared/types/statusSummary/statusSummaryTypes";
 import { operationService } from "@renderer/features/operation/service/operationService";
 
 import * as styles from "./statusSummary.css";
@@ -28,6 +35,63 @@ const getBadgeClass = (key: SummaryDisplayKey): string => {
   return styles.valueBadgeVariants[key as StatusSummaryBadgeKey];
 };
 
+function matchesSummaryFilter(
+  filterKey: SummaryDisplayKey,
+  status: JobStatus | undefined,
+): boolean {
+  if (filterKey === "total") {
+    return true;
+  }
+
+  if (filterKey === "progress") {
+    return isRunningStatus(status);
+  }
+
+  return status === filterKey;
+}
+
+function buildLocalSummaryDetails(
+  filterKey: SummaryDisplayKey,
+  operationRows: readonly OperationViewItem[],
+  todayRows: readonly OperationViewItem[],
+): SummaryDetailRow[] | null {
+  if (operationRows.length === 0 && todayRows.length === 0) {
+    return null;
+  }
+
+  const seen = new Set<string>();
+  const results: SummaryDetailRow[] = [];
+
+  const collect = (rows: readonly OperationViewItem[]) => {
+    for (const item of rows) {
+      const kanriNo = item.kanriNo?.trim();
+      if (!kanriNo || seen.has(kanriNo)) {
+        continue;
+      }
+      seen.add(kanriNo);
+
+      if (!matchesSummaryFilter(filterKey, item.status)) {
+        continue;
+      }
+
+      results.push({
+        kanriNo,
+        workName: item.workName?.trim() || `No.${kanriNo}`,
+        status: item.status,
+        comment: item.comment ?? undefined,
+        ...("jobId" in item && item.jobId !== undefined
+          ? { jobId: String(item.jobId).trim() }
+          : {}),
+      });
+    }
+  };
+
+  collect(operationRows);
+  collect(todayRows);
+
+  return results;
+}
+
 export const useStatusSummary = ({ openModal }: UseStatusSummaryParams) => {
   const summary = useAppStore(useShallow((state) => state.summary));
 
@@ -47,6 +111,22 @@ export const useStatusSummary = ({ openModal }: UseStatusSummaryParams) => {
   const handleClick = useCallback(
     async (key: SummaryDisplayKey, label: string) => {
       if (key === "progress") {
+        return;
+      }
+
+      const { tableRowsByMode } = useAppStore.getState();
+      const localItems = buildLocalSummaryDetails(
+        key,
+        tableRowsByMode.operation,
+        tableRowsByMode.today,
+      );
+
+      if (localItems !== null) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            openModal(localItems, label);
+          });
+        });
         return;
       }
 

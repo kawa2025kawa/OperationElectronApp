@@ -2,6 +2,7 @@
 
 import { memo, useMemo } from "react";
 import { motion } from "motion/react";
+import { Tabs } from "@base-ui/react/tabs";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Tantou } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
@@ -74,19 +75,20 @@ export const TantouDetailContent: GlobalModalComponent<TantouDetailContentProps>
     }, []);
 
     return (
-      <div className={styles.container}>
-        <div className={styles.tabBar}>
+      <Tabs.Root
+        className={styles.container}
+        value={selectedIndex}
+        onValueChange={(value) => setSelectedIndex(Number(value))}
+      >
+        <Tabs.List className={styles.tabBar}>
           {tabs.map((tab) => {
             const isActive = selectedIndex === tab.id;
 
             return (
-              <button
+              <Tabs.Tab
                 key={tab.id}
-                type="button"
+                value={tab.id}
                 className={styles.tabButton}
-                data-active={isActive}
-                aria-pressed={isActive}
-                onClick={() => setSelectedIndex(tab.id)}
               >
                 {isActive && (
                   <motion.div
@@ -101,19 +103,19 @@ export const TantouDetailContent: GlobalModalComponent<TantouDetailContentProps>
                 )}
 
                 <span className={styles.buttonText}>{tab.label}</span>
-              </button>
+              </Tabs.Tab>
             );
           })}
-        </div>
+        </Tabs.List>
 
-        <div className={styles.listContainer}>
+        <Tabs.Panel className={styles.listContainer} value={selectedIndex}>
           <div className={styles.detailList}>
             {displayItems.map(({ label, value }) => (
               <TantouDetailRow key={label} label={label} value={value} />
             ))}
           </div>
-        </div>
-      </div>
+        </Tabs.Panel>
+      </Tabs.Root>
     );
   });
 

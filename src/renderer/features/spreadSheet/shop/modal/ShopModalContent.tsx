@@ -1,7 +1,8 @@
 ﻿// src/renderer/features/spreadSheet/shop/modal/ShopModalContent.tsx
 
 import { memo, useMemo } from "react";
-import { SegmentedControl } from "@renderer/components/ui/toggle/SegmentedControl";
+import { motion } from "motion/react";
+import { Tabs } from "@base-ui/react/tabs";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Shop } from "@shared/types/spreadsheet/spreadsheetTypes";
@@ -10,8 +11,8 @@ import {
   TERMINAL_TYPES,
   TERMINAL_FIELDS,
   SHOP_MODAL_CONSTANTS,
-  EMPTY_VALUE_FALLBACK,
 } from "./shopModalConfig";
+import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
 import * as styles from "./shopModalContent.css";
 
 export interface ShopModalContentProps {
@@ -88,17 +89,40 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
     );
 
     return (
-      <div className={styles.mainContainer}>
-        <SegmentedControl
-          id="shopModalTabs"
-          items={tabItems}
-          value={selectedIndex}
-          onChange={setSelectedIndex}
-          size="md"
-          fullWidth
-        />
+      <Tabs.Root
+        className={styles.mainContainer}
+        value={selectedIndex}
+        onValueChange={(value) => setSelectedIndex(Number(value))}
+      >
+        <Tabs.List className={styles.tabBar}>
+          {tabItems.map((tab) => {
+            const isActive = selectedIndex === tab.id;
 
-        <div className={styles.contentContainer}>
+            return (
+              <Tabs.Tab
+                key={tab.id}
+                value={tab.id}
+                className={styles.tabButton}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="shopModalTabSlider"
+                    className={styles.tabSlider}
+                    transition={{
+                      type: "spring",
+                      stiffness: 380,
+                      damping: 30,
+                    }}
+                  />
+                )}
+
+                <span className={styles.buttonText}>{tab.label}</span>
+              </Tabs.Tab>
+            );
+          })}
+        </Tabs.List>
+
+        <Tabs.Panel className={styles.contentContainer} value={selectedIndex}>
           {isTimeRecorderTab ? (
             <div className={styles.trTabWrapper}>
               <div className={styles.terminalSection}>
@@ -144,8 +168,8 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
               ))}
             </div>
           )}
-        </div>
-      </div>
+        </Tabs.Panel>
+      </Tabs.Root>
     );
   });
 

@@ -25,9 +25,6 @@ export const container = style({
   isolation: "isolate",
 });
 
-// ============================================================
-// Tab Switcher Container & Slider
-// ============================================================
 export const tabBar = style({
   position: "relative",
   display: "flex",
@@ -90,6 +87,10 @@ export const tabButton = style({
     "&:hover": {
       color: tokens.color.text.hover,
     },
+    "&:focus-visible": {
+      outline: `2px solid ${tokens.color.accent.neonCyan}`,
+      outlineOffset: "2px",
+    },
   },
 });
 
@@ -98,7 +99,7 @@ export const buttonText = style({
   zIndex: 1,
   transition: `color ${t}`,
   selectors: {
-    [`${tabButton}[data-active="true"] &`]: {
+    [`${tabButton}[data-active] &`]: {
       backgroundImage: tokens.gradient.brand,
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent",
@@ -108,9 +109,6 @@ export const buttonText = style({
   },
 });
 
-// ============================================================
-// Detail List & Rows
-// ============================================================
 export const listContainer = style({
   display: "flex",
   flexDirection: "column",

@@ -2,6 +2,9 @@
 
 import { memo } from "react";
 import { motion } from "motion/react";
+import { Toggle } from "@base-ui/react/toggle";
+import { ToggleGroup } from "@base-ui/react/toggle-group";
+
 import * as styles from "./segmentedControl.css";
 
 interface SegmentedControlItem<T extends string | number> {
@@ -18,6 +21,10 @@ export interface SegmentedControlProps<T extends string | number> {
   readonly size?: "sm" | "md" | "lg";
   readonly fullWidth?: boolean;
   readonly className?: string;
+}
+
+function getItemValue<T extends string | number>(value: T): string {
+  return `${typeof value}:${String(value)}`;
 }
 
 function SegmentedControlInner<T extends string | number>({
@@ -43,19 +50,38 @@ function SegmentedControlInner<T extends string | number>({
     styles.itemButtonSize[size],
   ].join(" ");
 
+  const selectedItem = items.find((item) => item.id === value);
+
+  const handleValueChange = (groupValue: string[]) => {
+    const selectedValue = groupValue[0];
+
+    if (selectedValue === undefined) return;
+
+    const selected = items.find(
+      (item) => getItemValue(item.id) === selectedValue,
+    );
+
+    if (selected) {
+      onChange(selected.id);
+    }
+  };
+
   return (
-    <div className={containerClasses}>
+    <ToggleGroup
+      className={containerClasses}
+      value={selectedItem ? [getItemValue(selectedItem.id)] : []}
+      onValueChange={handleValueChange}
+      aria-label="表示モード"
+      orientation="horizontal"
+    >
       {items.map((item) => {
         const isActive = value === item.id;
 
         return (
-          <button
-            key={String(item.id)}
-            type="button"
+          <Toggle
+            key={getItemValue(item.id)}
+            value={getItemValue(item.id)}
             className={buttonClasses}
-            data-active={isActive}
-            aria-pressed={isActive}
-            onClick={() => onChange(item.id)}
           >
             {isActive && (
               <motion.div
@@ -72,10 +98,10 @@ function SegmentedControlInner<T extends string | number>({
             <span className={styles.itemText} data-active={isActive}>
               {item.label}
             </span>
-          </button>
+          </Toggle>
         );
       })}
-    </div>
+    </ToggleGroup>
   );
 }
 

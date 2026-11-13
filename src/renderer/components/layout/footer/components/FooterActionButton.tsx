@@ -1,6 +1,8 @@
 // src/renderer/components/layout/footer/components/FooterActionButton.tsx
 
 import { memo } from "react";
+import { Toggle } from "@base-ui/react/toggle";
+
 import * as styles from "./footerActionButton.css";
 
 interface FooterActionButtonProps {
@@ -15,13 +17,13 @@ export const FooterActionButton = memo(function FooterActionButton({
   onClick,
 }: FooterActionButtonProps) {
   return (
-    <button
+    <Toggle
       type="button"
       className={styles.actionButton}
-      aria-pressed={isActive}
+      pressed={isActive}
       onClick={onClick}
     >
       <span className={styles.actionButtonText}>{label}</span>
-    </button>
+    </Toggle>
   );
 });

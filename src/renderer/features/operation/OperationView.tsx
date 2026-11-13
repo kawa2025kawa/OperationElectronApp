@@ -14,16 +14,8 @@ import { OperationInfoRow } from "./components/operationInfoRow/OperationInfoRow
 import * as styles from "./operationView.css";
 
 export const OperationView = memo(function OperationView() {
-  const {
-    currentMode,
-    selectedId,
-    selectedItem,
-    status,
-    activeActions,
-    isMenuVisible,
-    setMode,
-    executeAction,
-  } = useOperationViewLogic();
+  const { currentMode, selectedId, selectedItem, status, setMode } =
+    useOperationViewLogic();
 
   const [, startTransition] = useTransition();
 
@@ -39,15 +31,6 @@ export const OperationView = memo(function OperationView() {
       });
     },
     [setMode],
-  );
-
-  const handleActionSelect = useCallback(
-    (key: string): void => {
-      requestAnimationFrame(() => {
-        void executeAction(key);
-      });
-    },
-    [executeAction],
   );
 
   return (
@@ -66,15 +49,12 @@ export const OperationView = memo(function OperationView() {
               onModeChange={handleModeChange}
             />
 
-            <OperationActionMenu
-              actions={activeActions}
-              onActionSelect={handleActionSelect}
-              disabled={!isMenuVisible}
-            />
+            <OperationActionMenu selectedItem={selectedItem} />
           </div>
 
           <motion.div
             key={selectedId || "empty"}
+            data-operation-info-list="true"
             className={styles.infoList}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

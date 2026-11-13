@@ -1,11 +1,8 @@
-﻿// src/renderer/features/spreadSheet/shop/modal/shopModalConfig.ts
+// src/renderer/features/spreadSheet/shop/modal/shopModalConfig.ts
 
 import type { Shop } from "@shared/types/spreadsheet/spreadsheetTypes";
-import { SHOP_FIELD_LABELS } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { SHOP_FIELD_LABELS } from "./shopFieldLabels";
 import type { TabGroupConfig } from "../../hooks/useSpreadSheetTabData";
-import { EMPTY_VALUE_FALLBACK } from "@shared/types/spreadsheet/spreadsheetTypes";
-
-export { EMPTY_VALUE_FALLBACK };
 
 export const SHOP_MODAL_CONSTANTS = {
   TAB_TITLES: {
@@ -149,4 +146,3 @@ export const SHOP_MODAL_GROUPS: readonly TabGroupConfig<keyof Shop>[] = [
     ],
   },
 ] as const;
-

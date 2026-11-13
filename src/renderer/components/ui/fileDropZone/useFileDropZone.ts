@@ -39,10 +39,8 @@ export function useFileDropZone({
   );
 
   const [rawOpenMenuPath, setRawOpenMenuPath] = useState<string | null>(null);
-  const menuContainerRef = useRef<HTMLDivElement>(null);
   const mainInputRef = useRef<HTMLInputElement>(null);
 
-  // disabled のときはメニューが開かないよう派生値として制御（useEffect での setState を排除）
   const openMenuPath = disabled ? null : rawOpenMenuPath;
 
   const resetFileDrag = useCallback(() => {
@@ -52,26 +50,14 @@ export function useFileDropZone({
 
   useEffect(() => resetFileDrag, [resetFileDrag]);
 
-  // メニュー外部クリック時の検知（外部システム/DOMイベントの購読）
-  useEffect(() => {
-    if (openMenuPath === null) return;
-
-    const handleOutsideClick = (event: globalThis.MouseEvent) => {
-      if (!menuContainerRef.current?.contains(event.target as Node)) {
-        setRawOpenMenuPath(null);
-      }
-    };
-
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
-    };
-  }, [openMenuPath]);
-
-  const handleToggleMenu = useCallback(
-    (path: string) => {
+  const handleMenuOpenChange = useCallback(
+    (path: string, open: boolean) => {
       if (disabled) return;
-      setRawOpenMenuPath((prev) => (prev === path ? null : path));
+
+      setRawOpenMenuPath((current) => {
+        if (open) return path;
+        return current === path ? null : current;
+      });
     },
     [disabled],
   );
@@ -205,9 +191,8 @@ export function useFileDropZone({
     draggedFileIndex,
     dragOverFileIndex,
     openMenuPath,
-    menuContainerRef,
     mainInputRef,
-    handleToggleMenu,
+    handleMenuOpenChange,
     handleMainDragOver,
     handleMainDragLeave,
     handleMainDrop,

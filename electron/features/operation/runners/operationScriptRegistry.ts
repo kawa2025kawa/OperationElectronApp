@@ -51,7 +51,10 @@ const OPERATION_SCRIPT_REGISTRY: Readonly<
     defineScript("E5", "Script1", ["manual"], (_, p) => jobs.runJobE5(p), true),
     defineScript("E55", "Script2", ["manual"], () => jobs.runJobE55()),
   ],
-  E8: [defineScript("E8", "Script", ["manual"], () => jobs.runJobE8())],
+  E8: [
+    defineScript("E8", "Script", ["manual"], () => jobs.runJobE8()),
+    defineScript("E88", "Script", ["manual"], () => jobs.runJobE8()),
+  ],
   E9: [defineScript("E9", "Script", ["manual"], () => jobs.runJobE9())],
   E14: [
     defineScript(

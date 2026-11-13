@@ -35,9 +35,18 @@ export const useSidebarLogic = () => {
   const handleItemClick = useCallback(
     (view: AppViewId) => {
       setSidebarOpen(false);
-      setCurrentView(view);
+
+      if (view === currentView) {
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setCurrentView(view);
+        });
+      });
     },
-    [setSidebarOpen, setCurrentView],
+    [currentView, setSidebarOpen, setCurrentView],
   );
 
   return {

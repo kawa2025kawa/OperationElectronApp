@@ -5,7 +5,7 @@ import type {
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
 import { OPERATION_FIELD_LABELS } from "@shared/types/operation/operationTypes";
-import { EMPTY_VALUE_FALLBACK } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
 
 const ISO_DATE_TIME_PATTERN =

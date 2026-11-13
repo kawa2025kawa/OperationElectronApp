@@ -125,15 +125,12 @@ const overlayFadeTransition = `opacity ${OVERLAY_FADE_DURATION} ${OVERLAY_FADE_E
 
 const backdropTransition = [
   overlayFadeTransition,
-  `backdrop-filter ${OVERLAY_FADE_DURATION} ${OVERLAY_FADE_EASING}`,
   `visibility 0s linear ${OVERLAY_FADE_DURATION}`,
 ].join(", ");
 
-const backdropOpenTransition = [
-  overlayFadeTransition,
-  `backdrop-filter ${OVERLAY_FADE_DURATION} ${OVERLAY_FADE_EASING}`,
-  "visibility 0s",
-].join(", ");
+const backdropOpenTransition = [overlayFadeTransition, "visibility 0s"].join(
+  ", ",
+);
 
 /* =========================================
    Backdrop Overlay

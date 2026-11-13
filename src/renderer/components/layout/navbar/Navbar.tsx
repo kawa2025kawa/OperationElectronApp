@@ -5,13 +5,12 @@ import { memo } from "react";
 import { StatusSummary } from "@renderer/components/ui/statusSummary/StatusSummary";
 import { HamburgerButton } from "@renderer/components/ui/button/hamburgerButton/HamburgerButton";
 import { PollingToggleButton } from "@renderer/components/ui/button/pollingToggleButton/PollingToggleButton";
-import { TantouButton } from "@renderer/components/ui/button/tantouButton/TantouButton";
 
 import { useNavbarLogic } from "./useNavbarLogic";
 import * as styles from "./navbar.css";
 
 export const Navbar = memo(function Navbar() {
-  const { navbarTitle, summaryDisplayType, isKokyuhyo } = useNavbarLogic();
+  const { navbarTitle, summaryDisplayType } = useNavbarLogic();
 
   return (
     <nav className={styles.container}>
@@ -32,8 +31,6 @@ export const Navbar = memo(function Navbar() {
       </div>
 
       <div className={styles.rightGroup}>
-        {isKokyuhyo && <TantouButton />}
-
         <PollingToggleButton />
       </div>
     </nav>

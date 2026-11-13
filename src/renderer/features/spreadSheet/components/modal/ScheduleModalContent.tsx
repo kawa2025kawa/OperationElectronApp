@@ -1,9 +1,9 @@
-﻿// src/renderer/features/spreadSheet/components/modal/ScheduleModalContent.tsx
+// src/renderer/features/spreadSheet/components/modal/ScheduleModalContent.tsx
 
 import { memo } from "react";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-import { SCHEDULE_MODAL_LABELS } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { SCHEDULE_MODAL_LABELS } from "./scheduleModalConfig";
 import {
   useScheduleModalContent,
   type ScheduleModalTarget,

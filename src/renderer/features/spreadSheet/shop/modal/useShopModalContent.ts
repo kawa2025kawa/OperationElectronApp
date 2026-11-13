@@ -4,12 +4,12 @@ import { useMemo, useCallback } from "react";
 import type { Shop } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { ModalAction } from "@shared/types/ui/modal";
 import { systemIpcService } from "@renderer/services/systemIpcService";
+import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
 import {
   SHOP_MODAL_GROUPS,
   TIME_RECORDER_IMAGE_ITEMS,
   SHOP_MODAL_CONSTANTS,
-  EMPTY_VALUE_FALLBACK,
 } from "./shopModalConfig";
 
 interface UseShopModalContentParams {
@@ -18,7 +18,9 @@ interface UseShopModalContentParams {
 
 function getValidFilePath(value: unknown): string {
   if (typeof value !== "string") return "";
+
   const path = value.trim();
+
   return path && path !== EMPTY_VALUE_FALLBACK ? path : "";
 }
 
@@ -34,8 +36,7 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     SHOP_MODAL_CONSTANTS.TAB_TITLES.TIME_RECORDER;
 
   const handleOpenPath = useCallback(async (path: string | undefined) => {
-    if (!path || path === EMPTY_VALUE_FALLBACK) return;
-    const normalized = path.trim();
+    const normalized = getValidFilePath(path);
     if (!normalized) return;
 
     try {
@@ -55,7 +56,7 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     const imageActions: ModalAction[] = TIME_RECORDER_IMAGE_ITEMS.map(
       ({ key, label }) => {
         const rawValue = data[key];
-        const hasUrl = Boolean(rawValue && rawValue !== EMPTY_VALUE_FALLBACK);
+        const hasUrl = Boolean(getValidFilePath(rawValue));
 
         return {
           id: `image-${key}`,

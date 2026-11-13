@@ -8,22 +8,14 @@ import {
   type ViewEntityMap,
   type ViewMode,
 } from "@shared/types/registry/viewDefinition";
-import {
-  SHEETS,
-  SHOP_COLUMNS,
-} from "@shared/types/spreadsheet/spreadsheetTypes";
+import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 import { OperationView } from "@renderer/features/operation/OperationView";
-import { OPERATION_TABLE_SEARCH_KEYS } from "@renderer/store/selectors/operationSelectors";
 import {
   KokyuhyoView,
   JugyoinView,
   ShopView,
 } from "@renderer/features/spreadSheet/SpreadSheetView";
-import {
-  KOKYUHYO_COLUMNS,
-  JUGYOIN_COLUMNS,
-} from "@renderer/features/spreadSheet/utils/spreadsheetDateUtils";
 import { OtherView } from "@renderer/features/other/OtherView";
 import { RdpView } from "@renderer/features/remoteDesktop/RdpView";
 import { AuthView } from "@renderer/features/auth/AuthView";
@@ -63,7 +55,7 @@ export const APP_REGISTRY: AppRegistryMap = {
     component: OperationView,
     search: {
       placeholder: "検索...",
-      searchKeys: OPERATION_TABLE_SEARCH_KEYS,
+      searchKeys: ["kanriNo", "workName", "jobId", "comment"],
     },
   }),
 
@@ -74,7 +66,6 @@ export const APP_REGISTRY: AppRegistryMap = {
       placeholder: "名前、名前カナで検索...",
       searchKeys: ["name", "nameKana"],
     },
-    columns: KOKYUHYO_COLUMNS,
   }),
 
   [APP_VIEW_IDS.JUGYOIN]: defineView(APP_VIEW_IDS.JUGYOIN, {
@@ -84,7 +75,6 @@ export const APP_REGISTRY: AppRegistryMap = {
       placeholder: "部門、名前で検索...",
       searchKeys: ["bumon", "bumonKana", "name", "nameKana"],
     },
-    columns: JUGYOIN_COLUMNS,
   }),
 
   [APP_VIEW_IDS.SHOP]: defineView(APP_VIEW_IDS.SHOP, {
@@ -101,7 +91,6 @@ export const APP_REGISTRY: AppRegistryMap = {
         "centerName",
       ],
     },
-    columns: SHOP_COLUMNS,
   }),
 
   [APP_VIEW_IDS.OTHER]: defineView(APP_VIEW_IDS.OTHER, {

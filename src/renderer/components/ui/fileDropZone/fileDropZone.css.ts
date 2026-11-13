@@ -30,7 +30,6 @@ export const selectedFilesHeader = style({
   color: tokens.color.text.hover,
 });
 
-/* 空状態のドロップエリア */
 export const unifiedEmptyDropArea = style([
   themeTransition,
   {
@@ -72,7 +71,6 @@ globalStyle(`${unifiedEmptyDropArea} > .sub-label`, {
   opacity: 0.6,
 });
 
-/* ファイルリスト */
 export const unifiedFilesList = style({
   display: "flex",
   flexDirection: "column",
@@ -94,7 +92,6 @@ export const unifiedFilesList = style({
   },
 });
 
-/* 各行 */
 export const selectedFileRow = style([
   themeTransition,
   {
@@ -179,7 +176,6 @@ globalStyle(`${selectedFileRow} > .file-actions`, {
   flexShrink: 0,
 });
 
-/* ドロップダウン */
 export const dropdownWrapper = style({
   position: "relative",
   width: "220px",
@@ -205,9 +201,17 @@ export const dropdownTrigger = style([
     fontWeight: tokens.font.weight.bold,
     cursor: "pointer",
     selectors: {
-      "&:hover": {
+      "&:hover:not(:disabled)": {
         borderColor: tokens.color.accent.neonCyan,
         color: tokens.color.text.hover,
+      },
+      "&:focus-visible": {
+        outline: `2px solid ${tokens.color.accent.neonCyan}`,
+        outlineOffset: "2px",
+      },
+      "&:disabled": {
+        cursor: "not-allowed",
+        opacity: 0.5,
       },
     },
   },
@@ -219,14 +223,16 @@ globalStyle(`${dropdownTrigger} > .arrow`, {
   pointerEvents: "none",
 });
 
+export const dropdownPositioner = style({
+  width: "220px",
+  zIndex: `calc(${tokens.zIndex.modal} + 10)`,
+});
+
 export const dropdownMenu = style({
-  position: "absolute",
-  top: "calc(100% + 4px)",
-  left: 0,
-  right: 0,
   display: "flex",
   flexDirection: "column",
   gap: "2px",
+  width: "100%",
   maxHeight: "220px",
   padding: tokens.space.xs,
   overflowY: "auto",
@@ -235,7 +241,7 @@ export const dropdownMenu = style({
   ...glassSurface,
   border: `2px solid ${tokens.color.border.subtle}`,
   boxShadow: tokens.shadow.raised.high,
-  zIndex: tokens.zIndex.contextMenu,
+  outline: "none",
 });
 
 export const dropdownItem = style([
@@ -256,15 +262,18 @@ export const dropdownItem = style([
     whiteSpace: "nowrap",
     cursor: "pointer",
     selectors: {
-      "&:hover, &:focus-visible": {
+      "&:hover, &[data-highlighted]": {
         backgroundColor: tokens.color.bg.frostedGlass,
         color: tokens.color.accent.neonCyan,
+      },
+      "&:focus-visible": {
+        outline: `2px solid ${tokens.color.accent.neonCyan}`,
+        outlineOffset: "-2px",
       },
     },
   },
 ]);
 
-/* 削除ボタン */
 export const removeFileButton = style([
   themeTransition,
   {

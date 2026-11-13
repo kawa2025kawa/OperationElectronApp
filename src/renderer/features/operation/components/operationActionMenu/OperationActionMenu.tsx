@@ -1,50 +1,51 @@
-﻿import { memo } from "react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+﻿// src/renderer/features/operation/components/operationActionMenu/OperationActionMenu.tsx
 
+import { memo } from "react";
+import { Menu } from "@base-ui/react/menu";
+
+import type { OperationViewItem } from "@shared/types/operation/operationTypes";
+
+import { useOperationActionMenu } from "./useOperationActionMenu";
 import * as styles from "./operationActionMenu.css";
 
-interface OperationActionMenuItem {
-  readonly key: string;
-  readonly label: string;
-}
-
 interface OperationActionMenuProps {
-  readonly actions: readonly OperationActionMenuItem[];
-  readonly onActionSelect: (key: string) => void;
-  readonly disabled?: boolean;
+  readonly selectedItem?: OperationViewItem;
 }
 
 export const OperationActionMenu = memo(function OperationActionMenu({
-  actions,
-  onActionSelect,
-  disabled = false,
+  selectedItem,
 }: OperationActionMenuProps) {
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild disabled={disabled}>
-        <button type="button" className={styles.menuButton} disabled={disabled}>
-          {"Menu ▼"}
-        </button>
-      </DropdownMenu.Trigger>
+  const { actions, isMenuEnabled, handleActionSelect } =
+    useOperationActionMenu(selectedItem);
 
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          className={styles.menuDropdownContent}
+  return (
+    <Menu.Root>
+      <Menu.Trigger className={styles.menuButton} disabled={!isMenuEnabled}>
+        {"Menu ▼"}
+      </Menu.Trigger>
+
+      <Menu.Portal>
+        <Menu.Positioner
+          className={styles.menuDropdownPositioner}
           sideOffset={5}
           align="end"
         >
-          {actions.map((action) => (
-            <DropdownMenu.Item
-              key={action.key}
-              className={styles.menuItem}
-              onSelect={() => onActionSelect(action.key)}
-            >
-              {action.label}
-            </DropdownMenu.Item>
-          ))}
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+          <Menu.Popup className={styles.menuDropdownContent}>
+            {actions.map((action) => (
+              <Menu.Item
+                key={action.key}
+                className={styles.menuItem}
+                onClick={() => handleActionSelect(action.key)}
+              >
+                <span className={styles.menuItemInner}>
+                  <span className={styles.menuItemLabel}>{action.label}</span>
+                </span>
+              </Menu.Item>
+            ))}
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
   );
 });
 

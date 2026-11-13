@@ -7,26 +7,47 @@ import { themeTransition } from "@renderer/styles/tokens/theme.css";
 // ============================================================
 // Overlay (背景遮蔽)
 // ============================================================
+
 export const overlay = style({
   position: "fixed",
   inset: 0,
   zIndex: tokens.zIndex.modal,
-  backgroundColor: "rgba(0, 0, 0, 0.65)",
-  backdropFilter: `blur(${tokens.glass.blur ?? "8px"})`,
-  WebkitBackdropFilter: `blur(${tokens.glass.blur ?? "8px"})`,
+  backgroundColor: "rgba(0, 0, 0, 0.72)",
+  transition: "opacity 180ms ease-out",
+  willChange: "opacity",
+
+  selectors: {
+    "&[data-starting-style]": {
+      opacity: 0,
+    },
+    "&[data-ending-style]": {
+      opacity: 0,
+    },
+  },
+});
+
+// ============================================================
+// Viewport (モーダル配置領域)
+// ============================================================
+
+export const viewport = style({
+  position: "fixed",
+  inset: 0,
+  zIndex: tokens.zIndex.modal,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   padding: tokens.space.md,
   boxSizing: "border-box",
-
-  // 描画隔離
+  overflow: "auto",
+  outline: "none",
   isolation: "isolate",
 });
 
 // ============================================================
 // Modal Window (モーダル外枠)
 // ============================================================
+
 export const modalWindow = style([
   themeTransition,
   {
@@ -44,16 +65,28 @@ export const modalWindow = style([
     flexGrow: 0,
     maxHeight: "90vh",
     maxWidth: "92vw",
+    opacity: 1,
+    transition: "opacity 180ms ease-out",
 
-    // 描画隔離（モーダル内部操作時の背景ビューへのRepaint波及を完全遮断）
+    // 描画隔離
     isolation: "isolate",
     transform: "translateZ(0)",
+
+    selectors: {
+      "&[data-starting-style]": {
+        opacity: 0,
+      },
+      "&[data-ending-style]": {
+        opacity: 0,
+      },
+    },
   },
 ]);
 
 // ============================================================
 // Header / Title
 // ============================================================
+
 export const header = style({
   display: "flex",
   alignItems: "center",
@@ -77,6 +110,7 @@ export const title = style({
 // ============================================================
 // Body (スクロール可能なコンテンツ領域)
 // ============================================================
+
 export const body = style({
   display: "flex",
   flex: 1,
@@ -92,6 +126,7 @@ export const body = style({
 // ============================================================
 // Footer (最下部固定アクションエリア)
 // ============================================================
+
 export const footer = style({
   display: "flex",
   alignItems: "center",
@@ -123,6 +158,7 @@ export const footerRight = style({
 // ============================================================
 // Message Banner & Variants
 // ============================================================
+
 export const messageBanner = style({
   display: "flex",
   alignItems: "center",

@@ -8,7 +8,6 @@ import type {
   Kokyuhyo,
   Shop,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
-import type { Column } from "@shared/types/table/tableType";
 import type { ModalConfig } from "@shared/types/ui/modal";
 
 export const APP_VIEW_IDS = {
@@ -131,6 +130,5 @@ export interface AppViewDefinition<TItem = unknown> {
     readonly searchKeys: readonly string[];
     readonly skipFilter?: boolean;
   };
-  readonly columns?: readonly Column<TItem>[];
   readonly actions?: readonly ViewActionDefinition<TItem>[];
 }
