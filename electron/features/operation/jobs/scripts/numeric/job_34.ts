@@ -1,11 +1,10 @@
-/**
- * electron/features/operation/jobs/scripts/numeric/job_34.ts
- */
+// electron/features/operation/jobs/scripts/numeric/job_34.ts
 
 import { format } from "date-fns";
 import fs from "fs-extra";
 import iconv from "iconv-lite";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
   logPath: "\\\\192.88.1.220\\log\\SANSAN_TXT_LOAD.log",
@@ -13,7 +12,7 @@ const CONFIG = {
   keyboard: "売上取り込み処理を終了しました",
 } as const;
 
-export async function runJob34(): Promise<string> {
+export async function runJob34(): Promise<JobResult> {
   const logger = new JobLogger();
   const today = format(new Date(), "yyyy/MM/dd");
 
@@ -34,13 +33,23 @@ export async function runJob34(): Promise<string> {
       logger.log(`本日の売上取り込み終了ログが見つかりません (${today})`);
       logger.log(`検索キーワード : "${CONFIG.keyboard}"`);
 
-      return logger.needsAction("");
+      return {
+        success: true,
+        kind: "running",
+        message: logger.complete(
+          `本日の終了ログ未検出 (${today})。バックグラウンドで監視中`,
+        ),
+      };
     }
 
     logger.log("検出ログ :");
-    logger.log(`   ${found.trim()}`);
+    logger.log(`    ${found.trim()}`);
 
-    return logger.complete();
+    return {
+      success: true,
+      kind: "success",
+      message: logger.complete(),
+    };
   } catch (error: unknown) {
     const detail =
       error instanceof Error ? ` (${error.message})` : ` (${String(error)})`;

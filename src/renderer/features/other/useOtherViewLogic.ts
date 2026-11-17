@@ -10,12 +10,7 @@ import { ResetStatusModalContent } from "@renderer/features/other/components/mod
 import { StatusSyncModalContent } from "@renderer/features/other/components/modal/contents/statusSync/StatusSyncModalContent";
 import { systemIpcService } from "@renderer/services/systemIpcService";
 import { useAppStore } from "@renderer/store";
-import { MODAL_SIZES } from "@shared/types/ui/modal";
-
-const MODAL_SIZE = {
-  width: "min(95vw, calc(75vh * (21 / 9)))",
-  height: "min(75vh, calc(95vw * (9 / 21)))",
-};
+import { MODAL_PRESETS, MODAL_SIZES } from "@shared/types/ui/modal";
 
 const OKI_URL = "https://oki-corefido-connect.accel-mart.com/imart/login";
 
@@ -24,28 +19,28 @@ export function useOtherViewLogic() {
 
   const handleOpenPdfModal = useCallback(() => {
     openGlobalModal(createElement(PdfUploadModalContent), {
-      title: "Tempomatic PDF",
-      ...MODAL_SIZE,
+      ...MODAL_PRESETS.PDF_UPLOAD,
     });
   }, [openGlobalModal]);
 
   const handleOpenGmailModal = useCallback(() => {
     openGlobalModal(createElement(GmailDraftContent), {
       title: "Gmail",
-      ...MODAL_SIZE,
+      ...MODAL_SIZES.ULTRA_WIDE_21_9,
     });
   }, [openGlobalModal]);
 
   const handleOpenGiftMdModal = useCallback(() => {
     openGlobalModal(createElement(GiftMdModalContent), {
       title: "ギフトMD処理",
-      ...MODAL_SIZE,
+      ...MODAL_SIZES.ULTRA_WIDE_21_9,
     });
   }, [openGlobalModal]);
 
   const handleResetStatuses = useCallback(() => {
     openGlobalModal(createElement(ResetStatusModalContent), {
       title: "ステータスの全リセット",
+      ...MODAL_PRESETS.SCRIPT_EXECUTION,
     });
   }, [openGlobalModal]);
 

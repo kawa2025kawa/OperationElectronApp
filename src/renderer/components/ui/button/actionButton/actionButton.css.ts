@@ -1,10 +1,9 @@
-﻿// src/renderer/components/ui/button/actionButton/actionButton.css.ts
+// src/renderer/components/ui/button/actionButton/actionButton.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { baseButton } from "../buttonBase.css";
 
-const t = tokens.transition.normal;
 const glowTransition = tokens.transition.glow;
 
 export const actionButton = style([
@@ -12,7 +11,7 @@ export const actionButton = style([
   {
     position: "relative",
     fontWeight: tokens.font.weight.bold,
-    transition: `background-color ${t}, border-color ${glowTransition}, color ${t}`,
+    transition: `border-color ${glowTransition}`,
 
     "::before": {
       content: '""',

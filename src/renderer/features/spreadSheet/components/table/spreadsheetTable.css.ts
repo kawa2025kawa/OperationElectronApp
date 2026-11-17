@@ -1,12 +1,10 @@
-// src/renderer/features/spreadSheet/components/table/spreadSheetTable.css.ts
+﻿// src/renderer/features/spreadSheet/components/table/spreadsheetTable.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 import { textEllipsis } from "@renderer/styles/global/surfaces.css";
-
-const t = tokens.transition.normal;
 
 const commonTable = {
   width: "100%",
@@ -59,6 +57,7 @@ export const headerWrapper = style({
   scrollbarGutter: "stable",
   backgroundColor: tokens.color.bg.base,
   boxShadow: tokens.shadow.raised.high,
+  transform: "translateZ(0)",
 });
 
 export const bodyWrapper = style([
@@ -70,6 +69,9 @@ export const bodyWrapper = style([
     overflow: "auto",
     paddingInline: tokens.space.md,
     scrollbarGutter: "stable",
+    contain: "strict",
+    transform: "translateZ(0)",
+    WebkitOverflowScrolling: "touch",
   },
 ]);
 
@@ -93,7 +95,7 @@ export const tableRowBase = style({
   color: tokens.color.text.base,
   boxShadow: tokens.shadow.raised.low,
   outline: "none",
-  transition: `background-color ${t}, color ${t}, box-shadow ${t}`,
+  transition: `color ${tokens.transition.fast}`,
 });
 
 export const tableRowStates = styleVariants({
@@ -237,7 +239,6 @@ export const cellText = style([
     display: "inline-block",
     maxWidth: "100%",
     verticalAlign: "middle",
-    transition: `color ${t}, filter ${t}`,
   },
 ]);
 

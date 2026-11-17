@@ -1,4 +1,4 @@
-﻿// src/renderer/features/auth/authView.css.ts
+// src/renderer/features/auth/authView.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -63,7 +63,7 @@ export const status = style({
   borderRadius: tokens.radius.full,
   backgroundColor: tokens.color.bg.base,
   boxShadow: tokens.shadow.raised.low,
-  transition: tokens.transition.normal,
+  transition: `border-color ${tokens.transition.fast}, box-shadow ${tokens.transition.fast}`,
 });
 
 export const statusLoggedOut = style({
@@ -78,7 +78,7 @@ export const statusLoggedIn = style({
 
 export const statusText = style({
   fontWeight: tokens.font.weight.bold,
-  transition: tokens.transition.normal,
+  transition: `color ${tokens.transition.fast}`,
 });
 
 export const statusTextLoggedOut = style({
@@ -169,4 +169,3 @@ export const authButton = style({
     },
   },
 });
-

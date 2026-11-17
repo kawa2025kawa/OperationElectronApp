@@ -4,6 +4,7 @@ import { format, isSameDay } from "date-fns";
 import path from "node:path";
 import fs from "fs-extra";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
   beforeNoonDir: "\\\\172.25.101.51\\if\\MASTER\\RCV",
@@ -12,10 +13,13 @@ const CONFIG = {
   maxFilesPerTarget: 2,
 } as const;
 
+type FileCheckIssueType = "pending" | "needsAction";
+
 type FileCheckResult = {
   targetName: string;
   foundNames: string[];
   error?: string;
+  issueType?: FileCheckIssueType;
 };
 
 type JobResultData = {
@@ -27,14 +31,16 @@ type JobResultData = {
 /**
  * 時間帯（午前・午後）に応じたフォルダの対象ファイル存在・更新日を確認する。
  *
- * 業務上の要対応:
- * - 対象ファイルが存在しない、または本日更新でない場合
+ * 監視継続 (running):
+ * - 対象ファイルが存在しない、または本日更新でない場合（バックグラウンドでポーリング監視）
+ *
+ * 業務上の要対応 (needsAction):
  * - ファイル件数が上限を超えている場合
  *
  * システムエラー:
  * - フォルダが存在しない、アクセス不能などのシステム障害
  */
-export async function runJob39(): Promise<string> {
+export async function runJob39(): Promise<JobResult> {
   const logger = new JobLogger();
 
   try {
@@ -76,7 +82,8 @@ async function checkTargetFiles(): Promise<JobResultData> {
           return {
             targetName,
             foundNames: [],
-            error: "ファイルが存在しません",
+            error: "ファイルが存在しません（配置待ち）",
+            issueType: "pending",
           };
         }
 
@@ -86,6 +93,7 @@ async function checkTargetFiles(): Promise<JobResultData> {
             targetName,
             foundNames: [],
             error: "ファイルではありません",
+            issueType: "needsAction",
           };
         }
 
@@ -93,7 +101,8 @@ async function checkTargetFiles(): Promise<JobResultData> {
         return {
           targetName,
           foundNames: isToday ? [path.basename(filePath)] : [],
-          error: isToday ? undefined : "更新日が本日ではありません",
+          error: isToday ? undefined : "更新日が本日ではありません（更新待ち）",
+          issueType: isToday ? undefined : "pending",
         };
       }),
     );
@@ -106,15 +115,27 @@ async function checkTargetFiles(): Promise<JobResultData> {
         .filter((entry) => entry.isFile() && entry.name.startsWith(prefix))
         .map((entry) => entry.name);
 
+      if (foundNames.length === 0) {
+        return {
+          targetName,
+          foundNames,
+          error: `${prefix}* (ファイルなし・配置待ち)`,
+          issueType: "pending",
+        };
+      }
+
+      if (foundNames.length > CONFIG.maxFilesPerTarget) {
+        return {
+          targetName,
+          foundNames,
+          error: `対象ファイルが上限超過 (${foundNames.length}件 / 上限${CONFIG.maxFilesPerTarget}件)`,
+          issueType: "needsAction",
+        };
+      }
+
       return {
         targetName,
         foundNames,
-        error:
-          foundNames.length === 0
-            ? `${prefix}* (ファイルなし)`
-            : foundNames.length > CONFIG.maxFilesPerTarget
-              ? `対象ファイルが上限超過 (${foundNames.length}件 / 上限${CONFIG.maxFilesPerTarget}件)`
-              : undefined,
       };
     });
   }
@@ -129,19 +150,25 @@ async function checkTargetFiles(): Promise<JobResultData> {
 /**
  * ログを出力し、ステータスを判定する。
  */
-function writeResultLog(logger: JobLogger, result: JobResultData): string {
+function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {
   logger.log(
-    `時間帯判定       : ${result.isBeforeNoon ? "午前 (12時前)" : "午後 (12時以降)"}`,
+    `時間帯判定        : ${result.isBeforeNoon ? "午前 (12時前)" : "午後 (12時以降)"}`,
   );
   logger.log(`対象フォルダ : ${result.targetDir}`);
 
   logger.section("確認結果");
-  const errors: string[] = [];
+  const actionErrors: string[] = [];
+  const pendingErrors: string[] = [];
 
   for (const item of result.results) {
     if (item.error) {
-      errors.push(`${item.targetName} (${item.error})`);
-      logger.log(`  [${item.targetName}] エラー : ${item.error}`);
+      const summary = `${item.targetName} (${item.error})`;
+      if (item.issueType === "pending") {
+        pendingErrors.push(summary);
+      } else {
+        actionErrors.push(summary);
+      }
+      logger.log(`  [${item.targetName}] ${item.error}`);
     }
 
     for (const name of item.foundNames) {
@@ -149,9 +176,30 @@ function writeResultLog(logger: JobLogger, result: JobResultData): string {
     }
   }
 
-  if (errors.length > 0) {
-    return logger.needsAction(`NG: ${errors.join(", ")}`);
+  if (actionErrors.length > 0) {
+    return {
+      success: true,
+      kind: "needsAction",
+      message: logger.needsAction(`NG: ${actionErrors.join(", ")}`),
+      data: result,
+    };
   }
 
-  return logger.complete();
+  if (pendingErrors.length > 0) {
+    return {
+      success: true,
+      kind: "running",
+      message: logger.complete(
+        `ファイル未検出・未更新 (${pendingErrors.join(", ")})。バックグラウンドで監視中`,
+      ),
+      data: result,
+    };
+  }
+
+  return {
+    success: true,
+    kind: "success",
+    message: logger.complete(),
+    data: result,
+  };
 }

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useTable } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ContextMenu } from "@base-ui/react/context-menu";
 
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
@@ -31,7 +32,13 @@ import {
 } from "./operationTableConfig";
 import * as styles from "./operationTable.css";
 
+/** tokens.size.tableRowHeight (56px) + borderSpacing vertical (12px) */
+const VIRTUAL_ROW_ESTIMATE_PX = 68;
+const VIRTUAL_OVERSCAN_COUNT = 8;
+
 export const OperationTable = memo(function OperationTable() {
+  "use no memo";
+
   const {
     currentView,
     currentMode,
@@ -120,6 +127,26 @@ export const OperationTable = memo(function OperationTable() {
 
   const leafColumns = table.getAllLeafColumns();
   const tableRows = table.getRowModel().rows;
+  const colSpanCount = Math.max(leafColumns.length, 1);
+
+  const rowVirtualizer = useVirtualizer({
+    count: isLoading ? 0 : tableRows.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => VIRTUAL_ROW_ESTIMATE_PX,
+    overscan: VIRTUAL_OVERSCAN_COUNT,
+  });
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const totalSize = rowVirtualizer.getTotalSize();
+  const paddingTop =
+    virtualItems.length > 0 ? (virtualItems[0]?.start ?? 0) : 0;
+  const paddingBottom =
+    virtualItems.length > 0
+      ? Math.max(
+          0,
+          totalSize - (virtualItems[virtualItems.length - 1]?.end ?? 0),
+        )
+      : 0;
 
   const renderColGroup = () => (
     <colgroup>
@@ -173,10 +200,7 @@ export const OperationTable = memo(function OperationTable() {
           <tbody>
             {isLoading || tableRows.length === 0 ? (
               <tr>
-                <td
-                  colSpan={Math.max(leafColumns.length, 1)}
-                  className={styles.emptyCell}
-                >
+                <td colSpan={colSpanCount} className={styles.emptyCell}>
                   {isLoading ? (
                     <div className={styles.loadingContainer}>
                       <span className={styles.loadingLabel}>LOADING...</span>
@@ -190,21 +214,52 @@ export const OperationTable = memo(function OperationTable() {
                 </td>
               </tr>
             ) : (
-              tableRows.map((row) => {
-                const rowKanriNo = row.original.kanriNo.trim();
+              <>
+                {paddingTop > 0 && (
+                  <tr aria-hidden="true">
+                    <td
+                      colSpan={colSpanCount}
+                      style={{
+                        height: `${paddingTop}px`,
+                        padding: 0,
+                        border: 0,
+                      }}
+                    />
+                  </tr>
+                )}
 
-                return (
-                  <OperationTableRow
-                    key={row.id}
-                    row={row}
-                    table={table}
-                    isContextOpen={contextMenuTarget?.kanriNo === rowKanriNo}
-                    onRowClick={handleRowClick}
-                    onMarkSuccess={handleMarkSuccess}
-                    onStatusContextMenu={handleStatusContextMenu}
-                  />
-                );
-              })
+                {virtualItems.map((virtualRow) => {
+                  const row = tableRows[virtualRow.index];
+                  if (!row) return null;
+
+                  const rowKanriNo = row.original.kanriNo.trim();
+
+                  return (
+                    <OperationTableRow
+                      key={row.id}
+                      row={row}
+                      table={table}
+                      isContextOpen={contextMenuTarget?.kanriNo === rowKanriNo}
+                      onRowClick={handleRowClick}
+                      onMarkSuccess={handleMarkSuccess}
+                      onStatusContextMenu={handleStatusContextMenu}
+                    />
+                  );
+                })}
+
+                {paddingBottom > 0 && (
+                  <tr aria-hidden="true">
+                    <td
+                      colSpan={colSpanCount}
+                      style={{
+                        height: `${paddingBottom}px`,
+                        padding: 0,
+                        border: 0,
+                      }}
+                    />
+                  </tr>
+                )}
+              </>
             )}
           </tbody>
         </table>

@@ -1,10 +1,9 @@
-﻿// src/renderer/components/layout/footer/components/footerActionButton.css.ts
+// src/renderer/components/layout/footer/components/footerActionButton.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { focusRing } from "@renderer/styles/global/surfaces.css";
 
-const t = tokens.transition.normal;
 const glowTransition = tokens.transition.glow;
 
 export const actionButton = style([
@@ -23,7 +22,7 @@ export const actionButton = style([
     backgroundColor: tokens.color.bg.base,
     boxShadow: tokens.shadow.raised.md,
     isolation: "isolate",
-    transition: `background-color ${t}, border-color ${glowTransition}, box-shadow ${t}`,
+    transition: `border-color ${glowTransition}`,
 
     "::before": {
       content: '""',
@@ -57,7 +56,6 @@ export const actionButtonText = style({
   fontSize: tokens.font.size.xs,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.base,
-  transition: `color ${t}`,
 
   selectors: {
     [`${actionButton}[data-pressed] &`]: {

@@ -1,4 +1,4 @@
-﻿// src/renderer/features/operation/components/operationActionMenu/operationActionMenu.css.ts
+// src/renderer/features/operation/components/operationActionMenu/operationActionMenu.css.ts
 
 import { style } from "@vanilla-extract/css";
 
@@ -6,7 +6,7 @@ import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 import { brandGradientText } from "@renderer/styles/global/surfaces.css";
 
-const t = tokens.transition.normal;
+const glowTransition = tokens.transition.glow;
 
 export const menuButton = style([
   brandGradientText,
@@ -27,7 +27,7 @@ export const menuButton = style([
     backgroundColor: tokens.color.bg.base,
     boxShadow: tokens.shadow.raised.high,
     outline: "none",
-    transition: `border-color ${t}, box-shadow ${t}, opacity ${t}`,
+    transition: `border-color ${glowTransition}, opacity ${tokens.transition.fast}`,
 
     "::before": {
       content: '""',
@@ -36,7 +36,7 @@ export const menuButton = style([
       borderRadius: tokens.radius.full,
       boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
       opacity: 0,
-      transition: `opacity ${t}`,
+      transition: `opacity ${glowTransition}`,
       pointerEvents: "none",
     },
 
@@ -117,7 +117,7 @@ export const menuItem = style({
   boxShadow: `${tokens.shadow.glow.white}, ${tokens.shadow.raised.low}`,
   outline: "none",
   cursor: "pointer",
-  transition: `box-shadow ${t}, background-color ${t}`,
+  transition: `box-shadow ${tokens.transition.fast}`,
 
   selectors: {
     "&:hover, &[data-highlighted]": {
@@ -150,7 +150,6 @@ export const menuItemLabel = style({
   wordBreak: "normal",
   overflowWrap: "normal",
   lineHeight: 1.15,
-  transition: `color ${t}`,
 
   selectors: {
     [`${menuItem}:hover &, ${menuItem}[data-highlighted] &`]: {

@@ -1,48 +1,44 @@
-﻿// src/renderer/components/ui/button/buttonBase.css.ts
+// src/renderer/components/ui/button/buttonBase.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 const t = tokens.transition.normal;
 
 /**
  * 全ボタン共通の基底スタイル
  */
-export const baseButton = style([
-  themeTransition,
-  {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    boxSizing: "border-box",
-    cursor: "pointer",
-    outline: "none",
-    border: "none",
-    textDecoration: "none",
-    userSelect: "none",
-    position: "relative",
-    isolation: "isolate",
-    transform: "translateZ(0)",
-    backfaceVisibility: "hidden",
-    WebkitBackfaceVisibility: "hidden",
-    transition: `transform ${tokens.transition.ease}, color ${tokens.transition.ease}, border-color ${tokens.transition.ease}, background-color ${t}, opacity ${tokens.transition.fast}`,
+export const baseButton = style({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxSizing: "border-box",
+  cursor: "pointer",
+  outline: "none",
+  border: "none",
+  textDecoration: "none",
+  userSelect: "none",
+  position: "relative",
+  isolation: "isolate",
+  transform: "translateZ(0)",
+  backfaceVisibility: "hidden",
+  WebkitBackfaceVisibility: "hidden",
+  transition: `transform ${tokens.transition.ease}, color ${tokens.transition.ease}, border-color ${tokens.transition.ease}, background-color ${t}, opacity ${tokens.transition.fast}`,
 
-    selectors: {
-      "&:disabled": {
-        opacity: 0.35,
-        cursor: "not-allowed",
-        pointerEvents: "none",
-        backgroundColor: tokens.color.bg.base,
-        borderColor: tokens.color.border.subtle,
-        color: tokens.color.text.base,
-        boxShadow: tokens.shadow.pressed.low,
-        filter: "grayscale(60%)",
-        textShadow: "none",
-      },
+  selectors: {
+    "&:disabled": {
+      opacity: 0.35,
+      cursor: "not-allowed",
+      pointerEvents: "none",
+      backgroundColor: tokens.color.bg.base,
+      borderColor: tokens.color.border.subtle,
+      color: tokens.color.text.base,
+      boxShadow: tokens.shadow.pressed.low,
+      filter: "grayscale(60%)",
+      textShadow: "none",
     },
   },
-]);
+});
 
 /**
  * ネオンシアン発光・ホバー・アクティブ共通スタイル

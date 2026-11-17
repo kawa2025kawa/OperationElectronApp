@@ -1,8 +1,7 @@
-﻿// src/renderer/features/operation/operationView.css.ts
+// src/renderer/features/operation/operationView.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 // ============================================================
 // Common Base
@@ -26,7 +25,6 @@ export const container = style({
   gap: tokens.space.md,
   boxSizing: "border-box",
   backgroundColor: tokens.color.bg.base,
-  transition: `background-color ${tokens.transition.normal}`,
 
   "@media": {
     "screen and (max-width: 1024px)": {
@@ -83,21 +81,18 @@ export const panelArea = style([
 // Panel Container & Top Controls
 // ============================================================
 
-export const panelContainer = style([
-  themeTransition,
-  {
-    display: "flex",
-    flexDirection: "column",
-    flex: 1,
-    minHeight: 0,
-    height: "100%",
-    backgroundColor: tokens.color.bg.base,
-    borderRadius: tokens.radius.lg,
-    boxShadow: tokens.shadow.raised.high,
-    padding: tokens.space.md,
-    gap: tokens.space.xl,
-  },
-]);
+export const panelContainer = style({
+  display: "flex",
+  flexDirection: "column",
+  flex: 1,
+  minHeight: 0,
+  height: "100%",
+  backgroundColor: tokens.color.bg.base,
+  borderRadius: tokens.radius.lg,
+  boxShadow: tokens.shadow.raised.high,
+  padding: tokens.space.md,
+  gap: tokens.space.xl,
+});
 
 export const topControls = style({
   display: "flex",
@@ -113,19 +108,16 @@ export const topControls = style({
 // Info List
 // ============================================================
 
-export const infoList = style([
-  themeTransition,
-  {
-    display: "flex",
-    flexDirection: "column",
-    flex: 1,
-    minHeight: 0,
-    overflowY: "auto",
-    paddingTop: tokens.space.xs,
-    paddingBottom: tokens.space.xs,
-    gap: tokens.space.md,
-    // 独立した合成レイヤーとして保持
-    isolation: "isolate",
-    transform: "translateZ(0)",
-  },
-]);
+export const infoList = style({
+  display: "flex",
+  flexDirection: "column",
+  flex: 1,
+  minHeight: 0,
+  overflowY: "auto",
+  paddingTop: tokens.space.xs,
+  paddingBottom: tokens.space.xs,
+  gap: tokens.space.md,
+  // 独立した合成レイヤーとして保持
+  isolation: "isolate",
+  transform: "translateZ(0)",
+});

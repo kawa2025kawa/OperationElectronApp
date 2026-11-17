@@ -17,7 +17,6 @@ const pulse = keyframes({
   },
 });
 
-const t = tokens.transition.normal;
 const glowTransition = tokens.transition.glow;
 
 export const button = style([
@@ -38,7 +37,7 @@ export const button = style([
     backgroundColor: tokens.color.bg.base,
     color: tokens.color.text.base,
     boxShadow: tokens.shadow.raised.md,
-    transition: `background-color ${t}, border-color ${glowTransition}, color ${t}`,
+    transition: `border-color ${glowTransition}, color ${tokens.transition.fast}`,
 
     "::before": {
       content: '""',
@@ -85,7 +84,7 @@ export const dot = style({
   borderRadius: tokens.radius.full,
   backgroundColor: tokens.color.text.base,
   opacity: 0.5,
-  transition: `background-color ${t}, opacity ${t}`,
+  transition: `opacity ${tokens.transition.fast}`,
 
   selectors: {
     [`${button}[data-pressed] &`]: {
@@ -107,7 +106,6 @@ export const label = style({
 export const textSpan = style({
   display: "inline-block",
   color: "inherit",
-  transition: `color ${t}`,
 
   selectors: {
     [`${button}[data-pressed] &`]: {

@@ -1,28 +1,32 @@
-﻿// src/renderer/components/ui/button/tantouButton/tantouButton.css.ts
+// src/renderer/components/ui/button/tantouButton/tantouButton.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { focusRing } from "@renderer/styles/global/surfaces.css";
 import { baseButton } from "../buttonBase.css";
 
-const t = tokens.transition.normal;
 const glowTransition = tokens.transition.glow;
 
 export const button = style([
   baseButton,
+  focusRing,
   {
-    padding: `${tokens.space.md} ${tokens.space.xl}`,
-    minWidth: "180px",
-    height: "48px",
-    borderRadius: tokens.radius.full,
+    flexDirection: "row",
     whiteSpace: "nowrap",
+    width: "13rem",
+    height: "3rem",
+    padding: `0 ${tokens.space.lg}`,
+    border: `1px solid ${tokens.color.border.default}`,
+    borderRadius: tokens.radius.full,
     fontFamily: tokens.font.base,
     fontSize: tokens.font.size.md,
     fontWeight: tokens.font.weight.bold,
+    letterSpacing: "0.05em",
+    lineHeight: 1.2,
     backgroundColor: tokens.color.bg.base,
     color: tokens.color.text.base,
-    border: `1px solid ${tokens.color.border.default}`,
     boxShadow: tokens.shadow.raised.md,
-    transition: `background-color ${t}, border-color ${glowTransition}, color ${t}`,
+    transition: `border-color ${glowTransition}, color ${tokens.transition.fast}`,
 
     "::before": {
       content: '""',
@@ -42,15 +46,6 @@ export const button = style([
       },
       "&:hover:not(:disabled)::before": {
         opacity: 1,
-      },
-    },
-
-    "@media": {
-      "screen and (max-width: 768px)": {
-        minWidth: "auto",
-        padding: `${tokens.space.sm} ${tokens.space.lg}`,
-        fontSize: tokens.font.size.sm,
-        height: tokens.size.controlHeight,
       },
     },
   },

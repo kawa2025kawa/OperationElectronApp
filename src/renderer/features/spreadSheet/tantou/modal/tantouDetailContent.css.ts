@@ -9,8 +9,6 @@ import {
   textEllipsis,
 } from "@renderer/styles/global/surfaces.css";
 
-const t = tokens.transition.normal;
-
 const flexColumn = {
   display: "flex",
   flexDirection: "column" as const,
@@ -76,7 +74,7 @@ export const tabButton = style([
     fontSize: tokens.font.size.sm,
     fontWeight: tokens.font.weight.bold,
     color: tokens.color.text.base,
-    transition: `color ${t}`,
+    transition: `color ${tokens.transition.fast}`,
     whiteSpace: "nowrap",
 
     selectors: {
@@ -89,7 +87,6 @@ export const tabButton = style([
 
 export const buttonText = style({
   ...elevatedLayer,
-  transition: `color ${t}`,
   selectors: {
     [`${tabButton}[data-active] &`]: {
       backgroundImage: tokens.gradient.brand,

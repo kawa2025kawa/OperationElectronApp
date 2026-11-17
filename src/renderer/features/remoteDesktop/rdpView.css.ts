@@ -57,7 +57,7 @@ export const cardTitle = style({
   color: tokens.color.text.hover,
   textAlign: "center",
   wordBreak: "break-all",
-  transition: `color ${tokens.transition.normal}`,
+  transition: `color ${tokens.transition.fast}`,
   selectors: {
     [`${card}:hover &`]: {
       color: tokens.color.accent.base,
@@ -72,7 +72,7 @@ export const cardHost = style({
   fontWeight: tokens.font.weight.normal,
   color: tokens.color.text.base,
   opacity: 0.8,
-  transition: `color ${tokens.transition.normal}`,
+  transition: `color ${tokens.transition.fast}, opacity ${tokens.transition.fast}`,
   selectors: {
     [`${card}:hover &`]: {
       color: tokens.color.text.hover,

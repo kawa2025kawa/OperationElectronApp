@@ -13,15 +13,6 @@ let cleanupIpcListeners: (() => void) | null = null;
 export function setupInitIpcListeners(getState: GetAppState): void {
   if (cleanupIpcListeners !== null) return;
 
-  const unbindTheme = window.electronAPI.on(
-    IPC_CHANNELS.SYSTEM.THEME_CHANGED,
-    (theme) => {
-      if (theme === "dark" || theme === "light") {
-        getState().setTheme?.(theme);
-      }
-    },
-  );
-
   const unbindStatus = window.electronAPI.on(
     IPC_CHANNELS.OPERATION.STATUS_UPDATED,
     (notification) => {
@@ -47,7 +38,6 @@ export function setupInitIpcListeners(getState: GetAppState): void {
   );
 
   cleanupIpcListeners = () => {
-    unbindTheme();
     unbindStatus();
     unbindPolling();
     cleanupIpcListeners = null;

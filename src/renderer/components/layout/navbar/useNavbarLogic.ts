@@ -9,13 +9,15 @@ import { APP_VIEW_IDS } from "@shared/types/registry/viewDefinition";
 import { useAppStore, type AppState } from "@renderer/store";
 
 export const useNavbarLogic = () => {
-  const { currentView, currentMode, isInitialLoaded } = useAppStore(
-    useShallow((state: AppState) => ({
-      currentView: state.currentView,
-      currentMode: state.currentMode,
-      isInitialLoaded: state.isInitialLoaded,
-    })),
-  );
+  const { currentView, currentMode, isInitialLoaded, isAuthenticated } =
+    useAppStore(
+      useShallow((state: AppState) => ({
+        currentView: state.currentView,
+        currentMode: state.currentMode,
+        isInitialLoaded: state.isInitialLoaded,
+        isAuthenticated: state.isAuthenticated,
+      })),
+    );
 
   const navbarTitle = useMemo(() => {
     const currentViewDef = getAppViewConfig(currentView);
@@ -39,7 +41,8 @@ export const useNavbarLogic = () => {
     return "placeholder";
   }, [isOperation, isShowSummary, isInitialLoaded, isIrregular]);
 
-  const isKokyuhyo = currentView === APP_VIEW_IDS.KOKYUHYO;
+  const isKokyuhyo =
+    currentView === APP_VIEW_IDS.KOKYUHYO && Boolean(isAuthenticated);
 
   return {
     navbarTitle,

@@ -1,4 +1,4 @@
-﻿// src/renderer/features/other/components/modal/contents/statusSync/statusSyncModal.css.ts
+// src/renderer/features/other/components/modal/contents/statusSync/statusSyncModal.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -84,7 +84,7 @@ export const modeToggleButton = style([
     fontWeight: tokens.font.weight.bold,
     letterSpacing: "0.06em",
     cursor: "pointer",
-    transition: tokens.transition.normal,
+    transition: `color ${tokens.transition.fast}, background-color ${tokens.transition.fast}, border-color ${tokens.transition.fast}`,
     selectors: {
       "&:hover:not(:disabled)": {
         color: tokens.color.text.hover,

@@ -9,14 +9,8 @@ import { ORDERED_MENU_ITEMS, useSidebarLogic } from "./useSidebarLogic";
 import * as styles from "./sidebar.css";
 
 export const Sidebar = memo(function Sidebar() {
-  const {
-    currentView,
-    isSidebarOpen,
-    theme,
-    toggleSidebar,
-    toggleTheme,
-    handleItemClick,
-  } = useSidebarLogic();
+  const { currentView, isSidebarOpen, toggleSidebar, handleItemClick } =
+    useSidebarLogic();
 
   return (
     <aside
@@ -42,19 +36,6 @@ export const Sidebar = memo(function Sidebar() {
           </li>
         ))}
       </ul>
-
-      <div className={styles.sidebarFooter}>
-        <span className={styles.footerLabel}>Dark Mode</span>
-
-        <button
-          type="button"
-          className={styles.toggleTrack}
-          onClick={toggleTheme}
-          aria-label="テーマ切り替え"
-        >
-          <div className={styles.toggleThumb} data-state={theme} />
-        </button>
-      </div>
     </aside>
   );
 });

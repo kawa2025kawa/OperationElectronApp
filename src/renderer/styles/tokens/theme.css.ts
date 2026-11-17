@@ -1,6 +1,6 @@
 // src/renderer/styles/tokens/theme.css.ts
 
-import { createTheme, style } from "@vanilla-extract/css";
+import { createTheme } from "@vanilla-extract/css";
 import { tokens } from "./semantic.contract.js";
 
 /* ============================================================
@@ -79,7 +79,7 @@ const commonValues = {
 } as const;
 
 /* ============================================================
- * Status Colors & Tints
+ * Status Colors, Tints & Glow
  * ============================================================ */
 
 const darkStatusColors = {
@@ -93,32 +93,11 @@ const darkStatusColors = {
   error: "rgba(248, 113, 113, 1)",
 } as const;
 
-const lightStatusColors = {
-  total: "rgba(60, 64, 67, 1)",
-  success: "rgba(34, 197, 94, 1)",
-  running: "rgba(234, 179, 8, 1)",
-  needsAction: "rgba(234, 88, 12, 1)",
-  ready: "rgba(236, 72, 153, 1)",
-  waiting: "rgba(59, 130, 246, 1)",
-  scheduled: "rgba(100, 116, 139, 1)",
-  error: "rgba(239, 68, 68, 1)",
-} as const;
-
 const darkStatusTints = {
   success: "rgba(74, 222, 128, 0.1)",
   warning: "rgba(250, 204, 21, 0.1)",
   error: "rgba(248, 113, 113, 0.1)",
 } as const;
-
-const lightStatusTints = {
-  success: "rgba(34, 197, 94, 0.12)",
-  warning: "rgba(234, 179, 8, 0.14)",
-  error: "rgba(239, 68, 68, 0.12)",
-} as const;
-
-/* ============================================================
- * Status Glow
- * ============================================================ */
 
 const darkStatusGlow = {
   total: "0 0 12px rgba(255, 255, 255, 0.5)",
@@ -130,32 +109,6 @@ const darkStatusGlow = {
   waiting: "0 0 12px rgba(96, 165, 250, 0.5)",
   scheduled: "0 0 12px rgba(148, 163, 184, 0.5)",
 } as const;
-
-const lightStatusGlow = {
-  total: "0 0 10px rgba(60, 64, 67, 0.4)",
-  error: "0 0 10px rgba(255, 80, 80, 0.4)",
-  success: "0 0 10px rgba(34, 197, 94, 0.4)",
-  needsAction: "0 0 10px rgba(234, 88, 12, 0.45)",
-  running: "0 0 10px rgba(234, 179, 8, 0.4)",
-  ready: "0 0 10px rgba(236, 72, 153, 0.4)",
-  waiting: "0 0 10px rgba(59, 130, 246, 0.4)",
-  scheduled: "0 0 10px rgba(100, 116, 139, 0.4)",
-} as const;
-
-/* ============================================================
- * Theme Transition
- * ============================================================ */
-
-export const themeTransition = style({
-  transition: [
-    `background-color ${commonValues.transition.normal}`,
-    `color ${commonValues.transition.normal}`,
-    `border-color ${commonValues.transition.normal}`,
-    `box-shadow ${commonValues.transition.normal}`,
-    `backdrop-filter ${commonValues.transition.normal}`,
-    `opacity ${commonValues.transition.normal}`,
-  ].join(","),
-});
 
 /* ============================================================
  * Dark Theme
@@ -262,111 +215,4 @@ export const darkThemeClass = createTheme(
     },
   },
   "theme-dark",
-);
-
-/* ============================================================
- * Light Theme
- * ============================================================ */
-
-const lightRaised = {
-  low: "3px 3px 6px rgba(0, 0, 0, 0.15), -2px -2px 6px rgba(255, 255, 255, 0.8)",
-  md: "5px 5px 10px rgba(0, 0, 0, 0.2), -4px -4px 8px rgba(255, 255, 255, 0.9)",
-  high: "8px 8px 16px rgba(0, 0, 0, 0.35), -6px -6px 12px rgba(255, 255, 255, 1)",
-} as const;
-
-const lightGlowCyan = "0 0 12px rgba(0, 200, 255, 0.4)";
-
-export const lightThemeClass = createTheme(
-  tokens,
-  {
-    ...commonValues,
-
-    color: {
-      bg: {
-        base: "rgba(236, 240, 243, 1)",
-        header: "rgba(242, 245, 248, 0.8)",
-        frostedGlass: "rgba(0, 0, 0, 0.05)",
-      },
-
-      text: {
-        base: "rgb(121, 125, 129)",
-        hover: "rgba(45, 45, 45, 0.9)",
-        onAccent: "rgba(255, 255, 255, 1)",
-      },
-
-      border: {
-        default: "rgba(0, 0, 0, 0.08)",
-        subtle: "rgba(0, 0, 0, 0.15)",
-        accent: "rgba(0, 200, 180, 1)",
-        highlight: "rgba(0, 0, 0, 0.06)",
-      },
-
-      accent: {
-        base: "rgba(0, 200, 180, 1)",
-        hover: "rgba(0, 180, 160, 1)",
-        neonCyan: "rgba(0, 200, 255, 1)",
-        neonPink: "rgba(255, 60, 200, 1)",
-        neonWhite: "rgba(255, 255, 255, 1)",
-      },
-
-      status: lightStatusColors,
-      statusTint: lightStatusTints,
-
-      calendar: {
-        saturday: "#2563eb",
-        holiday: "#dc2626",
-      },
-    },
-
-    glass: {
-      surface: "rgba(255, 255, 255, 0.65)",
-      surfaceSubtle: "rgba(255, 255, 255, 0.45)",
-      border: "rgba(255, 255, 255, 0.55)",
-      borderStrong: "rgba(255, 255, 255, 0.8)",
-      blur: "18px",
-      blurStrong: "28px",
-      saturation: "140%",
-
-      contextMenu: {
-        surface: "rgba(18, 20, 24, 0.1)",
-        border: "#000000",
-        blur: "20px",
-        saturation: "180%",
-      },
-    },
-
-    gradient: {
-      brand:
-        "linear-gradient(135deg, rgba(0, 242, 254, 1) 0%, rgb(47, 156, 252) 100%)",
-    },
-
-    shadow: {
-      highlight:
-        "inset 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.08)",
-
-      contextMenu:
-        "0 0 0 1px rgba(0, 0, 0, 0.8), 0 12px 36px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.5)",
-
-      raised: lightRaised,
-
-      pressed: {
-        low: "inset 3px 3px 6px rgba(0, 0, 0, 0.15), inset -2px -2px 6px rgba(255, 255, 255, 0.8)",
-        md: "inset 5px 5px 10px rgba(0, 0, 0, 0.2), inset -4px -4px 8px rgba(255, 255, 255, 0.9)",
-        high: "inset 10px 10px 20px rgba(0, 0, 0, 0.35), inset -8px -8px 16px rgba(255, 255, 255, 1)",
-      },
-
-      glow: {
-        brand: "0 0 10px rgba(0, 200, 180, 0.4)",
-        cyan: lightGlowCyan,
-        white: "0 0 14px rgba(255, 255, 255, 0.8)",
-        ...lightStatusGlow,
-      },
-
-      glowRaised: {
-        md: `${lightGlowCyan}, ${lightRaised.md}`,
-        high: `${lightGlowCyan}, ${lightRaised.high}`,
-      },
-    },
-  },
-  "theme-light",
 );

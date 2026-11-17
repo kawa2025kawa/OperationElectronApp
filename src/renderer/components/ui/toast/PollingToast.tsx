@@ -40,7 +40,9 @@ export const PollingToast = memo(() => {
             key={toast.id}
             className={`${styles.item} ${styles.tone[toast.type]}`}
           >
-            <span className={styles.message}>{toast.message}</span>
+            <span className={styles.message} title={toast.message}>
+              {toast.message}
+            </span>
 
             <button
               type="button"

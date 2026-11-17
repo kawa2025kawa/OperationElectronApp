@@ -13,7 +13,7 @@ export function getKokyuhyoColumns() {
   return columnHelper.columns([
     columnHelper.accessor("name", {
       header: "氏名",
-      size: 20,
+      size: 12,
     }),
     ...createScheduleDayGroups<Kokyuhyo>({ status: 8, detail: 12 }),
   ]);

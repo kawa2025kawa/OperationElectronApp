@@ -94,7 +94,7 @@ const OPERATION_SCRIPT_REGISTRY: Readonly<
   ],
 
   // Nシリーズ
-  N12: [defineScript("N12", "Script", ["manual"], jobs.runJobN12)],
+  N12: [defineScript("N12", "Script", ["auto", "manual"], jobs.runJobN12)],
   N25: [defineScript("N25", "N25", ["auto", "manual"], jobs.runJobN25)],
   N31: [defineScript("N31", "Script", ["auto", "manual"], jobs.runJobN31)],
   N33: [defineScript("N33", "Script", ["auto", "manual"], jobs.runJobN33)],
@@ -110,7 +110,7 @@ const OPERATION_SCRIPT_REGISTRY: Readonly<
   "43": [defineScript("28", "Script", ["auto", "manual"], jobs.runJob28)],
   "56": [defineScript("56", "Script", ["auto", "manual"], jobs.runJob56)],
   "60": [defineScript("60", "ロック状態", ["manual"], jobs.runJob6066)],
-  "62": [defineScript("62", "Script", ["manual"], jobs.runJob62)],
+  "62": [defineScript("62", "Script", ["auto", "manual"], jobs.runJob62)],
   "64": [defineScript("64", "Script", ["manual"], jobs.runJob64)],
   "66": [defineScript("66", "ロック状態", ["manual"], jobs.runJob6066)],
   "68": [defineScript("28", "Script", ["auto", "manual"], jobs.runJob28)],

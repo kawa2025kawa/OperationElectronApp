@@ -1,7 +1,7 @@
 // src/renderer/layout/MainView.tsx
 
 import { memo } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 
 import { useAppStore } from "@renderer/store";
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";
@@ -25,28 +25,25 @@ export const MainView = memo(() => {
       <div className={styles.contentWrapper}>
         <main className={styles.mainContent}>
           <div className={styles.viewWrapper}>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={currentView || "default"}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{
-                  duration: 0.15,
-                  ease: "linear",
-                }}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                }}
-              >
-                {ViewComponent ? (
-                  <ViewComponent />
-                ) : (
-                  <UnknownView view={currentView} />
-                )}
-              </motion.div>
-            </AnimatePresence>
+            <motion.div
+              key={currentView || "default"}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{
+                duration: 0.12,
+                ease: "easeOut",
+              }}
+              style={{
+                width: "100%",
+                height: "100%",
+              }}
+            >
+              {ViewComponent ? (
+                <ViewComponent />
+              ) : (
+                <UnknownView view={currentView} />
+              )}
+            </motion.div>
           </div>
 
           <Footer />

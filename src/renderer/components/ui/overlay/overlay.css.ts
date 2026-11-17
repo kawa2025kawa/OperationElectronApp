@@ -145,8 +145,6 @@ export const backdropBase = style([
   overlayBase,
   {
     backgroundColor: BACKDROP_BACKGROUND,
-    backdropFilter: BACKDROP_BLUR,
-    WebkitBackdropFilter: BACKDROP_BLUR,
     transition: backdropTransition,
     willChange: "opacity",
   },
@@ -157,12 +155,16 @@ export const backdropStates = styleVariants({
     opacity: 1,
     visibility: "visible",
     pointerEvents: "auto",
+    backdropFilter: BACKDROP_BLUR,
+    WebkitBackdropFilter: BACKDROP_BLUR,
     transition: backdropOpenTransition,
   },
   closed: {
     opacity: 0,
     visibility: "hidden",
     pointerEvents: "none",
+    backdropFilter: "none",
+    WebkitBackdropFilter: "none",
   },
 });
 

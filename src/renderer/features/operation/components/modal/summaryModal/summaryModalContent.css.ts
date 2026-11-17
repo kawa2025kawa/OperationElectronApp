@@ -15,7 +15,6 @@ export const container = style({
   gap: tokens.space.md,
   boxSizing: "border-box",
   backgroundColor: tokens.color.bg.base,
-  transition: `background-color ${tokens.transition.normal}`,
 
   "@media": {
     "screen and (max-width: 1024px)": {

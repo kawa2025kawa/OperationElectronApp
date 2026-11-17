@@ -4,10 +4,7 @@ import { useCallback, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
-import {
-  darkThemeClass,
-  lightThemeClass,
-} from "@renderer/styles/tokens/theme.css";
+import { darkThemeClass } from "@renderer/styles/tokens/theme.css";
 import { PollingToast } from "@renderer/components/ui/toast/PollingToast";
 import { GlobalModalManager } from "@renderer/components/ui/modal/GlobalModalManager";
 import {
@@ -18,9 +15,8 @@ import {
 import { MainView } from "@renderer/layout/MainView";
 
 export const App = () => {
-  const { theme, isSidebarOpen, initializeApp, setSidebarOpen } = useAppStore(
+  const { isSidebarOpen, initializeApp, setSidebarOpen } = useAppStore(
     useShallow((state) => ({
-      theme: state.theme ?? "dark",
       isSidebarOpen: state.isSidebarOpen ?? false,
       initializeApp: state.initializeApp,
       setSidebarOpen: state.setSidebarOpen,
@@ -32,17 +28,11 @@ export const App = () => {
   }, [setSidebarOpen]);
 
   useEffect(() => {
+    const root = document.documentElement;
+    root.className = darkThemeClass;
+    root.setAttribute("data-theme", "dark");
     void initializeApp();
   }, [initializeApp]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const activeThemeClass =
-      theme === "light" ? lightThemeClass : darkThemeClass;
-
-    root.className = activeThemeClass;
-    root.setAttribute("data-theme", theme);
-  }, [theme]);
 
   return (
     <>

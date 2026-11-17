@@ -1,9 +1,7 @@
-﻿// src/renderer/features/other/components/modal/contents/gmailDraft/gmailDraftContent.css.ts
+// src/renderer/features/other/components/modal/contents/gmailDraft/gmailDraftContent.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-
-const t = tokens.transition.normal;
 
 export const formContainer = style([
   {
@@ -52,7 +50,7 @@ export const input = style({
   outline: "none",
   boxSizing: "border-box",
   boxShadow: tokens.shadow.pressed.low,
-  transition: `border-color ${t}, box-shadow ${t}`,
+  transition: `border-color ${tokens.transition.fast}, box-shadow ${tokens.transition.fast}`,
 
   selectors: {
     "&:focus": {
@@ -145,7 +143,7 @@ export const selectItem = style({
   textAlign: "left",
   cursor: "pointer",
   outline: "none",
-  transition: `background-color ${t}, color ${t}`,
+  transition: `background-color ${tokens.transition.fast}, color ${tokens.transition.fast}`,
 
   selectors: {
     "&[data-highlighted]": {

@@ -94,8 +94,11 @@ const StatusSyncModeContent = memo(
     ]);
 
     useEffect(() => {
-      updateModalConfig({ rightActions });
-    }, [rightActions, updateModalConfig]);
+      updateModalConfig({
+        isProcessing: state.isExecuting,
+        rightActions,
+      });
+    }, [state.isExecuting, rightActions, updateModalConfig]);
 
     return (
       <div className={styles.container}>
@@ -111,7 +114,7 @@ const StatusSyncModeContent = memo(
                 state.isSave ? styles.modeToggleButtonActive : ""
               }`}
               onClick={() => onModeChange("save")}
-              disabled={state.isExecuting || state.isSave}
+              disabled={state.isExecuting || state.isFinished || state.isSave}
             >
               SAVE
             </button>
@@ -122,7 +125,7 @@ const StatusSyncModeContent = memo(
                 !state.isSave ? styles.modeToggleButtonActive : ""
               }`}
               onClick={() => onModeChange("load")}
-              disabled={state.isExecuting || !state.isSave}
+              disabled={state.isExecuting || state.isFinished || !state.isSave}
             >
               LOAD
             </button>

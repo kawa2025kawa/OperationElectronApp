@@ -1,9 +1,8 @@
-﻿// src/renderer/components/ui/searchField/searchField.css.ts
+// src/renderer/components/ui/searchField/searchField.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
-const t = tokens.transition.normal;
 const glowTransition = tokens.transition.glow;
 
 export const inner = style({
@@ -59,7 +58,7 @@ export const searchField = style({
   color: tokens.color.text.base,
   fontSize: tokens.font.size.sm,
   fontWeight: tokens.font.weight.bold,
-  transition: `border-color ${glowTransition}, color ${t}, background-color ${t}`,
+  transition: `border-color ${glowTransition}, color ${tokens.transition.fast}`,
 
   "@media": {
     "screen and (max-width: 600px)": {

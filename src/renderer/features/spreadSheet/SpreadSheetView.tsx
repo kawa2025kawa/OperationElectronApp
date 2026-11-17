@@ -5,7 +5,6 @@ import { useShallow } from "zustand/shallow";
 
 import { useAppStore, type AppState } from "@renderer/store";
 import { AuthView } from "@renderer/features/auth/AuthView";
-import { TantouButton } from "@renderer/components/ui/button/tantouButton/TantouButton";
 import { MODAL_SIZES } from "@shared/types/ui/modal";
 import {
   SHEETS,
@@ -153,8 +152,6 @@ export const KokyuhyoView = memo(function KokyuhyoView() {
           : `${row.name ? String(row.name).trim() : "kokyuhyo"}_${index}`
       }
       onRowClick={handleRowClick}
-      placeholderColumnId="name"
-      placeholderContent={<TantouButton />}
       isHolidayCell={isHolidayText}
     />
   );

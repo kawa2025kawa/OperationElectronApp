@@ -3,11 +3,13 @@
 import fs from "fs-extra";
 import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
   targetDir: "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV",
   keywords: ["htsf0060", "Okurikomi"],
-  expectedFilesPerKeyword: 1,
+  minFilesPerKeyword: 1,
+  maxFilesPerKeyword: 2,
 } as const;
 
 type KeywordResult = {
@@ -18,23 +20,27 @@ type KeywordResult = {
 type Job25CheckResult = {
   targetDir: string;
   results: KeywordResult[];
-  missingFiles: KeywordResult[];
+  missingKeywords: KeywordResult[];
+  excessKeywords: KeywordResult[];
 };
 
 /**
  * 当日分の対象ファイルを確認する。
  *
- * 正常終了条件:
- * - htsf0060 が1件
- * - Okurikomi が1件
+ * 監視継続 (running):
+ * - いずれかの対象ファイルが未検出（0件）の場合（バックグラウンドでポーリング監視）
  *
- * 業務上の要対応:
- * - いずれかの対象ファイルが1件以外
+ * 業務上の要対応 (needsAction):
+ * - いずれかの対象ファイルが上限（2件：朝・昼の2回分）を超過している場合
+ *
+ * 正常終了 (success):
+ * - htsf0060 が1〜2件
+ * - Okurikomi が1〜2件
  *
  * システムエラー:
  * - 対象フォルダへのアクセス失敗
  */
-export async function runJob25(): Promise<string> {
+export async function runJob25(): Promise<JobResult> {
   const logger = new JobLogger();
 
   try {
@@ -63,32 +69,39 @@ async function findTargetFiles(): Promise<Job25CheckResult> {
     withFileTypes: true,
   });
 
-  const todayFiles = entries.filter(
-    (entry) => entry.isFile() && entry.name.includes(today),
-  );
+  const todayFiles = entries
+    .filter((entry) => entry.isFile() && entry.name.includes(today))
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b));
 
   const results: KeywordResult[] = CONFIG.keywords.map((keyword) => ({
     keyword,
-    fileNames: todayFiles
-      .filter((entry) => entry.name.includes(keyword))
-      .map((entry) => entry.name),
+    fileNames: todayFiles.filter((fileName) => fileName.includes(keyword)),
   }));
 
-  const missingFiles = results.filter(
-    (result) => result.fileNames.length !== CONFIG.expectedFilesPerKeyword,
+  const missingKeywords = results.filter(
+    (result) => result.fileNames.length < CONFIG.minFilesPerKeyword,
+  );
+
+  const excessKeywords = results.filter(
+    (result) => result.fileNames.length > CONFIG.maxFilesPerKeyword,
   );
 
   return {
     targetDir: CONFIG.targetDir,
     results,
-    missingFiles,
+    missingKeywords,
+    excessKeywords,
   };
 }
 
 /**
- * 検索結果と不足ファイルをログに出力する。
+ * 検索結果と不足・超過ファイルをログに出力し、JobResult を返却する。
  */
-function writeResultLog(logger: JobLogger, result: Job25CheckResult): string {
+function writeResultLog(
+  logger: JobLogger,
+  result: Job25CheckResult,
+): JobResult {
   logger.log(`対象フォルダ : ${result.targetDir}`);
 
   logger.section("検索結果");
@@ -99,21 +112,46 @@ function writeResultLog(logger: JobLogger, result: Job25CheckResult): string {
     }
   }
 
-  if (result.missingFiles.length > 0) {
-    logger.section("不足ファイル");
+  if (result.excessKeywords.length > 0) {
+    logger.section("ファイル件数超過");
 
-    for (const item of result.missingFiles) {
+    for (const item of result.excessKeywords) {
       logger.log(
-        `${item.keyword}: ${
-          item.fileNames.length > 0
-            ? item.fileNames.join(", ")
-            : "該当ファイルなし"
-        }`,
+        `${item.keyword} (${item.fileNames.length}件 / 上限${CONFIG.maxFilesPerKeyword}件): ${item.fileNames.join(", ")}`,
       );
     }
 
-    return logger.needsAction("ファイル確認要対応");
+    return {
+      success: true,
+      kind: "needsAction",
+      message: logger.needsAction("対象ファイルが上限件数を超えています"),
+      data: result,
+    };
   }
 
-  return logger.complete();
+  if (result.missingKeywords.length > 0) {
+    logger.section("不足ファイル");
+
+    for (const item of result.missingKeywords) {
+      logger.log(`${item.keyword}: 該当ファイルなし（配置待ち）`);
+    }
+
+    const missingNames = result.missingKeywords.map((item) => item.keyword);
+
+    return {
+      success: true,
+      kind: "running",
+      message: logger.complete(
+        `ファイル未検出 (対象: ${missingNames.join(", ")})。バックグラウンドで監視中`,
+      ),
+      data: result,
+    };
+  }
+
+  return {
+    success: true,
+    kind: "success",
+    message: logger.complete(),
+    data: result,
+  };
 }

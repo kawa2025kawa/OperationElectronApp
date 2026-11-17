@@ -10,7 +10,6 @@ import {
 } from "@renderer/styles/global/surfaces.css";
 
 const BADGE_WIDTH = "60px";
-const t = tokens.transition.normal;
 
 const flexColumn = {
   display: "flex",
@@ -90,7 +89,7 @@ export const tabButton = style([
     fontSize: tokens.font.size.sm,
     fontWeight: tokens.font.weight.bold,
     color: tokens.color.text.base,
-    transition: `color ${t}`,
+    transition: `color ${tokens.transition.fast}`,
     whiteSpace: "nowrap",
 
     selectors: {

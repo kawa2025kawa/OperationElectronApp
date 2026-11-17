@@ -30,7 +30,6 @@ import {
   type NavigationSlice,
 } from "./slices/navigationSlice";
 import { createOverlaySlice, type OverlaySlice } from "./slices/overlaySlice";
-import { createThemeSlice, type ThemeSlice } from "./slices/themeSlice";
 
 // ============================================================================
 // App State
@@ -41,7 +40,6 @@ export type AppState = AuthSlice &
   OperationStatusSlice &
   PollingSlice &
   SpreadSheetSlice &
-  ThemeSlice &
   NavigationSlice &
   OverlaySlice &
   ModalSlice &
@@ -65,7 +63,6 @@ export const useAppStore = create<AppState>()(
       ...createCenterSlice(...args),
 
       // UI / Global Slices
-      ...createThemeSlice(...args),
       ...createNavigationSlice(...args),
       ...createOverlaySlice(...args),
       ...createModalSlice(...args),

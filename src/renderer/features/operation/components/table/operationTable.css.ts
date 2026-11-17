@@ -1,12 +1,10 @@
-// src/renderer/features/operation/components/table/operationTable.css.ts
+﻿// src/renderer/features/operation/components/table/operationTable.css.ts
 
 import { keyframes, style, styleVariants } from "@vanilla-extract/css";
 
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 import { textEllipsis } from "@renderer/styles/global/surfaces.css";
-
-const transition = tokens.transition.normal;
 
 const commonTable = {
   width: "100%",
@@ -43,6 +41,7 @@ export const headerContainer = style({
   scrollbarGutter: "stable",
   backgroundColor: tokens.color.bg.base,
   boxShadow: tokens.shadow.raised.high,
+  transform: "translateZ(0)",
 });
 
 export const scrollContainer = style([
@@ -56,6 +55,9 @@ export const scrollContainer = style([
     paddingInline: tokens.space.md,
     scrollbarGutter: "stable",
     isolation: "isolate",
+    contain: "strict",
+    transform: "translateZ(0)",
+    WebkitOverflowScrolling: "touch",
   },
 ]);
 
@@ -84,7 +86,7 @@ export const tableRowBase = style({
   color: tokens.color.text.base,
   boxShadow: tokens.shadow.raised.low,
   outline: "none",
-  transition: `color ${tokens.transition.fast}, box-shadow ${transition}`,
+  transition: `color ${tokens.transition.fast}`,
 
   selectors: {
     "&:focus, &:focus-visible": {
@@ -162,7 +164,6 @@ export const cellText = style([
     display: "inline-block",
     maxWidth: "100%",
     verticalAlign: "middle",
-    transition: `color ${transition}, filter ${transition}`,
 
     selectors: {
       [`${tableRowStates.selected} &`]: {

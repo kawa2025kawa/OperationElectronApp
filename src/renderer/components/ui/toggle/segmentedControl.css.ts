@@ -1,10 +1,8 @@
-﻿// src/renderer/components/ui/toggle/segmentedControl.css.ts
+// src/renderer/components/ui/toggle/segmentedControl.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { focusRing } from "@renderer/styles/global/surfaces.css";
-
-const t = tokens.transition.normal;
 
 export const containerBase = style({
   position: "relative",
@@ -70,7 +68,7 @@ export const itemButtonBase = style([
     fontFamily: tokens.font.base,
     fontWeight: tokens.font.weight.bold,
     color: tokens.color.text.base,
-    transition: `color ${t}`,
+    transition: `color ${tokens.transition.fast}`,
     whiteSpace: "nowrap",
 
     selectors: {
@@ -90,7 +88,6 @@ export const itemButtonSize = styleVariants({
 export const itemText = style({
   position: "relative",
   zIndex: 1,
-  transition: `color ${t}`,
 
   selectors: {
     '&[data-active="true"]': {

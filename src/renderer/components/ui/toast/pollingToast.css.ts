@@ -40,7 +40,7 @@ export const header = style({
 export const title = style({
   fontFamily: tokens.font.mono,
   color: tokens.color.accent.neonCyan,
-  fontSize: tokens.font.size.sm,
+  fontSize: tokens.font.size.md,
   fontWeight: tokens.font.weight.bold,
   letterSpacing: "0.06em",
   whiteSpace: "nowrap",
@@ -66,7 +66,7 @@ export const item = style({
   borderRadius: tokens.radius.sm,
   border: "1px solid transparent",
   backgroundColor: "rgba(255, 255, 255, 0.03)",
-  fontSize: tokens.font.size.sm,
+  fontSize: tokens.font.size.md,
   fontWeight: tokens.font.weight.bold,
   lineHeight: 1.4,
   transition: `color ${tokens.transition.ease}, background-color ${tokens.transition.ease}, border-color ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}, transform ${tokens.transition.fast}`,
@@ -75,7 +75,6 @@ export const item = style({
       backgroundColor: tokens.color.bg.frostedGlass,
       borderColor: tokens.color.border.highlight,
       boxShadow: tokens.shadow.highlight,
-      transform: "translateX(-2px)",
     },
   },
 });
@@ -110,8 +109,9 @@ export const message = style({
   flex: 1,
   minWidth: 0,
   color: "inherit",
-  whiteSpace: "pre-wrap",
-  wordBreak: "break-word",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 export const tone = styleVariants({

@@ -15,19 +15,15 @@ export const useSidebarLogic = () => {
   const {
     currentView,
     isSidebarOpen,
-    theme,
     toggleSidebar,
     setSidebarOpen,
-    toggleTheme,
     setCurrentView,
   } = useAppStore(
     useShallow((s) => ({
       currentView: s.currentView,
       isSidebarOpen: s.isSidebarOpen,
-      theme: s.theme,
       toggleSidebar: s.toggleSidebar,
       setSidebarOpen: s.setSidebarOpen,
-      toggleTheme: s.toggleTheme,
       setCurrentView: s.setCurrentView,
     })),
   );
@@ -50,10 +46,8 @@ export const useSidebarLogic = () => {
   return {
     currentView,
     isSidebarOpen,
-    theme,
     toggleSidebar,
     setSidebarOpen,
-    toggleTheme,
     handleItemClick,
     menuItems: ORDERED_MENU_ITEMS,
   };

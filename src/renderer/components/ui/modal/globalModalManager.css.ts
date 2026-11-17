@@ -1,8 +1,7 @@
-﻿// src/renderer/components/ui/modal/globalModalManager.css.ts
+// src/renderer/components/ui/modal/globalModalManager.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
 // ============================================================
 // Overlay (背景遮蔽)
@@ -48,40 +47,37 @@ export const viewport = style({
 // Modal Window (モーダル外枠)
 // ============================================================
 
-export const modalWindow = style([
-  themeTransition,
-  {
-    position: "relative",
-    display: "flex",
-    flexDirection: "column",
-    backgroundColor: tokens.color.bg.base,
-    borderRadius: tokens.radius.lg,
-    boxShadow: tokens.shadow.raised.high,
-    border: `1px solid ${tokens.color.border.subtle}`,
-    outline: "none",
-    overflow: "hidden",
-    boxSizing: "border-box",
-    flexShrink: 0,
-    flexGrow: 0,
-    maxHeight: "90vh",
-    maxWidth: "92vw",
-    opacity: 1,
-    transition: "opacity 180ms ease-out",
+export const modalWindow = style({
+  position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  backgroundColor: tokens.color.bg.base,
+  borderRadius: tokens.radius.lg,
+  boxShadow: tokens.shadow.raised.high,
+  border: `1px solid ${tokens.color.border.subtle}`,
+  outline: "none",
+  overflow: "hidden",
+  boxSizing: "border-box",
+  flexShrink: 0,
+  flexGrow: 0,
+  maxHeight: "90vh",
+  maxWidth: "92vw",
+  opacity: 1,
+  transition: "opacity 180ms ease-out",
 
-    // 描画隔離
-    isolation: "isolate",
-    transform: "translateZ(0)",
+  // 描画隔離
+  isolation: "isolate",
+  transform: "translateZ(0)",
 
-    selectors: {
-      "&[data-starting-style]": {
-        opacity: 0,
-      },
-      "&[data-ending-style]": {
-        opacity: 0,
-      },
+  selectors: {
+    "&[data-starting-style]": {
+      opacity: 0,
+    },
+    "&[data-ending-style]": {
+      opacity: 0,
     },
   },
-]);
+});
 
 // ============================================================
 // Header / Title
