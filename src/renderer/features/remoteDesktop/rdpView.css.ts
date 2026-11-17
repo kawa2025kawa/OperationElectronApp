@@ -2,10 +2,10 @@
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
+
+import { interactiveGlowCard } from "@renderer/styles/global/surfaces.css";
 
 export const rdpContainer = style([
-  themeTransition,
   {
     display: "flex",
     flexDirection: "column",
@@ -28,9 +28,8 @@ export const grid = style({
 });
 
 export const card = style([
-  themeTransition,
+  interactiveGlowCard,
   {
-    position: "relative",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -38,35 +37,14 @@ export const card = style([
     gap: tokens.space.xs,
     padding: tokens.space.xl,
     minHeight: "140px",
-    backgroundColor: tokens.color.bg.base,
     borderRadius: tokens.radius.lg,
-    boxShadow: tokens.shadow.raised.low,
     border: "none",
     outline: "none",
     cursor: "pointer",
-
-    isolation: "isolate",
-    transform: "translateZ(0)",
-    backfaceVisibility: "hidden",
-    WebkitBackfaceVisibility: "hidden",
     transition: `transform ${tokens.transition.ease}`,
 
     "::before": {
-      content: '""',
-      position: "absolute",
-      inset: 0,
-      borderRadius: tokens.radius.lg,
       boxShadow: tokens.shadow.glow.cyan,
-      opacity: 0,
-      transition: `opacity ${tokens.transition.normal}`,
-      pointerEvents: "none",
-      willChange: "opacity",
-    },
-
-    selectors: {
-      "&:hover::before": {
-        opacity: 1,
-      },
     },
   },
 ]);

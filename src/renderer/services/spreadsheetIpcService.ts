@@ -1,6 +1,6 @@
-﻿// src/renderer/services/spreadsheetIpcService.ts
+// src/renderer/services/spreadsheetIpcService.ts
 
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 import type { SpreadsheetMasterDataResponse } from "@shared/types/masterData/spreadsheetMasterDataTypes";
 
 /**

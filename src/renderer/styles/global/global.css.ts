@@ -3,8 +3,6 @@
 import { globalStyle } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
-const themeEase = tokens.transition.normal;
-
 // ============================================================
 // Reset & Box Sizing
 // ============================================================
@@ -15,11 +13,16 @@ globalStyle("*, *::before, *::after", {
   padding: 0,
 });
 
+globalStyle("*", {
+  scrollbarWidth: "thin",
+  scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
+});
+
 globalStyle("html, body, #root", {
   width: "100%",
   height: "100%",
   overflow: "hidden",
-  fontFamily: tokens.font.base, // 🎯 sans ではなく base に修正
+  fontFamily: tokens.font.base,
   fontSize: "16px",
   lineHeight: 1.5,
   WebkitFontSmoothing: "antialiased",
@@ -27,16 +30,15 @@ globalStyle("html, body, #root", {
 });
 
 // ============================================================
-// Global Theme Transitions (詳細度を高めて個別スタイルによる打ち消しを防止)
+// Global Theme Transitions
 // ============================================================
 
-// テーマ属性が付与された状態の全子要素に対して一括適用
 globalStyle(
   ":where(html[data-theme]) *, :where(html[data-theme]) *::before, :where(html[data-theme]) *::after",
   {
     transitionProperty:
       "background-color, color, border-color, box-shadow, text-shadow, opacity",
-    transitionDuration: tokens.transition.normal, // 🎯 0.8s に同期
+    transitionDuration: tokens.transition.normal,
     transitionTimingFunction: "cubic-bezier(0.25, 0.8, 0.25, 1)",
   },
 );
@@ -48,12 +50,12 @@ globalStyle("body, #root", {
 });
 
 // ============================================================
-// Custom Scrollbar
+// Custom Scrollbar (Default: Neon Pink 4px)
 // ============================================================
 
 globalStyle("::-webkit-scrollbar", {
-  width: "8px",
-  height: "8px",
+  width: "4px",
+  height: "4px",
 });
 
 globalStyle("::-webkit-scrollbar-track", {
@@ -61,11 +63,6 @@ globalStyle("::-webkit-scrollbar-track", {
 });
 
 globalStyle("::-webkit-scrollbar-thumb", {
-  backgroundColor: tokens.color.border.subtle,
+  backgroundColor: tokens.color.accent.neonPink,
   borderRadius: tokens.radius.full,
-  transition: `background-color ${themeEase}`,
-});
-
-globalStyle("::-webkit-scrollbar-thumb:hover", {
-  backgroundColor: tokens.color.border.default,
 });

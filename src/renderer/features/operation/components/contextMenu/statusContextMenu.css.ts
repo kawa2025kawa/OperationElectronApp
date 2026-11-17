@@ -1,4 +1,4 @@
-﻿// src/renderer/features/operation/components/contextMenu/statusContextMenu.css.ts
+// src/renderer/features/operation/components/contextMenu/statusContextMenu.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 
@@ -10,6 +10,8 @@ export const positioner = style({
 });
 
 export const content = style({
+  position: "relative",
+  zIndex: tokens.zIndex.base,
   display: "grid",
   gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
   gridTemplateRows: "auto auto auto auto",
@@ -19,24 +21,10 @@ export const content = style({
   borderRadius: tokens.radius.lg,
   boxSizing: "border-box",
 
-  // すりガラス感を残す濃色アルファ
-  backgroundColor: "rgba(18, 20, 24, 0.1)",
-
-  // 背後をしっかりぼかすフロスト効果
-  backdropFilter: "blur(20px) saturate(180%)",
-  WebkitBackdropFilter: "blur(20px) saturate(180%)",
-
-  // 外線を黒い縁（ダークボーダー）にする
-  border: "1px solid #000000",
-
-  // 黒い縁取りをより引き締め、立体感を出すドロップシャドウ
-  boxShadow:
-    "0 0 0 1px rgba(0, 0, 0, 0.8), 0 12px 36px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.5)",
-
-  // 描画隔離
-  position: "relative",
-  isolation: "isolate",
-  transform: "translateZ(0)",
+  border: `1px solid ${tokens.glass.contextMenu.border}`,
+  backgroundColor: tokens.glass.contextMenu.surface,
+  backdropFilter: `blur(${tokens.glass.contextMenu.blur}) saturate(${tokens.glass.contextMenu.saturation})`,
+  boxShadow: tokens.shadow.contextMenu,
 });
 
 // 1段目: KanriNo + 右上 CloseButton（4列貫通）

@@ -1,7 +1,6 @@
 // src/shared/types/electron/ipcTypes.ts
 
 import type { AuthProfile } from "@shared/types/auth";
-import type { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 import type {
   EmailTemplateKey,
   GmailDraftFormValues,
@@ -26,6 +25,70 @@ import type {
 import type { UpdateInfo } from "@shared/types/system";
 
 /**
+ * Electron IPC チャンネル名定数
+ */
+export const IPC_CHANNELS = {
+  AUTH: {
+    LOGIN: "googleAuth:login",
+    LOAD_SESSION: "googleAuth:loadSession",
+    LOGOUT: "googleAuth:logout",
+  },
+  SYSTEM: {
+    GET_APP_VERSION: "getAppVersion",
+    SHOW_MAIN_WINDOW: "showMainWindow",
+    QUIT_APP: "quitApp",
+    OPEN_MANUAL: "openManual",
+    OPEN_EXTERNAL: "openExternal",
+    SHOW_OPEN_DIALOG: "showOpenDialog",
+    READ_UPDATE_INFO: "readUpdateInfo",
+    THEME_CHANGED: "theme-changed",
+    RENAME_FILE: "system:renameFile",
+  },
+
+  RDP: {
+    GET_MASTERS: "rdp:getMasters",
+    START_SESSION: "rdp:startSession",
+  },
+  GMAIL: {
+    GET_SIGNATURE: "gmail:getSignature",
+    GENERATE_DRAFT_TEMPLATE: "gmail:generateDraftTemplate",
+    CREATE_DRAFT: "gmail:createDraft",
+  },
+  SPREADSHEET: {
+    GET_MASTER_DATA: "spreadsheet:master",
+    GET_FILTERED_DATA: "spreadsheet:getFilteredData",
+  },
+  TEMPOMATIC: {
+    UPLOAD_DOCUMENT: "tempomatic:uploadDocument",
+  },
+  OTHER: {
+    PROCESS_GIFT_MD: "gift-md:process",
+  },
+  OPERATION: {
+    GET_STATUS_SUMMARY: "operation:getStatusSummary",
+    GET_SUMMARY_DETAILS: "operation:getSummaryDetails",
+    GET_TABLE_DATA: "operation:getTableData",
+    GET_SCRIPT_EXECUTION_REQUIREMENT: "operation:getScriptExecutionRequirement",
+    RESET_STATUSES: "operation:resetStatusesFromSpreadsheet",
+    GET_ACTIVE_FLAGS: "operation:getActiveFlags",
+    SET_ACTIVE_FLAGS: "operation:setActiveFlags",
+    DELETE_ALL_STATUSES: "operation:deleteAllStatuses",
+    INITIALIZE_STATUS: "operation:initializeStatus",
+    REGISTER_TARGETS: "operation:registerTargets",
+    UPDATE_JOB_STATUS: "operation:updateJobStatus",
+    START_POLLING: "operation:startPolling",
+    STOP_POLLING: "operation:stopPolling",
+    EXECUTE_SCRIPT: "operation:executeScript",
+    FETCH_SINGLE_STATUS: "operation:fetchSingleJobStatus",
+    STATUS_UPDATED: "operation:status-updated",
+    POLLING_CYCLE_COMPLETE: "polling-cycle-complete",
+    SAVE_STATUSES_TO_SHEET: "operation:saveStatusesToSheet",
+    PREVIEW_STATUS_SYNC_FROM_SHEET: "operation:previewStatusSyncFromSheet",
+    LOAD_STATUSES_FROM_SHEET: "operation:loadStatusesFromSheet",
+  },
+} as const;
+
+/**
  * Renderer が受信する IPC イベントの型定義
  */
 export interface IpcEventMap {
@@ -42,6 +105,37 @@ export interface IpcEventMap {
 export interface TempomaticUploadTargetFile {
   path: string;
   name?: string;
+}
+
+/**
+ * スプレッドシート Status 引き継ぎ同期のメタデータ・入出力型
+ */
+export interface StatusSyncMetadata {
+  operatorName: string;
+  savedAt: string;
+  handoverNote: string;
+  revision: number;
+  activeFlags: ActiveFlags;
+}
+
+export interface SaveStatusSyncInput {
+  operatorName: string;
+  handoverNote: string;
+}
+
+export interface SaveStatusSyncResult extends StatusSyncMetadata {
+  savedCount: number;
+}
+
+export interface StatusSyncPreviewResult {
+  hasData: boolean;
+  metadata: StatusSyncMetadata | null;
+}
+
+export interface LoadStatusSyncResult {
+  loadedCount: number;
+  metadata: StatusSyncMetadata | null;
+  loadedAt: string;
 }
 
 /**
@@ -149,6 +243,12 @@ interface IpcChannelDefinitions {
   [IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS]: (input: {
     kanriNo: string;
   }) => OperationStatusState | null;
+  [IPC_CHANNELS.OPERATION.SAVE_STATUSES_TO_SHEET]: (
+    input: SaveStatusSyncInput,
+  ) => SaveStatusSyncResult;
+  [IPC_CHANNELS.OPERATION
+    .PREVIEW_STATUS_SYNC_FROM_SHEET]: () => StatusSyncPreviewResult;
+  [IPC_CHANNELS.OPERATION.LOAD_STATUSES_FROM_SHEET]: () => LoadStatusSyncResult;
 }
 
 /**

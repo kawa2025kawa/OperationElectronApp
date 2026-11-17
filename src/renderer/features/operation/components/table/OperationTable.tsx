@@ -7,168 +7,29 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
-  useState,
-  type KeyboardEvent,
-  type MouseEvent,
   type UIEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { useTable, type Row } from "@tanstack/react-table";
+import { useTable } from "@tanstack/react-table";
 import { ContextMenu } from "@base-ui/react/context-menu";
 
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
-import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { StatusContextMenu } from "@renderer/features/operation/components/contextMenu/StatusContextMenu";
-import { useAppStore } from "@renderer/store";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { createRegistryGlobalFilter } from "@renderer/features/table/utils/tableSearchUtils";
-import type {
-  JobStatus,
-  OperationViewItem,
-} from "@shared/types/operation/operationTypes";
+import type { OperationViewItem } from "@shared/types/operation/operationTypes";
 
+import { OperationTableRow } from "./OperationTableRow";
 import { useOperationTable } from "./useOperationTable";
+import { useOperationTableContextMenu } from "./useOperationTableContextMenu";
 import {
   EMPTY_OPERATION_ROWS,
   getOperationColumns,
   OPERATION_TABLE_FEATURES,
-  type OperationColumn,
   type OperationColumnMeta,
   type TableFeaturesType,
 } from "./operationTableConfig";
 import * as styles from "./operationTable.css";
-
-interface ContextMenuTargetState {
-  kanriNo: string;
-  workName: string;
-  status?: JobStatus;
-  pointerAnchor: DOMRect;
-  rowRect: DOMRect;
-  menuWidth?: number;
-}
-
-interface LaserCoordinates {
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-  pathD: string;
-}
-
-function getInfoRowHorizontalBounds(): { left: number; width: number } | null {
-  const infoRow = document.querySelector<HTMLElement>(
-    '[data-operation-info-list="true"] > *',
-  );
-  if (!infoRow) return null;
-
-  const { left, width } = infoRow.getBoundingClientRect();
-  return width > 0 ? { left, width } : null;
-}
-
-function buildLaserCoordinates(
-  rowRect: DOMRect,
-  popupRect: DOMRect,
-): LaserCoordinates {
-  const isMenuOnRight = popupRect.left >= rowRect.right - 8;
-  const startX = isMenuOnRight ? rowRect.right : rowRect.left;
-  const startY = rowRect.top + rowRect.height / 2;
-  const endX = isMenuOnRight ? popupRect.left : popupRect.right;
-  const endY = Math.min(
-    Math.max(popupRect.top + 18, popupRect.top + 8),
-    popupRect.bottom - 8,
-  );
-  const midX = startX + (isMenuOnRight ? 18 : -18);
-
-  return {
-    startX,
-    startY,
-    endX,
-    endY,
-    pathD: `M ${startX} ${startY} L ${midX} ${startY} L ${endX} ${endY}`,
-  };
-}
-
-interface OperationTableRowProps {
-  readonly row: Row<TableFeaturesType, OperationViewItem>;
-  readonly table: ReturnType<
-    typeof useTable<TableFeaturesType, OperationViewItem>
-  >;
-  readonly isContextOpen: boolean;
-  readonly onRowClick: (kanriNo: string) => void;
-  readonly onMarkSuccess: (kanriNo: string) => void;
-  readonly onStatusContextMenu: (
-    event: MouseEvent<HTMLDivElement>,
-    item: OperationViewItem,
-  ) => void;
-}
-
-const OperationTableRow = memo(function OperationTableRow({
-  row,
-  table,
-  isContextOpen,
-  onRowClick,
-  onMarkSuccess,
-  onStatusContextMenu,
-}: OperationTableRowProps) {
-  const kanriNo = row.original.kanriNo.trim();
-  const isSelected = useAppStore(
-    (state) =>
-      Boolean(kanriNo) && state.selectedIds[state.currentMode] === kanriNo,
-  );
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
-    if (event.key !== "Enter") return;
-    event.preventDefault();
-    onMarkSuccess(kanriNo);
-  };
-
-  return (
-    <tr
-      tabIndex={0}
-      data-context-open={isContextOpen}
-      className={`${styles.tableRowBase} ${
-        isSelected
-          ? styles.tableRowStates.selected
-          : styles.tableRowStates.clickable
-      }`}
-      onClick={() => onRowClick(kanriNo)}
-      onKeyDown={handleKeyDown}
-    >
-      {row.getAllCells().map((cell) => {
-        const column = cell.column.id as OperationColumn;
-        const meta = cell.column.columnDef.meta as
-          | OperationColumnMeta
-          | undefined;
-        const align = meta?.align ?? "left";
-
-        return (
-          <td
-            key={cell.id}
-            className={`${styles.tdBase} ${styles.alignVariants[align]}`}
-          >
-            {column === "status" ? (
-              <div className={styles.statusCellWrapper}>
-                <div
-                  className={styles.statusBadgeAnchor}
-                  data-context-open={isContextOpen}
-                  onContextMenu={(event) =>
-                    onStatusContextMenu(event, row.original)
-                  }
-                >
-                  <StatusBadge status={row.original.status} />
-                </div>
-              </div>
-            ) : (
-              <span className={styles.cellText}>
-                <table.FlexRender cell={cell} />
-              </span>
-            )}
-          </td>
-        );
-      })}
-    </tr>
-  );
-});
 
 export const OperationTable = memo(function OperationTable() {
   const {
@@ -183,112 +44,55 @@ export const OperationTable = memo(function OperationTable() {
     handleMarkSuccess,
   } = useOperationTable();
 
-  const [contextMenuTarget, setContextMenuTarget] =
-    useState<ContextMenuTargetState | null>(null);
-  const [laserCoords, setLaserCoords] = useState<LaserCoordinates | null>(null);
+  const {
+    target: contextMenuTarget,
+    laserCoords,
+    popupRef,
+    virtualAnchor,
+    open: handleStatusContextMenu,
+    close: closeContextMenu,
+    handleBodyScroll,
+  } = useOperationTableContextMenu();
 
-  const popupRef = useRef<HTMLDivElement | null>(null);
   const headerContainerRef = useRef<HTMLDivElement | null>(null);
-
-  const closeContextMenu = useCallback(() => {
-    setContextMenuTarget(null);
-    setLaserCoords(null);
-  }, []);
-
-  const handleStatusContextMenu = useCallback(
-    (event: MouseEvent<HTMLDivElement>, item: OperationViewItem) => {
-      const kanriNo = item.kanriNo.trim();
-      if (!kanriNo) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const rowEl = event.currentTarget.closest("tr");
-      const rowRect = rowEl
-        ? rowEl.getBoundingClientRect()
-        : event.currentTarget.getBoundingClientRect();
-      const infoRowBounds = getInfoRowHorizontalBounds();
-
-      setLaserCoords(null);
-      setContextMenuTarget({
-        kanriNo,
-        workName: item.workName?.trim() || `No.${kanriNo}`,
-        status: item.status,
-        pointerAnchor: DOMRect.fromRect({
-          x: infoRowBounds?.left ?? event.clientX + 56,
-          y: event.clientY,
-          width: 0,
-          height: 0,
-        }),
-        rowRect,
-        menuWidth: infoRowBounds?.width,
-      });
-    },
-    [],
-  );
+  const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTableScroll = useCallback(
     (event: UIEvent<HTMLDivElement>) => {
+      const target = event.currentTarget;
       if (headerContainerRef.current) {
-        headerContainerRef.current.scrollLeft = event.currentTarget.scrollLeft;
+        headerContainerRef.current.scrollLeft = target.scrollLeft;
       }
 
-      if (contextMenuTarget) closeContextMenu();
-      handleScroll(event);
+      handleBodyScroll();
+
+      if (scrollSaveTimerRef.current !== null) return;
+      scrollSaveTimerRef.current = setTimeout(() => {
+        scrollSaveTimerRef.current = null;
+        if (containerRef.current) {
+          handleScroll({
+            currentTarget: containerRef.current,
+          } as UIEvent<HTMLDivElement>);
+        }
+      }, 150);
     },
-    [contextMenuTarget, closeContextMenu, handleScroll],
+    [containerRef, handleBodyScroll, handleScroll],
   );
+
+  useEffect(() => {
+    return () => {
+      if (scrollSaveTimerRef.current !== null) {
+        clearTimeout(scrollSaveTimerRef.current);
+        scrollSaveTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const header = headerContainerRef.current;
     const body = containerRef.current;
     if (header && body) header.scrollLeft = body.scrollLeft;
-  });
-
-  useLayoutEffect(() => {
-    if (!contextMenuTarget) {
-      setLaserCoords(null);
-      return;
-    }
-
-    let rafId = 0;
-
-    const updateLaser = () => {
-      const popup = popupRef.current;
-      if (!popup) {
-        rafId = requestAnimationFrame(updateLaser);
-        return;
-      }
-
-      const popupRect = popup.getBoundingClientRect();
-      if (!popupRect.width && !popupRect.height) {
-        rafId = requestAnimationFrame(updateLaser);
-        return;
-      }
-
-      setLaserCoords(
-        buildLaserCoordinates(contextMenuTarget.rowRect, popupRect),
-      );
-    };
-
-    rafId = requestAnimationFrame(updateLaser);
-    return () => cancelAnimationFrame(rafId);
-  }, [contextMenuTarget]);
-
-  useEffect(() => {
-    if (!contextMenuTarget) return;
-
-    window.addEventListener("resize", closeContextMenu);
-    return () => window.removeEventListener("resize", closeContextMenu);
-  }, [contextMenuTarget, closeContextMenu]);
-
-  const virtualAnchor = useMemo(
-    () =>
-      contextMenuTarget
-        ? { getBoundingClientRect: () => contextMenuTarget.pointerAnchor }
-        : undefined,
-    [contextMenuTarget],
-  );
+  }, [containerRef, currentMode]);
 
   const columns = useMemo(
     () => getOperationColumns(currentMode),

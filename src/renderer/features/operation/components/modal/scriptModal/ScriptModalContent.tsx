@@ -3,10 +3,10 @@
 import { memo, useCallback, useEffect, useMemo } from "react";
 import type { OperationViewItem } from "@shared/types/operation/operationTypes";
 import { FileDropZone } from "@renderer/components/ui/fileDropZone/FileDropZone";
+import { operationService } from "@renderer/features/operation/service/operationService";
 import { useAppStore } from "@renderer/store";
 import type { GlobalModalComponent, ModalAction } from "@shared/types/ui/modal";
 import type { JobArtifact } from "@shared/types/operation/operationTypes";
-import { systemIpcService } from "@renderer/services/systemIpcService";
 import { useScriptModalContent } from "./useScriptModalContent";
 import { SCRIPT_MODAL_LABELS } from "./scriptModalConstants";
 import * as styles from "./scriptModalContent.css";
@@ -55,12 +55,10 @@ export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
       updateModalConfig({ rightActions });
     }, [rightActions, updateModalConfig]);
 
-    const handleOpenArtifact = useCallback(async (path: string) => {
-      try {
-        await systemIpcService.openExternal(path);
-      } catch (error) {
-        console.error("Failed to open artifact:", error);
-      }
+    const handleOpenArtifact = useCallback((path: string) => {
+      void operationService
+        .openExternal(path, "成果物を開けませんでした")
+        .catch(() => undefined);
     }, []);
 
     return (
@@ -94,9 +92,7 @@ export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
                             key={artifact.path || index}
                             type="button"
                             className={styles.linkCardButton}
-                            onClick={() =>
-                              void handleOpenArtifact(artifact.path!)
-                            }
+                            onClick={() => handleOpenArtifact(artifact.path!)}
                           >
                             <span className={styles.linkLabel}>
                               {artifact.name ??

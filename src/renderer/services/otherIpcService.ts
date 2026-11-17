@@ -1,6 +1,6 @@
-﻿// src/renderer/services/otherIpcService.ts
+// src/renderer/services/otherIpcService.ts
 
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 import type {
   EmailTemplateKey,
   GmailDraftFormValues,

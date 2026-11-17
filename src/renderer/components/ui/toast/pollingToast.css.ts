@@ -1,59 +1,48 @@
-﻿// src\renderer\components\ui\toast\pollingToast.css.ts
+﻿// src/renderer/components/ui/toast/pollingToast.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
+import { focusRing } from "@renderer/styles/global/surfaces.css";
 
-export const panel = style([
-  themeTransition,
-  {
-    position: "fixed",
-    top: "110px",
-    right: "25px",
-    bottom: "100px",
-    width: "min(28vw, 520px)",
-    maxHeight: "75vh",
-    display: "flex",
-    flexDirection: "column",
-    gap: tokens.space.xs,
-    zIndex: tokens.zIndex.toast,
-    padding: tokens.space.xs,
-    boxSizing: "border-box",
-    borderRadius: tokens.radius.lg,
-    border: `2px solid ${tokens.color.border.subtle}`,
-    backgroundColor: tokens.glass.surface,
-    backdropFilter: "blur(12px) saturate(180%)",
-    WebkitBackdropFilter: "blur(12px) saturate(180%)",
-    boxShadow: tokens.shadow.raised.high,
-    isolation: "isolate",
-    overflowY: "auto",
-    scrollbarWidth: "none",
-    selectors: {
-      "&::-webkit-scrollbar": {
-        display: "none",
-      },
-    },
-  },
-]);
+export const panel = style({
+  position: "fixed",
+  top: "110px",
+  right: "25px",
+  width: "min(28vw, 520px)",
+  maxHeight: "calc(100vh - 210px)",
+  display: "flex",
+  flexDirection: "column",
+  gap: tokens.space.xs,
+  zIndex: tokens.zIndex.toast,
+  padding: tokens.space.sm,
+  borderRadius: tokens.radius.lg,
+  boxSizing: "border-box",
+
+  border: `1px solid ${tokens.glass.contextMenu.border}`,
+  backgroundColor: tokens.glass.contextMenu.surface,
+  backdropFilter: `blur(${tokens.glass.contextMenu.blur}) saturate(${tokens.glass.contextMenu.saturation})`,
+  boxShadow: tokens.shadow.contextMenu,
+});
 
 export const header = style({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-
   flexShrink: 0,
-  gap: tokens.space.md,
-
-  padding: `${tokens.space.xs} ${tokens.space.sm}`,
+  gap: tokens.space.sm,
+  paddingLeft: tokens.space.xs,
+  paddingBottom: tokens.space.xs,
   marginBottom: tokens.space.xs,
-
+  minHeight: "34px",
   borderBottom: `1px solid ${tokens.color.border.default}`,
 });
 
 export const title = style({
-  color: tokens.color.text.base,
+  fontFamily: tokens.font.mono,
+  color: tokens.color.accent.neonCyan,
   fontSize: tokens.font.size.sm,
   fontWeight: tokens.font.weight.bold,
+  letterSpacing: "0.06em",
   whiteSpace: "nowrap",
 });
 
@@ -62,118 +51,70 @@ export const list = style({
   flexDirection: "column",
   gap: tokens.space.xs,
   width: "100%",
+  overflowY: "auto",
+  overflowX: "hidden",
 });
 
-export const item = style([
-  themeTransition,
+export const item = style({
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  gap: tokens.space.md,
+  width: "100%",
+  padding: `${tokens.space.sm} ${tokens.space.md}`,
+  boxSizing: "border-box",
+  borderRadius: tokens.radius.sm,
+  border: "1px solid transparent",
+  backgroundColor: "rgba(255, 255, 255, 0.03)",
+  fontSize: tokens.font.size.sm,
+  fontWeight: tokens.font.weight.bold,
+  lineHeight: 1.4,
+  transition: `color ${tokens.transition.ease}, background-color ${tokens.transition.ease}, border-color ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}, transform ${tokens.transition.fast}`,
+  selectors: {
+    "&:hover": {
+      backgroundColor: tokens.color.bg.frostedGlass,
+      borderColor: tokens.color.border.highlight,
+      boxShadow: tokens.shadow.highlight,
+      transform: "translateX(-2px)",
+    },
+  },
+});
+
+export const closeButton = style([
+  focusRing,
   {
-    position: "relative",
+    appearance: "none",
     display: "flex",
     alignItems: "center",
-    gap: tokens.space.md,
-
-    width: "100%",
-    padding: `${tokens.space.sm} ${tokens.space.md}`,
-    boxSizing: "border-box",
-
+    justifyContent: "center",
+    flexShrink: 0,
+    padding: tokens.space.xs,
+    border: "none",
     borderRadius: tokens.radius.sm,
-    border: `1px solid ${tokens.color.border.subtle}`,
-
-    backgroundColor: "transparent",
-    boxShadow: tokens.shadow.raised.low,
-
-    fontSize: tokens.font.size.sm,
-    fontWeight: tokens.font.weight.bold,
-
-    transition: `
-      box-shadow ${tokens.transition.ease},
-      color ${tokens.transition.ease},
-      background-color ${tokens.transition.ease},
-      transform ${tokens.transition.fast}
-    `,
-
+    background: "transparent",
+    color: tokens.color.text.base,
+    opacity: 0.6,
+    cursor: "pointer",
+    fontSize: tokens.font.size.md,
+    transition: `opacity ${tokens.transition.fast}, color ${tokens.transition.fast}`,
     selectors: {
-      "&:hover": {
-        backgroundColor: tokens.color.bg.base,
-        transform: "translateX(2px)",
-        boxShadow: tokens.shadow.raised.md,
+      "&:hover, &:focus-visible": {
+        color: tokens.color.text.hover,
+        opacity: 1,
       },
     },
   },
 ]);
 
-export const closeButton = style({
-  appearance: "none",
-
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-
-  padding: tokens.space.xs,
-
-  border: "none",
-  outline: "none",
-  background: "transparent",
-
-  color: tokens.color.text.base,
-  opacity: 0.6,
-
-  cursor: "pointer",
-  fontSize: tokens.font.size.sm,
-
-  transition: `opacity ${tokens.transition.fast}`,
-
-  selectors: {
-    "&:hover": {
-      opacity: 1,
-    },
-
-    "&:focus-visible": {
-      opacity: 1,
-      outline: `1px solid ${tokens.color.border.default}`,
-      borderRadius: tokens.radius.sm,
-    },
-  },
-});
-
-export const icon = style({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-
-  flexShrink: 0,
-
-  width: "1.25em",
-
-  fontSize: tokens.font.size.md,
-  fontWeight: tokens.font.weight.bold,
-});
-
 export const message = style({
   flex: 1,
   minWidth: 0,
-
   color: "inherit",
-
   whiteSpace: "pre-wrap",
   wordBreak: "break-word",
 });
 
 export const tone = styleVariants({
-  success: {
-    color: tokens.color.status.success,
-  },
-
-  error: {
-    color: tokens.color.status.error,
-  },
-
-  warning: {
-    color: tokens.color.status.waiting,
-  },
-
-  info: {
-    color: tokens.color.status.ready,
-  },
+  error: { color: tokens.color.status.error },
+  warning: { color: tokens.color.status.needsAction },
 });
-

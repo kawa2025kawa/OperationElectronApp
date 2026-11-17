@@ -2,29 +2,25 @@
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
-export const footerContainer = style([
-  themeTransition,
-  {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: "4.5rem",
-    padding: `0 ${tokens.space.lg}`,
-    flexShrink: 0,
-    backgroundColor: tokens.color.bg.base,
-    boxShadow: tokens.shadow.raised.low,
-    borderTop: `1px solid ${tokens.color.border.subtle}`,
-    zIndex: 10,
+export const footerContainer = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  height: "4.5rem",
+  padding: `0 ${tokens.space.lg}`,
+  flexShrink: 0,
+  backgroundColor: tokens.color.bg.base,
+  boxShadow: tokens.shadow.raised.low,
+  borderTop: `1px solid ${tokens.color.border.subtle}`,
+  zIndex: 10,
 
-    "@media": {
-      "screen and (min-width: 768px)": {
-        padding: `0 ${tokens.space.xl}`,
-      },
+  "@media": {
+    "screen and (min-width: 768px)": {
+      padding: `0 ${tokens.space.xl}`,
     },
   },
-]);
+});
 
 export const copyrightText = style({
   color: tokens.color.text.base,
@@ -46,4 +42,3 @@ export const controlsContainer = style({
   alignItems: "center",
   gap: tokens.space.md,
 });
-

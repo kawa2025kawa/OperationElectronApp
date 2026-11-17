@@ -7,26 +7,22 @@ import {
   type StyleRule,
 } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
 import { getStatusTheme } from "@renderer/styles/tokens/statusTheme";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 
 const glowShadowVar = createVar();
 
-export const container = style([
-  themeTransition,
-  {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: tokens.space.sm,
-    width: "100%",
-    flex: 1,
-    minWidth: 0,
-    position: "relative",
-    isolation: "isolate",
-  },
-]);
+export const container = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: tokens.space.sm,
+  width: "100%",
+  flex: 1,
+  minWidth: 0,
+  position: "relative",
+  isolation: "isolate",
+});
 
 export const statusItem = style({
   display: "flex",
@@ -39,50 +35,42 @@ export const statusItem = style({
   border: "none",
   padding: 0,
   cursor: "pointer",
-  // 各ボタン単位で描画レイヤーを完全隔離
   position: "relative",
   isolation: "isolate",
-  transform: "translateZ(0)",
 });
 
-/** 🎯 数値バッジのベーススタイル */
-export const valueBadge = style([
-  themeTransition,
-  {
-    position: "relative",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    height: "32px",
+export const valueBadge = style({
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+  height: "32px",
+  borderRadius: tokens.radius.md,
+  fontFamily: tokens.font.mono,
+  fontSize: tokens.font.size.sm,
+  fontWeight: tokens.font.weight.bold,
+  backgroundColor: tokens.color.bg.base,
+  boxShadow: tokens.shadow.raised.low,
+
+  "::before": {
+    content: '""',
+    position: "absolute",
+    inset: 0,
     borderRadius: tokens.radius.md,
-    fontFamily: tokens.font.mono,
-    fontSize: tokens.font.size.sm,
-    fontWeight: tokens.font.weight.bold,
-    backgroundColor: tokens.color.bg.base,
-    boxShadow: tokens.shadow.raised.low,
-    transform: "translateZ(0)",
+    boxShadow: glowShadowVar,
+    opacity: 0,
+    transition: `opacity ${tokens.transition.ease}`,
+    pointerEvents: "none",
+    willChange: "opacity",
+  },
 
-    // ホバー時の発光をリペイントなしの GPU 合成（opacity 遷移）で処理する擬似要素
-    "::before": {
-      content: '""',
-      position: "absolute",
-      inset: 0,
-      borderRadius: tokens.radius.md,
-      boxShadow: glowShadowVar,
-      opacity: 0,
-      transition: `opacity ${tokens.transition.ease}`,
-      pointerEvents: "none",
-      willChange: "opacity",
-    },
-
-    selectors: {
-      [`${statusItem}:hover &::before`]: {
-        opacity: 1,
-      },
+  selectors: {
+    [`${statusItem}:hover &::before`]: {
+      opacity: 1,
     },
   },
-]);
+});
 
 export const label = style({
   fontSize: tokens.font.size.xs,
@@ -122,7 +110,6 @@ const totalVariant = createVariantStyle(
   tokens.shadow.glow.total,
 );
 
-/** 🎯 各ステータスごとのバッジスタイルを小文字キーで定義 */
 export const valueBadgeVariants = styleVariants({
   progress: totalVariant,
   total: totalVariant,

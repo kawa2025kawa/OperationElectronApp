@@ -1,4 +1,4 @@
-﻿// src/renderer/features/spreadSheet/SpreadSheetView.tsx
+// src/renderer/features/spreadSheet/SpreadSheetView.tsx
 
 import { memo, useCallback, useMemo, type ReactNode } from "react";
 import { useShallow } from "zustand/shallow";
@@ -42,7 +42,7 @@ interface BaseSpreadSheetViewProps<T extends SheetId> {
 }
 
 const EMPTY_SHEET_ROWS: readonly never[] = Object.freeze([]);
-const HOLIDAY_WORDS = ["公休", "有休", "特休", "休"] as const;
+const HOLIDAY_WORDS = ["公休", "有休", "〇連", "特休", "希休", "休"] as const;
 
 function isHolidayText(value: unknown): boolean {
   const text = value == null ? "" : String(value);
@@ -59,20 +59,14 @@ function BaseSpreadSheetView<T extends SheetId>({
   placeholderContent,
   isHolidayCell,
 }: BaseSpreadSheetViewProps<T>) {
-  const { openGlobalModal, isAuthenticated } = useAppStore(
+  const { openGlobalModal, isAuthenticated, rows, sheetError } = useAppStore(
     useShallow((state: AppState) => ({
       openGlobalModal: state.openGlobalModal,
       isAuthenticated: state.isAuthenticated,
+      rows: state.sheetData[sheetId]?.data ?? EMPTY_SHEET_ROWS,
+      sheetError: state.sheetErrors[sheetId],
     })),
   );
-
-  const selectRows = useMemo(
-    () => (state: AppState) =>
-      state.sheetData[sheetId]?.data ?? EMPTY_SHEET_ROWS,
-    [sheetId],
-  );
-
-  const rows = useAppStore(useShallow(selectRows));
 
   const handleRowClick = useCallback(
     (row: SheetRow<T>) => onRowClick(row, openGlobalModal),
@@ -85,16 +79,23 @@ function BaseSpreadSheetView<T extends SheetId>({
     <div className={styles.viewContainer}>
       <div className={styles.inner}>
         <div className={styles.tableArea}>
-          <SpreadSheetTable
-            rows={rows}
-            columns={columns}
-            getRowId={getRowId}
-            onRowClick={handleRowClick}
-            headerVariant={headerVariant}
-            placeholderColumnId={placeholderColumnId}
-            placeholderContent={placeholderContent}
-            isHolidayCell={isHolidayCell}
-          />
+          {sheetError ? (
+            <div className={styles.errorContainer} role="alert">
+              <div className={styles.errorTitle}>データ取得エラー</div>
+              <div className={styles.errorMessage}>{sheetError}</div>
+            </div>
+          ) : (
+            <SpreadSheetTable
+              rows={rows}
+              columns={columns}
+              getRowId={getRowId}
+              onRowClick={handleRowClick}
+              headerVariant={headerVariant}
+              placeholderColumnId={placeholderColumnId}
+              placeholderContent={placeholderContent}
+              isHolidayCell={isHolidayCell}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -106,7 +107,7 @@ export const JugyoinView = memo(function JugyoinView() {
 
   const handleRowClick = useCallback(
     (row: Jugyoin, openModal: OpenSpreadsheetModal) => {
-      openModal(<ScheduleModalContent data={row} variant="jugyoin" />, {
+      openModal(<ScheduleModalContent data={row} />, {
         title: row.name || "",
         ...MODAL_SIZES.ULTRA_WIDE_21_9,
       });
@@ -118,7 +119,11 @@ export const JugyoinView = memo(function JugyoinView() {
     <BaseSpreadSheetView
       sheetId={SHEETS.JUGYOIN.sheetName}
       columns={columns}
-      getRowId={(row) => String(row.id)}
+      getRowId={(row, index) =>
+        row.id
+          ? `${row.id}_${index}`
+          : `${row.name ? String(row.name).trim() : "jugyoin"}_${index}`
+      }
       onRowClick={handleRowClick}
     />
   );
@@ -130,7 +135,7 @@ export const KokyuhyoView = memo(function KokyuhyoView() {
 
   const handleRowClick = useCallback(
     (row: Kokyuhyo, openModal: OpenSpreadsheetModal) => {
-      openModal(<ScheduleModalContent data={row} variant="kokyuhyo" />, {
+      openModal(<ScheduleModalContent data={row} />, {
         title: row.name || "",
         ...MODAL_SIZES.KOKYUHYO,
       });
@@ -142,7 +147,11 @@ export const KokyuhyoView = memo(function KokyuhyoView() {
     <BaseSpreadSheetView
       sheetId={SHEETS.KOKYUHYO.sheetName}
       columns={columns}
-      getRowId={(row) => String(row.id)}
+      getRowId={(row, index) =>
+        row.id
+          ? `${row.id}_${index}`
+          : `${row.name ? String(row.name).trim() : "kokyuhyo"}_${index}`
+      }
       onRowClick={handleRowClick}
       placeholderColumnId="name"
       placeholderContent={<TantouButton />}
@@ -168,7 +177,9 @@ export const ShopView = memo(function ShopView() {
       sheetId={SHEETS.STORE.sheetName}
       columns={SHOP_COLUMNS}
       getRowId={(row, index) =>
-        row.shopCode ? String(row.shopCode).trim() : String(index)
+        row.shopCode
+          ? `${String(row.shopCode).trim()}_${index}`
+          : `shop_${index}`
       }
       onRowClick={handleRowClick}
       headerVariant="standard"

@@ -2,20 +2,16 @@
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
-export const appContainer = style([
-  themeTransition,
-  {
-    display: "flex",
-    flexDirection: "column",
-    height: "100vh",
-    width: "100vw",
-    backgroundColor: tokens.color.bg.base,
-    overflow: "hidden",
-    position: "relative",
-  },
-]);
+export const appContainer = style({
+  display: "flex",
+  flexDirection: "column",
+  height: "100vh",
+  width: "100vw",
+  backgroundColor: tokens.color.bg.base,
+  overflow: "hidden",
+  position: "relative",
+});
 
 export const contentWrapper = style({
   display: "flex",

@@ -1,3 +1,5 @@
+// src/renderer/styles/tokens/theme.css.ts
+
 import { createTheme, style } from "@vanilla-extract/css";
 import { tokens } from "./semantic.contract.js";
 
@@ -39,6 +41,13 @@ const commonValues = {
     xl: "1.5rem",
   },
 
+  size: {
+    controlHeight: "40px",
+    tableRowHeight: "56px",
+    tableHeaderGroupHeight: "64px",
+    badgeWidth: "120px",
+  },
+
   radius: {
     sm: "6px",
     md: "10px",
@@ -50,6 +59,7 @@ const commonValues = {
     fast: "0.18s cubic-bezier(0.4, 0, 0.2, 1)",
     normal: "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)",
     ease: "0.3s ease-out",
+    glow: "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)",
   },
 
   zIndex: {
@@ -69,7 +79,7 @@ const commonValues = {
 } as const;
 
 /* ============================================================
- * Status Colors
+ * Status Colors & Tints
  * ============================================================ */
 
 const darkStatusColors = {
@@ -92,6 +102,18 @@ const lightStatusColors = {
   waiting: "rgba(59, 130, 246, 1)",
   scheduled: "rgba(100, 116, 139, 1)",
   error: "rgba(239, 68, 68, 1)",
+} as const;
+
+const darkStatusTints = {
+  success: "rgba(74, 222, 128, 0.1)",
+  warning: "rgba(250, 204, 21, 0.1)",
+  error: "rgba(248, 113, 113, 0.1)",
+} as const;
+
+const lightStatusTints = {
+  success: "rgba(34, 197, 94, 0.12)",
+  warning: "rgba(234, 179, 8, 0.14)",
+  error: "rgba(239, 68, 68, 0.12)",
 } as const;
 
 /* ============================================================
@@ -139,6 +161,14 @@ export const themeTransition = style({
  * Dark Theme
  * ============================================================ */
 
+const darkRaised = {
+  low: "3px 3px 6px rgba(0, 0, 0, 0.5), -2px -2px 6px rgba(255, 255, 255, 0.08)",
+  md: "5px 5px 10px rgba(0, 0, 0, 0.6), -3px -3px 8px rgba(255, 255, 255, 0.1)",
+  high: "8px 8px 16px rgba(0, 0, 0, 0.8), -5px -5px 12px rgba(255, 255, 255, 0.12)",
+} as const;
+
+const darkGlowCyan = "0 0 10px rgba(0, 220, 255, 0.6)";
+
 export const darkThemeClass = createTheme(
   tokens,
   {
@@ -173,6 +203,12 @@ export const darkThemeClass = createTheme(
       },
 
       status: darkStatusColors,
+      statusTint: darkStatusTints,
+
+      calendar: {
+        saturday: "#3b9eff",
+        holiday: "#ff4d4f",
+      },
     },
 
     glass: {
@@ -198,53 +234,30 @@ export const darkThemeClass = createTheme(
     },
 
     shadow: {
-      highlight: [
-        "inset 0 0 0 1px rgba(255, 255, 255, 0.08)",
-        "0 2px 8px rgba(0, 0, 0, 0.12)",
-      ].join(", "),
+      highlight:
+        "inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.12)",
 
       contextMenu:
         "0 0 0 1px rgba(0, 0, 0, 0.8), 0 12px 36px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.5)",
 
-      raised: {
-        low: [
-          "3px 3px 6px rgba(0, 0, 0, 0.5)",
-          "-2px -2px 6px rgba(255, 255, 255, 0.08)",
-        ].join(", "),
-
-        md: [
-          "5px 5px 10px rgba(0, 0, 0, 0.6)",
-          "-3px -3px 8px rgba(255, 255, 255, 0.1)",
-        ].join(", "),
-
-        high: [
-          "8px 8px 16px rgba(0, 0, 0, 0.8)",
-          "-5px -5px 12px rgba(255, 255, 255, 0.12)",
-        ].join(", "),
-      },
+      raised: darkRaised,
 
       pressed: {
-        low: [
-          "inset 3px 3px 6px rgba(0, 0, 0, 0.6)",
-          "inset -2px -2px 6px rgba(255, 255, 255, 0.08)",
-        ].join(", "),
-
-        md: [
-          "inset 5px 5px 10px rgba(0, 0, 0, 0.8)",
-          "inset -3px -3px 8px rgba(255, 255, 255, 0.1)",
-        ].join(", "),
-
-        high: [
-          "inset 10px 10px 20px rgba(0, 0, 0, 0.9)",
-          "inset -8px -8px 16px rgba(255, 255, 255, 0.05)",
-        ].join(", "),
+        low: "inset 3px 3px 6px rgba(0, 0, 0, 0.6), inset -2px -2px 6px rgba(255, 255, 255, 0.08)",
+        md: "inset 5px 5px 10px rgba(0, 0, 0, 0.8), inset -3px -3px 8px rgba(255, 255, 255, 0.1)",
+        high: "inset 10px 10px 20px rgba(0, 0, 0, 0.9), inset -8px -8px 16px rgba(255, 255, 255, 0.05)",
       },
 
       glow: {
         brand: "0 0 12px rgba(0, 200, 180, 0.5)",
-        cyan: "0 0 10px rgba(0, 220, 255, 0.6)",
+        cyan: darkGlowCyan,
         white: "0 0 14px rgba(255, 255, 255, 0.8)",
         ...darkStatusGlow,
+      },
+
+      glowRaised: {
+        md: `${darkGlowCyan}, ${darkRaised.md}`,
+        high: `${darkGlowCyan}, ${darkRaised.high}`,
       },
     },
   },
@@ -254,6 +267,14 @@ export const darkThemeClass = createTheme(
 /* ============================================================
  * Light Theme
  * ============================================================ */
+
+const lightRaised = {
+  low: "3px 3px 6px rgba(0, 0, 0, 0.15), -2px -2px 6px rgba(255, 255, 255, 0.8)",
+  md: "5px 5px 10px rgba(0, 0, 0, 0.2), -4px -4px 8px rgba(255, 255, 255, 0.9)",
+  high: "8px 8px 16px rgba(0, 0, 0, 0.35), -6px -6px 12px rgba(255, 255, 255, 1)",
+} as const;
+
+const lightGlowCyan = "0 0 12px rgba(0, 200, 255, 0.4)";
 
 export const lightThemeClass = createTheme(
   tokens,
@@ -289,6 +310,12 @@ export const lightThemeClass = createTheme(
       },
 
       status: lightStatusColors,
+      statusTint: lightStatusTints,
+
+      calendar: {
+        saturday: "#2563eb",
+        holiday: "#dc2626",
+      },
     },
 
     glass: {
@@ -314,53 +341,30 @@ export const lightThemeClass = createTheme(
     },
 
     shadow: {
-      highlight: [
-        "inset 0 0 0 1px rgba(0, 0, 0, 0.06)",
-        "0 2px 8px rgba(0, 0, 0, 0.08)",
-      ].join(", "),
+      highlight:
+        "inset 0 0 0 1px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.08)",
 
       contextMenu:
         "0 0 0 1px rgba(0, 0, 0, 0.8), 0 12px 36px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.5)",
 
-      raised: {
-        low: [
-          "3px 3px 6px rgba(0, 0, 0, 0.15)",
-          "-2px -2px 6px rgba(255, 255, 255, 0.8)",
-        ].join(", "),
-
-        md: [
-          "5px 5px 10px rgba(0, 0, 0, 0.2)",
-          "-4px -4px 8px rgba(255, 255, 255, 0.9)",
-        ].join(", "),
-
-        high: [
-          "8px 8px 16px rgba(0, 0, 0, 0.35)",
-          "-6px -6px 12px rgba(255, 255, 255, 1)",
-        ].join(", "),
-      },
+      raised: lightRaised,
 
       pressed: {
-        low: [
-          "inset 3px 3px 6px rgba(0, 0, 0, 0.15)",
-          "inset -2px -2px 6px rgba(255, 255, 255, 0.8)",
-        ].join(", "),
-
-        md: [
-          "inset 5px 5px 10px rgba(0, 0, 0, 0.2)",
-          "inset -4px -4px 8px rgba(255, 255, 255, 0.9)",
-        ].join(", "),
-
-        high: [
-          "inset 10px 10px 20px rgba(0, 0, 0, 0.35)",
-          "inset -8px -8px 16px rgba(255, 255, 255, 1)",
-        ].join(", "),
+        low: "inset 3px 3px 6px rgba(0, 0, 0, 0.15), inset -2px -2px 6px rgba(255, 255, 255, 0.8)",
+        md: "inset 5px 5px 10px rgba(0, 0, 0, 0.2), inset -4px -4px 8px rgba(255, 255, 255, 0.9)",
+        high: "inset 10px 10px 20px rgba(0, 0, 0, 0.35), inset -8px -8px 16px rgba(255, 255, 255, 1)",
       },
 
       glow: {
         brand: "0 0 10px rgba(0, 200, 180, 0.4)",
-        cyan: "0 0 12px rgba(0, 200, 255, 0.4)",
+        cyan: lightGlowCyan,
         white: "0 0 14px rgba(255, 255, 255, 0.8)",
         ...lightStatusGlow,
+      },
+
+      glowRaised: {
+        md: `${lightGlowCyan}, ${lightRaised.md}`,
+        high: `${lightGlowCyan}, ${lightRaised.high}`,
       },
     },
   },

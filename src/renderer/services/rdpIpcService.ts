@@ -1,6 +1,6 @@
-﻿// src/renderer/services/rdpIpcService.ts
+// src/renderer/services/rdpIpcService.ts
 
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
 
 /** RDP 関連の IPC 通信 */

@@ -2,8 +2,8 @@
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { focusRing } from "@renderer/styles/global/surfaces.css";
 
-const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
 
 export const containerBase = style({
@@ -16,13 +16,11 @@ export const containerBase = style({
   boxShadow: tokens.shadow.pressed.high,
   boxSizing: "border-box",
   isolation: "isolate",
-  transform: "translateZ(0)",
-  contain: "paint",
 });
 
 export const containerSize = styleVariants({
   sm: { height: "32px" },
-  md: { height: "40px" },
+  md: { height: tokens.size.controlHeight },
   lg: { height: "48px" },
 });
 
@@ -31,74 +29,57 @@ export const containerWidth = styleVariants({
   auto: { width: "auto" },
 });
 
-export const slider = style({
-  position: "absolute",
-  inset: 0,
-  borderRadius: tokens.radius.full,
-  backgroundColor: tokens.color.bg.base,
-  boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
-  zIndex: 0,
-  transform: "translateZ(0)",
-  willChange: "transform",
-
-  "::before": {
-    content: '""',
-    position: "absolute",
-    inset: -1,
-    borderRadius: tokens.radius.full,
-    boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
-    opacity: 1,
-    transition: `opacity ${smoothGlow}`,
-    pointerEvents: "none",
-  },
-});
-
-export const itemButtonBase = style({
-  flex: 1,
+export const track = style({
   position: "relative",
   display: "flex",
   alignItems: "center",
-  justifyContent: "center",
+  width: "100%",
   height: "100%",
-  padding: "0 0.75rem",
-  border: "none",
-  borderRadius: tokens.radius.full,
-  outline: "none",
-  cursor: "pointer",
-  backgroundColor: "transparent",
-  fontFamily: tokens.font.base,
-  fontWeight: tokens.font.weight.bold,
-  color: tokens.color.text.base,
-  transition: `color ${t}`,
-  whiteSpace: "nowrap",
-  transform: "translateZ(0)",
-
-  "::before": {
-    content: '""',
-    position: "absolute",
-    inset: -1,
-    borderRadius: tokens.radius.full,
-    boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.low}`,
-    opacity: 0,
-    transition: `opacity ${smoothGlow}`,
-    pointerEvents: "none",
-    zIndex: 0,
-    willChange: "opacity",
-  },
-
-  selectors: {
-    "&:hover": {
-      color: tokens.color.text.hover,
-    },
-    "&:hover:not([data-pressed])::before": {
-      opacity: 1,
-    },
-    "&:focus-visible": {
-      outline: `2px solid ${tokens.color.accent.neonCyan}`,
-      outlineOffset: "2px",
-    },
-  },
 });
+
+export const slider = style({
+  position: "absolute",
+  top: 0,
+  bottom: 0,
+  left: 0,
+  borderRadius: tokens.radius.full,
+  backgroundColor: tokens.color.bg.base,
+  boxShadow: tokens.shadow.glowRaised.high,
+  zIndex: 0,
+  pointerEvents: "none",
+  willChange: "transform",
+  transition: "transform 0.24s cubic-bezier(0.22, 1, 0.36, 1)",
+});
+
+export const itemButtonBase = style([
+  focusRing,
+  {
+    flex: 1,
+    position: "relative",
+    zIndex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
+    padding: "0 0.75rem",
+    border: "none",
+    borderRadius: tokens.radius.full,
+    outline: "none",
+    cursor: "pointer",
+    backgroundColor: "transparent",
+    fontFamily: tokens.font.base,
+    fontWeight: tokens.font.weight.bold,
+    color: tokens.color.text.base,
+    transition: `color ${t}`,
+    whiteSpace: "nowrap",
+
+    selectors: {
+      "&:hover": {
+        color: tokens.color.text.hover,
+      },
+    },
+  },
+]);
 
 export const itemButtonSize = styleVariants({
   sm: { fontSize: tokens.font.size.xs },

@@ -10,6 +10,7 @@ export const OtherView = memo(() => {
     handleOpenGmailModal,
     handleOpenGiftMdModal,
     handleResetStatuses,
+    handleOpenStatusSyncModal,
     handleOpenOKIURL,
   } = useOtherViewLogic();
 
@@ -46,6 +47,14 @@ export const OtherView = memo(() => {
           type="button"
         >
           ステータス全リセット
+        </button>
+
+        <button
+          className={styles.card}
+          onClick={handleOpenStatusSyncModal}
+          type="button"
+        >
+          Status 引き継ぎ
         </button>
 
         <button

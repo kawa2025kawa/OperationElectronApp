@@ -1,13 +1,16 @@
 // src/renderer/features/other/useOtherViewLogic.ts
 
 import { createElement, useCallback } from "react";
+import { toast } from "sonner";
 
 import { GiftMdModalContent } from "@renderer/features/other/components/modal/contents/giftMd/GiftMdModalContent";
 import { GmailDraftContent } from "@renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent";
 import { PdfUploadModalContent } from "@renderer/features/other/components/modal/contents/pdfUpload/PdfUploadModalContent";
 import { ResetStatusModalContent } from "@renderer/features/other/components/modal/contents/resetStatus/ResetStatusModalContent";
+import { StatusSyncModalContent } from "@renderer/features/other/components/modal/contents/statusSync/StatusSyncModalContent";
 import { systemIpcService } from "@renderer/services/systemIpcService";
 import { useAppStore } from "@renderer/store";
+import { MODAL_SIZES } from "@shared/types/ui/modal";
 
 const MODAL_SIZE = {
   width: "min(95vw, calc(75vh * (21 / 9)))",
@@ -46,8 +49,18 @@ export function useOtherViewLogic() {
     });
   }, [openGlobalModal]);
 
+  const handleOpenStatusSyncModal = useCallback(() => {
+    openGlobalModal(createElement(StatusSyncModalContent), {
+      title: "Status 引き継ぎ",
+      ...MODAL_SIZES.WIDE_16_9,
+    });
+  }, [openGlobalModal]);
+
   const handleOpenOKIURL = useCallback(() => {
-    void systemIpcService.openExternal(OKI_URL);
+    void systemIpcService.openExternal(OKI_URL).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`URLを開けませんでした: ${message}`);
+    });
   }, []);
 
   return {
@@ -55,6 +68,7 @@ export function useOtherViewLogic() {
     handleOpenGmailModal,
     handleOpenGiftMdModal,
     handleResetStatuses,
+    handleOpenStatusSyncModal,
     handleOpenOKIURL,
   };
 }

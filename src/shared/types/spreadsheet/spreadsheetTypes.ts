@@ -55,10 +55,8 @@ type ShopKey = ShopBaseKeys | ShopPrinterKeys | ShopTrKeys;
 
 export type Shop = Record<ShopKey, string>;
 
-export type Jugyoin = Record<
+type StaffScheduleBaseKey =
   | "id"
-  | "bumon"
-  | "bumonKana"
   | "name"
   | "nameKana"
   | "todayAmStatus"
@@ -74,28 +72,12 @@ export type Jugyoin = Record<
   | "contactMobile"
   | "scheduleLink"
   | "position"
-  | "email",
-  string
->;
+  | "email";
 
-export type Kokyuhyo = Record<
-  | "id"
-  | "name"
-  | "nameKana"
-  | "todayAmStatus"
-  | "todayAmDetail"
-  | "todayPmStatus"
-  | "todayPmDetail"
-  | "tomorrowAmStatus"
-  | "tomorrowAmDetail"
-  | "tomorrowPmStatus"
-  | "tomorrowPmDetail"
-  | "naisen"
-  | "tanshuku"
-  | "contactMobile"
-  | "scheduleLink"
-  | "position"
-  | "email",
+export type Kokyuhyo = Record<StaffScheduleBaseKey, string>;
+
+export type Jugyoin = Record<
+  StaffScheduleBaseKey | "bumon" | "bumonKana",
   string
 >;
 

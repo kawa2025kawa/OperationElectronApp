@@ -1,7 +1,6 @@
 ﻿// src/renderer/components/ui/toggle/SegmentedControl.tsx
 
-import { memo } from "react";
-import { motion } from "motion/react";
+import { memo, useMemo } from "react";
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
 
@@ -13,7 +12,7 @@ interface SegmentedControlItem<T extends string | number> {
 }
 
 export interface SegmentedControlProps<T extends string | number> {
-  /** layoutId の衝突を防ぐためのユニークプレフィックス */
+  /** 識別用プレフィックス */
   readonly id: string;
   readonly items: readonly SegmentedControlItem<T>[];
   readonly value: T;
@@ -28,7 +27,6 @@ function getItemValue<T extends string | number>(value: T): string {
 }
 
 function SegmentedControlInner<T extends string | number>({
-  id,
   items,
   value,
   onChange,
@@ -50,7 +48,24 @@ function SegmentedControlInner<T extends string | number>({
     styles.itemButtonSize[size],
   ].join(" ");
 
-  const selectedItem = items.find((item) => item.id === value);
+  const activeIndex = useMemo(
+    () => items.findIndex((item) => item.id === value),
+    [items, value],
+  );
+
+  const selectedItem = activeIndex >= 0 ? items[activeIndex] : undefined;
+
+  const sliderStyle = useMemo(() => {
+    const count = items.length;
+    if (count === 0 || activeIndex < 0) {
+      return { opacity: 0 };
+    }
+
+    return {
+      width: `${100 / count}%`,
+      transform: `translate3d(${activeIndex * 100}%, 0, 0)`,
+    };
+  }, [items.length, activeIndex]);
 
   const handleValueChange = (groupValue: string[]) => {
     const selectedValue = groupValue[0];
@@ -74,33 +89,25 @@ function SegmentedControlInner<T extends string | number>({
       aria-label="表示モード"
       orientation="horizontal"
     >
-      {items.map((item) => {
-        const isActive = value === item.id;
+      <div className={styles.track}>
+        <div className={styles.slider} style={sliderStyle} aria-hidden="true" />
 
-        return (
-          <Toggle
-            key={getItemValue(item.id)}
-            value={getItemValue(item.id)}
-            className={buttonClasses}
-          >
-            {isActive && (
-              <motion.div
-                layoutId={`segmented-slider-${id}`}
-                className={styles.slider}
-                transition={{
-                  type: "spring",
-                  stiffness: 380,
-                  damping: 30,
-                }}
-              />
-            )}
+        {items.map((item) => {
+          const isActive = value === item.id;
 
-            <span className={styles.itemText} data-active={isActive}>
-              {item.label}
-            </span>
-          </Toggle>
-        );
-      })}
+          return (
+            <Toggle
+              key={getItemValue(item.id)}
+              value={getItemValue(item.id)}
+              className={buttonClasses}
+            >
+              <span className={styles.itemText} data-active={isActive}>
+                {item.label}
+              </span>
+            </Toggle>
+          );
+        })}
+      </div>
     </ToggleGroup>
   );
 }

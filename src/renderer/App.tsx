@@ -18,16 +18,14 @@ import {
 import { MainView } from "@renderer/layout/MainView";
 
 export const App = () => {
-  const { theme, showAppLoader, isSidebarOpen, initializeApp, setSidebarOpen } =
-    useAppStore(
-      useShallow((state) => ({
-        theme: state.theme ?? "dark",
-        showAppLoader: state.showAppLoader ?? true,
-        isSidebarOpen: state.isSidebarOpen ?? false,
-        initializeApp: state.initializeApp,
-        setSidebarOpen: state.setSidebarOpen,
-      })),
-    );
+  const { theme, isSidebarOpen, initializeApp, setSidebarOpen } = useAppStore(
+    useShallow((state) => ({
+      theme: state.theme ?? "dark",
+      isSidebarOpen: state.isSidebarOpen ?? false,
+      initializeApp: state.initializeApp,
+      setSidebarOpen: state.setSidebarOpen,
+    })),
+  );
 
   const handleOverlayClick = useCallback(() => {
     setSidebarOpen(false);
@@ -48,19 +46,14 @@ export const App = () => {
 
   return (
     <>
+      <MainView />
+
+      <Overlay isOpen={isSidebarOpen} onClick={handleOverlayClick} />
+
+      <PollingToast />
+      <GlobalModalManager />
+      <ProcessingLoader />
       <AppStartupLoader />
-
-      {!showAppLoader && (
-        <>
-          <MainView />
-
-          <Overlay isOpen={isSidebarOpen} onClick={handleOverlayClick} />
-
-          <PollingToast />
-          <GlobalModalManager />
-          <ProcessingLoader />
-        </>
-      )}
     </>
   );
 };

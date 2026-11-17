@@ -1,7 +1,7 @@
-﻿// electron/features/operation/application/statusNotifier.ts
+// electron/features/operation/application/statusNotifier.ts
 
 import { BrowserWindow } from "electron";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 import type {
   OperationStatusNotification,
   OperationStatusState,
@@ -39,6 +39,20 @@ export function notifyStatusCleared(kanriNo: string): void {
     type: "cleared",
     kanriNo,
   });
+}
+
+export function notifyPollingCycleCompleted(): void {
+  const windows = BrowserWindow.getAllWindows();
+
+  for (const window of windows) {
+    if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
+      try {
+        window.webContents.send(IPC_CHANNELS.OPERATION.POLLING_CYCLE_COMPLETE);
+      } catch (error) {
+        console.error("[StatusNotifier] ポーリング完了通知エラー:", error);
+      }
+    }
+  }
 }
 
 export function notifyReady(target: StatusTarget): void {

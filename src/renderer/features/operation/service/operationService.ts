@@ -1,7 +1,7 @@
-﻿// src/renderer/features/operation/operationService.ts
+// src/renderer/features/operation/service/operationService.ts
 
 import { toast } from "sonner";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
 import type {
   ActiveFlags,
@@ -15,7 +15,8 @@ import type {
   SummaryDetailRow,
 } from "@shared/types/statusSummary/statusSummaryTypes";
 import { normalizeKanriNo } from "@shared/utils/statusUtils";
-import { useAppStore } from "@renderer/store";
+import { rdpIpcService } from "@renderer/services/rdpIpcService";
+import { systemIpcService } from "@renderer/services/systemIpcService";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
 
 export interface ExecuteScriptParams {
@@ -24,6 +25,11 @@ export interface ExecuteScriptParams {
   targetName?: string;
   filePath?: string | string[];
   ignoreDependencies?: boolean;
+  onSuccess?: () => void | Promise<void>;
+}
+
+export interface ExecuteJcJobOptions {
+  onSuccess?: () => void | Promise<void>;
 }
 
 export interface UpdateJobStatusParams {
@@ -104,12 +110,35 @@ export const operationService = {
   initializeStatus: (): Promise<Record<string, OperationStatusState>> =>
     window.electronAPI.invoke(IPC_CHANNELS.OPERATION.INITIALIZE_STATUS),
 
+  /** スプレッドシートに保存されている引き継ぎ情報のプレビューを取得する */
+  previewStatusSyncFromSheet: () =>
+    window.electronAPI.invoke(
+      IPC_CHANNELS.OPERATION.PREVIEW_STATUS_SYNC_FROM_SHEET,
+    ),
+
+  /** 現在のステータスおよび有効フラグをスプレッドシートへ保存する */
+  saveStatusesToSheet: (params: {
+    operatorName: string;
+    handoverNote: string;
+  }) =>
+    window.electronAPI.invoke(
+      IPC_CHANNELS.OPERATION.SAVE_STATUSES_TO_SHEET,
+      params,
+    ),
+
+  /** スプレッドシートから前回のステータスおよび有効フラグを復元する */
+  loadStatusesFromSheet: () =>
+    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.LOAD_STATUSES_FROM_SHEET),
+
   // ==========================================================================
-  // ジョブ実行オーケストレーション
+  // ジョブ実行・外部連携オーケストレーション
   // ==========================================================================
 
   /** JC ジョブのステータス取得・反映を実行する */
-  executeJcJob: async (kanriNoInput: string): Promise<void> => {
+  executeJcJob: async (
+    kanriNoInput: string,
+    options?: ExecuteJcJobOptions,
+  ): Promise<void> => {
     const kanriNo = normalizeKanriNo(kanriNoInput);
 
     await runJobWithGlobalProcessing("JC 実行中...", kanriNo, () =>
@@ -123,8 +152,7 @@ export const operationService = {
           throw new Error(`No.${kanriNo} のステータス取得に失敗しました`);
         }
 
-        const store = useAppStore.getState();
-        await store.fetchTableData(store.currentMode);
+        await options?.onSuccess?.();
 
         toast.info(`No.${kanriNo} JCステータスを更新しました`);
       }),
@@ -149,11 +177,37 @@ export const operationService = {
           },
         );
 
-        const store = useAppStore.getState();
-        await store.fetchTableData(store.currentMode);
+        await params.onSuccess?.();
 
         return result;
       }),
     );
+  },
+
+  /** 指定キーの RDP セッションを開始する */
+  startRdpSession: async (sessionKey: string): Promise<void> => {
+    await withJobErrorToast("RDP起動エラー", async () => {
+      await rdpIpcService.startSession(sessionKey);
+    });
+  },
+
+  /** 指定ターゲットのマニュアルを開く */
+  openManual: async (target: string, isAuto = false): Promise<void> => {
+    await withJobErrorToast("マニュアル起動エラー", async () => {
+      await systemIpcService.openManual(target, isAuto);
+    });
+  },
+
+  /** 外部 URL またはローカルパスを既定アプリケーションで開く */
+  openExternal: async (
+    urlOrPath: string,
+    errorPrefix = "外部リンク起動エラー",
+  ): Promise<void> => {
+    const cleanTarget = urlOrPath.trim();
+    if (!cleanTarget) return;
+
+    await withJobErrorToast(errorPrefix, async () => {
+      await systemIpcService.openExternal(cleanTarget);
+    });
   },
 };

@@ -7,10 +7,6 @@ import { useAppStore } from "@renderer/store";
 import type { InitStatus } from "@shared/types/initializationTypes";
 import * as styles from "./overlay.css";
 
-/* =========================================
-   豎守畑繝舌ャ繧ｯ繝峨Ο繝・・ Overlay
-========================================= */
-
 interface OverlayProps {
   isOpen: boolean;
   onClick?: () => void;
@@ -27,10 +23,6 @@ export const Overlay = ({ isOpen, onClick }: OverlayProps) => {
   );
 };
 
-/* =========================================
-   Loading Content & Target
-========================================= */
-
 interface LoadingContentProps {
   message?: string;
   statusMessage?: string;
@@ -41,28 +33,26 @@ const DOT_DELAYS = [0, 0.2, 0.4];
 const LoadingContent = ({
   message = "LOADING...",
   statusMessage = "INITIALIZING SYSTEM CORE",
-}: LoadingContentProps) => {
-  return (
-    <div className={styles.contentWrapper}>
-      <div className={styles.grid}>
-        <div className={styles.scanline} />
-        <div className={styles.content}>
-          <div className={styles.title}>{message}</div>
-          <div className={styles.dots}>
-            {DOT_DELAYS.map((delay) => (
-              <span
-                key={delay}
-                className={styles.dot}
-                style={{ animationDelay: `${delay}s` }}
-              />
-            ))}
-          </div>
-          <div className={styles.status}>{statusMessage}</div>
+}: LoadingContentProps) => (
+  <div className={styles.contentWrapper}>
+    <div className={styles.grid}>
+      <div className={styles.scanline} />
+      <div className={styles.content}>
+        <div className={styles.title}>{message}</div>
+        <div className={styles.dots}>
+          {DOT_DELAYS.map((delay) => (
+            <span
+              key={delay}
+              className={styles.dot}
+              style={{ animationDelay: `${delay}s` }}
+            />
+          ))}
         </div>
+        <div className={styles.status}>{statusMessage}</div>
       </div>
     </div>
-  );
-};
+  </div>
+);
 
 interface LoaderTargetProps {
   value: string;
@@ -74,10 +64,6 @@ const LoaderTarget = ({ value }: LoaderTargetProps) => (
     <span className={styles.processingTargetValue}>{value}</span>
   </div>
 );
-
-/* =========================================
-   LoadingOverlay (蜀・Κ蜈ｱ騾壹Λ繝・ヱ繝ｼ)
-========================================= */
 
 interface LoadingOverlayProps {
   isOpen: boolean;
@@ -104,14 +90,13 @@ const LoadingOverlay = ({
   );
 };
 
-/* =========================================
-   AppStartupLoader (繧｢繝励Μ襍ｷ蜍募ｰら畑)
-========================================= */
-
 const PANEL_LABELS: Record<keyof InitStatus, string> = {
   update: "App Update Check",
   operation: "Operation Data",
   irregular: "Irregular Data",
+  operationMaster: "Operation Master",
+  irregularMaster: "Irregular Master",
+  rdp: "RDP Master",
   auth: "Google Auth",
   store: "Store Master",
   jugyoin: "jugyoin Master",
@@ -167,10 +152,6 @@ export const AppStartupLoader = () => {
     </LoadingOverlay>
   );
 };
-
-/* =========================================
-   ProcessingLoader (蜃ｦ逅・ｸｭ蟆ら畑)
-========================================= */
 
 export const ProcessingLoader = () => {
   const globalProcessing = useAppStore(

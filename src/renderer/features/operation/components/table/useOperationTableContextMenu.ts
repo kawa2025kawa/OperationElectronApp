@@ -1,4 +1,6 @@
-﻿import {
+﻿// src/renderer/features/operation/components/table/useOperationTableContextMenu.ts
+
+import {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -164,7 +166,7 @@ export function useOperationTableContextMenu() {
 
   return {
     target,
-    laserCoords,
+    laserCoords: target ? laserCoords : null,
     popupRef,
     virtualAnchor,
     open,

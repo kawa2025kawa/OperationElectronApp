@@ -3,9 +3,11 @@
 import { useMemo, useCallback } from "react";
 import type { Shop } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { ModalAction } from "@shared/types/ui/modal";
-import { systemIpcService } from "@renderer/services/systemIpcService";
-import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
+import {
+  normalizeExternalTarget,
+  spreadSheetService,
+} from "../../service/spreadSheetService";
 import {
   SHOP_MODAL_GROUPS,
   TIME_RECORDER_IMAGE_ITEMS,
@@ -16,17 +18,9 @@ interface UseShopModalContentParams {
   data: Shop;
 }
 
-function getValidFilePath(value: unknown): string {
-  if (typeof value !== "string") return "";
-
-  const path = value.trim();
-
-  return path && path !== EMPTY_VALUE_FALLBACK ? path : "";
-}
-
 export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
-  const excelPath = getValidFilePath(data.excelFilePath);
-  const pdfPath = getValidFilePath(data.pdfFilePath);
+  const excelPath = normalizeExternalTarget(data.excelFilePath);
+  const pdfPath = normalizeExternalTarget(data.pdfFilePath);
 
   const { selectedIndex, setSelectedIndex, groups, displayItems } =
     useSpreadSheetTabData(data, SHOP_MODAL_GROUPS);
@@ -35,19 +29,8 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     SHOP_MODAL_GROUPS[selectedIndex]?.title ===
     SHOP_MODAL_CONSTANTS.TAB_TITLES.TIME_RECORDER;
 
-  const handleOpenPath = useCallback(async (path: string | undefined) => {
-    const normalized = getValidFilePath(path);
-    if (!normalized) return;
-
-    try {
-      await systemIpcService.openExternal(normalized);
-    } catch (error) {
-      console.error(
-        "[useShopModalContent] Failed to open external path:",
-        normalized,
-        error,
-      );
-    }
+  const handleOpenPath = useCallback((path: unknown) => {
+    void spreadSheetService.openExternal(path, "ファイルを開けませんでした");
   }, []);
 
   const timeRecorderActions = useMemo<ModalAction[]>(() => {
@@ -56,14 +39,12 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     const imageActions: ModalAction[] = TIME_RECORDER_IMAGE_ITEMS.map(
       ({ key, label }) => {
         const rawValue = data[key];
-        const hasUrl = Boolean(getValidFilePath(rawValue));
+        const hasUrl = Boolean(normalizeExternalTarget(rawValue));
 
         return {
           id: `image-${key}`,
           label,
-          onClick: () => {
-            void handleOpenPath(rawValue);
-          },
+          onClick: () => handleOpenPath(rawValue),
           disabled: !hasUrl,
           variant: "default",
         };
@@ -76,9 +57,7 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
       fileActions.push({
         id: "excel",
         label: SHOP_MODAL_CONSTANTS.FILES.EXCEL_LABEL,
-        onClick: () => {
-          void handleOpenPath(excelPath);
-        },
+        onClick: () => handleOpenPath(excelPath),
         variant: "default",
       });
     }
@@ -87,9 +66,7 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
       fileActions.push({
         id: "pdf",
         label: SHOP_MODAL_CONSTANTS.FILES.PDF_LABEL,
-        onClick: () => {
-          void handleOpenPath(pdfPath);
-        },
+        onClick: () => handleOpenPath(pdfPath),
         variant: "default",
       });
     }

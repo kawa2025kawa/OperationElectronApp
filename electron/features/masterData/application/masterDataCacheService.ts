@@ -8,6 +8,7 @@ export interface MasterDataCacheServiceOptions<T> {
   saveCache: (data: T) => Promise<void>;
   deleteCache: () => Promise<void>;
   loadFreshData: () => Promise<T>;
+  shouldCache?: (data: T) => boolean;
   logPrefix: string;
 }
 
@@ -26,7 +27,7 @@ export function createMasterDataCacheService<T>(
   let clearPromise: Promise<void> | null = null;
   let cacheGeneration = 0;
 
-  // 最新データを取得してディスク・メモリーキャッシュを更新する。
+  // 最新データを取得して、キャッシュ可能な場合だけ保存する。
   async function refresh(): Promise<T> {
     while (true) {
       const pendingClear = clearPromise;
@@ -42,6 +43,11 @@ export function createMasterDataCacheService<T>(
 
       const currentRefresh = (async () => {
         const data = await options.loadFreshData();
+
+        if (options.shouldCache?.(data) === false) {
+          memoryCache = null;
+          return data;
+        }
 
         await options.saveCache(data);
 

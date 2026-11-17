@@ -3,7 +3,7 @@
 import { handleStatusToastNotification } from "@renderer/components/ui/toast/statusToastHandler";
 import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import type { AppState } from "@renderer/store";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 
 type GetAppState = () => AppState;
 

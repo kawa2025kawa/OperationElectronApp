@@ -2,39 +2,33 @@
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
 import { getStatusTheme } from "@renderer/styles/tokens/statusTheme";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 
-export const badge = style([
-  themeTransition,
-  {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    height: "28px",
-    minWidth: "86px",
-    padding: `0 ${tokens.space.md}`,
-    borderRadius: tokens.radius.full,
-    fontSize: tokens.font.size.xs,
-    fontWeight: tokens.font.weight.bold,
-    whiteSpace: "nowrap",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    backgroundColor: tokens.color.bg.base,
-    border: "2px solid currentcolor",
-    position: "relative",
-    isolation: "isolate",
-    transform: "translateZ(0)",
-  },
-]);
+export const badge = style({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  height: "28px",
+  minWidth: "86px",
+  padding: `0 ${tokens.space.md}`,
+  borderRadius: tokens.radius.full,
+  fontSize: tokens.font.size.xs,
+  fontWeight: tokens.font.weight.bold,
+  whiteSpace: "nowrap",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  backgroundColor: tokens.color.bg.base,
+  border: "2px solid currentcolor",
+  position: "relative",
+  isolation: "isolate",
+});
 
 const createTone = (status: JobStatus) => {
-  const theme = getStatusTheme(status);
-
+  const { color, glow } = getStatusTheme(status);
   return {
-    color: theme.color,
-    boxShadow: `${tokens.shadow.raised.low}, ${theme.glow}`,
+    color,
+    boxShadow: `${tokens.shadow.raised.low}, ${glow}`,
   };
 };
 
@@ -47,7 +41,6 @@ export const tone = styleVariants({
   scheduled: createTone("scheduled"),
   needsAction: createTone("needsAction"),
   error: createTone("error"),
-
   neutral: {
     color: tokens.color.text.base,
     boxShadow: tokens.shadow.raised.low,

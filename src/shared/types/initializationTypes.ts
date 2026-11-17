@@ -12,6 +12,9 @@ const INIT_STATUS_KEYS = [
   "update",
   "operation",
   "irregular",
+  "operationMaster",
+  "irregularMaster",
+  "rdp",
   "auth",
   "store",
   "jugyoin",
@@ -30,6 +33,7 @@ export type InitStatus = Record<InitStatusKey, InitStatusValue>;
 export const INIT_STATUS_GROUPS = {
   operationData: ["operation", "irregular"],
   spreadsheetData: ["store", "jugyoin", "kokyuhyo", "tantou"],
+  operationMasterData: ["operationMaster", "irregularMaster"],
 } as const satisfies Record<string, readonly InitStatusKey[]>;
 
 /** 全初期化項目に同じステータスを設定したオブジェクトを生成する */

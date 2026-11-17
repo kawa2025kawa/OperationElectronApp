@@ -1,9 +1,8 @@
 // src/renderer/features/operation/components/modal/linkModal/LinkModalContent.tsx
 
 import { memo, useCallback, useMemo } from "react";
-import { toast } from "sonner";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
-import { systemIpcService } from "@renderer/services/systemIpcService";
+import { operationService } from "@renderer/features/operation/service/operationService";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { LinkConfig } from "@shared/types/operation/operationTypes";
 import * as styles from "./linkModalContent.css";
@@ -14,23 +13,17 @@ interface LinkModalContentProps {
 
 const LINK_MODAL_CONSTANTS = {
   EMPTY_MESSAGE: "リンクがありません",
-  OPEN_ERROR_MESSAGE: "リンクを開けませんでした",
+  OPEN_ERROR_PREFIX: "リンクを開けませんでした",
 } as const;
 
 export const LinkModalContent: GlobalModalComponent<LinkModalContentProps> =
   memo(({ link }) => {
     const linkItems = useMemo(() => (Array.isArray(link) ? link : []), [link]);
 
-    const handleOpenUrl = useCallback(async (url: string) => {
-      const cleanUrl = url.trim();
-      if (!cleanUrl) return;
-
-      try {
-        await systemIpcService.openExternal(cleanUrl);
-      } catch (error) {
-        console.error("[LinkModalContent] Failed to open external URL:", error);
-        toast.error(LINK_MODAL_CONSTANTS.OPEN_ERROR_MESSAGE);
-      }
+    const handleOpenUrl = useCallback((url: string) => {
+      void operationService
+        .openExternal(url, LINK_MODAL_CONSTANTS.OPEN_ERROR_PREFIX)
+        .catch(() => undefined);
     }, []);
 
     const isEmpty = linkItems.length === 0;
@@ -46,7 +39,7 @@ export const LinkModalContent: GlobalModalComponent<LinkModalContentProps> =
                 <button
                   type="button"
                   className={styles.nonTrBadge}
-                  onClick={() => void handleOpenUrl(item.url)}
+                  onClick={() => handleOpenUrl(item.url)}
                 >
                   {item.key}
                 </button>

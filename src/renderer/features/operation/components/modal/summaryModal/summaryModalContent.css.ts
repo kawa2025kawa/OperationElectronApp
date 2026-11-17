@@ -1,14 +1,11 @@
-﻿// src/renderer/features/operation/components/modal/summaryModal/summaryModalContent.css.ts
+// src/renderer/features/operation/components/modal/summaryModal/summaryModalContent.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
-// OperationTable 共通スタイル
-export * from "../../table/operationTable.css";
+import { textEllipsis } from "@renderer/styles/global/surfaces.css";
 
-// -----------------------------------------------------------------------------
-// Modal Container
-// -----------------------------------------------------------------------------
+export * from "../../table/operationTable.css";
 
 export const container = style({
   display: "flex",
@@ -37,10 +34,6 @@ export const tableContainer = style({
   outline: "none",
 });
 
-// -----------------------------------------------------------------------------
-// Header Wrapper
-// -----------------------------------------------------------------------------
-
 export const headerWrapper = style({
   position: "relative",
   zIndex: 10,
@@ -51,45 +44,20 @@ export const headerWrapper = style({
   isolation: "isolate",
 });
 
-// -----------------------------------------------------------------------------
-// Body Wrapper
-// -----------------------------------------------------------------------------
-
-export const bodyWrapper = style({
-  position: "relative",
-  zIndex: 0,
-  flex: 1,
-  minHeight: 0,
-  overflowX: "hidden",
-  overflowY: "auto",
-  paddingInline: tokens.space.md,
-  paddingTop: tokens.space.sm,
-  scrollbarGutter: "stable",
-  scrollbarWidth: "thin",
-  scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
-  isolation: "isolate",
-
-  selectors: {
-    "&::-webkit-scrollbar": {
-      width: "4px",
-      display: "block",
-    },
-    "&::-webkit-scrollbar-track": {
-      backgroundColor: "transparent",
-    },
-    "&::-webkit-scrollbar-thumb": {
-      backgroundColor: tokens.color.accent.neonPink,
-      borderRadius: tokens.radius.full,
-    },
-    "&::-webkit-scrollbar-thumb:hover": {
-      backgroundColor: tokens.color.accent.neonPink,
-    },
+export const bodyWrapper = style([
+  {
+    position: "relative",
+    zIndex: 0,
+    flex: 1,
+    minHeight: 0,
+    overflowX: "hidden",
+    overflowY: "auto",
+    paddingInline: tokens.space.md,
+    paddingTop: tokens.space.sm,
+    scrollbarGutter: "stable",
+    isolation: "isolate",
   },
-});
-
-// -----------------------------------------------------------------------------
-// Header Table
-// -----------------------------------------------------------------------------
+]);
 
 export const headerTable = style({
   width: "100%",
@@ -100,10 +68,6 @@ export const headerTable = style({
   borderRadius: tokens.radius.md,
 });
 
-// -----------------------------------------------------------------------------
-// Body Table
-// -----------------------------------------------------------------------------
-
 export const bodyTable = style({
   width: "100%",
   tableLayout: "fixed",
@@ -111,15 +75,11 @@ export const bodyTable = style({
   borderSpacing: `0 ${tokens.space.md}`,
 });
 
-// -----------------------------------------------------------------------------
-// Cell Text
-// -----------------------------------------------------------------------------
-
-export const cellText = style({
-  display: "inline-block",
-  maxWidth: "100%",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  verticalAlign: "middle",
-});
+export const cellText = style([
+  textEllipsis,
+  {
+    display: "inline-block",
+    maxWidth: "100%",
+    verticalAlign: "middle",
+  },
+]);

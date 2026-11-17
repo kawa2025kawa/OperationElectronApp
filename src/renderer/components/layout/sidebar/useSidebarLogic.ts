@@ -1,6 +1,6 @@
 // src/renderer/components/layout/sidebar/useSidebarLogic.ts
 
-import { useCallback } from "react";
+import { startTransition, useCallback } from "react";
 import { useShallow } from "zustand/shallow";
 
 import { APP_REGISTRY } from "@renderer/registry/appRegistry";
@@ -40,10 +40,8 @@ export const useSidebarLogic = () => {
         return;
       }
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setCurrentView(view);
-        });
+      startTransition(() => {
+        setCurrentView(view);
       });
     },
     [currentView, setSidebarOpen, setCurrentView],

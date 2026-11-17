@@ -33,10 +33,12 @@ export const createPollingSlice: StateCreator<
       return;
     }
 
+    set({ isPolling: true });
+
     try {
       await operationService.startPolling();
-      set({ isPolling: true });
     } catch (error: unknown) {
+      set({ isPolling: false });
       console.error("[PollingSlice] startPolling failed:", error);
     }
   },

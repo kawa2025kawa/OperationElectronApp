@@ -4,14 +4,10 @@ import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
-const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
 
 /**
  * 全ボタン共通の基底スタイル
- * - 描画分離（ホバー・クリック時の周囲領域へのペイント波及を防止）
- * - 非活性（disabled）時の共通表現
- * - テーマ遷移アニメーション
  */
 export const baseButton = style([
   themeTransition,
@@ -65,9 +61,9 @@ export const neonGlowButton = style([
       position: "absolute",
       inset: -1,
       borderRadius: "inherit",
-      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
+      boxShadow: tokens.shadow.glowRaised.high,
       opacity: 0,
-      transition: `opacity ${smoothGlow}`,
+      transition: `opacity ${tokens.transition.glow}`,
       pointerEvents: "none",
       willChange: "opacity",
     },

@@ -1,4 +1,4 @@
-﻿import path from "node:path";
+import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
 
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
@@ -127,6 +127,7 @@ export default defineConfig({
   // ================================================================
   build: {
     target: "esnext",
+    cssTarget: "chrome120",
     outDir: resolvePath("dist"),
     emptyOutDir: true,
     chunkSizeWarningLimit: 1000,

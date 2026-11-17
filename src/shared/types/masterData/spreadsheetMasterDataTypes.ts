@@ -5,7 +5,10 @@ import type {
   OperationMaster,
   TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
-import type { SheetData } from "@shared/types/spreadsheet/spreadsheetTypes";
+import type {
+  SheetData,
+  SheetId,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 /** Renderer に公開するスプレッドシートマスターデータ */
@@ -18,4 +21,6 @@ export interface SpreadsheetMasterDataResponse {
   operations: OperationMaster[];
   irregulars: IrregularMaster[];
   todayIrregulars: TodayIrregularMaster[];
+
+  errors: Partial<Record<SheetId, string>>;
 }

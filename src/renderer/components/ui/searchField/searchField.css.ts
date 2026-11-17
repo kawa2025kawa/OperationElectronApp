@@ -3,8 +3,8 @@
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
-const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
+const glowTransition = tokens.transition.glow;
 
 export const inner = style({
   position: "relative",
@@ -13,16 +13,15 @@ export const inner = style({
   width: "100%",
   maxWidth: "300px",
   isolation: "isolate",
-  transform: "translateZ(0)",
 
   "::before": {
     content: '""',
     position: "absolute",
     inset: -1,
     borderRadius: tokens.radius.full,
-    boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+    boxShadow: tokens.shadow.glowRaised.md,
     opacity: 0,
-    transition: `opacity ${smoothGlow}`,
+    transition: `opacity ${glowTransition}`,
     pointerEvents: "none",
     willChange: "opacity",
   },
@@ -60,7 +59,7 @@ export const searchField = style({
   color: tokens.color.text.base,
   fontSize: tokens.font.size.sm,
   fontWeight: tokens.font.weight.bold,
-  transition: `border-color ${smoothGlow}, color ${t}, background-color ${t}`,
+  transition: `border-color ${glowTransition}, color ${t}, background-color ${t}`,
 
   "@media": {
     "screen and (max-width: 600px)": {
@@ -80,7 +79,7 @@ export const searchField = style({
     "&:active": {
       outline: "none",
     },
-    "&:::-webkit-search-cancel-button": {
+    "&::-webkit-search-cancel-button": {
       cursor: "pointer",
     },
   },

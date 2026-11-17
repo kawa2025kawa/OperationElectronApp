@@ -2,9 +2,10 @@
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { brandGradientText } from "@renderer/styles/global/surfaces.css";
 
-const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
+const glowTransition = tokens.transition.glow;
 
 export const sidebar = style({
   position: "fixed",
@@ -40,17 +41,15 @@ export const header = style({
   transition: `background-color ${t}`,
 });
 
-export const headerTitle = style({
-  backgroundImage: tokens.gradient.brand,
-  WebkitBackgroundClip: "text",
-  WebkitTextFillColor: "transparent",
-  backgroundClip: "text",
-  color: "transparent",
-  fontSize: tokens.font.size.xl,
-  fontWeight: tokens.font.weight.bold,
-  letterSpacing: "1px",
-  userSelect: "none",
-});
+export const headerTitle = style([
+  brandGradientText,
+  {
+    fontSize: tokens.font.size.xl,
+    fontWeight: tokens.font.weight.bold,
+    letterSpacing: "1px",
+    userSelect: "none",
+  },
+]);
 
 export const menuList = style({
   flex: 1,
@@ -64,13 +63,7 @@ export const menuList = style({
   display: "flex",
   flexDirection: "column",
   gap: tokens.space.md,
-  scrollbarWidth: "none",
   isolation: "isolate",
-  selectors: {
-    "&::-webkit-scrollbar": {
-      display: "none",
-    },
-  },
 });
 
 export const menuItem = style({
@@ -95,7 +88,6 @@ export const menuButton = style({
   cursor: "pointer",
   outline: "none",
   isolation: "isolate",
-  transform: "translateZ(0)",
   transition: `background-color ${t}, color ${t}`,
 
   "::before": {
@@ -103,9 +95,9 @@ export const menuButton = style({
     position: "absolute",
     inset: 0,
     borderRadius: tokens.radius.md,
-    boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+    boxShadow: tokens.shadow.glowRaised.md,
     opacity: 0,
-    transition: `opacity ${t}`,
+    transition: `opacity ${glowTransition}`,
     pointerEvents: "none",
     willChange: "opacity",
   },
@@ -179,10 +171,8 @@ export const toggleTrack = style({
   display: "block",
   flexShrink: 0,
   isolation: "isolate",
-  transform: "translateZ(0)",
-  transition: `border-color ${smoothGlow}, box-shadow ${smoothGlow}, background-color ${t}`,
+  transition: `border-color ${glowTransition}, box-shadow ${glowTransition}, background-color ${t}`,
 
-  // ホバーグロー用の独立擬似要素
   "::before": {
     content: '""',
     position: "absolute",
@@ -190,7 +180,7 @@ export const toggleTrack = style({
     borderRadius: tokens.radius.full,
     boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
     opacity: 0,
-    transition: `opacity ${smoothGlow}`,
+    transition: `opacity ${glowTransition}`,
     pointerEvents: "none",
     willChange: "opacity",
   },
@@ -215,17 +205,16 @@ export const toggleThumb = style({
   borderRadius: tokens.radius.full,
   display: "block",
   pointerEvents: "none",
-  transform: "translateZ(0)",
-  transition: `transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color ${t}, box-shadow ${smoothGlow}`,
+  transition: `transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color ${t}, box-shadow ${glowTransition}`,
 
   selectors: {
     "&[data-state='dark']": {
-      transform: "translateX(22px) translateZ(0)",
+      transform: "translateX(22px)",
       backgroundColor: tokens.color.accent.neonCyan,
       boxShadow: "0 0 8px rgba(0, 255, 225, 0.6)",
     },
     "&[data-state='light']": {
-      transform: "translateX(0) translateZ(0)",
+      transform: "translateX(0)",
       backgroundColor: tokens.color.text.base,
       boxShadow: tokens.shadow.raised.low,
     },

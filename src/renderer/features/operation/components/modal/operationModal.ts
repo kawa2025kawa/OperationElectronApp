@@ -1,6 +1,7 @@
-﻿// src\renderer\features\operation\components\modal\operationModal.ts
+﻿// src/renderer/features/operation/components/modal/operationModal.ts
 
 import { createElement } from "react";
+import { GmailDraftContent } from "@renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent";
 import { PdfUploadModalContent } from "@renderer/features/other/components/modal/contents/pdfUpload/PdfUploadModalContent";
 import type { AppState } from "@renderer/store";
 import type {
@@ -13,6 +14,17 @@ import { LinkModalContent } from "./linkModal/LinkModalContent";
 import { ScriptModalContent } from "./scriptModal/ScriptModalContent";
 
 type OpenGlobalModal = AppState["openGlobalModal"];
+
+const GMAIL_MODAL_CONFIG = {
+  title: "Gmail",
+  width: "min(95vw, calc(75vh * (21 / 9)))",
+  height: "min(75vh, calc(95vw * (9 / 21)))",
+} as const;
+
+/** Gmail 作成モーダルを開く */
+export function openGmailModal(openGlobalModal: OpenGlobalModal): void {
+  openGlobalModal(createElement(GmailDraftContent), GMAIL_MODAL_CONFIG);
+}
 
 /** PDFアップロードモーダルを開く */
 export function openPdfUploadModal(openGlobalModal: OpenGlobalModal): void {

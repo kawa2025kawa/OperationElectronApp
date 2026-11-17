@@ -2,9 +2,9 @@
 
 import type { StateCreator } from "zustand";
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
+import { authIpcService } from "@renderer/services/authIpcService";
 import type { AppState } from "@renderer/store";
 import type { AuthProfile, AuthSlice } from "@shared/types/auth/authTypes";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
 
 // 認証状態を未認証に戻す。
 function clearAuthState(state: AppState): void {
@@ -37,7 +37,7 @@ export const createAuthSlice: StateCreator<
 
   login: async (): Promise<boolean> => {
     try {
-      const profile = await window.electronAPI.invoke(IPC_CHANNELS.AUTH.LOGIN);
+      const profile = await authIpcService.login();
 
       set((state) => {
         applyAuthState(state, profile);
@@ -61,10 +61,7 @@ export const createAuthSlice: StateCreator<
     });
 
     try {
-      const profile = await window.electronAPI.invoke(
-        IPC_CHANNELS.AUTH.LOAD_SESSION,
-        forceRefresh,
-      );
+      const profile = await authIpcService.loadSession(forceRefresh);
 
       if (!profile) {
         set((state) => {
@@ -96,7 +93,7 @@ export const createAuthSlice: StateCreator<
 
   logout: async (): Promise<void> => {
     try {
-      await window.electronAPI.invoke(IPC_CHANNELS.AUTH.LOGOUT);
+      await authIpcService.logout();
     } catch (error) {
       console.error("[Auth] Logout command failed:", error);
       throw error;

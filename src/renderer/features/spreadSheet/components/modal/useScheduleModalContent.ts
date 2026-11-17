@@ -1,10 +1,13 @@
-// src/renderer/features/spreadSheet/components/modal/useScheduleModalContent.ts
+﻿// src/renderer/features/spreadSheet/components/modal/useScheduleModalContent.ts
 
 import { useCallback, useMemo } from "react";
 import type { Jugyoin } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { Kokyuhyo } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
-import { systemIpcService } from "@renderer/services/systemIpcService";
+import {
+  normalizeExternalTarget,
+  spreadSheetService,
+} from "../../service/spreadSheetService";
 import {
   formatDateWithDay,
   getOffsetDate,
@@ -13,14 +16,14 @@ import {
 export type ScheduleModalTarget = Jugyoin | Kokyuhyo;
 
 export function useScheduleModalContent(data: ScheduleModalTarget) {
-  const scheduleLink =
-    data?.scheduleLink && data.scheduleLink !== EMPTY_VALUE_FALLBACK
-      ? data.scheduleLink
-      : undefined;
+  const scheduleLink = normalizeExternalTarget(data?.scheduleLink);
 
   const handleOpenSchedule = useCallback(() => {
     if (scheduleLink) {
-      void systemIpcService.openExternal(scheduleLink);
+      void spreadSheetService.openExternal(
+        scheduleLink,
+        "スケジュールリンクを開けませんでした",
+      );
     }
   }, [scheduleLink]);
 

@@ -1,66 +1,61 @@
 // src/renderer/components/ui/toast/statusToastHandler.ts
 
-import { useAppStore } from "@renderer/store/index";
 import {
   JOB_STATUS,
   type JobStatus,
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
-import { consumeSuppressedSuccessToast } from "@shared/utils/statusToastSuppression";
-
+import { useAppStore } from "@renderer/store";
 import { usePollingToastStore, type ToastType } from "./pollingToastStore";
 
-const TOAST_TYPE_MAP: Readonly<Partial<Record<JobStatus, ToastType>>> = {
-  [JOB_STATUS.ERROR]: "error",
-  [JOB_STATUS.SUCCESS]: "success",
-  [JOB_STATUS.READY]: "info",
-};
+function mapStatusToToastType(status: JobStatus): ToastType | null {
+  switch (status) {
+    case JOB_STATUS.ERROR:
+      return "error";
 
-function isAutoNotificationTarget(kanriNo: string): boolean {
-  return Boolean(kanriNo);
+    case JOB_STATUS.NEEDS_ACTION:
+      return "warning";
+
+    default:
+      return null;
+  }
 }
 
-export const handleStatusToastNotification = (
-  update: OperationStatusState,
-  options?: { isManual?: boolean },
-): void => {
+function resolveWorkName(kanriNo: string): string {
   const state = useAppStore.getState();
 
-  if (options?.isManual || !state.isPolling) {
-    return;
-  }
+  const allRows = [
+    ...state.tableRows,
+    ...state.tableRowsByMode.operation,
+    ...state.tableRowsByMode.irregular,
+    ...state.tableRowsByMode.today,
+  ];
 
-  const { kanriNo, status } = update;
-  if (!kanriNo || !status) {
-    return;
-  }
+  const matched = allRows.find((row) => row.kanriNo?.trim() === kanriNo);
+  return matched?.workName?.trim() ?? "";
+}
+
+export function handleStatusToastNotification(
+  update: OperationStatusState,
+): void {
+  const kanriNo = update.kanriNo?.trim();
+  const { status } = update;
+  if (!kanriNo || !status) return;
+
+  if (!useAppStore.getState().isPolling) return;
 
   const toastStore = usePollingToastStore.getState();
+  const prevStatus = toastStore.getPrevStatus(kanriNo);
 
-  if (status === toastStore.getPrevStatus(kanriNo)) {
-    return;
-  }
+  if (prevStatus === status) return;
 
   toastStore.setPrevStatus(kanriNo, status);
 
-  if (toastStore.pollingCycle === 0) {
-    return;
-  }
+  const toastType = mapStatusToToastType(status);
+  if (!toastType) return;
 
-  const toastType = TOAST_TYPE_MAP[status];
-  if (!toastType) {
-    return;
-  }
+  const workName = resolveWorkName(kanriNo);
+  const message = workName ? `${kanriNo} : ${workName}` : kanriNo;
 
-  if (status === JOB_STATUS.SUCCESS && consumeSuppressedSuccessToast(kanriNo)) {
-    return;
-  }
-
-  if (!isAutoNotificationTarget(kanriNo)) {
-    return;
-  }
-
-  const nameLabel = `No.${kanriNo}`;
-
-  toastStore.addToast(`${nameLabel} ${status}`, toastType);
-};
+  toastStore.addToast(message, toastType);
+}

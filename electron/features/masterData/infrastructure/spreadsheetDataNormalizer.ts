@@ -1,4 +1,4 @@
-﻿// electron/features/masterData/infrastructure/spreadsheetDataNormalizer.ts
+// electron/features/masterData/infrastructure/spreadsheetDataNormalizer.ts
 
 import { randomUUID } from "node:crypto";
 import type { SpreadsheetMasterData } from "../types/internalSpreadsheetMasterDataTypes";
@@ -57,13 +57,19 @@ export function normalizeSpreadsheetRows<T extends object>(rows: T[]): T[] {
 
 // アプリ内部で使用する行IDを付与する。
 function normalizeRowsWithId<T extends { id: string }>(rows: T[]): T[] {
-  return normalizeSpreadsheetRows(rows).map((row) => ({
-    ...row,
-    id:
-      typeof row.id === "string" && row.id.trim()
-        ? row.id.trim()
-        : randomUUID(),
-  }));
+  const seenIds = new Set<string>();
+  return normalizeSpreadsheetRows(rows).map((row, index) => {
+    let id = typeof row.id === "string" && row.id.trim() ? row.id.trim() : "";
+    if (!id || seenIds.has(id)) {
+      id = id ? `${id}_${index}` : randomUUID();
+    }
+    seenIds.add(id);
+
+    return {
+      ...row,
+      id,
+    };
+  });
 }
 
 // シートのリンク先パスとラベルをOperationLink形式に変換する。
@@ -129,5 +135,6 @@ export function normalizeSpreadsheetMasterData(
       normalizeLinks,
     ),
     rdps: normalizeSpreadsheetRows(data.rdps ?? []),
+    errors: { ...data.errors },
   };
 }

@@ -295,7 +295,7 @@ export const statusRow = style({
 export const tone = styleVariants({
   ok: {
     color: tokens.color.status.success,
-    textShadow: "0 0 8px rgba(74, 222, 128, 0.8)",
+    textShadow: tokens.shadow.glow.success,
   },
   ng: {
     color: tokens.color.status.error,

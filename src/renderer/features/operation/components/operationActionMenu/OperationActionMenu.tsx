@@ -31,17 +31,19 @@ export const OperationActionMenu = memo(function OperationActionMenu({
           align="end"
         >
           <Menu.Popup className={styles.menuDropdownContent}>
-            {actions.map((action) => (
-              <Menu.Item
-                key={action.key}
-                className={styles.menuItem}
-                onClick={() => handleActionSelect(action.key)}
-              >
-                <span className={styles.menuItemInner}>
-                  <span className={styles.menuItemLabel}>{action.label}</span>
-                </span>
-              </Menu.Item>
-            ))}
+            <div className={styles.menuDropdownScroll}>
+              {actions.map((action) => (
+                <Menu.Item
+                  key={action.key}
+                  className={styles.menuItem}
+                  onClick={() => handleActionSelect(action.key)}
+                >
+                  <span className={styles.menuItemInner}>
+                    <span className={styles.menuItemLabel}>{action.label}</span>
+                  </span>
+                </Menu.Item>
+              ))}
+            </div>
           </Menu.Popup>
         </Menu.Positioner>
       </Menu.Portal>

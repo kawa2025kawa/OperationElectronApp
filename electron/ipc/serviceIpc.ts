@@ -4,7 +4,7 @@ import fs from "fs-extra";
 import path from "node:path";
 import { addDays, format } from "date-fns";
 
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 import type { AuthProfile, AuthSession } from "@shared/types/auth";
 
 import { authService } from "@electron/features/auth/authService";

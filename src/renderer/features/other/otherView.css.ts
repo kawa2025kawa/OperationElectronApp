@@ -2,10 +2,10 @@
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
+
+import { interactiveGlowCard } from "@renderer/styles/global/surfaces.css";
 
 export const container = style([
-  themeTransition,
   {
     display: "flex",
     flexDirection: "column",
@@ -28,52 +28,25 @@ export const grid = style({
 });
 
 export const card = style([
-  themeTransition,
+  interactiveGlowCard,
   {
-    position: "relative",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     padding: tokens.space.xl,
     borderRadius: tokens.radius.lg,
-    backgroundColor: tokens.color.bg.base,
-    color: tokens.color.text.base,
-    boxShadow: tokens.shadow.raised.low,
     cursor: "pointer",
     minHeight: "140px",
     border: "none",
     outline: "none",
-
     fontSize: tokens.font.size.lg,
     fontWeight: tokens.font.weight.bold,
     textAlign: "center",
     wordBreak: "break-all",
-
-    isolation: "isolate",
-    transform: "translateZ(0)",
-    backfaceVisibility: "hidden",
-    WebkitBackfaceVisibility: "hidden",
     transition: `transform ${tokens.transition.ease}, color ${tokens.transition.fast}`,
 
     "::before": {
-      content: '""',
-      position: "absolute",
-      inset: 0,
-      borderRadius: tokens.radius.lg,
       boxShadow: tokens.shadow.glow.cyan,
-      opacity: 0,
-      transition: `opacity ${tokens.transition.normal}`,
-      pointerEvents: "none",
-      willChange: "opacity",
-    },
-
-    selectors: {
-      "&:hover": {
-        color: tokens.color.text.hover,
-      },
-      "&:hover::before": {
-        opacity: 1,
-      },
     },
   },
 ]);

@@ -1,7 +1,7 @@
 // src/renderer/services/updateService.ts
 
 import { useAppStore } from "@renderer/store";
-import { showToast } from "@renderer/utils/toastUtils";
+import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { systemIpcService } from "@renderer/services/systemIpcService";
 
 const DEFAULT_UPDATE_EXE_PATH =
@@ -94,7 +94,9 @@ async function check(): Promise<boolean> {
       return false;
     } catch (launchError) {
       console.error("[updateService] Failed to launch installer:", launchError);
-      showToast("アップデートインストーラーの起動に失敗しました", "error");
+      usePollingToastStore
+        .getState()
+        .addToast("アップデートインストーラーの起動に失敗しました", "error");
       setStatus("NG");
       return false;
     }

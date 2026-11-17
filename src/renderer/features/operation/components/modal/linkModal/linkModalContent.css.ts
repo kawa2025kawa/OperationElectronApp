@@ -2,28 +2,10 @@
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
-
-const BADGE_WIDTH = "120px";
-
-/* ============================================================
- * Base Styles
- * ============================================================ */
-
-const rowBaseStyle = style({
-  display: "flex",
-  alignItems: "center",
-  gap: tokens.space.md,
-  padding: `${tokens.space.xs} ${tokens.space.sm}`,
-  width: "100%",
-  boxSizing: "border-box",
-  border: "none",
-  textAlign: "left",
-});
-
-/* ============================================================
- * Container & Layouts
- * ============================================================ */
+import {
+  interactiveGlowCard,
+  textEllipsis,
+} from "@renderer/styles/global/surfaces.css";
 
 export const contentContainer = style({
   display: "flex",
@@ -43,59 +25,31 @@ export const terminalSection = style({
   isolation: "isolate",
 });
 
-/* ============================================================
- * Row & Cell Styles
- * ============================================================ */
-
 export const terminalRow = style([
-  rowBaseStyle,
-  themeTransition,
+  interactiveGlowCard,
   {
-    position: "relative",
-    backgroundColor: tokens.color.bg.base,
-    borderRadius: tokens.radius.md,
-    boxShadow: tokens.shadow.raised.low,
+    display: "flex",
+    alignItems: "center",
+    gap: tokens.space.md,
+    padding: `${tokens.space.xs} ${tokens.space.sm}`,
+    width: "100%",
+    boxSizing: "border-box",
+    border: "none",
+    textAlign: "left",
     fontSize: tokens.font.fluid.md,
-    color: tokens.color.text.base,
-    isolation: "isolate",
-    transform: "translateZ(0)",
-    backfaceVisibility: "hidden",
-    WebkitBackfaceVisibility: "hidden",
-    transition: `color ${tokens.transition.fast}`,
-
-    "::before": {
-      content: '""',
-      position: "absolute",
-      inset: 0,
-      borderRadius: tokens.radius.md,
-      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-      opacity: 0,
-      transition: `opacity ${tokens.transition.normal}`,
-      pointerEvents: "none",
-      willChange: "opacity",
-    },
-
-    selectors: {
-      "&:hover": {
-        color: tokens.color.text.hover,
-      },
-      "&:hover::before": {
-        opacity: 1,
-      },
-    },
   },
 ]);
 
-const terminalBadge = style({
+export const nonTrBadge = style({
   position: "relative",
   zIndex: 1,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  width: BADGE_WIDTH,
+  width: tokens.size.badgeWidth,
   minHeight: "36px",
-  height: "auto",
   padding: `${tokens.space.xs} ${tokens.space.sm}`,
+  boxSizing: "border-box",
   flexShrink: 0,
   backgroundColor: tokens.color.bg.base,
   borderRadius: tokens.radius.sm,
@@ -109,7 +63,6 @@ const terminalBadge = style({
   cursor: "pointer",
   outline: "none",
   border: "none",
-  transition: `color ${tokens.transition.fast}`,
 
   selectors: {
     "&:active": {
@@ -117,13 +70,6 @@ const terminalBadge = style({
     },
   },
 });
-
-export const nonTrBadge = style([
-  terminalBadge,
-  {
-    boxSizing: "border-box",
-  },
-]);
 
 export const flexCell = style({
   position: "relative",
@@ -135,14 +81,13 @@ export const flexCell = style({
   flex: 1,
 });
 
-export const cellValue = style({
-  fontSize: tokens.font.fluid.md,
-  fontWeight: tokens.font.weight.bold,
-  color: "inherit",
-  cursor: "text",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  userSelect: "text",
-  transition: `color ${tokens.transition.fast}`,
-});
+export const cellValue = style([
+  textEllipsis,
+  {
+    fontSize: tokens.font.fluid.md,
+    fontWeight: tokens.font.weight.bold,
+    color: "inherit",
+    cursor: "text",
+    userSelect: "text",
+  },
+]);

@@ -2,42 +2,37 @@
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
+import { brandGradientText } from "@renderer/styles/global/surfaces.css";
 
-export const container = style([
-  themeTransition,
+export const container = style({
+  display: "flex",
+  alignItems: "center",
+  height: "80px",
+  paddingInline: tokens.space.lg,
+  gap: tokens.space.xl,
+  backgroundColor: tokens.color.bg.base,
+  boxShadow: tokens.shadow.raised.high,
+  zIndex: tokens.zIndex.content,
+  position: "relative",
+  isolation: "isolate",
+});
+
+export const logoText = style([
+  brandGradientText,
   {
-    display: "flex",
-    alignItems: "center",
-    height: "80px",
-    paddingInline: tokens.space.lg,
-    gap: tokens.space.xl,
-    backgroundColor: tokens.color.bg.base,
-    boxShadow: tokens.shadow.raised.high,
-    zIndex: tokens.zIndex.content,
-    position: "relative",
-    isolation: "isolate",
-  },
-]);
+    fontSize: tokens.font.size.xl,
+    fontWeight: tokens.font.weight.bold,
+    letterSpacing: "1px",
+    whiteSpace: "nowrap",
+    flexShrink: 0,
 
-export const logoText = style({
-  backgroundImage: tokens.gradient.brand,
-  WebkitBackgroundClip: "text",
-  WebkitTextFillColor: "transparent",
-  backgroundClip: "text",
-  color: "transparent",
-  fontSize: tokens.font.size.xl,
-  fontWeight: tokens.font.weight.bold,
-  letterSpacing: "1px",
-  whiteSpace: "nowrap",
-  flexShrink: 0,
-
-  "@media": {
-    "screen and (max-width: 850px)": {
-      display: "none",
+    "@media": {
+      "screen and (max-width: 850px)": {
+        display: "none",
+      },
     },
   },
-});
+]);
 
 export const centerItem = style({
   flex: 1,

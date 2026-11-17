@@ -1,6 +1,6 @@
-﻿// src/renderer/services/systemIpcService.ts
+// src/renderer/services/systemIpcService.ts
 
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 import type { UpdateInfo } from "@shared/types/system";
 
 /**

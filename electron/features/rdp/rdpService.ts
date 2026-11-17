@@ -3,9 +3,13 @@
 import { execFile } from "node:child_process";
 import util from "node:util";
 
-import { getSpreadsheetMasterData } from "@electron/features/masterData/application/spreadsheetMasterDataManager";
+import {
+  assertSpreadsheetSheetsLoaded,
+  getSpreadsheetMasterData,
+} from "@electron/features/masterData/application/spreadsheetMasterDataManager";
 import type { RdpMaster } from "./rdpMasterTypes";
 import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
+import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 const execFilePromise = util.promisify(execFile);
 
@@ -20,9 +24,18 @@ const RDP_COMMANDS = {
   mstsc: "mstsc",
 } as const;
 
+/** RDPマスターを取得する。 */
+async function loadRdpMasters(): Promise<RdpMaster[]> {
+  const masterData = await getSpreadsheetMasterData();
+
+  assertSpreadsheetSheetsLoaded(masterData, [SHEETS.RDP.sheetName]);
+
+  return masterData.rdps;
+}
+
 /** Renderer に公開する RDP 接続先一覧を取得する。 */
 export async function getRdpTargets(): Promise<RdpTarget[]> {
-  const { rdps } = await getSpreadsheetMasterData();
+  const rdps = await loadRdpMasters();
 
   return rdps.map(({ name, ipAddress }) => ({
     name,
@@ -38,7 +51,7 @@ async function findRdpTarget(name: string): Promise<RdpMaster> {
     throw new Error("RDP接続先が指定されていません");
   }
 
-  const { rdps } = await getSpreadsheetMasterData();
+  const rdps = await loadRdpMasters();
   const target = rdps.find(
     (item) => item.name?.trim().toUpperCase() === cleanName,
   );

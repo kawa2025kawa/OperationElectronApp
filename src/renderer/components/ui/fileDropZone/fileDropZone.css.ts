@@ -2,12 +2,24 @@
 
 import { globalStyle, style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
 
-const glassSurface = {
-  backgroundColor: tokens.glass.surface,
-  backdropFilter: "blur(12px) saturate(180%)",
-  WebkitBackdropFilter: "blur(12px) saturate(180%)",
+import { focusRing } from "@renderer/styles/global/surfaces.css";
+
+const glassSurfaceBefore = {
+  position: "relative",
+  zIndex: 0,
+  backgroundColor: "transparent",
+  "::before": {
+    content: '""',
+    position: "absolute",
+    inset: 0,
+    zIndex: -1,
+    borderRadius: "inherit",
+    backgroundColor: tokens.glass.surface,
+    backdropFilter: "blur(12px) saturate(180%)",
+    WebkitBackdropFilter: "blur(12px) saturate(180%)",
+    pointerEvents: "none",
+  },
 } as const;
 
 export const hiddenInput = style({
@@ -30,35 +42,32 @@ export const selectedFilesHeader = style({
   color: tokens.color.text.hover,
 });
 
-export const unifiedEmptyDropArea = style([
-  themeTransition,
-  {
-    display: "flex",
-    flexDirection: "column",
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "160px",
-    padding: tokens.space.lg,
-    borderRadius: tokens.radius.md,
-    backgroundColor: tokens.color.bg.base,
-    border: `2px dashed ${tokens.color.border.subtle}`,
-    cursor: "pointer",
-    userSelect: "none",
-    selectors: {
-      "&:hover:not([aria-disabled='true'])": {
-        borderColor: tokens.color.accent.neonCyan,
-        backgroundColor: "rgba(0, 122, 204, 0.05)",
-        boxShadow: tokens.shadow.glow.cyan,
-      },
-      "&.is-active": {
-        borderColor: tokens.color.accent.neonCyan,
-        backgroundColor: "rgba(0, 122, 204, 0.08)",
-        boxShadow: tokens.shadow.glow.cyan,
-      },
+export const unifiedEmptyDropArea = style({
+  display: "flex",
+  flexDirection: "column",
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "160px",
+  padding: tokens.space.lg,
+  borderRadius: tokens.radius.md,
+  backgroundColor: tokens.color.bg.base,
+  border: `2px dashed ${tokens.color.border.subtle}`,
+  cursor: "pointer",
+  userSelect: "none",
+  selectors: {
+    "&:hover:not([aria-disabled='true'])": {
+      borderColor: tokens.color.accent.neonCyan,
+      backgroundColor: "rgba(0, 122, 204, 0.05)",
+      boxShadow: tokens.shadow.glow.cyan,
+    },
+    "&.is-active": {
+      borderColor: tokens.color.accent.neonCyan,
+      backgroundColor: "rgba(0, 122, 204, 0.08)",
+      boxShadow: tokens.shadow.glow.cyan,
     },
   },
-]);
+});
 
 globalStyle(`${unifiedEmptyDropArea} > .primary-label`, {
   marginBottom: tokens.space.xs,
@@ -71,60 +80,59 @@ globalStyle(`${unifiedEmptyDropArea} > .sub-label`, {
   opacity: 0.6,
 });
 
-export const unifiedFilesList = style({
-  display: "flex",
-  flexDirection: "column",
-  flex: 1,
-  minHeight: 0,
-  gap: tokens.space.xs,
-  padding: tokens.space.xs,
-  overflowY: "auto",
-  scrollbarGutter: "stable",
-  borderRadius: tokens.radius.md,
-  backgroundColor: tokens.color.bg.base,
-  border: `1px solid ${tokens.color.border.subtle}`,
-  boxShadow: tokens.shadow.pressed.md,
-  selectors: {
-    "&.is-active": {
-      borderColor: tokens.color.accent.neonCyan,
-      boxShadow: tokens.shadow.glow.cyan,
-    },
-  },
-});
-
-export const selectedFileRow = style([
-  themeTransition,
+export const unifiedFilesList = style([
   {
-    position: "relative",
     display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: `${tokens.space.xs} ${tokens.space.sm}`,
-    gap: tokens.space.sm,
-    borderRadius: tokens.radius.sm,
+    flexDirection: "column",
+    flex: 1,
+    minHeight: 0,
+    gap: tokens.space.xs,
+    padding: tokens.space.xs,
+    overflowY: "auto",
+    scrollbarGutter: "stable",
+    borderRadius: tokens.radius.md,
     backgroundColor: tokens.color.bg.base,
     border: `1px solid ${tokens.color.border.subtle}`,
-    boxShadow: tokens.shadow.raised.low,
-    zIndex: tokens.zIndex.base,
+    boxShadow: tokens.shadow.pressed.md,
     selectors: {
-      "&:hover": {
+      "&.is-active": {
         borderColor: tokens.color.accent.neonCyan,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-      },
-      "&.is-open": {
-        zIndex: tokens.zIndex.dropdown,
-      },
-      "&.is-dragging": {
-        cursor: "grabbing",
-        opacity: 0.4,
-      },
-      "&.is-drop-target": {
-        borderColor: tokens.color.accent.neonCyan,
-        transform: "scale(1.01)",
+        boxShadow: tokens.shadow.glow.cyan,
       },
     },
   },
 ]);
+
+export const selectedFileRow = style({
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: `${tokens.space.xs} ${tokens.space.sm}`,
+  gap: tokens.space.sm,
+  borderRadius: tokens.radius.sm,
+  backgroundColor: tokens.color.bg.base,
+  border: `1px solid ${tokens.color.border.subtle}`,
+  boxShadow: tokens.shadow.raised.low,
+  zIndex: tokens.zIndex.base,
+  selectors: {
+    "&:hover": {
+      borderColor: tokens.color.accent.neonCyan,
+      boxShadow: tokens.shadow.glowRaised.md,
+    },
+    "&.is-open": {
+      zIndex: tokens.zIndex.dropdown,
+    },
+    "&.is-dragging": {
+      cursor: "grabbing",
+      opacity: 0.4,
+    },
+    "&.is-drop-target": {
+      borderColor: tokens.color.accent.neonCyan,
+      transform: "scale(1.01)",
+    },
+  },
+});
 
 globalStyle(`${selectedFileRow} > .file-info`, {
   display: "flex",
@@ -166,7 +174,7 @@ globalStyle(`${selectedFileRow} > .file-info > .path`, {
   whiteSpace: "nowrap",
   fontSize: tokens.font.size.xs,
   opacity: 0.7,
-  fontFamily: "monospace",
+  fontFamily: tokens.font.mono,
 });
 
 globalStyle(`${selectedFileRow} > .file-actions`, {
@@ -183,7 +191,7 @@ export const dropdownWrapper = style({
 });
 
 export const dropdownTrigger = style([
-  themeTransition,
+  focusRing,
   {
     appearance: "none",
     display: "inline-flex",
@@ -193,7 +201,7 @@ export const dropdownTrigger = style([
     height: "36px",
     padding: `0 ${tokens.space.md}`,
     borderRadius: tokens.radius.sm,
-    ...glassSurface,
+    ...glassSurfaceBefore,
     border: `1px solid ${tokens.color.border.subtle}`,
     boxShadow: tokens.shadow.raised.low,
     color: tokens.color.text.base,
@@ -204,10 +212,6 @@ export const dropdownTrigger = style([
       "&:hover:not(:disabled)": {
         borderColor: tokens.color.accent.neonCyan,
         color: tokens.color.text.hover,
-      },
-      "&:focus-visible": {
-        outline: `2px solid ${tokens.color.accent.neonCyan}`,
-        outlineOffset: "2px",
       },
       "&:disabled": {
         cursor: "not-allowed",
@@ -228,73 +232,69 @@ export const dropdownPositioner = style({
   zIndex: `calc(${tokens.zIndex.modal} + 10)`,
 });
 
-export const dropdownMenu = style({
+export const dropdownMenu = style([
+  {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    width: "100%",
+    maxHeight: "220px",
+    padding: tokens.space.xs,
+    overflowY: "auto",
+    scrollbarGutter: "stable",
+    borderRadius: tokens.radius.md,
+    ...glassSurfaceBefore,
+    border: `2px solid ${tokens.color.border.subtle}`,
+    boxShadow: tokens.shadow.raised.high,
+    outline: "none",
+  },
+]);
+
+export const dropdownItem = style({
+  appearance: "none",
   display: "flex",
-  flexDirection: "column",
-  gap: "2px",
+  alignItems: "center",
   width: "100%",
-  maxHeight: "220px",
-  padding: tokens.space.xs,
-  overflowY: "auto",
-  scrollbarGutter: "stable",
-  borderRadius: tokens.radius.md,
-  ...glassSurface,
-  border: `2px solid ${tokens.color.border.subtle}`,
-  boxShadow: tokens.shadow.raised.high,
-  outline: "none",
+  padding: `${tokens.space.sm} ${tokens.space.md}`,
+  border: "none",
+  borderRadius: tokens.radius.sm,
+  background: "none",
+  color: tokens.color.text.hover,
+  fontSize: tokens.font.size.sm,
+  fontWeight: tokens.font.weight.bold,
+  textAlign: "left",
+  whiteSpace: "nowrap",
+  cursor: "pointer",
+  selectors: {
+    "&:hover, &[data-highlighted]": {
+      backgroundColor: tokens.color.bg.frostedGlass,
+      color: tokens.color.accent.neonCyan,
+    },
+    "&:focus-visible": {
+      outline: `2px solid ${tokens.color.accent.neonCyan}`,
+      outlineOffset: "-2px",
+    },
+  },
 });
 
-export const dropdownItem = style([
-  themeTransition,
-  {
-    appearance: "none",
-    display: "flex",
-    alignItems: "center",
-    width: "100%",
-    padding: `${tokens.space.sm} ${tokens.space.md}`,
-    border: "none",
-    borderRadius: tokens.radius.sm,
-    background: "none",
-    color: tokens.color.text.hover,
-    fontSize: tokens.font.size.sm,
-    fontWeight: tokens.font.weight.bold,
-    textAlign: "left",
-    whiteSpace: "nowrap",
-    cursor: "pointer",
-    selectors: {
-      "&:hover, &[data-highlighted]": {
-        backgroundColor: tokens.color.bg.frostedGlass,
-        color: tokens.color.accent.neonCyan,
-      },
-      "&:focus-visible": {
-        outline: `2px solid ${tokens.color.accent.neonCyan}`,
-        outlineOffset: "-2px",
-      },
+export const removeFileButton = style({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "36px",
+  height: "36px",
+  flexShrink: 0,
+  borderRadius: tokens.radius.sm,
+  border: `1px solid ${tokens.color.border.subtle}`,
+  backgroundColor: tokens.color.bg.base,
+  color: tokens.color.text.base,
+  cursor: "pointer",
+  fontSize: "16px",
+  lineHeight: 1,
+  selectors: {
+    "&:hover": {
+      borderColor: tokens.color.status.error,
+      color: tokens.color.status.error,
     },
   },
-]);
-
-export const removeFileButton = style([
-  themeTransition,
-  {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "36px",
-    height: "36px",
-    flexShrink: 0,
-    borderRadius: tokens.radius.sm,
-    border: `1px solid ${tokens.color.border.subtle}`,
-    backgroundColor: tokens.color.bg.base,
-    color: tokens.color.text.base,
-    cursor: "pointer",
-    fontSize: "16px",
-    lineHeight: 1,
-    selectors: {
-      "&:hover": {
-        borderColor: "#ff4d4f",
-        color: "#ff4d4f",
-      },
-    },
-  },
-]);
+});

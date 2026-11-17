@@ -2,6 +2,7 @@
 
 import { keyframes, style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { focusRing } from "@renderer/styles/global/surfaces.css";
 import { baseButton } from "../buttonBase.css";
 
 const pulse = keyframes({
@@ -16,11 +17,12 @@ const pulse = keyframes({
   },
 });
 
-const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
+const glowTransition = tokens.transition.glow;
 
 export const button = style([
   baseButton,
+  focusRing,
   {
     flexDirection: "row",
     whiteSpace: "nowrap",
@@ -36,7 +38,7 @@ export const button = style([
     backgroundColor: tokens.color.bg.base,
     color: tokens.color.text.base,
     boxShadow: tokens.shadow.raised.md,
-    transition: `background-color ${t}, border-color ${smoothGlow}, color ${t}`,
+    transition: `background-color ${t}, border-color ${glowTransition}, color ${t}`,
 
     "::before": {
       content: '""',
@@ -45,7 +47,7 @@ export const button = style([
       borderRadius: tokens.radius.full,
       boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
       opacity: 0,
-      transition: `opacity ${smoothGlow}`,
+      transition: `opacity ${glowTransition}`,
       pointerEvents: "none",
       willChange: "opacity",
     },
@@ -62,10 +64,6 @@ export const button = style([
       },
       "&[data-pressed]::before": {
         opacity: 1,
-      },
-      "&:focus-visible": {
-        outline: `2px solid ${tokens.color.accent.neonCyan}`,
-        outlineOffset: "2px",
       },
     },
   },

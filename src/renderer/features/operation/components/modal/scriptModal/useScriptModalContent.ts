@@ -1,95 +1,25 @@
 // src/renderer/features/operation/components/modal/scriptModal/useScriptModalContent.ts
 
 import { useCallback, useState } from "react";
-import type {
-  OperationViewItem,
-  JobResult,
-} from "@shared/types/operation/operationTypes";
-import { useAppStore } from "@renderer/store";
 import { operationService } from "@renderer/features/operation/service/operationService";
-import { SCRIPT_MODAL_MESSAGES } from "./scriptModalConstants";
+import {
+  getScriptExecutionState,
+  getScriptInfoMessage,
+  toScriptFileItems,
+  type InfoBoxMessage,
+  type ScriptExecutionState,
+  type ScriptFileItem,
+} from "@renderer/features/operation/utils/scriptModalUtils";
+import { useAppStore } from "@renderer/store";
+import type {
+  JobResult,
+  OperationViewItem,
+} from "@shared/types/operation/operationTypes";
 
-interface ScriptFileItem {
-  name: string;
-  path: string;
-}
-
-type ExecutionState = "idle" | "completed" | "needsAction" | "error";
-
-export interface InfoBoxMessage {
-  text: string;
-  type: "info" | "success" | "warning" | "error";
-}
-
-function getFilePath(file: File): string {
-  if ("path" in file && typeof file.path === "string") {
-    return file.path;
-  }
-
-  return window.electronAPI.getFilePath(file) || file.name;
-}
-
-function toScriptFileItems(files: File[]): ScriptFileItem[] {
-  return files
-    .map((file) => ({
-      name: file.name,
-      path: getFilePath(file),
-    }))
-    .filter(({ path }) => Boolean(path));
-}
+export type { InfoBoxMessage };
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function getExecutionState(result: JobResult): ExecutionState {
-  if (result.success === false || result.kind === "error") {
-    return "error";
-  }
-
-  if (result.kind === "needsAction") {
-    return "needsAction";
-  }
-
-  return "completed";
-}
-
-function getInfoMessage(
-  executionState: ExecutionState,
-  executionResult: JobResult | null,
-): InfoBoxMessage {
-  switch (executionState) {
-    case "error":
-      return {
-        text: SCRIPT_MODAL_MESSAGES.ERROR,
-        type: "error",
-      };
-
-    case "needsAction":
-      return {
-        text: SCRIPT_MODAL_MESSAGES.NEEDS_ACTION,
-        type: "warning",
-      };
-
-    case "completed":
-      if (executionResult?.kind === "difference") {
-        return {
-          text: SCRIPT_MODAL_MESSAGES.DIFFERENCE,
-          type: "error",
-        };
-      }
-
-      return {
-        text: SCRIPT_MODAL_MESSAGES.SUCCESS,
-        type: "success",
-      };
-
-    case "idle":
-      return {
-        text: SCRIPT_MODAL_MESSAGES.CONFIRM_IDLE,
-        type: "info",
-      };
-  }
 }
 
 export function useScriptModalContent(
@@ -97,9 +27,12 @@ export function useScriptModalContent(
   scriptKey: string,
 ) {
   const closeGlobalModal = useAppStore((state) => state.closeGlobalModal);
+  const currentMode = useAppStore((state) => state.currentMode);
+  const fetchTableData = useAppStore((state) => state.fetchTableData);
 
   const [selectedFiles, setSelectedFiles] = useState<ScriptFileItem[]>([]);
-  const [executionState, setExecutionState] = useState<ExecutionState>("idle");
+  const [executionState, setExecutionState] =
+    useState<ScriptExecutionState>("idle");
   const [executionResult, setExecutionResult] = useState<JobResult | null>(
     null,
   );
@@ -122,7 +55,7 @@ export function useScriptModalContent(
     Boolean(scriptKey) &&
     (!isFileSelectionRequired || selectedFiles.length > 0);
 
-  const infoMessage = getInfoMessage(executionState, executionResult);
+  const infoMessage = getScriptInfoMessage(executionState, executionResult);
 
   const handleFileSelect = useCallback((files: File[]) => {
     const items = toScriptFileItems(files);
@@ -162,10 +95,11 @@ export function useScriptModalContent(
         targetName,
         filePath: filePaths.length > 0 ? filePaths : undefined,
         ignoreDependencies: true,
+        onSuccess: () => fetchTableData(currentMode, true),
       });
 
       setExecutionResult(result);
-      setExecutionState(getExecutionState(result));
+      setExecutionState(getScriptExecutionState(result));
       setSelectedFiles([]);
     } catch (error) {
       const message = toErrorMessage(error);
@@ -186,6 +120,8 @@ export function useScriptModalContent(
     isFileSelectionRequired,
     selectedFiles,
     targetName,
+    fetchTableData,
+    currentMode,
   ]);
 
   return {

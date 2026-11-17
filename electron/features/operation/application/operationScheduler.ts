@@ -10,6 +10,7 @@ import {
   updateStatus,
   type StatusTarget,
 } from "@electron/features/operation/application/statusManager";
+import { notifyPollingCycleCompleted } from "@electron/features/operation/application/statusNotifier";
 import { executeScriptAndApplyStatus } from "@electron/features/operation/application/scriptExecutionService";
 import { executeSingleScriptJob } from "@electron/features/operation/runners/scriptRunner";
 import {
@@ -148,6 +149,7 @@ async function runPollingCycle(): Promise<void> {
         enqueueReadyTarget(target);
       }
     }
+    notifyPollingCycleCompleted();
   } catch (error) {
     console.error("[Scheduler] ポーリングエラー:", error);
   } finally {

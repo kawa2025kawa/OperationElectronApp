@@ -23,7 +23,7 @@ export interface OperationLink {
  * Operation Master Types
  * ========================= */
 
-export interface OperationMaster {
+interface BaseOperationMaster {
   kanriNo: string;
   workName: string;
   scheduledTime?: string;
@@ -51,35 +51,12 @@ export interface OperationMaster {
   link3Label?: string;
 }
 
-export interface IrregularMaster {
-  kanriNo: string;
-  workName: string;
-  scheduledTime?: string;
-  jobId?: string;
+export type OperationMaster = BaseOperationMaster;
+
+export interface IrregularMaster extends BaseOperationMaster {
   cycle?: string;
   cycle1?: string;
   cycle2?: string;
-  dependsOn?: string | string[] | null;
-
-  /** Manual ボタンの表示判定・起動先 */
-  manualUrl?: string;
-
-  /** AutoManual ボタンの表示判定・起動先 */
-  autoManualUrl?: string;
-  gmail?: boolean;
-  ScriptKeys?: OperationScriptKey[];
-  RdpKeys?: OperationRdpKey[];
-  links?: OperationLink[];
-
-  /** スプレッドシートのリンク先パス */
-  link1?: string;
-  link2?: string;
-  link3?: string;
-
-  /** スプレッドシートのリンクボタン用ラベル */
-  link1Label?: string;
-  link2Label?: string;
-  link3Label?: string;
 }
 
 export type TodayIrregularMaster = IrregularMaster;
@@ -92,6 +69,7 @@ export interface OperationScriptKey {
   executionTypes?: ScriptExecutionType[];
   requiresFileSelection?: boolean;
 }
+
 /** RDP接続先キー */
 export interface OperationRdpKey {
   key: string;

@@ -4,24 +4,24 @@ import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { baseButton } from "../buttonBase.css";
 
-const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
+const glowTransition = tokens.transition.glow;
 
 export const actionButton = style([
   baseButton,
   {
     position: "relative",
     fontWeight: tokens.font.weight.bold,
-    transition: `background-color ${t}, border-color ${smoothGlow}, color ${t}`,
+    transition: `background-color ${t}, border-color ${glowTransition}, color ${t}`,
 
     "::before": {
       content: '""',
       position: "absolute",
       inset: -1,
       borderRadius: "inherit",
-      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
+      boxShadow: tokens.shadow.glowRaised.md,
       opacity: 0,
-      transition: `opacity ${smoothGlow}`,
+      transition: `opacity ${glowTransition}`,
       pointerEvents: "none",
       willChange: "opacity",
     },
@@ -40,7 +40,7 @@ export const actionButton = style([
 export const variants = styleVariants({
   default: {
     padding: "1.2vmin 3vmin",
-    minWidth: "120px",
+    minWidth: tokens.size.badgeWidth,
     minHeight: "44px",
     borderRadius: tokens.radius.md,
     fontSize: tokens.font.fluid.sm,

@@ -3,22 +3,19 @@
 import { style } from "@vanilla-extract/css";
 
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
+
+import { brandGradientText } from "@renderer/styles/global/surfaces.css";
 
 const t = tokens.transition.normal;
 
-// ============================================================
-// Menu Button
-// ============================================================
-
 export const menuButton = style([
-  themeTransition,
+  brandGradientText,
   {
     position: "relative",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    height: "40px",
+    height: tokens.size.controlHeight,
     width: "100%",
     borderRadius: tokens.radius.full,
     border: `1px solid ${tokens.color.border.default}`,
@@ -29,14 +26,9 @@ export const menuButton = style([
     cursor: "pointer",
     backgroundColor: tokens.color.bg.base,
     boxShadow: tokens.shadow.raised.high,
-    backgroundImage: tokens.gradient.brand,
-    WebkitBackgroundClip: "text",
-    backgroundClip: "text",
-    WebkitTextFillColor: "transparent",
     outline: "none",
     transition: `border-color ${t}, box-shadow ${t}, opacity ${t}`,
 
-    // シアン光とインセット影を重ねる擬似要素レイヤー
     "::before": {
       content: '""',
       position: "absolute",
@@ -62,28 +54,44 @@ export const menuButton = style([
   },
 ]);
 
-// ============================================================
-// Dropdown Positioner
-// ============================================================
-
 export const menuDropdownPositioner = style({
-  zIndex: `calc(${tokens.zIndex.dropdown} + 1)`,
+  zIndex: tokens.zIndex.dropdown,
 });
 
-// ============================================================
-// Dropdown Content
-// ============================================================
+export const menuDropdownContent = style({
+  position: "relative",
+  zIndex: tokens.zIndex.base,
+  display: "flex",
+  flexDirection: "column",
+  width: "var(--anchor-width)",
+  boxSizing: "border-box",
+  minHeight: "200px",
+  maxHeight: "var(--available-height, 60vh)",
+  overflow: "hidden",
+  borderRadius: tokens.radius.lg,
 
-export const menuDropdownContent = style([
-  themeTransition,
+  border: `1px solid ${tokens.glass.contextMenu.border}`,
+  backgroundColor: tokens.glass.contextMenu.surface,
+  backdropFilter: `blur(${tokens.glass.contextMenu.blur}) saturate(${tokens.glass.contextMenu.saturation})`,
+  boxShadow: tokens.shadow.contextMenu,
+
+  opacity: 1,
+  transition: "opacity 180ms ease-out",
+
+  selectors: {
+    "&[data-starting-style], &[data-ending-style]": {
+      opacity: 0,
+    },
+  },
+});
+
+export const menuDropdownScroll = style([
   {
-    width: "var(--anchor-width)",
+    flex: 1,
+    minHeight: 0,
+    width: "100%",
     boxSizing: "border-box",
-    minHeight: "200px",
-    maxHeight: "var(--available-height, 60vh)",
     overflowY: "auto",
-    scrollbarWidth: "thin",
-    scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
     gridAutoRows: "minmax(80px, auto)",
@@ -91,93 +99,46 @@ export const menuDropdownContent = style([
     alignItems: "center",
     gap: tokens.space.xs,
     padding: tokens.space.sm,
-    borderRadius: tokens.radius.lg,
+  },
+]);
 
-    // Context Menu 共通 Glass トークン
-    border: `1px solid ${tokens.glass.contextMenu.border}`,
-    backgroundColor: tokens.glass.contextMenu.surface,
+export const menuItem = style({
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "72px",
+  height: "72px",
+  borderRadius: "50%",
+  boxSizing: "border-box",
+  padding: "2px",
+  border: "none",
+  backgroundColor: tokens.color.text.onAccent,
+  boxShadow: `${tokens.shadow.glow.white}, ${tokens.shadow.raised.low}`,
+  outline: "none",
+  cursor: "pointer",
+  transition: `box-shadow ${t}, background-color ${t}`,
 
-    backdropFilter: `blur(${tokens.glass.contextMenu.blur}) saturate(${tokens.glass.contextMenu.saturation})`,
-    WebkitBackdropFilter: `blur(${tokens.glass.contextMenu.blur}) saturate(${tokens.glass.contextMenu.saturation})`,
-
-    boxShadow: tokens.shadow.contextMenu,
-    opacity: 1,
-    transition: "opacity 180ms ease-out",
-
-    selectors: {
-      "&::-webkit-scrollbar": {
-        width: "4px",
-      },
-      "&::-webkit-scrollbar-track": {
-        backgroundColor: "transparent",
-      },
-      "&::-webkit-scrollbar-thumb": {
-        backgroundColor: tokens.color.accent.neonPink,
-        borderRadius: tokens.radius.full,
-      },
-      "&[data-starting-style]": {
-        opacity: 0,
-      },
-      "&[data-ending-style]": {
-        opacity: 0,
-      },
+  selectors: {
+    "&:hover, &[data-highlighted]": {
+      backgroundColor: "transparent",
+      backgroundImage: tokens.gradient.brand,
+      boxShadow: tokens.shadow.glowRaised.md,
     },
   },
-]);
+});
 
-// ============================================================
-// Dropdown Item (丸ボタン：通常時は白、ホバー時のみブランドグラデーション)
-// ============================================================
-
-export const menuItem = style([
-  themeTransition,
-  {
-    position: "relative",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-
-    width: "72px",
-    height: "72px",
-    borderRadius: "50%",
-    boxSizing: "border-box",
-
-    padding: "2px",
-    border: "none",
-    backgroundColor: tokens.color.text.onAccent,
-    backgroundImage: "none",
-    boxShadow: `${tokens.shadow.glow.white}, ${tokens.shadow.raised.low}`,
-
-    outline: "none",
-    cursor: "pointer",
-
-    transition: `box-shadow ${t}, background-color ${t}`,
-
-    selectors: {
-      "&:hover, &[data-highlighted]": {
-        backgroundColor: "transparent",
-        backgroundImage: tokens.gradient.brand,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.md}`,
-        outline: "none",
-      },
-    },
-  },
-]);
-
-export const menuItemInner = style([
-  themeTransition,
-  {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    height: "100%",
-    borderRadius: "50%",
-    boxSizing: "border-box",
-    padding: tokens.space.xs,
-    backgroundColor: tokens.color.bg.base,
-  },
-]);
+export const menuItemInner = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+  height: "100%",
+  borderRadius: "50%",
+  boxSizing: "border-box",
+  padding: tokens.space.xs,
+  backgroundColor: tokens.color.bg.base,
+});
 
 export const menuItemLabel = style({
   display: "inline-block",

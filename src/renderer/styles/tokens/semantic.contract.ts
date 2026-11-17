@@ -1,27 +1,6 @@
-import { createGlobalThemeContract } from "@vanilla-extract/css";
+// src/renderer/styles/tokens/semantic.contract.ts
 
-/**
- * ============================================================
- * Semantic Design Token Contract
- * ============================================================
- *
- * このファイルでは「何が存在するか」だけを定義する。
- *
- * 実際の値は theme.css.ts の Dark / Light Theme で定義する。
- *
- * 設計方針:
- *
- *   color    -> 色・意味
- *   glass    -> Glassmorphism
- *   gradient -> Gradient
- *   shadow   -> Neumorphism / Glow
- *   font     -> Typography
- *   space    -> Spacing
- *   radius   -> Border Radius
- *   transition -> Motion
- *   zIndex   -> Layer
- * ============================================================
- */
+import { createGlobalThemeContract } from "@vanilla-extract/css";
 
 export const tokens = createGlobalThemeContract(
   {
@@ -93,6 +72,19 @@ export const tokens = createGlobalThemeContract(
         scheduled: null,
         error: null,
       },
+
+      /** ステータス別背景ティント */
+      statusTint: {
+        success: null,
+        warning: null,
+        error: null,
+      },
+
+      /** カレンダー曜日・祝日カラー */
+      calendar: {
+        saturday: null,
+        holiday: null,
+      },
     },
 
     /* ==========================================================
@@ -100,44 +92,14 @@ export const tokens = createGlobalThemeContract(
      * ========================================================== */
 
     glass: {
-      /**
-       * 標準 Glass surface
-       */
       surface: null,
-
-      /**
-       * より透明度の高い Glass surface
-       */
       surfaceSubtle: null,
-
-      /**
-       * Glass の border
-       */
       border: null,
-
-      /**
-       * 強調された Glass border
-       */
       borderStrong: null,
-
-      /**
-       * 標準 blur
-       */
       blur: null,
-
-      /**
-       * 強い blur
-       */
       blurStrong: null,
-
-      /**
-       * 色の彩度
-       */
       saturation: null,
 
-      /**
-       * Context Menu 専用 Glass
-       */
       contextMenu: {
         surface: null,
         border: null,
@@ -159,39 +121,21 @@ export const tokens = createGlobalThemeContract(
      * ========================================================== */
 
     shadow: {
-      /**
-       * ハイライト・選択状態用のドロップシャドウ
-       */
       highlight: null,
-
-      /**
-       * Context Menu 専用シャドウ
-       */
       contextMenu: null,
 
-      /**
-       * Neumorphism:
-       * surface が浮いて見える
-       */
       raised: {
         low: null,
         md: null,
         high: null,
       },
 
-      /**
-       * Neumorphism:
-       * surface が押し込まれて見える
-       */
       pressed: {
         low: null,
         md: null,
         high: null,
       },
 
-      /**
-       * Accent / Status の glow
-       */
       glow: {
         brand: null,
         cyan: null,
@@ -205,6 +149,12 @@ export const tokens = createGlobalThemeContract(
         needsAction: null,
         ready: null,
         scheduled: null,
+      },
+
+      /** ホバー・アクティブ時の発光＋浮き上がり合成シャドウ */
+      glowRaised: {
+        md: null,
+        high: null,
       },
     },
 
@@ -250,6 +200,21 @@ export const tokens = createGlobalThemeContract(
     },
 
     /* ==========================================================
+     * Component Dimensions
+     * ========================================================== */
+
+    size: {
+      /** ボタン・タブバー等の標準コントロール高さ */
+      controlHeight: null,
+      /** テーブルの標準行・単層ヘッダー高さ */
+      tableRowHeight: null,
+      /** グループヘッダーを持つテーブルのヘッダー高さ */
+      tableHeaderGroupHeight: null,
+      /** ラベル・バッジ等の標準固定幅 */
+      badgeWidth: null,
+    },
+
+    /* ==========================================================
      * Radius
      * ========================================================== */
 
@@ -268,6 +233,8 @@ export const tokens = createGlobalThemeContract(
       fast: null,
       normal: null,
       ease: null,
+      /** ネオングロー発光・境界線ハイライト用トランジション */
+      glow: null,
     },
 
     /* ==========================================================

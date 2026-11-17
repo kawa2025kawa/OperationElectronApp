@@ -1,48 +1,27 @@
-﻿// src/renderer/features/operation/components/table/operationTable.css.ts
+// src/renderer/features/operation/components/table/operationTable.css.ts
 
 import { keyframes, style, styleVariants } from "@vanilla-extract/css";
 
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { themeTransition } from "@renderer/styles/tokens/theme.css";
+
+import { textEllipsis } from "@renderer/styles/global/surfaces.css";
 
 const transition = tokens.transition.normal;
 
 const commonTable = {
   width: "100%",
-  tableLayout: "fixed",
-  borderCollapse: "separate",
-} satisfies Parameters<typeof style>[0];
+  tableLayout: "fixed" as const,
+  borderCollapse: "separate" as const,
+};
 
 const rowEdgeRadius = {
-  "tr > &:first-child": {
+  "&:first-child": {
     borderRadius: `${tokens.radius.md} 0 0 ${tokens.radius.md}`,
   },
-  "tr > &:last-child": {
+  "&:last-child": {
     borderRadius: `0 ${tokens.radius.md} ${tokens.radius.md} 0`,
   },
 };
-
-const scrollbar = {
-  scrollbarWidth: "thin",
-  scrollbarColor: `${tokens.color.accent.neonPink} transparent`,
-  selectors: {
-    "&::-webkit-scrollbar": {
-      width: "4px",
-      height: "4px",
-      display: "block",
-    },
-    "&::-webkit-scrollbar-track": {
-      backgroundColor: "transparent",
-    },
-    "&::-webkit-scrollbar-thumb": {
-      backgroundColor: tokens.color.accent.neonPink,
-      borderRadius: tokens.radius.full,
-    },
-    "&::-webkit-scrollbar-thumb:hover": {
-      backgroundColor: tokens.color.accent.neonPink,
-    },
-  },
-} satisfies Parameters<typeof style>[0];
 
 export const container = style({
   display: "flex",
@@ -66,18 +45,19 @@ export const headerContainer = style({
   boxShadow: tokens.shadow.raised.high,
 });
 
-export const scrollContainer = style({
-  position: "relative",
-  zIndex: 0,
-  flex: 1,
-  minHeight: 0,
-  width: "100%",
-  overflow: "auto",
-  paddingInline: tokens.space.md,
-  scrollbarGutter: "stable",
-  isolation: "isolate",
-  ...scrollbar,
-});
+export const scrollContainer = style([
+  {
+    position: "relative",
+    zIndex: 0,
+    flex: 1,
+    minHeight: 0,
+    width: "100%",
+    overflow: "auto",
+    paddingInline: tokens.space.md,
+    scrollbarGutter: "stable",
+    isolation: "isolate",
+  },
+]);
 
 export const table = style({
   ...commonTable,
@@ -98,27 +78,24 @@ export const headerRow = style({
   boxShadow: tokens.shadow.raised.high,
 });
 
-export const tableRowBase = style([
-  themeTransition,
-  {
-    height: "56px",
-    backgroundColor: tokens.color.bg.base,
-    color: tokens.color.text.base,
-    boxShadow: tokens.shadow.raised.low,
-    outline: "none",
-    transition: `color ${tokens.transition.fast}, box-shadow ${transition}`,
+export const tableRowBase = style({
+  height: tokens.size.tableRowHeight,
+  backgroundColor: tokens.color.bg.base,
+  color: tokens.color.text.base,
+  boxShadow: tokens.shadow.raised.low,
+  outline: "none",
+  transition: `color ${tokens.transition.fast}, box-shadow ${transition}`,
 
-    selectors: {
-      "&:focus, &:focus-visible": {
-        outline: "none",
-      },
-      "&[data-context-open='true']": {
-        color: tokens.color.text.hover,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
-      },
+  selectors: {
+    "&:focus, &:focus-visible": {
+      outline: "none",
+    },
+    "&[data-context-open='true']": {
+      color: tokens.color.text.hover,
+      boxShadow: tokens.shadow.glowRaised.high,
     },
   },
-]);
+});
 
 export const tableRowStates = styleVariants({
   idle: {},
@@ -128,7 +105,7 @@ export const tableRowStates = styleVariants({
     selectors: {
       "&:hover": {
         color: tokens.color.text.hover,
-        boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.raised.high}`,
+        boxShadow: tokens.shadow.glowRaised.high,
       },
       "&:active": {
         boxShadow: tokens.shadow.pressed.low,
@@ -148,9 +125,9 @@ export const tableRowStates = styleVariants({
 });
 
 export const thBase = style([
-  themeTransition,
+  textEllipsis,
   {
-    height: "56px",
+    height: tokens.size.tableRowHeight,
     paddingInline: tokens.space.lg,
     backgroundColor: tokens.color.bg.base,
     borderBottom: `1px solid ${tokens.color.border.subtle}`,
@@ -159,9 +136,6 @@ export const thBase = style([
     fontWeight: tokens.font.weight.bold,
     textTransform: "uppercase",
     letterSpacing: "0.05em",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
     selectors: rowEdgeRadius,
   },
 ]);
@@ -182,25 +156,25 @@ export const alignVariants = styleVariants({
   right: { textAlign: "right" },
 });
 
-export const cellText = style({
-  display: "inline-block",
-  maxWidth: "100%",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  verticalAlign: "middle",
-  transition: `color ${transition}, filter ${transition}`,
+export const cellText = style([
+  textEllipsis,
+  {
+    display: "inline-block",
+    maxWidth: "100%",
+    verticalAlign: "middle",
+    transition: `color ${transition}, filter ${transition}`,
 
-  selectors: {
-    [`${tableRowStates.selected} &`]: {
-      backgroundImage: tokens.gradient.brand,
-      backgroundClip: "text",
-      WebkitBackgroundClip: "text",
-      color: "transparent",
-      WebkitTextFillColor: "transparent",
+    selectors: {
+      [`${tableRowStates.selected} &`]: {
+        backgroundImage: tokens.gradient.brand,
+        backgroundClip: "text",
+        WebkitBackgroundClip: "text",
+        color: "transparent",
+        WebkitTextFillColor: "transparent",
+      },
     },
   },
-});
+]);
 
 export const statusCellWrapper = style({
   display: "flex",
@@ -223,14 +197,6 @@ export const statusBadgeAnchor = style({
       filter: "drop-shadow(0 0 8px rgba(0, 220, 255, 0.85))",
     },
   },
-});
-
-export const modeContent = style({
-  display: "flex",
-  flexDirection: "column",
-  width: "100%",
-  height: "100%",
-  minHeight: 0,
 });
 
 export const emptyCell = style({
@@ -333,14 +299,14 @@ export const laserCorePath = style({
 
 export const laserHighlightPath = style({
   fill: "none",
-  stroke: "#ffffff",
+  stroke: tokens.color.accent.neonWhite,
   strokeWidth: 0.9,
   strokeLinecap: "round",
   opacity: 0.85,
 });
 
 export const laserNode = style({
-  fill: "#ffffff",
+  fill: tokens.color.accent.neonWhite,
   stroke: tokens.color.accent.neonCyan,
   strokeWidth: 2,
   filter: "drop-shadow(0 0 6px rgba(0, 220, 255, 1))",

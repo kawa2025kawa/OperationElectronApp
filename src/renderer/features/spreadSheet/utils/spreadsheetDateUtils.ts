@@ -95,17 +95,10 @@ export function formatDateWithDay(date: Date) {
   const holiday = isJapaneseHoliday(date);
   const tone: DayTone =
     dayNum === 0 || holiday ? "holiday" : dayNum === 6 ? "saturday" : "weekday";
-  const dayColor =
-    tone === "holiday"
-      ? "#ff4d4f"
-      : tone === "saturday"
-        ? "#3b9eff"
-        : "inherit";
 
   return {
     text: format(date, "MM/dd"),
     dayText: `(${format(date, "EEE", { locale: ja })})`,
     tone,
-    dayStyle: { color: dayColor },
   };
 }

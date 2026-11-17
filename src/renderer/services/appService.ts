@@ -9,6 +9,7 @@ import {
   INIT_STATUS_GROUPS,
 } from "@shared/types/initializationTypes";
 import { VIEW_MODES } from "@shared/types/registry/viewDefinition";
+import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 // 運用データおよび不定期運用データの読み込みと初期化を行う。
 async function loadOperationData(): Promise<void> {
@@ -24,7 +25,21 @@ async function loadOperationData(): Promise<void> {
     const activeFlags = await operationService.getActiveFlags();
     store.applyCenterFlags(activeFlags);
 
-    if (!(await store.fetchMasterData())) {
+    const masterData = await store.fetchMasterData();
+
+    if (!masterData) {
+      markOperationDataFailed();
+      return;
+    }
+
+    const operationMasterFailed = Boolean(
+      masterData.errors[SHEETS.OPERATION.sheetName],
+    );
+    const irregularMasterFailed = Boolean(
+      masterData.errors[SHEETS.IRREGULAR.sheetName],
+    );
+
+    if (operationMasterFailed || irregularMasterFailed) {
       markOperationDataFailed();
       return;
     }

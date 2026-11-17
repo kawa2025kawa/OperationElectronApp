@@ -5,18 +5,20 @@ import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 const t = tokens.transition.normal;
 
-export const formContainer = style({
-  display: "flex",
-  flex: 1,
-  flexDirection: "column",
-  gap: tokens.space.md,
-  width: "100%",
-  minHeight: 0,
-  boxSizing: "border-box",
-  overflowY: "auto",
-  paddingRight: tokens.space.xs,
-  isolation: "isolate",
-});
+export const formContainer = style([
+  {
+    display: "flex",
+    flex: 1,
+    flexDirection: "column",
+    gap: tokens.space.md,
+    width: "100%",
+    minHeight: 0,
+    boxSizing: "border-box",
+    overflowY: "auto",
+    paddingRight: tokens.space.xs,
+    isolation: "isolate",
+  },
+]);
 
 export const fieldGroup = style({
   display: "flex",
@@ -109,17 +111,19 @@ export const selectPositioner = style({
   zIndex: `calc(${tokens.zIndex.modal} + 10)`,
 });
 
-export const selectPopup = style({
-  width: "100%",
-  maxHeight: "var(--available-height, 50vh)",
-  overflowY: "auto",
-  padding: tokens.space.xs,
-  borderRadius: tokens.radius.md,
-  backgroundColor: tokens.color.bg.base,
-  border: `1px solid ${tokens.color.border.default}`,
-  boxShadow: tokens.shadow.raised.high,
-  outline: "none",
-});
+export const selectPopup = style([
+  {
+    width: "100%",
+    maxHeight: "var(--available-height, 50vh)",
+    overflowY: "auto",
+    padding: tokens.space.xs,
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.color.bg.base,
+    border: `1px solid ${tokens.color.border.default}`,
+    boxShadow: tokens.shadow.raised.high,
+    outline: "none",
+  },
+]);
 
 export const selectList = style({
   display: "flex",

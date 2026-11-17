@@ -1,9 +1,13 @@
 // electron/features/masterData/application/spreadsheetMasterDataManager.ts
 
 import {
-  SPREADSHEET_MASTER_DATA_KEYS,
+  SPREADSHEET_MASTER_DATA_ARRAY_KEYS,
   type SpreadsheetMasterData,
 } from "../types/internalSpreadsheetMasterDataTypes";
+import {
+  SHEETS,
+  type SheetId,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 import {
   deleteMasterDataFileCache,
   loadMasterDataFileCache,
@@ -16,7 +20,7 @@ import { createMasterDataCacheService } from "./masterDataCacheService";
 
 const SPREADSHEET_MASTER_CACHE_CONFIG = {
   fileName: "spreadsheet-master-data.json",
-  version: 3,
+  version: 4,
   logPrefix: "[SpreadsheetMasterDataManager]",
 } as const;
 
@@ -29,7 +33,23 @@ function isSpreadsheetMasterData(
 
   const data = value as Record<string, unknown>;
 
-  return SPREADSHEET_MASTER_DATA_KEYS.every((key) => Array.isArray(data[key]));
+  const hasValidArrays = SPREADSHEET_MASTER_DATA_ARRAY_KEYS.every((key) =>
+    Array.isArray(data[key]),
+  );
+
+  if (!hasValidArrays) {
+    return false;
+  }
+
+  if (
+    typeof data.errors !== "object" ||
+    data.errors === null ||
+    Array.isArray(data.errors)
+  ) {
+    return false;
+  }
+
+  return Object.values(data.errors).every((error) => typeof error === "string");
 }
 
 // 取得データ・キャッシュデータを正規化し、当日対象を生成する。
@@ -38,7 +58,9 @@ function normalizeData(data: SpreadsheetMasterData): SpreadsheetMasterData {
 
   return {
     ...normalized,
-    todayIrregulars: buildTodayIrregulars(normalized.irregulars),
+    todayIrregulars: normalized.errors[SHEETS.IRREGULAR.sheetName]
+      ? []
+      : buildTodayIrregulars(normalized.irregulars),
   };
 }
 
@@ -62,6 +84,7 @@ const spreadsheetMasterDataCache =
     deleteCache: () =>
       deleteMasterDataFileCache(SPREADSHEET_MASTER_CACHE_CONFIG.fileName),
     loadFreshData: async () => normalizeData(await loadSpreadsheetMasterData()),
+    shouldCache: (data) => Object.keys(data.errors).length === 0,
     logPrefix: SPREADSHEET_MASTER_CACHE_CONFIG.logPrefix,
   });
 
@@ -71,4 +94,18 @@ export async function getSpreadsheetMasterData(): Promise<SpreadsheetMasterData>
 
 export async function clearSpreadsheetMasterDataCache(): Promise<void> {
   await spreadsheetMasterDataCache.clear();
+}
+
+/** 指定シートの取得失敗を呼び出し元へ通知する。 */
+export function assertSpreadsheetSheetsLoaded(
+  data: SpreadsheetMasterData,
+  sheetIds: readonly SheetId[],
+): void {
+  const failures = sheetIds
+    .map((sheetId) => data.errors[sheetId])
+    .filter((error): error is string => Boolean(error));
+
+  if (failures.length > 0) {
+    throw new Error(failures.join("\n"));
+  }
 }

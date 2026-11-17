@@ -4,8 +4,8 @@ import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import { baseButton } from "../buttonBase.css";
 
-const smoothGlow = "0.8s cubic-bezier(0.25, 0.8, 0.25, 1)";
 const t = tokens.transition.normal;
+const glowTransition = tokens.transition.glow;
 
 export const button = style([
   baseButton,
@@ -22,7 +22,7 @@ export const button = style([
     color: tokens.color.text.base,
     border: `1px solid ${tokens.color.border.default}`,
     boxShadow: tokens.shadow.raised.md,
-    transition: `background-color ${t}, border-color ${smoothGlow}, color ${t}`,
+    transition: `background-color ${t}, border-color ${glowTransition}, color ${t}`,
 
     "::before": {
       content: '""',
@@ -31,7 +31,7 @@ export const button = style([
       borderRadius: tokens.radius.full,
       boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
       opacity: 0,
-      transition: `opacity ${smoothGlow}`,
+      transition: `opacity ${glowTransition}`,
       pointerEvents: "none",
       willChange: "opacity",
     },
@@ -50,7 +50,7 @@ export const button = style([
         minWidth: "auto",
         padding: `${tokens.space.sm} ${tokens.space.lg}`,
         fontSize: tokens.font.size.sm,
-        height: "40px",
+        height: tokens.size.controlHeight,
       },
     },
   },

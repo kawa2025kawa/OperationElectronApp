@@ -1,10 +1,12 @@
 ﻿// electron/features/operation/application/statusLifecycleService.ts
 
 import {
+  assertSpreadsheetSheetsLoaded,
   clearSpreadsheetMasterDataCache,
   getSpreadsheetMasterData,
 } from "@electron/features/masterData/application/spreadsheetMasterDataManager";
 import type { SpreadsheetMasterData } from "@electron/features/masterData/types/internalSpreadsheetMasterDataTypes";
+import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 import {
   createScheduledStatus,
   isRunningStatus,
@@ -155,8 +157,13 @@ function saveStatusesImmediately(): void {
 
 export async function registerOperationTargets(): Promise<void> {
   const masterData = await getSpreadsheetMasterData();
-  const targetList = createOperationTargetList(masterData);
 
+  assertSpreadsheetSheetsLoaded(masterData, [
+    SHEETS.OPERATION.sheetName,
+    SHEETS.IRREGULAR.sheetName,
+  ]);
+
+  const targetList = createOperationTargetList(masterData);
   registerTargets(targetList, masterData);
 }
 
@@ -166,6 +173,12 @@ export async function resetOperationStatuses(): Promise<
   await clearSpreadsheetMasterDataCache();
 
   const masterData = await getSpreadsheetMasterData();
+
+  assertSpreadsheetSheetsLoaded(masterData, [
+    SHEETS.OPERATION.sheetName,
+    SHEETS.IRREGULAR.sheetName,
+  ]);
+
   const targetList = createOperationTargetList(masterData);
 
   // 既存ステータスを削除する前に依存関係を検証する。

@@ -54,7 +54,7 @@ export function SpreadSheetTable<TData extends RowData>({
     const body = containerRef.current;
 
     if (header && body) header.scrollLeft = body.scrollLeft;
-  });
+  }, [containerRef, rows, columns]);
 
   if (tableRows.length === 0) return <EmptyState />;
 

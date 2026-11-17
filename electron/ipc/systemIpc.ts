@@ -10,7 +10,7 @@ import {
   openExternalOrPath,
   readUpdateInfo,
 } from "@electron/features/system/systemService";
-import { IPC_CHANNELS } from "@shared/types/constants/ipcChannelsTypes";
+import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 import { registerIpcHandler } from "./ipcHelper";
 
 // アプリ基本操作（バージョン取得・ウィンドウ表示・終了・マニュアル・ファイル選択等）のIPCハンドラーを登録する。

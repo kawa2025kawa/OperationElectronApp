@@ -1,19 +1,13 @@
 // src/renderer/components/ui/toast/PollingToast.tsx
 
 import { memo } from "react";
+import { createPortal } from "react-dom";
 import { useShallow } from "zustand/react/shallow";
 
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-import { usePollingToastStore, type ToastType } from "./pollingToastStore";
+import { usePollingToastStore } from "./pollingToastStore";
 
 import * as styles from "./pollingToast.css";
-
-const ICONS: Record<ToastType, string> = {
-  success: "✓",
-  error: "✕",
-  warning: "!",
-  info: "i",
-};
 
 export const PollingToast = memo(() => {
   const { toasts, removeToast, clearAllToasts } = usePollingToastStore(
@@ -28,7 +22,7 @@ export const PollingToast = memo(() => {
     return null;
   }
 
-  return (
+  return createPortal(
     <section className={styles.panel} aria-label="System Notifications">
       <header className={styles.header}>
         <span className={styles.title}>System Notifications</span>
@@ -46,6 +40,8 @@ export const PollingToast = memo(() => {
             key={toast.id}
             className={`${styles.item} ${styles.tone[toast.type]}`}
           >
+            <span className={styles.message}>{toast.message}</span>
+
             <button
               type="button"
               className={styles.closeButton}
@@ -54,15 +50,12 @@ export const PollingToast = memo(() => {
             >
               ✕
             </button>
-
-            <span className={styles.icon} aria-hidden="true">
-              {ICONS[toast.type]}
-            </span>
-
-            <span className={styles.message}>{toast.message}</span>
           </article>
         ))}
       </div>
-    </section>
+    </section>,
+    document.body,
   );
 });
+
+PollingToast.displayName = "PollingToast";

@@ -3,9 +3,9 @@
 import { create } from "zustand";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 
-export type ToastType = "info" | "success" | "error" | "warning";
+export type ToastType = "error" | "warning";
 
-interface ToastMessage {
+export interface ToastMessage {
   id: string;
   message: string;
   type: ToastType;
@@ -28,15 +28,13 @@ interface PollingToastState {
   resetToastState: () => void;
 }
 
-const AUTO_CLOSE_DELAY_MS = 10_000;
-
 export const usePollingToastStore = create<PollingToastState>()((set, get) => ({
   toasts: [],
   prevStatusMap: new Map<string, JobStatus>(),
   pollingCycle: 0,
 
   addToast: (message, type) => {
-    const id = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
     set((state) => ({
       toasts: [
@@ -49,16 +47,6 @@ export const usePollingToastStore = create<PollingToastState>()((set, get) => ({
         },
       ],
     }));
-
-    if (type === "error") {
-      return;
-    }
-
-    window.setTimeout(() => {
-      set((state) => ({
-        toasts: state.toasts.filter((toast) => toast.id !== id),
-      }));
-    }, AUTO_CLOSE_DELAY_MS);
   },
 
   removeToast: (id) => {
@@ -71,7 +59,7 @@ export const usePollingToastStore = create<PollingToastState>()((set, get) => ({
     set({ toasts: [] });
   },
 
-  getPrevStatus: (kanriNo): JobStatus | undefined => {
+  getPrevStatus: (kanriNo) => {
     return get().prevStatusMap.get(kanriNo);
   },
 

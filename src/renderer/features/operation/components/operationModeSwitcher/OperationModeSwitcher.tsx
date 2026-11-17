@@ -19,7 +19,7 @@ export const OperationModeSwitcher = memo(function OperationModeSwitcher({
   onModeChange,
 }: OperationModeSwitcherProps) {
   const [optimisticMode, setOptimisticMode] = useState<ViewMode>(currentMode);
-  const rafIdRef = useRef<number | null>(null);
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setOptimisticMode(currentMode);
@@ -27,8 +27,8 @@ export const OperationModeSwitcher = memo(function OperationModeSwitcher({
 
   useEffect(() => {
     return () => {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
       }
     };
   }, []);
@@ -46,18 +46,18 @@ export const OperationModeSwitcher = memo(function OperationModeSwitcher({
     (mode: ViewMode): void => {
       if (mode === optimisticMode) return;
 
+      // スライダーのCSSアニメーションを即座に発火させる
       setOptimisticMode(mode);
 
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
       }
 
-      rafIdRef.current = requestAnimationFrame(() => {
-        rafIdRef.current = requestAnimationFrame(() => {
-          rafIdRef.current = null;
-          onModeChange(mode);
-        });
-      });
+      // ブラウザがスライダーのtransformペイントを開始した後にテーブル切替を発火
+      timerRef.current = window.setTimeout(() => {
+        timerRef.current = null;
+        onModeChange(mode);
+      }, 16);
     },
     [optimisticMode, onModeChange],
   );
