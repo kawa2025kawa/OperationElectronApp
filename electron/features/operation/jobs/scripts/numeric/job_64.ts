@@ -1,17 +1,21 @@
 // electron/features/operation/jobs/scripts/numeric/job_64.ts
 
-// 戻り値を JobResult に統一して、要対応判定が scriptRunner.ts で失われないようにする。
-
 import fs from "fs-extra";
 import path from "node:path";
 import { format } from "date-fns";
 import iconv from "iconv-lite";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import {
+  listFilesInDir,
+  readEncodedLines,
+  readEncodedText,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
   baseDir: "\\\\172.25.101.51\\if\\LOG\\DCMMD",
-  //baseDir: "C:\\Users\\C3088091\\Desktop\\test",
   systemId: "C1088241",
   encoding: "Shift_JIS",
   pluEncoding: "EUC-JP",
@@ -87,11 +91,11 @@ function isOutputFile(fileName: string): boolean {
 }
 
 async function getInputFilePaths(targetDir: string): Promise<string[]> {
-  const entries = await fs.readdir(targetDir, { withFileTypes: true });
+  const fileNames = await listFilesInDir(targetDir);
 
-  return entries
-    .filter((entry) => entry.isFile() && !isOutputFile(entry.name))
-    .map((entry) => path.join(targetDir, entry.name));
+  return fileNames
+    .filter((name) => !isOutputFile(name))
+    .map((name) => path.join(targetDir, name));
 }
 
 async function createOutputTarget(
@@ -147,9 +151,7 @@ async function processPluFile(
   filePath: string,
   context: JobContext,
 ): Promise<void> {
-  const buffer = await fs.readFile(filePath);
-  const text = iconv.decode(buffer, CONFIG.pluEncoding);
-
+  const text = await readEncodedText(filePath, CONFIG.pluEncoding);
   context.result.pluNg = text.length !== 12;
 }
 
@@ -179,14 +181,11 @@ async function processTextFile(
   context: JobContext,
   outputTargets: OutputTarget[],
 ): Promise<ProcessedFileResult> {
-  const buffer = await fs.readFile(filePath);
-  const text = iconv.decode(buffer, CONFIG.encoding);
+  const lines = await readEncodedLines(filePath, CONFIG.encoding);
   let processed = false;
   let lastOutputType: OutputType | null = null;
 
-  for (const line of text.split(/\r?\n/)) {
-    if (!line.trim()) continue;
-
+  for (const line of lines) {
     const columns = line.split(",");
     if (columns.length < 6) continue;
 
@@ -308,15 +307,7 @@ async function executeJob(
 ): Promise<JobResult> {
   logger.log(`対象フォルダ: ${context.targetDir}`);
 
-  if (!(await fs.pathExists(context.targetDir))) {
-    return createNeedsActionResult(
-      logger,
-      `本日分のDCMMDフォルダが存在しません: ${context.targetDir}`,
-    );
-  }
-
-  const stats = await fs.stat(context.targetDir);
-  if (!stats.isDirectory()) {
+  if (!(await directoryExists(context.targetDir))) {
     return createNeedsActionResult(
       logger,
       `本日分のDCMMDフォルダが存在しません: ${context.targetDir}`,
@@ -357,13 +348,8 @@ async function executeJob(
 }
 
 export async function runJob64(): Promise<JobResult> {
-  const logger = new JobLogger();
-  const context = createJobContext(new Date());
-
-  try {
-    return await executeJob(logger, context);
-  } catch (error: unknown) {
-    const detail = error instanceof Error ? error.message : String(error);
-    throw logger.fail(`システムエラーが発生しました: ${detail}`);
-  }
+  return runJobWithLogger("システムエラーが発生しました", async (logger) => {
+    const context = createJobContext(new Date());
+    return executeJob(logger, context);
+  });
 }

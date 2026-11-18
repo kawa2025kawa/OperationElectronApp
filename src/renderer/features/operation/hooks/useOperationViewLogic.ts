@@ -1,12 +1,15 @@
 // src/renderer/features/operation/hooks/useOperationViewLogic.ts
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useTransition } from "react";
 import { useShallow } from "zustand/shallow";
 
 import { useAppStore } from "@renderer/store";
-import { JOB_STATUS } from "@shared/types/operation/operationTypes";
-
-import type { OperationViewItem } from "@shared/types/operation/operationTypes";
+import {
+  JOB_STATUS,
+  type OperationViewItem,
+} from "@shared/types/operation/operationTypes";
+import type { ViewMode } from "@shared/types/registry/viewDefinition";
+import { createInfoRows } from "../utils/operationDisplayUtils";
 
 export function useOperationViewLogic(rowsInput?: OperationViewItem[]) {
   const {
@@ -26,6 +29,8 @@ export function useOperationViewLogic(rowsInput?: OperationViewItem[]) {
       tableRowsByMode: state.tableRowsByMode,
     })),
   );
+
+  const [, startTransition] = useTransition();
 
   const rows = useMemo(() => {
     if (rowsInput) {
@@ -50,11 +55,25 @@ export function useOperationViewLogic(rowsInput?: OperationViewItem[]) {
 
   const status = selectedItem?.status ?? JOB_STATUS.SCHEDULED;
 
+  const infoRows = useMemo(
+    () => createInfoRows(currentMode, selectedItem, status),
+    [currentMode, selectedItem, status],
+  );
+
+  const handleModeChange = useCallback(
+    (mode: ViewMode): void => {
+      startTransition(() => {
+        setMode(mode);
+      });
+    },
+    [setMode],
+  );
+
   return {
     currentMode,
     selectedId,
     selectedItem,
-    status,
-    setMode,
+    infoRows,
+    handleModeChange,
   };
 }

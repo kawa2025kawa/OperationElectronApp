@@ -143,6 +143,7 @@ async function runPollingCycle(): Promise<void> {
   try {
     const targets = getRegisteredTargets();
     if (targets.length > 0) {
+      recalculateAllStatuses();
       await syncStatuses(targets);
       recalculateAllStatuses();
       for (const target of targets) {

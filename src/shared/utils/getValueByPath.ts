@@ -19,11 +19,11 @@ function getPathKeys(path: string): string[] {
   return keys;
 }
 
-export const getValueByPath = (
-  obj: object | null | undefined,
+export const getRawValueByPath = (
+  obj: unknown,
   path: string | undefined,
-): string => {
-  if (!obj || !path) return EMPTY_VALUE_FALLBACK;
+): unknown => {
+  if (!isObject(obj) || !path) return undefined;
 
   const keys = getPathKeys(path);
   let current: unknown = obj;
@@ -32,9 +32,18 @@ export const getValueByPath = (
     if (isObject(current)) {
       current = current[key];
     } else {
-      return EMPTY_VALUE_FALLBACK;
+      return undefined;
     }
   }
+
+  return current;
+};
+
+export const getValueByPath = (
+  obj: object | null | undefined,
+  path: string | undefined,
+): string => {
+  const current = getRawValueByPath(obj, path);
 
   return current !== null && current !== undefined && current !== ""
     ? String(current)

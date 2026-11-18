@@ -1,8 +1,11 @@
-﻿// electron/features/operation/jobs/scripts/eseries/job_e4.ts
+// electron/features/operation/jobs/scripts/eseries/job_e4.ts
 
-import fs from "fs-extra";
-import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  checkFileUpdatedToday,
+  runJobWithLogger,
+  type CheckedFileStatus,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const CONFIG = {
   targetFiles: [
@@ -11,86 +14,30 @@ const CONFIG = {
   ],
 } as const;
 
-interface CheckedFileE4 {
-  filePath: string;
-  isToday: boolean;
-}
-
 interface JobE4ResultData {
-  checkedFiles: CheckedFileE4[];
+  checkedFiles: CheckedFileStatus[];
   missingFiles: string[];
 }
 
 /**
  * 2つの ORDERBOOK.pdf が本日更新されているか確認する。
- *
- * 業務上の要対応:
- * - ファイルが存在しない
- * - ファイルの更新日が本日ではない
- *
- * システムエラー:
- * - ファイルへのアクセス失敗
- * - ファイルステータス取得失敗
  */
 export async function runJobE4(): Promise<string> {
-  const logger = new JobLogger();
-
-  try {
+  return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
     const result = await checkTargetFiles();
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-
-    throw logger.fail(`ファイル処理に失敗しました${detail}`);
-  }
+  });
 }
 
-/**
- * 対象ファイルの更新日時が本日か確認する。
- */
 async function checkTargetFiles(): Promise<JobE4ResultData> {
-  const today = format(new Date(), "yyyy-MM-dd");
+  const now = new Date();
+  const checkedFiles = await Promise.all(
+    CONFIG.targetFiles.map((filePath) => checkFileUpdatedToday(filePath, now)),
+  );
 
-  const checkedFiles: CheckedFileE4[] = [];
-  const missingFiles: string[] = [];
-
-  for (const filePath of CONFIG.targetFiles) {
-    try {
-      const { mtime } = await fs.stat(filePath);
-
-      const isToday = format(mtime, "yyyy-MM-dd") === today;
-
-      checkedFiles.push({
-        filePath,
-        isToday,
-      });
-
-      if (!isToday) {
-        missingFiles.push(filePath);
-      }
-    } catch (error: unknown) {
-      if (
-        error instanceof Error &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ) {
-        checkedFiles.push({
-          filePath,
-          isToday: false,
-        });
-
-        missingFiles.push(filePath);
-        continue;
-      }
-
-      throw error;
-    }
-  }
+  const missingFiles = checkedFiles
+    .filter((file) => !file.isToday)
+    .map((file) => file.filePath);
 
   return {
     checkedFiles,
@@ -98,9 +45,6 @@ async function checkTargetFiles(): Promise<JobE4ResultData> {
   };
 }
 
-/**
- * 確認結果をログに出力し、最終ステータスを判定する。
- */
 function writeResultLog(logger: JobLogger, result: JobE4ResultData): string {
   logger.section("対象ファイル");
 

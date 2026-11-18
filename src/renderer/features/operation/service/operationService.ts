@@ -10,14 +10,12 @@ import type {
   OperationStatusState,
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
-import type {
-  StatusSummary,
-  SummaryDetailRow,
-} from "@shared/types/statusSummary/statusSummaryTypes";
+import type { StatusSummary } from "@shared/types/statusSummary/statusSummaryTypes";
 import { normalizeKanriNo } from "@shared/utils/statusUtils";
 import { rdpIpcService } from "@renderer/services/rdpIpcService";
 import { systemIpcService } from "@renderer/services/systemIpcService";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
+import { toErrorMessage } from "@renderer/utils/errorUtils";
 
 export interface ExecuteScriptParams {
   kanriNo: string;
@@ -29,6 +27,7 @@ export interface ExecuteScriptParams {
 }
 
 export interface ExecuteJcJobOptions {
+  jobId?: string;
   onSuccess?: () => void | Promise<void>;
 }
 
@@ -38,6 +37,8 @@ export interface UpdateJobStatusParams {
   comment?: string;
 }
 
+const MANUAL_DECISION_JOB_IDS = new Set<string>(["ZCM8010"]);
+
 /** ジョブ実行時のエラーをトースト通知し、エラーを再送出する */
 async function withJobErrorToast<T>(
   errorPrefix: string,
@@ -46,8 +47,7 @@ async function withJobErrorToast<T>(
   try {
     return await execute();
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    toast.error(`${errorPrefix}: ${message}`);
+    toast.error(`${errorPrefix}: ${toErrorMessage(error)}`);
     throw error;
   }
 }
@@ -96,12 +96,6 @@ export const operationService = {
   getStatusSummary: (): Promise<StatusSummary> =>
     window.electronAPI.invoke(IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY),
 
-  /** フィルター条件別のサマリー詳細一覧を取得する */
-  getSummaryDetails: (filterKey: string): Promise<SummaryDetailRow[]> =>
-    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.GET_SUMMARY_DETAILS, {
-      filterKey,
-    }),
-
   /** JSONマスターから作業ターゲットを登録する */
   registerTargets: (): Promise<void> =>
     window.electronAPI.invoke(IPC_CHANNELS.OPERATION.REGISTER_TARGETS),
@@ -140,8 +134,10 @@ export const operationService = {
     options?: ExecuteJcJobOptions,
   ): Promise<void> => {
     const kanriNo = normalizeKanriNo(kanriNoInput);
+    const normalizedJobId = options?.jobId?.trim().toUpperCase();
+    const targetLabel = options?.jobId?.trim() || kanriNo;
 
-    await runJobWithGlobalProcessing("JC 実行中...", kanriNo, () =>
+    await runJobWithGlobalProcessing("JC 実行中...", targetLabel, () =>
       withJobErrorToast("JC 実行エラー", async () => {
         const result = await window.electronAPI.invoke(
           IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS,
@@ -154,7 +150,13 @@ export const operationService = {
 
         await options?.onSuccess?.();
 
-        toast.info(`No.${kanriNo} JCステータスを更新しました`);
+        if (normalizedJobId && MANUAL_DECISION_JOB_IDS.has(normalizedJobId)) {
+          toast.info(
+            `No.${kanriNo} 実行時刻を取得しました（ステータスは手動で更新してください）`,
+          );
+        } else {
+          toast.info(`No.${kanriNo} JCステータスを更新しました`);
+        }
       }),
     );
   },
@@ -163,7 +165,7 @@ export const operationService = {
   executeScriptJob: async (params: ExecuteScriptParams): Promise<JobResult> => {
     const kanriNo = normalizeKanriNo(params.kanriNo);
     const scriptKey = params.scriptKey?.trim() || kanriNo;
-    const targetLabel = params.targetName || scriptKey;
+    const targetLabel = params.targetName?.trim() || scriptKey;
 
     return runJobWithGlobalProcessing("処理実行中...", targetLabel, () =>
       withJobErrorToast("実行エラー", async () => {

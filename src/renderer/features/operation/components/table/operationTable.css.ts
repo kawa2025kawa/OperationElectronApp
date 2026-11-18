@@ -1,10 +1,11 @@
-﻿// src/renderer/features/operation/components/table/operationTable.css.ts
+// src/renderer/features/operation/components/table/operationTable.css.ts
 
 import { keyframes, style, styleVariants } from "@vanilla-extract/css";
-
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-
-import { textEllipsis } from "@renderer/styles/global/surfaces.css";
+import {
+  brandGradientTextRule,
+  textEllipsis,
+} from "@renderer/styles/global/surfaces.css";
 
 const commonTable = {
   width: "100%",
@@ -166,13 +167,7 @@ export const cellText = style([
     verticalAlign: "middle",
 
     selectors: {
-      [`${tableRowStates.selected} &`]: {
-        backgroundImage: tokens.gradient.brand,
-        backgroundClip: "text",
-        WebkitBackgroundClip: "text",
-        color: "transparent",
-        WebkitTextFillColor: "transparent",
-      },
+      [`${tableRowStates.selected} &`]: brandGradientTextRule,
     },
   },
 ]);

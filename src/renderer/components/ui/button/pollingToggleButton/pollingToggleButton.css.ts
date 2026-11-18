@@ -2,7 +2,12 @@
 
 import { keyframes, style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { focusRing } from "@renderer/styles/global/surfaces.css";
+import {
+  brandGradientText,
+  brandGradientTextRule,
+  createBeforeGlowRule,
+  focusRing,
+} from "@renderer/styles/global/surfaces.css";
 import { baseButton } from "../buttonBase.css";
 
 const pulse = keyframes({
@@ -17,17 +22,25 @@ const pulse = keyframes({
   },
 });
 
-const glowTransition = tokens.transition.glow;
+const syncBlink = keyframes({
+  "0%, 100%": {
+    opacity: 1,
+  },
+  "50%": {
+    opacity: 0.3,
+  },
+});
 
 export const button = style([
   baseButton,
   focusRing,
   {
     flexDirection: "row",
+    justifyContent: "space-between",
     whiteSpace: "nowrap",
     gap: tokens.space.md,
-    width: "13rem",
-    height: "3rem",
+    width: "18.5rem",
+    height: "3.2rem",
     padding: `0 ${tokens.space.lg}`,
     border: `1px solid ${tokens.color.border.default}`,
     borderRadius: tokens.radius.full,
@@ -37,19 +50,16 @@ export const button = style([
     backgroundColor: tokens.color.bg.base,
     color: tokens.color.text.base,
     boxShadow: tokens.shadow.raised.md,
-    transition: `border-color ${glowTransition}, color ${tokens.transition.fast}`,
+    flexShrink: 0,
+    transition: `border-color ${tokens.transition.glow}, color ${tokens.transition.fast}`,
 
-    "::before": {
-      content: '""',
-      position: "absolute",
-      inset: -1,
-      borderRadius: tokens.radius.full,
-      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
-      opacity: 0,
-      transition: `opacity ${glowTransition}`,
-      pointerEvents: "none",
-      willChange: "opacity",
-    },
+    "::before": createBeforeGlowRule(
+      `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
+      {
+        borderRadius: tokens.radius.full,
+        willChange: "opacity",
+      },
+    ),
 
     selectors: {
       "&:hover:not(:disabled)": {
@@ -68,9 +78,17 @@ export const button = style([
   },
 ]);
 
-export const indicator = style({
+export const statusGroup = style({
   position: "relative",
   zIndex: 1,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: tokens.space.sm,
+  flexShrink: 0,
+});
+
+export const indicator = style({
+  position: "relative",
   display: "grid",
   placeItems: "center",
   width: "1em",
@@ -97,8 +115,6 @@ export const dot = style({
 });
 
 export const label = style({
-  position: "relative",
-  zIndex: 1,
   letterSpacing: "0.05em",
   lineHeight: 1.2,
 });
@@ -108,12 +124,110 @@ export const textSpan = style({
   color: "inherit",
 
   selectors: {
+    [`${button}[data-pressed] &`]: brandGradientTextRule,
+  },
+});
+
+/**
+ * ボタン右側に内蔵されたデジタル時計表示エリア
+ */
+export const embeddedClock = style({
+  position: "relative",
+  zIndex: 1,
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: "4.6rem",
+  paddingLeft: tokens.space.md,
+  borderLeft: `1px solid ${tokens.color.border.subtle}`,
+  userSelect: "none",
+  flexShrink: 0,
+
+  selectors: {
     [`${button}[data-pressed] &`]: {
-      backgroundImage: tokens.gradient.brand,
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent",
-      backgroundClip: "text",
-      color: "transparent",
+      borderLeftColor: tokens.color.border.accent,
     },
   },
 });
+
+export const clockCaption = style({
+  fontFamily: tokens.font.mono,
+  fontSize: "9px",
+  fontWeight: tokens.font.weight.bold,
+  letterSpacing: "0.18em",
+  lineHeight: 1,
+  marginBottom: "3px",
+  color: "inherit",
+  opacity: 0.5,
+  textTransform: "uppercase",
+  whiteSpace: "nowrap",
+
+  selectors: {
+    [`${button}[data-pressed] &`]: {
+      ...brandGradientTextRule,
+      opacity: 1,
+    },
+  },
+});
+
+export const segmentRow = style({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "4px",
+  height: "20px",
+});
+
+export const digitSvg = style({
+  width: "12px",
+  height: "20px",
+  overflow: "visible",
+});
+
+export const segmentOff = style({
+  fill: "transparent",
+});
+
+export const segmentOn = style({
+  fill: "currentColor",
+  opacity: 0.5,
+
+  selectors: {
+    [`${button}[data-pressed] &`]: {
+      fill: "url(#polling-brand-gradient)",
+      opacity: 1,
+      filter: `drop-shadow(0 0 3px ${tokens.color.accent.neonCyan})`,
+    },
+  },
+});
+
+export const unitText = style({
+  fontFamily: tokens.font.mono,
+  fontSize: "11px",
+  fontWeight: tokens.font.weight.bold,
+  lineHeight: 1,
+  alignSelf: "flex-end",
+  marginBottom: "1px",
+  color: "inherit",
+  opacity: 0.5,
+
+  selectors: {
+    [`${button}[data-pressed] &`]: {
+      ...brandGradientTextRule,
+      opacity: 1,
+    },
+  },
+});
+
+export const syncText = style([
+  brandGradientText,
+  {
+    fontFamily: tokens.font.mono,
+    fontSize: "16px",
+    fontWeight: tokens.font.weight.bold,
+    letterSpacing: "0.14em",
+    lineHeight: 1,
+    animation: `${syncBlink} 0.85s ease-in-out infinite`,
+  },
+]);

@@ -3,6 +3,8 @@
 import fs from "fs-extra";
 import iconv from "iconv-lite";
 import path from "node:path";
+import Papa from "papaparse";
+import { readEncodedText } from "./jobRunnerHelper";
 
 export type CsvRow = {
   columns: string[];
@@ -21,47 +23,41 @@ type CsvOptions = {
 
 /**
  * 1行のCSV文字列をパースして各カラムの配列（各要素トリム済）を返します。
- * ダブルクォーテーションのクォート処理および "" のエスケープに対応します。
  */
 export function parseCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
+  const { data } = Papa.parse<string[]>(line, {
+    delimiter: ",",
+    quoteChar: '"',
+    escapeChar: '"',
+    skipEmptyLines: false,
+  });
 
-  for (let index = 0; index < line.length; index++) {
-    const char = line[index];
-
-    if (char === '"') {
-      if (inQuotes && line[index + 1] === '"') {
-        current += '"';
-        index++;
-        continue;
-      }
-      inQuotes = !inQuotes;
-      continue;
-    }
-
-    if (char === "," && !inQuotes) {
-      result.push(current.trim());
-      current = "";
-      continue;
-    }
-
-    current += char;
-  }
-
-  result.push(current.trim());
-  return result;
+  const row = data[0] ?? [];
+  return row.map((col) => col.trim());
 }
 
 /**
- * 複数行のCSVテキストを一括でパースします。
+ * 複数行のCSVテキストを一括でパースします（セル内改行にも対応）。
  */
 export function parseCsv(csv: string): string[][] {
-  return csv
-    .split(/\r?\n/)
-    .filter((line) => line.trim() !== "")
-    .map(parseCsvLine);
+  const { data } = Papa.parse<string[]>(csv, {
+    delimiter: ",",
+    quoteChar: '"',
+    escapeChar: '"',
+    skipEmptyLines: "greedy",
+  });
+
+  return data.map((row) => row.map((col) => col.trim()));
+}
+
+/**
+ * 指定エンコーディングのCSVファイルを一括パースして2次元配列で返します。
+ */
+export async function readParsedCsv(
+  filePath: string,
+  encoding = "Shift_JIS",
+): Promise<string[][]> {
+  return parseCsv(await readEncodedText(filePath, encoding));
 }
 
 /**
@@ -71,7 +67,7 @@ export async function readCsv(
   filePath: string,
   encoding = "Shift_JIS",
 ): Promise<ParsedCsv> {
-  const content = iconv.decode(await fs.readFile(filePath), encoding);
+  const content = await readEncodedText(filePath, encoding);
   const [header = "", ...lines] = content.split(/\r?\n/);
 
   return {

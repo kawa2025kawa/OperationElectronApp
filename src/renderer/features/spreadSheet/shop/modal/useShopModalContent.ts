@@ -1,6 +1,7 @@
-﻿// src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
+// src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
 
 import { useMemo, useCallback } from "react";
+import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
 import type { Shop } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { ModalAction } from "@shared/types/ui/modal";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
@@ -12,6 +13,8 @@ import {
   SHOP_MODAL_GROUPS,
   TIME_RECORDER_IMAGE_ITEMS,
   SHOP_MODAL_CONSTANTS,
+  TERMINAL_TYPES,
+  TERMINAL_FIELDS,
 } from "./shopModalConfig";
 
 interface UseShopModalContentParams {
@@ -24,6 +27,31 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
 
   const { selectedIndex, setSelectedIndex, groups, displayItems } =
     useSpreadSheetTabData(data, SHOP_MODAL_GROUPS);
+
+  const tabItems = useMemo(
+    () =>
+      groups.map((group, idx) => ({
+        id: idx,
+        label: group.title,
+      })),
+    [groups],
+  );
+
+  const terminalRows = useMemo(
+    () =>
+      TERMINAL_TYPES.map((type) => ({
+        type,
+        badge: type.toUpperCase(),
+        cells: TERMINAL_FIELDS.map(({ suffix }) => {
+          const fieldKey = `${type}${suffix}` as keyof Shop;
+          return {
+            key: suffix,
+            value: data[fieldKey] || EMPTY_VALUE_FALLBACK,
+          };
+        }),
+      })),
+    [data],
+  );
 
   const isTimeRecorderTab =
     SHOP_MODAL_GROUPS[selectedIndex]?.title ===
@@ -77,8 +105,11 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
   return {
     selectedIndex,
     setSelectedIndex,
-    groups,
+    tabItems,
     displayItems,
+    terminalRows,
+    trHeaderBadge: SHOP_MODAL_CONSTANTS.TR_HEADER_BADGE,
+    terminalFields: TERMINAL_FIELDS,
     isTimeRecorderTab,
     timeRecorderActions,
   };

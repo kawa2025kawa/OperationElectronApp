@@ -1,13 +1,9 @@
 // src/renderer/components/ui/statusSummary/StatusSummary.tsx
 
 import { memo, useCallback } from "react";
+import { clsx } from "clsx";
 
-import { SummaryModalContent } from "@renderer/features/operation/components/modal/summaryModal/SummaryModalContent";
-import { useAppStore } from "@renderer/store";
-import type {
-  SummaryDetailRow,
-  SummaryDisplayKey,
-} from "@shared/types/statusSummary/statusSummaryTypes";
+import type { SummaryDisplayKey } from "@shared/types/statusSummary/statusSummaryTypes";
 
 import {
   useStatusSummary,
@@ -17,7 +13,7 @@ import * as styles from "./statusSummary.css";
 
 interface StatusSummaryButtonProps {
   readonly item: StatusSummaryItemData;
-  readonly onClick: (key: SummaryDisplayKey, label: string) => void;
+  readonly onClick: (key: SummaryDisplayKey) => void;
 }
 
 const StatusSummaryButton = memo(function StatusSummaryButton({
@@ -25,13 +21,21 @@ const StatusSummaryButton = memo(function StatusSummaryButton({
   onClick,
 }: StatusSummaryButtonProps) {
   const handleButtonClick = useCallback(() => {
-    onClick(item.key, item.label);
-  }, [onClick, item.key, item.label]);
+    onClick(item.key);
+  }, [onClick, item.key]);
+
+  const isStatusFilterActive =
+    item.key !== "total" && item.key !== "progress" && item.isActive;
 
   return (
     <button
       type="button"
-      className={styles.statusItem}
+      className={clsx(
+        styles.statusItem,
+        !item.isInteractive && styles.statusItemProgress,
+        isStatusFilterActive && styles.statusItemActive,
+      )}
+      aria-pressed={item.isInteractive ? isStatusFilterActive : undefined}
       onClick={handleButtonClick}
     >
       <span className={`${styles.valueBadge} ${item.badgeClass}`}>
@@ -45,22 +49,7 @@ const StatusSummaryButton = memo(function StatusSummaryButton({
 StatusSummaryButton.displayName = "StatusSummaryButton";
 
 export const StatusSummary = memo(function StatusSummary() {
-  const openGlobalModal = useAppStore((state) => state.openGlobalModal);
-
-  const handleOpenModal = useCallback(
-    (summaryItems: SummaryDetailRow[], titleLabel: string) => {
-      openGlobalModal(<SummaryModalContent items={summaryItems} />, {
-        title: titleLabel,
-        width: "min(90vw, 1000px)",
-        height: "min(75vh, 600px)",
-      });
-    },
-    [openGlobalModal],
-  );
-
-  const { items, handleClick } = useStatusSummary({
-    openModal: handleOpenModal,
-  });
+  const { items, handleClick } = useStatusSummary();
 
   return (
     <div className={styles.container}>

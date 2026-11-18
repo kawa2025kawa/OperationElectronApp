@@ -2,10 +2,11 @@
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { focusRing } from "@renderer/styles/global/surfaces.css";
+import {
+  createBeforeGlowRule,
+  focusRing,
+} from "@renderer/styles/global/surfaces.css";
 import { baseButton } from "../buttonBase.css";
-
-const glowTransition = tokens.transition.glow;
 
 export const button = style([
   baseButton,
@@ -26,19 +27,15 @@ export const button = style([
     backgroundColor: tokens.color.bg.base,
     color: tokens.color.text.base,
     boxShadow: tokens.shadow.raised.md,
-    transition: `border-color ${glowTransition}, color ${tokens.transition.fast}`,
+    transition: `border-color ${tokens.transition.glow}, color ${tokens.transition.fast}`,
 
-    "::before": {
-      content: '""',
-      position: "absolute",
-      inset: -1,
-      borderRadius: tokens.radius.full,
-      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
-      opacity: 0,
-      transition: `opacity ${glowTransition}`,
-      pointerEvents: "none",
-      willChange: "opacity",
-    },
+    "::before": createBeforeGlowRule(
+      `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
+      {
+        borderRadius: tokens.radius.full,
+        willChange: "opacity",
+      },
+    ),
 
     selectors: {
       "&:hover:not(:disabled)": {

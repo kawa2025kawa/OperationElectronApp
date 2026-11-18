@@ -1,4 +1,4 @@
-﻿// electron/features/masterData/infrastructure/spreadsheetMasterLoader.ts
+// electron/features/masterData/infrastructure/spreadsheetMasterLoader.ts
 
 import {
   SHEETS,
@@ -38,6 +38,18 @@ async function loadSheetData<
   };
 }
 
+function collectSheetErrors(
+  entries: ReadonlyArray<readonly [SheetId, SheetLoadResult<unknown>]>,
+): SpreadsheetMasterData["errors"] {
+  const errors: SpreadsheetMasterData["errors"] = {};
+  for (const [sheetId, result] of entries) {
+    if (result.error) {
+      errors[sheetId] = result.error;
+    }
+  }
+  return errors;
+}
+
 export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData> {
   const [
     stores,
@@ -57,17 +69,15 @@ export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData
     loadSheetData<typeof SHEETS.RDP.sheetName, RdpMaster>(SHEETS.RDP.sheetName),
   ]);
 
-  const errors: SpreadsheetMasterData["errors"] = {};
-
-  if (stores.error) errors[SHEETS.STORE.sheetName] = stores.error;
-  if (kokyuhyos.error) errors[SHEETS.KOKYUHYO.sheetName] = kokyuhyos.error;
-  if (jugyoin.error) errors[SHEETS.JUGYOIN.sheetName] = jugyoin.error;
-  if (kokyuhyoTantous.error) {
-    errors[SHEETS.KOKYUHYO_TANTOU.sheetName] = kokyuhyoTantous.error;
-  }
-  if (operations.error) errors[SHEETS.OPERATION.sheetName] = operations.error;
-  if (irregulars.error) errors[SHEETS.IRREGULAR.sheetName] = irregulars.error;
-  if (rdps.error) errors[SHEETS.RDP.sheetName] = rdps.error;
+  const errors = collectSheetErrors([
+    [SHEETS.STORE.sheetName, stores],
+    [SHEETS.KOKYUHYO.sheetName, kokyuhyos],
+    [SHEETS.JUGYOIN.sheetName, jugyoin],
+    [SHEETS.KOKYUHYO_TANTOU.sheetName, kokyuhyoTantous],
+    [SHEETS.OPERATION.sheetName, operations],
+    [SHEETS.IRREGULAR.sheetName, irregulars],
+    [SHEETS.RDP.sheetName, rdps],
+  ]);
 
   return {
     stores: stores.data,

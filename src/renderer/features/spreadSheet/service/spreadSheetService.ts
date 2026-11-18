@@ -1,7 +1,8 @@
-﻿// src/renderer/features/spreadSheet/service/spreadSheetService.ts
+// src/renderer/features/spreadSheet/service/spreadSheetService.ts
 
 import { toast } from "sonner";
 import { systemIpcService } from "@renderer/services/systemIpcService";
+import { toErrorMessage } from "@renderer/utils/errorUtils";
 import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
 
 /** 有効なパス・URL 文字列かを正規化して返す */
@@ -25,8 +26,7 @@ export const spreadSheetService = {
     try {
       await systemIpcService.openExternal(normalized);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error(`${errorPrefix}: ${message}`);
+      toast.error(`${errorPrefix}: ${toErrorMessage(error)}`);
     }
   },
 };

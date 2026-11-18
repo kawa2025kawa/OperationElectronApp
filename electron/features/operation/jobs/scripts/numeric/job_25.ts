@@ -1,8 +1,11 @@
 // electron/features/operation/jobs/scripts/numeric/job_25.ts
 
-import fs from "fs-extra";
 import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  listFilesInDir,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
@@ -26,52 +29,23 @@ type Job25CheckResult = {
 
 /**
  * 当日分の対象ファイルを確認する。
- *
- * 監視継続 (running):
- * - いずれかの対象ファイルが未検出（0件）の場合（バックグラウンドでポーリング監視）
- *
- * 業務上の要対応 (needsAction):
- * - いずれかの対象ファイルが上限（2件：朝・昼の2回分）を超過している場合
- *
- * 正常終了 (success):
- * - htsf0060 が1〜2件
- * - Okurikomi が1〜2件
- *
- * システムエラー:
- * - 対象フォルダへのアクセス失敗
  */
 export async function runJob25(): Promise<JobResult> {
-  const logger = new JobLogger();
-
-  try {
-    const result = await findTargetFiles();
-    return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-
-    throw logger.fail(
-      `フォルダにアクセスできません: ${CONFIG.targetDir}${detail}`,
-    );
-  }
+  return runJobWithLogger(
+    `フォルダにアクセスできません: ${CONFIG.targetDir}`,
+    async (logger) => {
+      const result = await findTargetFiles();
+      return writeResultLog(logger, result);
+    },
+  );
 }
 
-/**
- * 当日分の対象ファイルを検索し、キーワードごとに分類する。
- */
 async function findTargetFiles(): Promise<Job25CheckResult> {
   const today = format(new Date(), "yyyyMMdd");
+  const fileNames = await listFilesInDir(CONFIG.targetDir);
 
-  const entries = await fs.readdir(CONFIG.targetDir, {
-    withFileTypes: true,
-  });
-
-  const todayFiles = entries
-    .filter((entry) => entry.isFile() && entry.name.includes(today))
-    .map((entry) => entry.name)
+  const todayFiles = fileNames
+    .filter((name) => name.includes(today))
     .sort((a, b) => a.localeCompare(b));
 
   const results: KeywordResult[] = CONFIG.keywords.map((keyword) => ({
@@ -95,9 +69,6 @@ async function findTargetFiles(): Promise<Job25CheckResult> {
   };
 }
 
-/**
- * 検索結果と不足・超過ファイルをログに出力し、JobResult を返却する。
- */
 function writeResultLog(
   logger: JobLogger,
   result: Job25CheckResult,

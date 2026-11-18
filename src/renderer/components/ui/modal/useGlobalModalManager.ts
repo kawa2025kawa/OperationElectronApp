@@ -5,6 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import { useAppStore } from "@renderer/store";
 import { MODAL_SIZES, type ModalAction } from "@shared/types/ui/modal";
+import * as styles from "./globalModalManager.css";
 
 export function useGlobalModalManager() {
   const { isOpen, content, config, closeModal } = useAppStore(
@@ -21,6 +22,15 @@ export function useGlobalModalManager() {
     closeModal();
   }, [config, closeModal]);
 
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        handleCancel();
+      }
+    },
+    [handleCancel],
+  );
+
   const handleConfirm = useCallback(async () => {
     await config?.onConfirm?.();
   }, [config]);
@@ -32,12 +42,13 @@ export function useGlobalModalManager() {
 
   const width = config?.width ?? MODAL_SIZES.DEFAULT.width;
   const height = config?.height ?? MODAL_SIZES.DEFAULT.height;
+  const popupStyle = useMemo(() => ({ width, height }), [width, height]);
 
   const rightActions = config?.rightActions;
   const confirmText = config?.confirmText;
   const cancelText = config?.cancelText;
   const isConfirmDisabled = config?.isConfirmDisabled;
-  const isProcessing = config?.isProcessing;
+  const isProcessing = config?.isProcessing ?? false;
 
   const computedRightActions = useMemo<ModalAction[]>(() => {
     if (rightActions?.length) return rightActions;
@@ -83,22 +94,27 @@ export function useGlobalModalManager() {
     handleConfirm,
   ]);
 
+  const message = config?.message ?? null;
+  const messageType = message?.type ?? "info";
+  const messageClass =
+    styles.messageTypes[messageType] ?? styles.messageTypes.info;
+
   return {
     state: {
-      isOpen,
+      isOpen: isOpen && Boolean(content),
       content,
       title: config?.title ?? "",
-      message: config?.message ?? null,
+      message,
+      messageClass,
       modalRoot,
-      dimensions: { width, height },
+      popupStyle,
       rightActions: computedRightActions,
       footerContent: config?.footerContent,
       hideFooter: config?.hideFooter ?? false,
-      isProcessing: config?.isProcessing ?? false,
+      isProcessing,
     },
     actions: {
-      closeModal,
-      handleConfirm,
+      handleOpenChange,
       handleCancel,
     },
   };

@@ -7,6 +7,10 @@ import { addDays, format } from "date-fns";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import {
+  resolveSingleInputFile,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import type { ScriptFilePath } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
@@ -28,77 +32,15 @@ type JobResultData = {
 
 /**
  * ギフトマスタエラーログからキーワードを抽出し、最新バックアップから対象行を翌日付で再作成する。
- *
- * 入力ファイル:
- * - エラーログテキストファイル (1ファイルのみ)
- *
- * 参照先:
- * - \\C0088150\nec\ftp\GIFTSYS\giftRecv\BackUp (最新の GIFTDEN111 ファイル)
- *
- * 出力先:
- * - \\C0088150\nec\ftp\GIFTSYS\giftRecv\GIFTDEN111_YYYYMMDD_HHmmss.DAT
- *
- * 業務上の要対応:
- * - なし（正常完了後、抽出・作成結果をログ出力）
- *
- * システムエラー:
- * - 入力ファイル未指定・複数指定・不在
- * - 対象キーワード未検出
- * - バックアップフォルダまたはバックアップファイル不在
- * - ファイル読み書き失敗
  */
 export async function runJobE41(filePath?: ScriptFilePath): Promise<string> {
-  const logger = new JobLogger();
-
-  try {
-    const inputFilePath = await resolveSingleFilePath(filePath);
+  return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
+    const inputFilePath = await resolveSingleInputFile(filePath);
     const result = await processGiftMasterError(inputFilePath);
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-
-    throw logger.fail(`ファイル処理に失敗しました${detail}`);
-  }
+  });
 }
 
-/**
- * 入力ファイルパスを検証・解決する。
- */
-async function resolveSingleFilePath(
-  filePath?: ScriptFilePath,
-): Promise<string> {
-  const filePaths = Array.isArray(filePath)
-    ? filePath
-    : filePath
-      ? [filePath]
-      : [];
-
-  if (filePaths.length === 0) {
-    throw new Error(
-      "ファイルが指定されていません。ファイルをドロップしてください。",
-    );
-  }
-
-  if (filePaths.length > 1) {
-    throw new Error("ファイルは1つだけ指定してください。");
-  }
-
-  const targetPath = filePaths[0];
-  if (!(await fs.pathExists(targetPath))) {
-    throw new Error(`指定されたファイルが存在しません: ${targetPath}`);
-  }
-
-  return targetPath;
-}
-
-/**
- * エラーログから検索キーワード（11〜15桁目の4文字）を抽出する。
- */
 async function extractKeywords(filePath: string): Promise<Set<string>> {
   const keywordSet = new Set<string>();
   const rl = readline.createInterface({
@@ -124,9 +66,6 @@ async function extractKeywords(filePath: string): Promise<Set<string>> {
   return keywordSet;
 }
 
-/**
- * バックアップフォルダから最新の GIFTDEN111 ファイルを探索する。
- */
 async function findLatestBackupFile(): Promise<string> {
   if (!(await directoryExists(CONFIG.backupPath))) {
     throw new Error(`バックアップフォルダが存在しません: ${CONFIG.backupPath}`);
@@ -157,9 +96,6 @@ async function findLatestBackupFile(): Promise<string> {
   return latestFile;
 }
 
-/**
- * バックアップからキーワード一致行を抽出し、翌日付に置換してファイルを出力する。
- */
 async function processGiftMasterError(
   inputFilePath: string,
 ): Promise<JobResultData> {
@@ -205,9 +141,6 @@ async function processGiftMasterError(
   };
 }
 
-/**
- * 処理結果をログに出力し、完了メッセージを返却する。
- */
 function writeResultLog(logger: JobLogger, result: JobResultData): string {
   logger.section("入力ファイル");
   logger.log(result.inputFilePath);

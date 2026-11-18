@@ -108,13 +108,21 @@ export function getCellValue(
   return toDisplayValue((row as unknown as Record<string, unknown>)[column]);
 }
 
-export function getOperationColumns(
+function buildOperationColumns(
   mode: ViewMode,
 ): ColumnDef<TableFeaturesType, OperationViewItem>[] {
   return VISIBLE_OPERATION_COLUMNS[mode].map((id) => ({
     id,
     header: getOperationColumnMeta(id).label,
     accessorFn: (row) => getCellValue(row, id),
+    ...(id === "status"
+      ? {
+          filterFn: (row, _columnId, filterValue) => {
+            if (!filterValue) return true;
+            return row.original.status === filterValue;
+          },
+        }
+      : {}),
     size:
       id === "kanriNo"
         ? 90
@@ -125,4 +133,19 @@ export function getOperationColumns(
             : 0,
     meta: getOperationColumnMeta(id),
   }));
+}
+
+const CACHED_OPERATION_COLUMNS: Record<
+  ViewMode,
+  ColumnDef<TableFeaturesType, OperationViewItem>[]
+> = {
+  operation: buildOperationColumns("operation"),
+  irregular: buildOperationColumns("irregular"),
+  today: buildOperationColumns("today"),
+};
+
+export function getOperationColumns(
+  mode: ViewMode,
+): ColumnDef<TableFeaturesType, OperationViewItem>[] {
+  return CACHED_OPERATION_COLUMNS[mode];
 }

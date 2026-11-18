@@ -8,7 +8,8 @@ import {
   type IrregularMaster,
   type TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
-import { isRunningStatus, isSuccessStatus } from "@shared/utils/statusUtils";
+import { isSuccessStatus } from "@shared/utils/statusUtils";
+import { isSpecialDependencySatisfied } from "./operationRules";
 
 type MasterItem = OperationMaster | IrregularMaster | TodayIrregularMaster;
 
@@ -76,13 +77,12 @@ function isDependencySatisfied(
   dep: string,
   status?: OperationStatusState,
 ): boolean {
-  const current = status?.status;
-  if (!current) return false;
-  // 特例: No.75 における No.67 判定（完了または実行中）
-  if (target.trim() === "75" && dep.trim() === "67") {
-    return isSuccessStatus(current) || isRunningStatus(current);
+  const specialResult = isSpecialDependencySatisfied(target, dep, status);
+  if (specialResult !== null) {
+    return specialResult;
   }
-  return isSuccessStatus(current);
+
+  return isSuccessStatus(status?.status);
 }
 
 function checkDependency(
@@ -160,18 +160,33 @@ export function checkJobDependencies(
   statuses: DependencyStatuses,
   activeFlags?: ActiveFlags,
 ): DependencyCheckResult {
-  const target = findMaster(kanriNo, masters);
-  if (!target) return EMPTY_RESULT;
+  const normalizedNo = kanriNo.trim();
+  const target = findMaster(normalizedNo, masters);
+  if (!target) {
+    return {
+      ok: false,
+      dependencies: [],
+      missingDependencies: [
+        {
+          kanriNo: normalizedNo,
+          status: null,
+          comment: "マスタ未登録のため前提判定保留",
+        },
+      ],
+    };
+  }
 
   const dependencies = normalizeDependencies(
     target.dependsOn,
-    kanriNo,
+    normalizedNo,
     masters,
   );
   if (dependencies.length === 0) return { ...EMPTY_RESULT, dependencies };
 
   const missingDependencies = dependencies
-    .map((dep) => checkDependency(kanriNo, dep, masters, statuses, activeFlags))
+    .map((dep) =>
+      checkDependency(normalizedNo, dep, masters, statuses, activeFlags),
+    )
     .filter((dep): dep is MissingDependency => dep !== undefined);
 
   return {

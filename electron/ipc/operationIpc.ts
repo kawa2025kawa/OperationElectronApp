@@ -3,7 +3,6 @@
 import {
   getOperationTableData,
   getStatusSummary,
-  getSummaryDetails,
 } from "@electron/features/operation/application/operationQueryService";
 import {
   startPolling,
@@ -38,10 +37,6 @@ export function registerOperationIpc(): void {
   );
   registerIpcHandler(IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY, () =>
     getStatusSummary(),
-  );
-  registerIpcHandler(
-    IPC_CHANNELS.OPERATION.GET_SUMMARY_DETAILS,
-    ({ filterKey }) => getSummaryDetails(filterKey),
   );
   registerIpcHandler(IPC_CHANNELS.OPERATION.GET_TABLE_DATA, ({ mode }) =>
     getOperationTableData(mode),

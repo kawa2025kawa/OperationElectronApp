@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { ChangeEvent, DragEvent } from "react";
+import { format } from "date-fns";
 
 import { ORDER_TIME_OPTIONS, type FileDropZoneItem } from "./fileDropZoneTypes";
 
@@ -14,14 +15,9 @@ interface UseFileDropZoneProps {
   onRenameFile?: (filePath: string, newName: string) => void | Promise<void>;
 }
 
-function getTodayString(): string {
-  const now = new Date();
-
-  return `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, "0")}月${String(now.getDate()).padStart(2, "0")}日`;
-}
-
 function generateOrderErrorFileName(timeLabel: string): string {
-  return `${getTodayString()}_${timeLabel}発注_発注エラーリスト.pdf`;
+  const today = format(new Date(), "yyyy年MM月dd日");
+  return `${today}_${timeLabel}発注_発注エラーリスト.pdf`;
 }
 
 export function useFileDropZone({

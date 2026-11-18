@@ -1,6 +1,7 @@
 // electron/main.ts
 
 import { app, BrowserWindow, shell } from "electron";
+import windowStateKeeper from "electron-window-state";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { stopPolling } from "@electron/features/operation/application/operationScheduler";
@@ -16,9 +17,16 @@ let mainWindow: BrowserWindow | null = null;
 function createWindow(): void {
   const preloadPath = path.join(__dirname, "preload.cjs");
 
+  const mainWindowState = windowStateKeeper({
+    defaultWidth: 1400,
+    defaultHeight: 800,
+  });
+
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 800,
+    x: mainWindowState.x,
+    y: mainWindowState.y,
+    width: mainWindowState.width,
+    height: mainWindowState.height,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -26,6 +34,8 @@ function createWindow(): void {
       sandbox: false,
     },
   });
+
+  mainWindowState.manage(mainWindow);
 
   void loadRenderer().catch((error) => {
     console.error("[Electron] renderer load failed", error);

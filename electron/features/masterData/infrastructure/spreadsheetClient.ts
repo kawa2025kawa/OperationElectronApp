@@ -1,4 +1,4 @@
-﻿// electron/features/masterData/infrastructure/spreadsheetClient.ts
+// electron/features/masterData/infrastructure/spreadsheetClient.ts
 
 import {
   authService,
@@ -9,10 +9,10 @@ import {
   type SheetData,
   type SheetId,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { buildSheetValuesUrl } from "./googleSheetsHelper";
 import { normalizeSpreadsheetRows } from "./spreadsheetDataNormalizer";
 
 const SPREADSHEET_CLIENT_CONFIG = {
-  apiBaseUrl: "https://sheets.googleapis.com/v4/spreadsheets",
   headerMappings: {
     AutoManualUrl: "autoManualUrl",
   } as const,
@@ -92,8 +92,7 @@ export async function fetchSheet<
     };
   }
 
-  const range = `'${sheet.sheetName.replace(/'/g, "''")}'`;
-  const url = `${SPREADSHEET_CLIENT_CONFIG.apiBaseUrl}/${encodeURIComponent(sheet.spreadsheetId)}/values/${encodeURIComponent(range)}`;
+  const url = buildSheetValuesUrl(sheet.spreadsheetId, sheet.sheetName);
 
   try {
     const response = await authService.request(url);

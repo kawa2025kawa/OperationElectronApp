@@ -1,11 +1,9 @@
-/**
- * electron/features/operation/jobs/scripts/numeric/job_28.ts
- */
+// electron/features/operation/jobs/scripts/numeric/job_28.ts
 
 import fs from "fs-extra";
 import path from "node:path";
 import { format } from "date-fns";
-import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import {
   readCsv,
   filterCsvRows,
@@ -180,16 +178,15 @@ async function writeRequestFiles(
 }
 
 export async function runJob28(): Promise<JobResult> {
-  const logger = new JobLogger();
-  const today = getDateKey();
-  const todayDir = path.join(CONFIG.baseDir, today);
-  const requestDir = path.join(todayDir, CONFIG.directories.request);
-  const ignoreDir = path.join(todayDir, CONFIG.directories.ignore);
-  const completedDir = path.join(todayDir, CONFIG.directories.completed);
+  return runJobWithLogger("システムエラーが発生しました", async (logger) => {
+    const today = getDateKey();
+    const todayDir = path.join(CONFIG.baseDir, today);
+    const requestDir = path.join(todayDir, CONFIG.directories.request);
+    const ignoreDir = path.join(todayDir, CONFIG.directories.ignore);
+    const completedDir = path.join(todayDir, CONFIG.directories.completed);
 
-  logger.log(`対象フォルダ : ${todayDir}`);
+    logger.log(`対象フォルダ : ${todayDir}`);
 
-  try {
     if (!(await fs.pathExists(todayDir))) {
       logger.log(`当日フォルダが存在しません (${today})`);
       return {
@@ -298,10 +295,5 @@ export async function runJob28(): Promise<JobResult> {
           kind: "success",
           message: logger.complete("正常終了"),
         };
-  } catch (error: unknown) {
-    const detail =
-      error instanceof Error ? ` (${error.message})` : ` (${String(error)})`;
-
-    throw logger.fail(`システムエラーが発生しました${detail}`);
-  }
+  });
 }

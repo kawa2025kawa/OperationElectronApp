@@ -6,6 +6,12 @@ import type { SpreadSheetTableFeatures } from "@renderer/features/spreadSheet/co
 
 const columnHelper = createColumnHelper<SpreadSheetTableFeatures, Shop>();
 
+export function getShopRowId(row: Shop, index: number): string {
+  return row.shopCode
+    ? `${String(row.shopCode).trim()}_${index}`
+    : `shop_${index}`;
+}
+
 export const SHOP_COLUMNS = columnHelper.columns([
   columnHelper.accessor("shopCode", {
     header: "店舗コード",

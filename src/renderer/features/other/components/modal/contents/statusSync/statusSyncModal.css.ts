@@ -1,4 +1,4 @@
-// src/renderer/features/other/components/modal/contents/statusSync/statusSyncModal.css.ts
+﻿// src/renderer/features/other/components/modal/contents/statusSync/statusSyncModal.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -7,11 +7,14 @@ import { focusRing } from "@renderer/styles/global/surfaces.css";
 export const container = style({
   display: "flex",
   flexDirection: "column",
-  gap: tokens.space.lg,
+  gap: tokens.space.md,
   padding: `${tokens.space.xs} 0`,
   fontFamily: tokens.font.base,
   color: tokens.color.text.base,
+  height: "100%",
   minHeight: 0,
+  overflow: "hidden",
+  boxSizing: "border-box",
 });
 
 const infoBoxBase = style({
@@ -23,6 +26,7 @@ const infoBoxBase = style({
   backgroundColor: tokens.glass.surfaceSubtle,
   border: `1px solid ${tokens.glass.border}`,
   boxShadow: tokens.shadow.pressed.low,
+  flexShrink: 0,
 });
 
 export const infoBoxVariants = styleVariants({
@@ -57,6 +61,7 @@ export const modeHeader = style({
   justifyContent: "space-between",
   paddingBottom: tokens.space.sm,
   borderBottom: `1px solid ${tokens.color.border.default}`,
+  flexShrink: 0,
 });
 
 export const modeToggle = style({
@@ -114,6 +119,7 @@ export const infoGrid = style({
   backgroundColor: tokens.glass.surfaceSubtle,
   border: `1px solid ${tokens.glass.border}`,
   boxShadow: tokens.shadow.raised.low,
+  flexShrink: 0,
 });
 
 export const label = style({
@@ -122,6 +128,7 @@ export const label = style({
   color: tokens.color.text.base,
   display: "flex",
   alignItems: "center",
+  flexShrink: 0,
 });
 
 export const value = style({
@@ -131,56 +138,19 @@ export const value = style({
   fontFamily: tokens.font.mono,
 });
 
-export const subDateValue = style({
-  fontSize: tokens.font.size.xs,
-  fontWeight: tokens.font.weight.normal,
-  color: tokens.color.text.base,
-  fontFamily: tokens.font.mono,
-});
-
-export const flagBadgeGroup = style({
-  display: "flex",
-  alignItems: "center",
-  gap: tokens.space.sm,
-  flexWrap: "wrap",
-});
-
-export const flagBadgeActive = style({
-  padding: `2px ${tokens.space.sm}`,
-  borderRadius: tokens.radius.sm,
-  fontFamily: tokens.font.mono,
-  fontSize: tokens.font.size.xs,
-  fontWeight: tokens.font.weight.bold,
-  color: tokens.color.accent.base,
-  backgroundColor: tokens.color.bg.frostedGlass,
-  border: `1px solid ${tokens.color.border.accent}`,
-  boxShadow: tokens.shadow.glow.brand,
-});
-
-export const flagBadgeInactive = style({
-  padding: `2px ${tokens.space.sm}`,
-  borderRadius: tokens.radius.sm,
-  fontFamily: tokens.font.mono,
-  fontSize: tokens.font.size.xs,
-  fontWeight: tokens.font.weight.normal,
-  color: tokens.color.text.base,
-  backgroundColor: tokens.glass.surfaceSubtle,
-  border: `1px solid ${tokens.color.border.default}`,
-  boxShadow: tokens.shadow.pressed.low,
-  opacity: 0.6,
-});
-
 export const fieldGroup = style({
   display: "flex",
   flexDirection: "column",
+  flex: 1,
   gap: tokens.space.sm,
   minHeight: 0,
+  overflow: "hidden",
 });
 
 export const textarea = style({
+  flex: 1,
   width: "100%",
-  minHeight: "120px",
-  maxHeight: "180px",
+  minHeight: 0,
   overflowY: "auto",
   overflowX: "hidden",
   padding: tokens.space.md,
@@ -193,7 +163,7 @@ export const textarea = style({
   fontFamily: tokens.font.base,
   fontSize: tokens.font.size.sm,
   lineHeight: 1.6,
-  resize: "vertical",
+  resize: "none",
   outline: "none",
   selectors: {
     "&::placeholder": {
@@ -212,11 +182,12 @@ export const textarea = style({
 });
 
 export const noteBox = style({
-  minHeight: "96px",
-  maxHeight: "180px",
+  flex: 1,
+  minHeight: 0,
   overflowY: "auto",
   overflowX: "hidden",
   padding: tokens.space.md,
+  boxSizing: "border-box",
   borderRadius: tokens.radius.md,
   border: `1px solid ${tokens.glass.border}`,
   backgroundColor: tokens.glass.surfaceSubtle,

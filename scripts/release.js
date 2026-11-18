@@ -15,13 +15,13 @@ const UPDATE_JSON_NAME = `${APP_NAME}_update.json`;
 const RELEASE_DIR = path.join(projectRoot, "release");
 
 const DISTRIBUTION_DIR =
-  "\\\\S0088210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp";
+  "\\\\192.88.1.210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp";
 
 const EXE_PATH = path.join(DISTRIBUTION_DIR, EXE_NAME);
 const UPDATE_JSON_PATH = path.join(DISTRIBUTION_DIR, UPDATE_JSON_NAME);
 
 const UPDATE_URL =
-  "file://///S0088210/情報システム/チェックリスト/05_作業マニュアル/オペレーション関連/ソフトウェア/OperationApp/OperationElectronApp-setup.exe";
+  "file://///192.88.1.210/情報システム/チェックリスト/05_作業マニュアル/オペレーション関連/ソフトウェア/OperationApp/OperationElectronApp-setup.exe";
 
 /**
  * package.json から現在のバージョンを取得

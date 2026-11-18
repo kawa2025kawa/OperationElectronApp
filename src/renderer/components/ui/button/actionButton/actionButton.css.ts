@@ -2,28 +2,19 @@
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { createBeforeGlowRule } from "@renderer/styles/global/surfaces.css";
 import { baseButton } from "../buttonBase.css";
-
-const glowTransition = tokens.transition.glow;
 
 export const actionButton = style([
   baseButton,
   {
     position: "relative",
     fontWeight: tokens.font.weight.bold,
-    transition: `border-color ${glowTransition}`,
+    transition: `border-color ${tokens.transition.glow}`,
 
-    "::before": {
-      content: '""',
-      position: "absolute",
-      inset: -1,
-      borderRadius: "inherit",
-      boxShadow: tokens.shadow.glowRaised.md,
-      opacity: 0,
-      transition: `opacity ${glowTransition}`,
-      pointerEvents: "none",
+    "::before": createBeforeGlowRule(tokens.shadow.glowRaised.md, {
       willChange: "opacity",
-    },
+    }),
 
     selectors: {
       "&:hover:not(:disabled)::before": {

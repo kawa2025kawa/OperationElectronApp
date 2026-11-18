@@ -82,9 +82,16 @@ class NativeTempomaticClient {
     init: RequestInit,
   ): Promise<string> {
     const startedAt = Date.now();
+    const headers: Record<string, string> = {
+      ...(init.headers as Record<string, string> | undefined),
+    };
+    const cookie = this.getCookieHeader();
+    if (cookie) {
+      headers["Cookie"] = cookie;
+    }
 
     try {
-      const response = await net.fetch(url, init);
+      const response = await net.fetch(url, { ...init, headers });
       this.saveCookies(response.headers);
 
       console.info(`[Tempomatic] ${stage}`, {
@@ -117,42 +124,21 @@ class NativeTempomaticClient {
     }
   }
 
-  public async get(url: string): Promise<string> {
-    const headers: Record<string, string> = {};
-    const cookie = this.getCookieHeader();
-    if (cookie) headers["Cookie"] = cookie;
-
-    return this.request("GET/CSRF", url, {
-      method: "GET",
-      headers,
-    });
+  public get(url: string): Promise<string> {
+    return this.request("GET/CSRF", url, { method: "GET" });
   }
 
-  public async postForm(
-    url: string,
-    bodyParams: URLSearchParams,
-  ): Promise<string> {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/x-www-form-urlencoded",
-    };
-    const cookie = this.getCookieHeader();
-    if (cookie) headers["Cookie"] = cookie;
-
+  public postForm(url: string, bodyParams: URLSearchParams): Promise<string> {
     return this.request("POST/Login", url, {
       method: "POST",
-      headers,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: bodyParams.toString(),
     });
   }
 
-  public async postMultipart(url: string, formData: FormData): Promise<string> {
-    const headers: Record<string, string> = {};
-    const cookie = this.getCookieHeader();
-    if (cookie) headers["Cookie"] = cookie;
-
+  public postMultipart(url: string, formData: FormData): Promise<string> {
     return this.request("POST/Upload", url, {
       method: "POST",
-      headers,
       body: formData,
     });
   }

@@ -1,19 +1,24 @@
 // electron/features/masterData/infrastructure/masterDataFileCache.ts
 
-import { app } from "electron";
-import { promises as fs } from "node:fs";
 import path from "node:path";
+import Store from "electron-store";
 
-// ファイルキャッシュの共通形式。
 interface VersionedCache<T> {
   version: number;
   fetchedAt: string;
   data: T;
 }
 
-// キャッシュファイルのパスを取得する。
-function getFilePath(fileName: string): string {
-  return path.join(app.getPath("userData"), fileName);
+type CacheStoreShape = {
+  cache?: VersionedCache<unknown>;
+};
+
+function getCacheStore(fileName: string): Store<CacheStoreShape> {
+  const storeName = path.basename(fileName, path.extname(fileName));
+  return new Store<CacheStoreShape>({
+    name: storeName,
+    clearInvalidConfig: true,
+  });
 }
 
 // バージョンとデータ検証関数を使ってキャッシュを読み込む。
@@ -23,16 +28,10 @@ export async function loadMasterDataFileCache<T>(
   isData: (value: unknown) => value is T,
 ): Promise<{ fetchedAt: string; data: T } | null> {
   try {
-    const json = await fs.readFile(getFilePath(fileName), "utf8");
-    const parsed: unknown = JSON.parse(json);
-
-    if (typeof parsed !== "object" || parsed === null) {
-      return null;
-    }
-
-    const cache = parsed as Record<string, unknown>;
+    const cache = getCacheStore(fileName).get("cache");
 
     if (
+      !cache ||
       cache.version !== version ||
       typeof cache.fetchedAt !== "string" ||
       !isData(cache.data)
@@ -55,27 +54,20 @@ export async function saveMasterDataFileCache<T>(
   version: number,
   data: T,
 ): Promise<void> {
-  const filePath = getFilePath(fileName);
-
-  const cache: VersionedCache<T> = {
+  getCacheStore(fileName).set("cache", {
     version,
     fetchedAt: new Date().toISOString(),
     data,
-  };
-
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, JSON.stringify(cache, null, 2), "utf8");
+  });
 }
 
-// キャッシュファイルを削除する。ファイルがなければ何もしない。
+// キャッシュをクリアする。
 export async function deleteMasterDataFileCache(
   fileName: string,
 ): Promise<void> {
   try {
-    await fs.unlink(getFilePath(fileName));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw error;
-    }
+    getCacheStore(fileName).clear();
+  } catch {
+    // 削除失敗は無視
   }
 }

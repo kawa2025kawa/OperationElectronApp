@@ -2,9 +2,11 @@
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { brandGradientText } from "@renderer/styles/global/surfaces.css";
-
-const glowTransition = tokens.transition.glow;
+import {
+  brandGradientText,
+  brandGradientTextRule,
+  createBeforeGlowRule,
+} from "@renderer/styles/global/surfaces.css";
 
 export const sidebar = style({
   position: "fixed",
@@ -88,17 +90,11 @@ export const menuButton = style({
   isolation: "isolate",
   transition: `color ${tokens.transition.fast}`,
 
-  "::before": {
-    content: '""',
-    position: "absolute",
+  "::before": createBeforeGlowRule(tokens.shadow.glowRaised.md, {
     inset: 0,
     borderRadius: tokens.radius.md,
-    boxShadow: tokens.shadow.glowRaised.md,
-    opacity: 0,
-    transition: `opacity ${glowTransition}`,
-    pointerEvents: "none",
     willChange: "opacity",
-  },
+  }),
 
   selectors: {
     "&:hover": {
@@ -121,12 +117,6 @@ export const menuText = style({
   position: "relative",
   zIndex: 1,
   selectors: {
-    [`${menuButton}[data-active='true'] &`]: {
-      backgroundImage: tokens.gradient.brand,
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent",
-      backgroundClip: "text",
-      color: "transparent",
-    },
+    [`${menuButton}[data-active='true'] &`]: brandGradientTextRule,
   },
 });

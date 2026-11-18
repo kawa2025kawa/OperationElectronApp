@@ -1,4 +1,4 @@
-﻿// electron/features/operation/application/operationStatusEvaluator.ts
+// electron/features/operation/application/operationStatusEvaluator.ts
 
 import {
   getActiveFlags,
@@ -10,7 +10,10 @@ import {
   updateStatus,
   type StatusTarget,
 } from "@electron/features/operation/application/statusManager";
-import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
+import {
+  isManualStatusDecisionJobId,
+  normalizeKanriNo,
+} from "@electron/features/operation/domain/operationRules";
 import {
   fetchTrackerStatusByJobId,
   getJobId,
@@ -27,10 +30,18 @@ import {
 
 type OperationTarget = Extract<StatusTarget, { targetType: "operation" }>;
 
-const isTrackerTarget = (t: StatusTarget): t is OperationTarget =>
-  t.targetType === "operation" &&
-  Boolean(normalizeKanriNo(t.kanriNo)) &&
-  Boolean(getJobId(t));
+function isAutoTrackerPollingTarget(t: StatusTarget): t is OperationTarget {
+  if (t.targetType !== "operation" || !normalizeKanriNo(t.kanriNo)) {
+    return false;
+  }
+
+  const jobId = getJobId(t);
+  if (!jobId) {
+    return false;
+  }
+
+  return !isManualStatusDecisionJobId(jobId);
+}
 
 const canSyncTrackerStatus = (s?: JobStatus): boolean =>
   s === JOB_STATUS.READY || s === JOB_STATUS.RUNNING;
@@ -78,8 +89,10 @@ export async function fetchSingleTrackerStatus(
 ): Promise<OperationStatusState> {
   const kanriNo = normalizeKanriNo(kanriNoInput);
   const target = getTargetByKanriNo(kanriNo);
+  const jobId =
+    target && target.targetType === "operation" ? getJobId(target) : undefined;
 
-  if (!target || target.targetType !== "operation" || !getJobId(target)) {
+  if (!target || target.targetType !== "operation" || !jobId) {
     throw new Error(
       `Tracker target not found or Job ID is not configured (kanriNo=${kanriNo})`,
     );
@@ -94,13 +107,28 @@ export async function fetchSingleTrackerStatus(
     };
   }
 
-  return applyTrackerStatus(trackerStatus);
+  // ZCM8010 等: 手動JCで開始・終了時刻のみ反映し、Status自体はユーザーの手動操作でのみ決める
+  if (isManualStatusDecisionJobId(jobId)) {
+    const current = getStatus(kanriNo);
+    const infoOnlyUpdate: OperationStatusState = {
+      kanriNo,
+      status: current?.status,
+      startTime: trackerStatus.startTime ?? current?.startTime ?? null,
+      endTime: trackerStatus.endTime ?? current?.endTime ?? null,
+    };
+    updateStatus(infoOnlyUpdate);
+    return infoOnlyUpdate;
+  }
+
+  // 手動JC実行時は前提依存によるWAITING上書きを行わず、Tracker取得結果を直接反映する
+  updateStatus(trackerStatus);
+  return trackerStatus;
 }
 
 export async function syncReadyTrackerStatus(
   target: StatusTarget,
 ): Promise<void> {
-  if (!isTrackerTarget(target)) return;
+  if (!isAutoTrackerPollingTarget(target)) return;
 
   const kanriNo = normalizeKanriNo(target.kanriNo);
   if (getStatus(kanriNo)?.status !== JOB_STATUS.READY) return;
@@ -125,7 +153,7 @@ export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
       const kanriNo = normalizeKanriNo(target.kanriNo);
       if (!kanriNo) return;
 
-      if (!isTrackerTarget(target)) {
+      if (!isAutoTrackerPollingTarget(target)) {
         recalculateTargetStatus(kanriNo, activeFlags);
         return;
       }

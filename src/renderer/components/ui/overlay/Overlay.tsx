@@ -1,10 +1,7 @@
 // src/renderer/components/ui/overlay/Overlay.tsx
 
 import type { ReactNode } from "react";
-import { useShallow } from "zustand/react/shallow";
-
-import { useAppStore } from "@renderer/store";
-import type { InitStatus } from "@shared/types/initializationTypes";
+import { useAppStartupLoader, useProcessingLoader } from "./useOverlay";
 import * as styles from "./overlay.css";
 
 interface OverlayProps {
@@ -90,48 +87,8 @@ const LoadingOverlay = ({
   );
 };
 
-const PANEL_LABELS: Record<keyof InitStatus, string> = {
-  update: "App Update Check",
-  operation: "Operation Data",
-  irregular: "Irregular Data",
-  operationMaster: "Operation Master",
-  irregularMaster: "Irregular Master",
-  rdp: "RDP Master",
-  auth: "Google Auth",
-  store: "Store Master",
-  jugyoin: "jugyoin Master",
-  kokyuhyo: "kokyuhyo Data",
-  tantou: "tantou Data",
-};
-
-const getStatusTone = (value: string) => {
-  switch (value) {
-    case "OK":
-    case "CONNECTED":
-      return styles.tone.ok;
-    case "LOADING":
-      return styles.tone.info;
-    default:
-      return styles.tone.ng;
-  }
-};
-
 export const AppStartupLoader = () => {
-  const { initStatus, showAppLoader } = useAppStore(
-    useShallow((state) => ({
-      initStatus: state.initStatus,
-      showAppLoader: state.showAppLoader ?? true,
-    })),
-  );
-
-  const entries = Object.entries(initStatus) as Array<
-    [keyof InitStatus, string]
-  >;
-
-  const currentTargetEntry = entries.find(([, value]) => value === "LOADING");
-  const currentTarget = currentTargetEntry
-    ? PANEL_LABELS[currentTargetEntry[0]]
-    : null;
+  const { showAppLoader, currentTarget, statusRows } = useAppStartupLoader();
 
   return (
     <LoadingOverlay
@@ -142,10 +99,10 @@ export const AppStartupLoader = () => {
       {currentTarget && <LoaderTarget value={currentTarget} />}
 
       <div className={styles.statusPanel}>
-        {entries.map(([key, value]) => (
-          <div className={styles.statusRow} key={String(key)}>
-            <span>{PANEL_LABELS[key]}:</span>
-            <span className={getStatusTone(value)}>{value}</span>
+        {statusRows.map((row) => (
+          <div className={styles.statusRow} key={row.key}>
+            <span>{row.label}:</span>
+            <span className={row.toneClass}>{row.value}</span>
           </div>
         ))}
       </div>
@@ -154,9 +111,7 @@ export const AppStartupLoader = () => {
 };
 
 export const ProcessingLoader = () => {
-  const globalProcessing = useAppStore(
-    useShallow((state) => state.globalProcessing ?? null),
-  );
+  const globalProcessing = useProcessingLoader();
 
   if (!globalProcessing) {
     return null;

@@ -1,7 +1,42 @@
-﻿// src/renderer/styles/global/surfaces.css.ts
+// src/renderer/styles/global/surfaces.css.ts
 
-import { style } from "@vanilla-extract/css";
+import { style, type StyleRule } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
+
+/** ブランドグラデーションによるテキストクリップの StyleRule（selectors 内での展開用） */
+export const brandGradientTextRule: StyleRule = {
+  backgroundImage: tokens.gradient.brand,
+  WebkitBackgroundClip: "text",
+  backgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+  color: "transparent",
+};
+
+/** ブランドグラデーションによるテキストクリップ */
+export const brandGradientText = style(brandGradientTextRule);
+
+/** ::before 疑似要素を用いた GPU 合成ネオングロー用ルールを生成する */
+export function createBeforeGlowRule(
+  boxShadow: string,
+  options?: {
+    readonly inset?: number;
+    readonly borderRadius?: string;
+    readonly duration?: string;
+    readonly willChange?: string;
+  },
+): NonNullable<StyleRule["::before"]> {
+  return {
+    content: '""',
+    position: "absolute",
+    inset: options?.inset ?? -1,
+    borderRadius: options?.borderRadius ?? "inherit",
+    boxShadow,
+    opacity: 0,
+    transition: `opacity ${options?.duration ?? tokens.transition.glow}`,
+    pointerEvents: "none",
+    ...(options?.willChange ? { willChange: options.willChange } : {}),
+  };
+}
 
 /**
  * ホバー時にシアン発光（::before 疑似要素のフェード）と文字色ハイライトを
@@ -16,17 +51,11 @@ export const interactiveGlowCard = style({
   isolation: "isolate",
   transition: `color ${tokens.transition.fast}`,
 
-  "::before": {
-    content: '""',
-    position: "absolute",
+  "::before": createBeforeGlowRule(tokens.shadow.glowRaised.md, {
     inset: 0,
-    borderRadius: "inherit",
-    boxShadow: tokens.shadow.glowRaised.md,
-    opacity: 0,
-    transition: `opacity ${tokens.transition.normal}`,
-    pointerEvents: "none",
+    duration: tokens.transition.normal,
     willChange: "opacity",
-  },
+  }),
 
   selectors: {
     "&:hover": {
@@ -36,15 +65,6 @@ export const interactiveGlowCard = style({
       opacity: 1,
     },
   },
-});
-
-/** ブランドグラデーションによるテキストクリップ */
-export const brandGradientText = style({
-  backgroundImage: tokens.gradient.brand,
-  WebkitBackgroundClip: "text",
-  backgroundClip: "text",
-  WebkitTextFillColor: "transparent",
-  color: "transparent",
 });
 
 /** 単一行テキストの省略表示 */

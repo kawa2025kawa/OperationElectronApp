@@ -4,8 +4,12 @@ import fs from "fs-extra";
 import path from "node:path";
 import iconv from "iconv-lite";
 
-import { parseCsvLine } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
+import { readParsedCsv } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  resolveInputPaths,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const CONFIG = {
   inputFileName: "TENF0140.csv",
@@ -23,50 +27,27 @@ type JobResultData = {
 
 /**
  * TENF0140.csv を加工し、TENF0140.dat / TENF0140.dmy を生成・配置する。
- *
- * 業務上の要対応:
- * - 入力ファイルが不正（ファイル名不一致、複数指定など）
- * - CSV 内に有効なデータ行が存在しない
- *
- * システムエラー:
- * - ファイル読み込み・書き込み失敗
  */
 export async function runJobE5(
   inputFilePath?: string | string[],
 ): Promise<string> {
-  const logger = new JobLogger();
-
-  try {
+  return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
     const result = await processCostCsv(inputFilePath);
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-    throw logger.fail(`ファイル処理に失敗しました${detail}`);
-  }
+  });
 }
 
-/**
- * 入力ファイルパスを検証・解決する。
- */
 function resolveInputFilePath(inputFilePath?: string | string[]): {
   filePath: string | null;
   error?: string;
 } {
-  const filePath = Array.isArray(inputFilePath)
-    ? inputFilePath[0]
-    : inputFilePath;
+  const paths = resolveInputPaths(inputFilePath);
+  const filePath = paths.length === 1 ? paths[0] : undefined;
 
   if (
     !filePath ||
-    (Array.isArray(inputFilePath) && inputFilePath.length !== 1) ||
     path.basename(filePath).toLowerCase() !==
-      CONFIG.inputFileName.toLowerCase() ||
-    path.extname(filePath).toLowerCase() !== ".csv"
+      CONFIG.inputFileName.toLowerCase()
   ) {
     return {
       filePath: null,
@@ -89,21 +70,17 @@ function normalizeCode(value: string, digits: number): string {
   return Number.isFinite(number) ? String(number).padStart(digits, "0") : text;
 }
 
-/**
- * CSV テキストをパース・変換する。
- */
-function transformCsv(text: string): { rows: string[][]; error?: string } {
-  const lines = text.split(/\r?\n/).filter((line) => line.trim());
-
-  if (lines.length <= 1) {
+function transformRows(parsedRows: string[][]): {
+  rows: string[][];
+  error?: string;
+} {
+  if (parsedRows.length <= 1) {
     return { rows: [], error: "CSVに有効なデータ行がありません。" };
   }
 
   const rows: string[][] = [];
 
-  for (const line of lines.slice(1)) {
-    const columns = parseCsvLine(line);
-
+  for (const columns of parsedRows.slice(1)) {
     if (columns.length < 11) {
       continue;
     }
@@ -126,9 +103,6 @@ function transformCsv(text: string): { rows: string[][]; error?: string } {
   return { rows };
 }
 
-/**
- * 出力先フォルダの作成とデータ書き込みを実行する。
- */
 async function writeOutputFiles(rows: string[][]): Promise<string[]> {
   const outputText = `${rows.map((row) => row.join(",")).join("\r\n")}\r\n`;
   const outputBuffer = iconv.encode(outputText, CONFIG.encoding);
@@ -139,15 +113,13 @@ async function writeOutputFiles(rows: string[][]): Promise<string[]> {
     path.join(CONFIG.outputDir, fileName),
   );
 
-  await fs.writeFile(outputPaths[0], outputBuffer);
-  await fs.writeFile(outputPaths[1], outputBuffer);
+  await Promise.all(
+    outputPaths.map((outputPath) => fs.writeFile(outputPath, outputBuffer)),
+  );
 
   return outputPaths;
 }
 
-/**
- * CSV の読み込みとファイル変換を実行する。
- */
 async function processCostCsv(
   inputFilePath?: string | string[],
 ): Promise<JobResultData> {
@@ -160,8 +132,8 @@ async function processCostCsv(
     };
   }
 
-  const buffer = await fs.readFile(resolved.filePath);
-  const { rows, error } = transformCsv(iconv.decode(buffer, CONFIG.encoding));
+  const parsedRows = await readParsedCsv(resolved.filePath, CONFIG.encoding);
+  const { rows, error } = transformRows(parsedRows);
 
   if (error || rows.length === 0) {
     return {
@@ -179,9 +151,6 @@ async function processCostCsv(
   };
 }
 
-/**
- * 結果をログに出力し、ステータスを返却する。
- */
 function writeResultLog(logger: JobLogger, result: JobResultData): string {
   if (result.businessErrorMessage) {
     if (result.inputFilePath) {

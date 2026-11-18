@@ -1,9 +1,10 @@
 // electron/features/operation/jobs/scripts/numeric/job_34.ts
 
 import { format } from "date-fns";
-import fs from "fs-extra";
-import iconv from "iconv-lite";
-import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  readEncodedLines,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
@@ -13,49 +14,38 @@ const CONFIG = {
 } as const;
 
 export async function runJob34(): Promise<JobResult> {
-  const logger = new JobLogger();
-  const today = format(new Date(), "yyyy/MM/dd");
+  return runJobWithLogger(
+    `ログファイルの読み込みに失敗しました: ${CONFIG.logPath}`,
+    async (logger) => {
+      const today = format(new Date(), "yyyy/MM/dd");
+      logger.log(`ファイル : ${CONFIG.logPath}`);
 
-  logger.log(`ファイル : ${CONFIG.logPath}`);
+      const lines = await readEncodedLines(CONFIG.logPath, CONFIG.encoding);
+      const found = [...lines]
+        .reverse()
+        .find((line) => line.includes(today) && line.includes(CONFIG.keyboard));
 
-  try {
-    const text = iconv.decode(
-      await fs.readFile(CONFIG.logPath),
-      CONFIG.encoding,
-    );
+      if (!found) {
+        logger.log(`本日の売上取り込み終了ログが見つかりません (${today})`);
+        logger.log(`検索キーワード : "${CONFIG.keyboard}"`);
 
-    const found = text
-      .split(/\r?\n/)
-      .reverse()
-      .find((line) => line.includes(today) && line.includes(CONFIG.keyboard));
+        return {
+          success: true,
+          kind: "running",
+          message: logger.complete(
+            `本日の終了ログ未検出 (${today})。バックグラウンドで監視中`,
+          ),
+        };
+      }
 
-    if (!found) {
-      logger.log(`本日の売上取り込み終了ログが見つかりません (${today})`);
-      logger.log(`検索キーワード : "${CONFIG.keyboard}"`);
+      logger.log("検出ログ :");
+      logger.log(`    ${found.trim()}`);
 
       return {
         success: true,
-        kind: "running",
-        message: logger.complete(
-          `本日の終了ログ未検出 (${today})。バックグラウンドで監視中`,
-        ),
+        kind: "success",
+        message: logger.complete(),
       };
-    }
-
-    logger.log("検出ログ :");
-    logger.log(`    ${found.trim()}`);
-
-    return {
-      success: true,
-      kind: "success",
-      message: logger.complete(),
-    };
-  } catch (error: unknown) {
-    const detail =
-      error instanceof Error ? ` (${error.message})` : ` (${String(error)})`;
-
-    throw logger.fail(
-      `ログファイルの読み込みに失敗しました: ${CONFIG.logPath}${detail}`,
-    );
-  }
+    },
+  );
 }

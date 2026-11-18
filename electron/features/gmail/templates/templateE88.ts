@@ -1,16 +1,14 @@
 // electron/features/gmail/templates/templateE88.ts
 //新店シェルフラベル発注
 
+import { format, nextMonday } from "date-fns";
+import { ja } from "date-fns/locale";
 import type { GmailDraft } from "../gmailTypes";
 
 export function createTemplateE88(familyName = ""): GmailDraft {
-  // 翌週の月曜日を取得
-  const today = new Date();
-  const nextMonday = new Date(today);
-  const daysUntilNextMonday = (8 - today.getDay()) % 7 || 7;
-  nextMonday.setDate(today.getDate() + daysUntilNextMonday);
-
-  const deliveryDate = `${nextMonday.getMonth() + 1}月${nextMonday.getDate()}日(月)`;
+  const deliveryDate = format(nextMonday(new Date()), "M月d日(E)", {
+    locale: ja,
+  });
 
   return {
     to: "mw-data@tkcc-jp.com",

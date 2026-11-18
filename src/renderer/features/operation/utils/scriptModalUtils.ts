@@ -1,12 +1,13 @@
-﻿// src/renderer/features/operation/utils/scriptModalUtils.ts
+// src/renderer/features/operation/utils/scriptModalUtils.ts
 
 import { SCRIPT_MODAL_MESSAGES } from "@renderer/features/operation/components/modal/scriptModal/scriptModalConstants";
+import {
+  toResolvedFileItem,
+  type ResolvedFileItem,
+} from "@renderer/utils/filePathUtils";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
-export interface ScriptFileItem {
-  name: string;
-  path: string;
-}
+export type ScriptFileItem = ResolvedFileItem;
 
 export type ScriptExecutionState =
   | "idle"
@@ -19,21 +20,11 @@ export interface InfoBoxMessage {
   type: "info" | "success" | "warning" | "error";
 }
 
-function getFilePath(file: File): string {
-  if ("path" in file && typeof file.path === "string") {
-    return file.path;
-  }
-
-  return window.electronAPI.getFilePath(file) || file.name;
-}
-
 export function toScriptFileItems(files: File[]): ScriptFileItem[] {
-  return files
-    .map((file) => ({
-      name: file.name,
-      path: getFilePath(file),
-    }))
-    .filter(({ path }) => Boolean(path));
+  return files.flatMap((file) => {
+    const item = toResolvedFileItem(file, true);
+    return item ? [item] : [];
+  });
 }
 
 export function getScriptExecutionState(

@@ -1,8 +1,11 @@
-﻿// src/renderer/features/operation/components/modal/scriptModal/scriptModalContent.css.ts
+// src/renderer/features/operation/components/modal/scriptModal/scriptModalContent.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { textEllipsis } from "@renderer/styles/global/surfaces.css";
+import {
+  createBeforeGlowRule,
+  textEllipsis,
+} from "@renderer/styles/global/surfaces.css";
 
 export const contentFlexContainer = style({
   display: "flex",
@@ -118,17 +121,10 @@ export const linkCardButton = style({
   isolation: "isolate",
   transition: `border-color ${tokens.transition.fast}`,
 
-  "::before": {
-    content: '""',
-    position: "absolute",
-    inset: -1,
+  "::before": createBeforeGlowRule(tokens.shadow.glowRaised.md, {
     borderRadius: tokens.radius.md,
-    boxShadow: tokens.shadow.glowRaised.md,
-    opacity: 0,
-    transition: `opacity ${tokens.transition.glow}`,
-    pointerEvents: "none",
     willChange: "opacity",
-  },
+  }),
 
   selectors: {
     "&:hover, &:focus-visible": {

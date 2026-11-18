@@ -10,9 +10,13 @@ import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/job
 import { createZipArchive } from "@electron/features/operation/jobs/scripts/helpers/zipHelper";
 import {
   directoryExists,
-  fileExists,
   getDateKey,
 } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import {
+  assertPathNotExists,
+  resolveInputPaths,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const CONFIG = {
   tanpinPrefix: "ＴＶ売上",
@@ -41,119 +45,83 @@ type JobResultData = {
 
 /**
  * ベルクTV売上（単品売上・部門別売上）Excelファイルを加工し、ZIPアーカイブを作成する。
- *
- * 入力ファイル:
- * - ＴＶ売上... / 05 部門別売上... Excelファイル
- *
- * 業務上の要対応:
- * - なし（正常完了後、成果物ZIPを返却）
- *
- * システムエラー:
- * - 入力ファイル未指定・対象外ファイル
- * - 出力先フォルダ・ZIPの重複
- * - Excelシート読み込み・加工失敗
- * - ZIPアーカイブ作成失敗
  */
 export async function runJobE14(
   inputFilePath?: string | string[],
 ): Promise<JobResult> {
-  const logger = new JobLogger();
-  const inputPaths = resolveInputPaths(inputFilePath);
+  return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
+    const inputPaths = resolveInputPaths(inputFilePath);
 
-  if (inputPaths.length === 0) {
-    throw logger.fail(
-      "入力ファイルが指定されていません。対象のファイルをドロップしてください。",
+    if (inputPaths.length === 0) {
+      throw logger.fail(
+        "入力ファイルが指定されていません。対象のファイルをドロップしてください。",
+      );
+    }
+
+    const baseDir = path.dirname(inputPaths[0]);
+    const targetMonth = getDateKey(subMonths(new Date(), 1), "yyyyMM");
+    const zipPrefix = `${targetMonth}${CONFIG.outputFolderSuffix}`;
+    const outputFolderPath = path.join(baseDir, zipPrefix);
+    const expectedZipPath = path.join(
+      baseDir,
+      `${zipPrefix}_${getDateKey()}.zip`,
     );
-  }
 
-  const baseDir = path.dirname(inputPaths[0]);
-  const targetMonth = getDateKey(subMonths(new Date(), 1), "yyyyMM");
-  const zipPrefix = `${targetMonth}${CONFIG.outputFolderSuffix}`;
-  const outputFolderPath = path.join(baseDir, zipPrefix);
-  const expectedZipPath = path.join(
-    baseDir,
-    `${zipPrefix}_${getDateKey()}.zip`,
-  );
-
-  try {
-    if (await directoryExists(outputFolderPath)) {
-      throw new Error(
+    try {
+      await assertPathNotExists(
+        outputFolderPath,
         `既にフォルダが存在します。\n${outputFolderPath}\nフォルダを削除後、再度実施して下さい。`,
       );
-    }
-
-    if (await fileExists(expectedZipPath)) {
-      throw new Error(
+      await assertPathNotExists(
+        expectedZipPath,
         `既にZIPファイルが存在します。\n${expectedZipPath}\nZIPファイルを削除後、再度実施して下さい。`,
       );
-    }
 
-    await fs.ensureDir(outputFolderPath);
+      await fs.ensureDir(outputFolderPath);
 
-    const processedFiles = await processAllFiles(
-      inputPaths,
-      outputFolderPath,
-      targetMonth,
-    );
-
-    if (processedFiles.length === 0) {
-      throw new Error(
-        "対象のファイル（ＴＶ売上 / 05 部門別売上）が含まれていません。",
+      const processedFiles = await processAllFiles(
+        inputPaths,
+        outputFolderPath,
+        targetMonth,
       );
+
+      if (processedFiles.length === 0) {
+        throw new Error(
+          "対象のファイル（ＴＶ売上 / 05 部門別売上）が含まれていません。",
+        );
+      }
+
+      const outputZipPath = await createZipArchive({
+        filePaths: processedFiles.map((file) => file.outputPath),
+        outputDir: baseDir,
+        zipPrefix,
+      });
+
+      if (!outputZipPath) {
+        throw new Error("ZIPアーカイブの作成に失敗しました。");
+      }
+
+      const result: JobResultData = {
+        targetMonth,
+        processedFiles,
+        outputZipPath,
+      };
+
+      return writeResultLog(logger, result);
+    } finally {
+      if (await directoryExists(outputFolderPath)) {
+        await fs.remove(outputFolderPath);
+      }
     }
-
-    const outputZipPath = await createZipArchive({
-      filePaths: processedFiles.map((file) => file.outputPath),
-      outputDir: baseDir,
-      zipPrefix,
-    });
-
-    if (!outputZipPath) {
-      throw new Error("ZIPアーカイブの作成に失敗しました。");
-    }
-
-    const result: JobResultData = {
-      targetMonth,
-      processedFiles,
-      outputZipPath,
-    };
-
-    return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-
-    throw logger.fail(`ファイル処理に失敗しました${detail}`);
-  } finally {
-    if (await directoryExists(outputFolderPath)) {
-      await fs.remove(outputFolderPath);
-    }
-  }
+  });
 }
 
-/**
- * 入力ファイルパス配列を平坦化・検証する。
- */
-function resolveInputPaths(inputFilePath?: string | string[]): string[] {
-  if (!inputFilePath) return [];
-  return Array.isArray(inputFilePath) ? inputFilePath : [inputFilePath];
-}
-
-/**
- * ファイル名からファイル種別を判定する。
- */
 function getFileType(fileName: string): E14FileType | null {
   if (fileName.startsWith(CONFIG.tanpinPrefix)) return "tanpin";
   if (fileName.startsWith(CONFIG.bumonPrefix)) return "bumon";
   return null;
 }
 
-/**
- * 指定されたExcelファイルを全件順次加工する。
- */
 async function processAllFiles(
   inputPaths: string[],
   outputFolderPath: string,
@@ -194,9 +162,6 @@ async function processAllFiles(
   return processedFiles;
 }
 
-/**
- * Excelワークシートをロードする。
- */
 async function loadWorksheet(filePath: string): Promise<{
   workbook: ExcelJS.Workbook;
   worksheet: ExcelJS.Worksheet;
@@ -213,9 +178,6 @@ async function loadWorksheet(filePath: string): Promise<{
   return { workbook, worksheet };
 }
 
-/**
- * 加工後ワークブックを保存する。
- */
 async function saveWorkbook(
   workbook: ExcelJS.Workbook,
   outputPath: string,
@@ -224,9 +186,6 @@ async function saveWorkbook(
   await workbook.xlsx.writeFile(outputPath);
 }
 
-/**
- * 部門別売上Excelの加工処理。
- */
 async function processBumon(
   inputPath: string,
   outputPath: string,
@@ -238,9 +197,6 @@ async function processBumon(
   await saveWorkbook(workbook, outputPath);
 }
 
-/**
- * 単品売上Excelの加工処理。
- */
 async function processTanpin(
   inputPath: string,
   outputPath: string,
@@ -287,9 +243,6 @@ async function processTanpin(
   await saveWorkbook(workbook, outputPath);
 }
 
-/**
- * 加工結果をログ出力し、JobResult を返却する。
- */
 function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {
   logger.section("対象年月");
   logger.log(result.targetMonth);

@@ -1,7 +1,10 @@
 // electron/features/operation/jobs/scripts/numeric/job_62.ts
 
-import fs from "fs-extra";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  listFilesInDir,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
@@ -29,44 +32,16 @@ type JobResultData = {
 
 /**
  * 指定フォルダ内のキーワード別ファイル件数が想定通りであるかを確認する。
- *
- * 監視継続 (running):
- * - 各キーワードのファイル件数が期待値未満（未着）の場合（バックグラウンドでポーリング監視）
- *
- * 業務上の要対応 (needsAction):
- * - 各キーワードのファイル件数が期待値を超過している場合
- *
- * システムエラー:
- * - 対象フォルダへのアクセス失敗
  */
 export async function runJob62(): Promise<JobResult> {
-  const logger = new JobLogger();
-
-  try {
+  return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
     const result = await checkExpectedFiles();
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-    throw logger.fail(`ファイル処理に失敗しました${detail}`);
-  }
+  });
 }
 
-/**
- * フォルダを走査し、期待されるファイル件数との突合を行う。
- */
 async function checkExpectedFiles(): Promise<JobResultData> {
-  const entries = await fs.readdir(CONFIG.targetDir, {
-    withFileTypes: true,
-  });
-
-  const fileNames = entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name);
+  const fileNames = await listFilesInDir(CONFIG.targetDir);
 
   const missingErrors: string[] = [];
   const excessErrors: string[] = [];
@@ -103,9 +78,6 @@ async function checkExpectedFiles(): Promise<JobResultData> {
   };
 }
 
-/**
- * 突合結果をログに出力し、JobResult を返却する。
- */
 function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {
   logger.log(`対象フォルダ : ${result.targetDir}`);
 

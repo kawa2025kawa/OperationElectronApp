@@ -1,11 +1,13 @@
-/**
- * electron/features/operation/jobs/scripts/numeric/job_20.ts
- */
+// electron/features/operation/jobs/scripts/numeric/job_20.ts
 
 import fs from "fs-extra";
 import path from "node:path";
 import { addDays, format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  listFilesInDir,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const CONFIG = {
   targetDir: "\\\\172.25.101.51\\if\\AUTOORD\\RCV\\SV",
@@ -33,56 +35,29 @@ type Job20CheckResult = {
 
 /**
  * 本日分と先週分の対象ファイルを比較する。
- *
- * 正常終了条件:
- * - 本日分と先週分の対象ファイルが存在する
- * - ファイルサイズの差分が許容閾値以内
- *
- * 業務上の要対応:
- * - 本日分または先週分の対象ファイルが存在しない
- * - ファイルサイズの差分が許容閾値を超えている
- *
- * システムエラー:
- * - 対象フォルダへのアクセス失敗
- * - ファイル情報の取得失敗
  */
 export async function runJob20(): Promise<string> {
-  const logger = new JobLogger();
-
-  try {
-    const result = await findTargetFiles();
-    return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    const detail =
-      error instanceof Error ? ` (${error.message})` : ` (${String(error)})`;
-
-    throw logger.fail(
-      `対象ファイルの確認中にシステムエラーが発生しました: ${CONFIG.targetDir}${detail}`,
-    );
-  }
+  return runJobWithLogger(
+    `対象ファイルの確認中にシステムエラーが発生しました: ${CONFIG.targetDir}`,
+    async (logger) => {
+      const result = await findTargetFiles();
+      return writeResultLog(logger, result);
+    },
+  );
 }
 
-/**
- * 指定日付キーに一致する対象ファイルを1件取得する。
- */
-async function findTargetFile(dateKey: string): Promise<string | null> {
-  const entries = await fs.readdir(CONFIG.targetDir, {
-    withFileTypes: true,
-  });
-
-  const targetFile = entries.find(
-    (entry) =>
-      entry.isFile() &&
-      entry.name.includes(CONFIG.targetFileKeyword) &&
-      entry.name.includes(dateKey),
+async function findTargetFile(
+  fileNames: readonly string[],
+  dateKey: string,
+): Promise<string | null> {
+  const targetFile = fileNames.find(
+    (name) =>
+      name.includes(CONFIG.targetFileKeyword) && name.includes(dateKey),
   );
 
-  return targetFile ? path.join(CONFIG.targetDir, targetFile.name) : null;
+  return targetFile ? path.join(CONFIG.targetDir, targetFile) : null;
 }
 
-/**
- * ファイル情報を取得する。
- */
 async function getFileInfo(filePath: string): Promise<FileInfo> {
   const stats = await fs.stat(filePath);
 
@@ -93,18 +68,13 @@ async function getFileInfo(filePath: string): Promise<FileInfo> {
   };
 }
 
-/**
- * 本日分と先週分のファイルを取得し、サイズ差分を判定する。
- *
- * ファイルが見つからない場合は業務上の判定結果として返す。
- * ファイルシステムの例外は呼び出し元へ伝播する。
- */
 async function findTargetFiles(): Promise<Job20CheckResult> {
   const now = new Date();
   const todayKey = format(now, "yyMMdd");
   const lastWeekKey = format(addDays(now, -CONFIG.comparisonDays), "yyMMdd");
+  const fileNames = await listFilesInDir(CONFIG.targetDir);
 
-  const todayPath = await findTargetFile(todayKey);
+  const todayPath = await findTargetFile(fileNames, todayKey);
 
   if (todayPath === null) {
     return {
@@ -121,7 +91,7 @@ async function findTargetFiles(): Promise<Job20CheckResult> {
 
   const todayFile = await getFileInfo(todayPath);
 
-  const lastWeekPath = await findTargetFile(lastWeekKey);
+  const lastWeekPath = await findTargetFile(fileNames, lastWeekKey);
 
   if (lastWeekPath === null) {
     return {
@@ -164,9 +134,6 @@ async function findTargetFiles(): Promise<Job20CheckResult> {
   };
 }
 
-/**
- * 検索結果とサイズ比較結果をログに出力する。
- */
 function writeResultLog(logger: JobLogger, result: Job20CheckResult): string {
   logger.log(`対象フォルダ : ${result.targetDir}`);
 

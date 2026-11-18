@@ -53,6 +53,8 @@ interface InFlightRequest {
   promise: Promise<AuthSession | null>;
 }
 
+type InFlightSlot = "refreshRequest" | "profileRequest";
+
 class AuthService {
   private refreshRequest: InFlightRequest | null = null;
   private profileRequest: InFlightRequest | null = null;
@@ -149,15 +151,22 @@ class AuthService {
       return null;
     }
 
-    return this.performCoalescedRefresh(currentSession, generation);
+    return this.coalesceSessionRequest(
+      "refreshRequest",
+      currentSession,
+      generation,
+      () => this.executeRefresh(currentSession, generation),
+    );
   }
 
-  // 同一セッションに対するトークン更新要求を集約する
-  private async performCoalescedRefresh(
+  // 同一セッション・世代に対する並行リクエストを1つに集約する
+  private async coalesceSessionRequest(
+    slot: InFlightSlot,
     session: AuthSession,
     generation: number,
+    runner: () => Promise<AuthSession | null>,
   ): Promise<AuthSession | null> {
-    const existing = this.refreshRequest;
+    const existing = this[slot];
     if (
       existing?.generation === generation &&
       existing.accessToken === session.accessToken
@@ -168,17 +177,16 @@ class AuthService {
     const request: InFlightRequest = {
       generation,
       accessToken: session.accessToken,
-      promise: Promise.resolve(null),
+      promise: runner(),
     };
 
-    request.promise = this.executeRefresh(session, generation);
-    this.refreshRequest = request;
+    this[slot] = request;
 
     try {
       return await request.promise;
     } finally {
-      if (this.refreshRequest === request) {
-        this.refreshRequest = null;
+      if (this[slot] === request) {
+        this[slot] = null;
       }
     }
   }
@@ -232,54 +240,38 @@ class AuthService {
     session: AuthSession,
   ): Promise<AuthSession | null> {
     const generation = getTokenGeneration();
-    const existing = this.profileRequest;
 
-    if (
-      existing?.generation === generation &&
-      existing.accessToken === session.accessToken
-    ) {
-      return existing.promise;
-    }
-
-    const request: InFlightRequest = {
+    return this.coalesceSessionRequest(
+      "profileRequest",
+      session,
       generation,
-      accessToken: session.accessToken,
-      promise: Promise.resolve(null),
-    };
-
-    request.promise = (async () => {
-      const profile = await fetchGoogleUserInfo(session.accessToken);
-      if (generation !== getTokenGeneration()) {
-        return loadToken();
-      }
-
-      if (!profile.email && !profile.familyName) {
-        const currentSession = await loadToken();
-        if (
-          generation !== getTokenGeneration() ||
-          !currentSession ||
-          currentSession.accessToken !== session.accessToken
-        ) {
+      async () => {
+        const profile = await fetchGoogleUserInfo(session.accessToken);
+        if (generation !== getTokenGeneration()) {
           return loadToken();
         }
-        return currentSession;
-      }
 
-      return (
-        (await updateTokenProfile(profile, session.accessToken, generation)) ??
-        loadToken()
-      );
-    })();
+        if (!profile.email && !profile.familyName) {
+          const currentSession = await loadToken();
+          if (
+            generation !== getTokenGeneration() ||
+            !currentSession ||
+            currentSession.accessToken !== session.accessToken
+          ) {
+            return loadToken();
+          }
+          return currentSession;
+        }
 
-    this.profileRequest = request;
-
-    try {
-      return await request.promise;
-    } finally {
-      if (this.profileRequest === request) {
-        this.profileRequest = null;
-      }
-    }
+        return (
+          (await updateTokenProfile(
+            profile,
+            session.accessToken,
+            generation,
+          )) ?? loadToken()
+        );
+      },
+    );
   }
 
   // 認証トークンを付与してGoogle APIへ送信する

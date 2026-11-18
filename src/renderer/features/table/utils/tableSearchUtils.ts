@@ -1,21 +1,7 @@
-﻿// src/renderer/features/table/utils/tableSearchUtils.ts
+// src/renderer/features/table/utils/tableSearchUtils.ts
 
 import type { Row, RowData, TableFeatures } from "@tanstack/react-table";
-
-// オブジェクトからドット区切りのパスで値を取得する。
-function getValueByPath(value: unknown, path: string): unknown {
-  return path.split(".").reduce<unknown>((current, key) => {
-    if (
-      current === null ||
-      current === undefined ||
-      typeof current !== "object"
-    ) {
-      return undefined;
-    }
-
-    return (current as Record<string, unknown>)[key];
-  }, value);
-}
+import { getRawValueByPath } from "@shared/utils/getValueByPath";
 
 // 値に検索文字列が含まれるか判定する。
 function includesSearchTerm(value: unknown, term: string): boolean {
@@ -63,7 +49,7 @@ export function createRegistryGlobalFilter<
 
     if (searchKeys.length > 0) {
       result = searchKeys.some((key) =>
-        includesSearchTerm(getValueByPath(original, key), term),
+        includesSearchTerm(getRawValueByPath(original, key), term),
       );
     } else if (
       original === null ||

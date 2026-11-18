@@ -4,6 +4,7 @@ import path from "node:path";
 import fs from "fs-extra";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import { getStatus } from "@electron/features/operation/application/statusManager";
 import {
   JOB_STATUS,
@@ -38,42 +39,14 @@ type JobResultData = {
 
 /**
  * 管理番号49のステータスに応じた受信フォルダから、対象キーワードを含む最新ファイルの存在を確認する。
- *
- * 確認先:
- * - 管理番号49が READY / WAITING: \\172.25.101.51\if\WMSSLIP\RCV
- * - それ以外: \\172.25.101.51\if\WMSSLIP\RCV\SV
- *
- * 監視継続 (running):
- * - 対象キーワードのファイルが存在しない（未検出）場合（ポーリング監視へ委ねる）
- *
- * 正常終了 (success):
- * - すべての対象キーワードのファイルが検出された場合
- *
- * システムエラー:
- * - フォルダへのアクセス失敗
- * - ファイル情報取得失敗
  */
 export async function runJobN12(): Promise<JobResult> {
-  const logger = new JobLogger();
-
-  try {
+  return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
     const result = await checkTargetFiles();
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-
-    throw logger.fail(`ファイル処理に失敗しました${detail}`);
-  }
+  });
 }
 
-/**
- * 管理番号49のステータスを基に対象フォルダを決定する。
- */
 function resolveTargetDir(): string {
   const status = getStatus(CONFIG.refKanriNo)?.status;
 
@@ -87,9 +60,6 @@ function resolveTargetDir(): string {
     : CONFIG.targetDirSv;
 }
 
-/**
- * 対象フォルダから指定キーワードを含む最新ファイルを探索する。
- */
 async function findLatestFile(
   directory: string,
   files: string[],
@@ -116,9 +86,6 @@ async function findLatestFile(
   return latest;
 }
 
-/**
- * 対象フォルダを走査し、キーワードごとのファイル存在を検証する。
- */
 async function checkTargetFiles(): Promise<JobResultData> {
   const targetDir = resolveTargetDir();
 
@@ -147,9 +114,6 @@ async function checkTargetFiles(): Promise<JobResultData> {
   };
 }
 
-/**
- * 検索結果をログに出力し、JobResult を返却する。
- */
 function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {
   logger.section("対象フォルダ");
   logger.log(result.targetDir);

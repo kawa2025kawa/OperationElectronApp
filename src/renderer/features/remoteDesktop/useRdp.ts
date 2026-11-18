@@ -1,13 +1,11 @@
-﻿// src/renderer/features/remoteDesktop/useRdp.ts
+// src/renderer/features/remoteDesktop/useRdp.ts
 
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { rdpIpcService } from "@renderer/services/rdpIpcService";
+import { toErrorMessage } from "@renderer/utils/errorUtils";
 import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
-
-const getErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
 
 /** RDP 接続先の取得・起動を管理する */
 export const useRdp = () => {
@@ -25,7 +23,7 @@ export const useRdp = () => {
       const targets = await rdpIpcService.getMasters();
       setRdpTargets(targets);
     } catch (error: unknown) {
-      toast.error(`RDP取得エラー: ${getErrorMessage(error)}`);
+      toast.error(`RDP取得エラー: ${toErrorMessage(error)}`);
     } finally {
       isFetchingRef.current = false;
       setIsRdpLoading(false);
@@ -37,7 +35,7 @@ export const useRdp = () => {
     try {
       await rdpIpcService.startSession(name);
     } catch (error: unknown) {
-      toast.error(`RDP起動エラー: ${getErrorMessage(error)}`);
+      toast.error(`RDP起動エラー: ${toErrorMessage(error)}`);
     }
   }, []);
 

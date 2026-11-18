@@ -1,6 +1,5 @@
 // electron/features/operation/application/operationQueryService.ts
 
-import { isRunningStatus } from "@electron/features/operation/domain/operationRules";
 import {
   getScriptExecutionRequirement,
   getScriptKeysForOperation,
@@ -15,10 +14,8 @@ import {
 import {
   EMPTY_STATUS_SUMMARY,
   type StatusSummary,
-  type SummaryDetailRow,
 } from "@shared/types/statusSummary/statusSummaryTypes";
 import type {
-  JobStatus,
   OperationScriptKey,
   OperationStatusState,
   OperationViewItem,
@@ -54,52 +51,6 @@ export function getStatusSummary(): StatusSummary {
     summary.total > 0 ? Math.round((summary.success / summary.total) * 100) : 0;
 
   return summary;
-}
-
-// サマリーフィルターとステータスの一致を判定する。
-function matchesSummaryFilter(
-  normalizedFilter: string,
-  status: JobStatus | undefined,
-): boolean {
-  if (normalizedFilter === "total") {
-    return true;
-  }
-
-  if (normalizedFilter === "progress") {
-    return isRunningStatus(status);
-  }
-
-  return Boolean(status && status.toLowerCase() === normalizedFilter);
-}
-
-// 指定されたフィルター条件に合致するステータス詳細行を取得する。
-export function getSummaryDetails(filterKey: string): SummaryDetailRow[] {
-  const targets = getTargets();
-  const statuses = getStatuses();
-  const normalizedFilter = filterKey.trim().toLowerCase();
-
-  const results: SummaryDetailRow[] = [];
-
-  for (const [, target] of targets) {
-    const statusState = statuses.get(target.kanriNo);
-    const currentStatus = statusState?.status;
-
-    if (!matchesSummaryFilter(normalizedFilter, currentStatus)) {
-      continue;
-    }
-
-    results.push({
-      kanriNo: target.kanriNo,
-      workName: getWorkName(target.workName, target.kanriNo),
-      status: currentStatus,
-      comment: statusState?.comment ?? undefined,
-      ...("jobId" in target && target.jobId !== undefined
-        ? { jobId: String(target.jobId).trim() }
-        : {}),
-    });
-  }
-
-  return results;
 }
 
 // ターゲット情報に最新ステータスと実行要件を付与してUI表示用に整形する。

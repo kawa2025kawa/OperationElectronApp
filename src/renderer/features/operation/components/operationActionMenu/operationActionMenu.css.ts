@@ -1,12 +1,12 @@
 // src/renderer/features/operation/components/operationActionMenu/operationActionMenu.css.ts
 
 import { style } from "@vanilla-extract/css";
-
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-
-import { brandGradientText } from "@renderer/styles/global/surfaces.css";
-
-const glowTransition = tokens.transition.glow;
+import {
+  brandGradientText,
+  brandGradientTextRule,
+  createBeforeGlowRule,
+} from "@renderer/styles/global/surfaces.css";
 
 export const menuButton = style([
   brandGradientText,
@@ -27,18 +27,12 @@ export const menuButton = style([
     backgroundColor: tokens.color.bg.base,
     boxShadow: tokens.shadow.raised.high,
     outline: "none",
-    transition: `border-color ${glowTransition}, opacity ${tokens.transition.fast}`,
+    transition: `border-color ${tokens.transition.glow}, opacity ${tokens.transition.fast}`,
 
-    "::before": {
-      content: '""',
-      position: "absolute",
-      inset: -1,
-      borderRadius: tokens.radius.full,
-      boxShadow: `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
-      opacity: 0,
-      transition: `opacity ${glowTransition}`,
-      pointerEvents: "none",
-    },
+    "::before": createBeforeGlowRule(
+      `${tokens.shadow.glow.cyan}, ${tokens.shadow.pressed.low}`,
+      { borderRadius: tokens.radius.full },
+    ),
 
     selectors: {
       "&:hover:not(:disabled)::before": {
@@ -152,12 +146,7 @@ export const menuItemLabel = style({
   lineHeight: 1.15,
 
   selectors: {
-    [`${menuItem}:hover &, ${menuItem}[data-highlighted] &`]: {
-      backgroundImage: tokens.gradient.brand,
-      WebkitBackgroundClip: "text",
-      backgroundClip: "text",
-      WebkitTextFillColor: "transparent",
-      color: "transparent",
-    },
+    [`${menuItem}:hover &, ${menuItem}[data-highlighted] &`]:
+      brandGradientTextRule,
   },
 });

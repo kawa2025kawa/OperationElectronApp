@@ -18,14 +18,11 @@ import type {
 } from "@shared/types/operation/operationTypes";
 import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
-import type {
-  StatusSummary,
-  SummaryDetailRow,
-} from "@shared/types/statusSummary/statusSummaryTypes";
+import type { StatusSummary } from "@shared/types/statusSummary/statusSummaryTypes";
 import type { UpdateInfo } from "@shared/types/system";
 
 /**
- * Electron IPC チャンネル名定数
+- Electron IPC チャンネル名定数
  */
 export const IPC_CHANNELS = {
   AUTH: {
@@ -66,7 +63,6 @@ export const IPC_CHANNELS = {
   },
   OPERATION: {
     GET_STATUS_SUMMARY: "operation:getStatusSummary",
-    GET_SUMMARY_DETAILS: "operation:getSummaryDetails",
     GET_TABLE_DATA: "operation:getTableData",
     GET_SCRIPT_EXECUTION_REQUIREMENT: "operation:getScriptExecutionRequirement",
     RESET_STATUSES: "operation:resetStatusesFromSpreadsheet",
@@ -89,7 +85,7 @@ export const IPC_CHANNELS = {
 } as const;
 
 /**
- * Renderer が受信する IPC イベントの型定義
+- Renderer が受信する IPC イベントの型定義
  */
 export interface IpcEventMap {
   [IPC_CHANNELS.SYSTEM.THEME_CHANGED]: [theme: "light" | "dark" | "system"];
@@ -100,7 +96,7 @@ export interface IpcEventMap {
 }
 
 /**
- * Tempomatic アップロード対象ファイル
+- Tempomatic アップロード対象ファイル
  */
 export interface TempomaticUploadTargetFile {
   path: string;
@@ -108,7 +104,7 @@ export interface TempomaticUploadTargetFile {
 }
 
 /**
- * スプレッドシート Status 引き継ぎ同期のメタデータ・入出力型
+- スプレッドシート Status 引き継ぎ同期のメタデータ・入出力型
  */
 export interface StatusSyncMetadata {
   operatorName: string;
@@ -139,10 +135,10 @@ export interface LoadStatusSyncResult {
 }
 
 /**
- * IPC チャンネルごとの引数・戻り値定義
+- IPC チャンネルごとの引数・戻り値定義
  *
- * Renderer と Main の間で受け渡すデータ契約を一元管理する。
- * Main 専用の型や認証情報は公開しない。
+- Renderer と Main の間で受け渡すデータ契約を一元管理する。
+- Main 専用の型や認証情報は公開しない。
  */
 interface IpcChannelDefinitions {
   // Auth
@@ -208,9 +204,6 @@ interface IpcChannelDefinitions {
   // Operation
   [IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS]: () => ActiveFlags;
   [IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY]: () => StatusSummary;
-  [IPC_CHANNELS.OPERATION.GET_SUMMARY_DETAILS]: (input: {
-    filterKey: string;
-  }) => SummaryDetailRow[];
   [IPC_CHANNELS.OPERATION.GET_TABLE_DATA]: (input: {
     mode: ViewMode;
   }) => OperationViewItem[];
@@ -252,7 +245,7 @@ interface IpcChannelDefinitions {
 }
 
 /**
- * invoke / ipcMain.handle 共通の引数・戻り値マッピング
+- invoke / ipcMain.handle 共通の引数・戻り値マッピング
  */
 export type IpcChannelMap = {
   [K in keyof IpcChannelDefinitions]: {

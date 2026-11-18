@@ -1,14 +1,13 @@
-﻿// src/renderer/features/operation/components/modal/scriptModal/ScriptModalContent.tsx
+// src/renderer/features/operation/components/modal/scriptModal/ScriptModalContent.tsx
 
-import { memo, useCallback, useEffect, useMemo } from "react";
-import type { OperationViewItem } from "@shared/types/operation/operationTypes";
+import { memo } from "react";
+import type {
+  JobArtifact,
+  OperationViewItem,
+} from "@shared/types/operation/operationTypes";
 import { FileDropZone } from "@renderer/components/ui/fileDropZone/FileDropZone";
-import { operationService } from "@renderer/features/operation/service/operationService";
-import { useAppStore } from "@renderer/store";
-import type { GlobalModalComponent, ModalAction } from "@shared/types/ui/modal";
-import type { JobArtifact } from "@shared/types/operation/operationTypes";
+import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import { useScriptModalContent } from "./useScriptModalContent";
-import { SCRIPT_MODAL_LABELS } from "./scriptModalConstants";
 import * as styles from "./scriptModalContent.css";
 
 interface ScriptModalContentProps {
@@ -19,47 +18,6 @@ interface ScriptModalContentProps {
 export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
   memo(function ScriptModalContent({ item, scriptKey }) {
     const { state, actions } = useScriptModalContent(item, scriptKey);
-    const updateModalConfig = useAppStore((s) => s.updateModalConfig);
-
-    const rightActions = useMemo<ModalAction[]>(() => {
-      if (state.isFinished) {
-        return [];
-      }
-
-      return [
-        {
-          id: "cancel",
-          label: SCRIPT_MODAL_LABELS.CANCEL_BUTTON,
-          onClick: actions.handleClose,
-          disabled: state.isExecuting,
-        },
-        {
-          id: "execute",
-          label: state.isExecuting
-            ? SCRIPT_MODAL_LABELS.EXECUTING_BUTTON
-            : SCRIPT_MODAL_LABELS.EXECUTE_BUTTON,
-          onClick: actions.handleExecute,
-          disabled: state.isExecuteDisabled || state.isExecuting,
-          variant: "default",
-        },
-      ];
-    }, [
-      state.isFinished,
-      state.isExecuting,
-      state.isExecuteDisabled,
-      actions.handleClose,
-      actions.handleExecute,
-    ]);
-
-    useEffect(() => {
-      updateModalConfig({ rightActions });
-    }, [rightActions, updateModalConfig]);
-
-    const handleOpenArtifact = useCallback((path: string) => {
-      void operationService
-        .openExternal(path, "成果物を開けませんでした")
-        .catch(() => undefined);
-    }, []);
 
     return (
       <div className={styles.contentFlexContainer}>
@@ -85,22 +43,23 @@ export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
                   <div className={styles.artifactList}>
                     {state.executionResult.artifacts.map(
                       (artifact: JobArtifact, index: number) => {
-                        if (!artifact.path) return null;
+                        const artifactPath = artifact.path;
+                        if (!artifactPath) return null;
 
                         return (
                           <button
-                            key={artifact.path || index}
+                            key={artifactPath || index}
                             type="button"
                             className={styles.linkCardButton}
-                            onClick={() => handleOpenArtifact(artifact.path!)}
+                            onClick={() =>
+                              actions.handleOpenArtifact(artifactPath)
+                            }
                           >
                             <span className={styles.linkLabel}>
-                              {artifact.name ??
-                                SCRIPT_MODAL_LABELS.DEFAULT_ARTIFACT_NAME}
-                              :
+                              {artifact.name ?? state.defaultArtifactName}:
                             </span>
                             <span className={styles.linkValue}>
-                              {artifact.path}
+                              {artifactPath}
                             </span>
                           </button>
                         );

@@ -6,18 +6,44 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
-  type UIEvent,
 } from "react";
+import { useTable, type ColumnFiltersState } from "@tanstack/react-table";
 import { useShallow } from "zustand/shallow";
 
+import { usePersistentScroll } from "@renderer/hooks/usePersistentScroll";
+import { getAppViewConfig } from "@renderer/registry/appRegistry";
+import { createRegistryGlobalFilter } from "@renderer/features/table/utils/tableSearchUtils";
 import { useAppStore } from "@renderer/store";
-import { JOB_STATUS } from "@shared/types/operation/operationTypes";
+import {
+  JOB_STATUS,
+  type OperationViewItem,
+} from "@shared/types/operation/operationTypes";
+
+import {
+  EMPTY_OPERATION_ROWS,
+  getOperationColumns,
+  OPERATION_TABLE_FEATURES,
+  type OperationColumnMeta,
+  type TableFeaturesType,
+} from "./operationTableConfig";
+import { useOperationTableContextMenu } from "./useOperationTableContextMenu";
+import {
+  useOperationTableVirtualizer,
+  type OperationRowVirtualizer,
+} from "./useOperationTableVirtualizer";
 
 export function useOperationTable() {
+  "use no memo";
+
+  const headerContainerRef = useRef<HTMLDivElement | null>(null);
+  const virtualizerRef = useRef<OperationRowVirtualizer | null>(null);
+
   const {
     currentView,
     currentMode,
     searchTerm,
+    summaryStatusFilter,
+    setSummaryStatusFilter,
     setSelectedId,
     tableRows,
     tableRowsMode,
@@ -25,12 +51,13 @@ export function useOperationTable() {
     isLoading,
     fetchTableData,
     updateOperationStatus,
-    setScrollPosition,
   } = useAppStore(
     useShallow((state) => ({
       currentView: state.currentView,
       currentMode: state.currentMode,
       searchTerm: state.searchTerm,
+      summaryStatusFilter: state.summaryStatusFilter,
+      setSummaryStatusFilter: state.setSummaryStatusFilter,
       setSelectedId: state.setSelectedId,
       tableRows: state.tableRows,
       tableRowsMode: state.tableRowsMode,
@@ -38,18 +65,17 @@ export function useOperationTable() {
       isLoading: state.isTableLoading,
       fetchTableData: state.fetchTableData,
       updateOperationStatus: state.updateOperationStatus,
-      setScrollPosition: state.setScrollPosition,
     })),
   );
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const restoredScrollKeyRef = useRef<string | null>(null);
-  const previousSearchTermRef = useRef("");
-
-  const scrollKey = `${currentView}:${currentMode}`;
+  // irregular モードではステータス列が存在しないためフィルターを解除する
+  useEffect(() => {
+    if (currentMode === "irregular" && summaryStatusFilter !== null) {
+      setSummaryStatusFilter(null);
+    }
+  }, [currentMode, summaryStatusFilter, setSummaryStatusFilter]);
 
   // データ取得
-
   useEffect(() => {
     const hasCache = (tableRowsByMode[currentMode]?.length ?? 0) > 0;
 
@@ -65,7 +91,6 @@ export function useOperationTable() {
   }, [currentMode, tableRowsMode, tableRowsByMode, fetchTableData]);
 
   // 表示対象データ（切り替え直後の前モードデータ混入を防止）
-
   const rows = useMemo(() => {
     if (tableRowsMode === currentMode) {
       return tableRows;
@@ -74,17 +99,108 @@ export function useOperationTable() {
     return tableRowsByMode[currentMode] ?? [];
   }, [tableRowsMode, currentMode, tableRows, tableRowsByMode]);
 
+  const activeStatusFilter =
+    currentMode === "irregular" ? null : summaryStatusFilter;
+
+  const isFiltered = Boolean(searchTerm) || activeStatusFilter !== null;
+
   const isSwitchingMode =
     isLoading || (tableRowsMode !== currentMode && rows.length === 0);
 
-  // 行選択
+  const canRestoreScroll =
+    !isSwitchingMode && tableRowsMode === currentMode && rows.length > 0;
 
+  const syncHeaderScrollLeft = useCallback((scrollLeft: number) => {
+    if (headerContainerRef.current) {
+      headerContainerRef.current.scrollLeft = scrollLeft;
+    }
+  }, []);
+
+  const handleAfterRestore = useCallback(
+    ({ top }: { top: number; left: number }) => {
+      virtualizerRef.current?.scrollToOffset(top, { align: "start" });
+    },
+    [],
+  );
+
+  const { containerRef, handleScroll: handlePersistentScroll } =
+    usePersistentScroll<HTMLDivElement>({
+      scrollKey: `${currentView}:${currentMode}`,
+      canRestore: canRestoreScroll,
+      isFiltered,
+      restoreTrigger: rows,
+      onHorizontalSync: syncHeaderScrollLeft,
+      onAfterRestore: handleAfterRestore,
+    });
+
+  const contextMenu = useOperationTableContextMenu();
+
+  const handleTableScroll = useCallback(() => {
+    contextMenu.handleBodyScroll();
+    handlePersistentScroll();
+  }, [contextMenu, handlePersistentScroll]);
+
+  useLayoutEffect(() => {
+    const header = headerContainerRef.current;
+    const body = containerRef.current;
+    if (header && body) header.scrollLeft = body.scrollLeft;
+  }, [containerRef, currentMode]);
+
+  // テーブルインスタンス構築
+  const columns = useMemo(
+    () => getOperationColumns(currentMode),
+    [currentMode],
+  );
+  const searchConfig = getAppViewConfig(currentView).search;
+
+  const globalFilterFn = useMemo(
+    () =>
+      createRegistryGlobalFilter<TableFeaturesType, OperationViewItem>(
+        searchConfig?.searchKeys,
+        searchConfig?.skipFilter,
+      ),
+    [searchConfig],
+  );
+
+  const columnFilters = useMemo<ColumnFiltersState>(
+    () =>
+      activeStatusFilter ? [{ id: "status", value: activeStatusFilter }] : [],
+    [activeStatusFilter],
+  );
+
+  const table = useTable({
+    features: OPERATION_TABLE_FEATURES,
+    columns,
+    data: rows ?? EMPTY_OPERATION_ROWS,
+    getRowId: (row, index) => row.kanriNo.trim() || String(index),
+    globalFilterFn,
+    state: {
+      globalFilter: searchTerm,
+      columnFilters,
+    },
+  });
+
+  const leafColumns = table.getAllLeafColumns();
+  const columnWidths = leafColumns.map((column) => {
+    const meta = column.columnDef.meta as OperationColumnMeta | undefined;
+    return { id: column.id, width: meta?.width ?? "auto" };
+  });
+  const tableRowsModel = table.getRowModel().rows;
+  const colSpanCount = Math.max(leafColumns.length, 1);
+
+  // 仮想スクロール管理
+  const { virtualItems, paddingTop, paddingBottom } =
+    useOperationTableVirtualizer({
+      count: isSwitchingMode ? 0 : tableRowsModel.length,
+      containerRef,
+      virtualizerRef,
+    });
+
+  // 行操作ハンドラ
   const handleRowClick = useCallback(
     (kanriNo: string) => setSelectedId(currentMode, kanriNo),
     [currentMode, setSelectedId],
   );
-
-  // ステータス更新
 
   const handleMarkSuccess = useCallback(
     (kanriNo: string) => {
@@ -97,80 +213,20 @@ export function useOperationTable() {
     [updateOperationStatus],
   );
 
-  // 再取得
-
-  const refetch = useCallback(
-    () => fetchTableData(currentMode, true),
-    [currentMode, fetchTableData],
-  );
-
-  // スクロール位置復元
-
-  const restoreScrollPosition = useCallback(() => {
-    const container = containerRef.current;
-
-    if (!container) return;
-
-    const position = useAppStore.getState().scrollPositions[scrollKey];
-
-    container.scrollTop = position?.top ?? 0;
-    container.scrollLeft = position?.left ?? 0;
-  }, [scrollKey]);
-
-  const restoreInitialScrollPosition = useCallback(
-    (hasVisibleRows: boolean) => {
-      if (
-        restoredScrollKeyRef.current === scrollKey ||
-        tableRowsMode !== currentMode ||
-        !hasVisibleRows
-      ) {
-        return;
-      }
-
-      restoreScrollPosition();
-      restoredScrollKeyRef.current = scrollKey;
-    },
-    [scrollKey, currentMode, tableRowsMode, restoreScrollPosition],
-  );
-
-  // 検索解除時のスクロール位置復元
-
-  useLayoutEffect(() => {
-    const previousSearchTerm = previousSearchTermRef.current;
-    previousSearchTermRef.current = searchTerm;
-
-    if (!previousSearchTerm || searchTerm) return;
-
-    restoreScrollPosition();
-  }, [searchTerm, rows, restoreScrollPosition]);
-
-  // スクロール位置保存
-
-  const handleScroll = useCallback(
-    (event: UIEvent<HTMLDivElement>) => {
-      if (searchTerm) return;
-
-      const { scrollTop, scrollLeft } = event.currentTarget;
-
-      setScrollPosition(scrollKey, {
-        top: scrollTop,
-        left: scrollLeft,
-      });
-    },
-    [searchTerm, scrollKey, setScrollPosition],
-  );
-
   return {
-    currentView,
-    currentMode,
-    rows,
-    searchTerm,
-    isLoading: isSwitchingMode,
+    headerContainerRef,
     containerRef,
-    handleScroll,
+    table,
+    columnWidths,
+    tableRows: tableRowsModel,
+    colSpanCount,
+    virtualItems,
+    paddingTop,
+    paddingBottom,
+    isLoading: isSwitchingMode,
+    contextMenu,
+    handleTableScroll,
     handleRowClick,
     handleMarkSuccess,
-    restoreInitialScrollPosition,
-    refetch,
   };
 }

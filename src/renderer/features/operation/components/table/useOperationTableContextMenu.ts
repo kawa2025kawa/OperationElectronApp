@@ -3,7 +3,6 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -73,12 +72,39 @@ export function useOperationTableContextMenu() {
   const [target, setTarget] = useState<ContextMenuTarget | null>(null);
   const [laserCoords, setLaserCoords] = useState<LaserCoordinates | null>(null);
 
-  const popupRef = useRef<HTMLDivElement | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   const close = useCallback(() => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
     setTarget(null);
     setLaserCoords(null);
   }, []);
+
+  const popupRef = useCallback(
+    (popup: HTMLDivElement | null) => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+
+      if (!popup || !target) return;
+
+      animationFrameRef.current = requestAnimationFrame(() => {
+        animationFrameRef.current = null;
+
+        const popupRect = popup.getBoundingClientRect();
+
+        if (!popupRect.width && !popupRect.height) return;
+
+        setLaserCoords(buildLaserCoordinates(target.rowRect, popupRect));
+      });
+    },
+    [target],
+  );
 
   const open = useCallback(
     (event: MouseEvent<HTMLDivElement>, item: OperationViewItem) => {
@@ -118,34 +144,6 @@ export function useOperationTableContextMenu() {
     if (target) close();
   }, [target, close]);
 
-  useLayoutEffect(() => {
-    if (!target) return;
-
-    let rafId = 0;
-
-    const updateLaser = () => {
-      const popup = popupRef.current;
-
-      if (!popup) {
-        rafId = requestAnimationFrame(updateLaser);
-        return;
-      }
-
-      const popupRect = popup.getBoundingClientRect();
-
-      if (!popupRect.width && !popupRect.height) {
-        rafId = requestAnimationFrame(updateLaser);
-        return;
-      }
-
-      setLaserCoords(buildLaserCoordinates(target.rowRect, popupRect));
-    };
-
-    rafId = requestAnimationFrame(updateLaser);
-
-    return () => cancelAnimationFrame(rafId);
-  }, [target]);
-
   useEffect(() => {
     if (!target) return;
 
@@ -155,6 +153,15 @@ export function useOperationTableContextMenu() {
       window.removeEventListener("resize", close);
     };
   }, [target, close]);
+
+  useEffect(
+    () => () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    },
+    [],
+  );
 
   const virtualAnchor = useMemo(
     () =>

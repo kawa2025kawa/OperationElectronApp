@@ -1,14 +1,15 @@
 // src/renderer/features/other/components/modal/contents/pdfUpload/usePdfUploadModalContent.ts
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { FileDropZoneItem } from "@renderer/components/ui/fileDropZone/fileDropZoneTypes";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
+import { useModalFooterSync } from "@renderer/hooks/useModalFooterSync";
 import { otherIpcService } from "@renderer/services/otherIpcService";
 import { systemIpcService } from "@renderer/services/systemIpcService";
-import { useAppStore } from "@renderer/store";
-
+import { toErrorMessage } from "@renderer/utils/errorUtils";
+import { toResolvedFileItem } from "@renderer/utils/filePathUtils";
 import { MODAL_TITLES } from "@shared/types/ui/modal";
 
 interface PdfMessage {
@@ -29,17 +30,6 @@ const PDF_UPLOAD_MESSAGES = {
     `ファイルパスを取得できないファイルがあります: ${names}`,
 } as const;
 
-const PDF_UPLOAD_ACTIONS = {
-  CANCEL: {
-    id: "cancel",
-    label: "キャンセル",
-  },
-  UPLOAD: {
-    id: "upload",
-    label: "アップロード実行",
-  },
-} as const;
-
 const INITIAL_MESSAGE: PdfMessage = {
   text: PDF_UPLOAD_MESSAGES.INITIAL,
   type: "info",
@@ -52,9 +42,6 @@ export function usePdfUploadModalContent() {
 
   // 非同期処理の二重実行とファイル操作の競合を防止
   const isBusyRef = useRef(false);
-
-  const updateModalConfig = useAppStore((state) => state.updateModalConfig);
-  const closeGlobalModal = useAppStore((state) => state.closeGlobalModal);
 
   const addPdfFiles = useCallback((rawFiles: File[]) => {
     if (isBusyRef.current || rawFiles.length === 0) return;
@@ -72,19 +59,13 @@ export function usePdfUploadModalContent() {
         return;
       }
 
-      const filePath =
-        window.electronAPI.getFilePath(file) ||
-        ("path" in file && typeof file.path === "string" ? file.path : "");
-
-      if (!filePath) {
+      const resolved = toResolvedFileItem(file);
+      if (!resolved) {
         unavailableNames.push(file.name);
         return;
       }
 
-      incomingFiles.push({
-        name: file.name || filePath.split(/[/\\]/).pop() || filePath,
-        path: filePath,
-      });
+      incomingFiles.push(resolved);
     });
 
     const errorMessages: string[] = [];
@@ -154,10 +135,8 @@ export function usePdfUploadModalContent() {
 
         toast.success(`ファイル名を「${newName}」に変更しました`);
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-
         console.error("[PdfUpload] Failed to rename file:", error);
-        toast.error(`リネーム失敗: ${message}`);
+        toast.error(`リネーム失敗: ${toErrorMessage(error)}`);
       } finally {
         isBusyRef.current = false;
         setIsBusy(false);
@@ -238,7 +217,7 @@ export function usePdfUploadModalContent() {
 
       toast.success(PDF_UPLOAD_MESSAGES.SUCCESS_TOAST);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = toErrorMessage(error);
 
       console.error("[PdfUpload] upload failed:", error);
 
@@ -254,34 +233,12 @@ export function usePdfUploadModalContent() {
     }
   }, [files]);
 
-  // モーダルのヘッダーメッセージおよびフッターボタンの同期
-  useEffect(() => {
-    updateModalConfig({
-      message: infoMessage,
-      rightActions: [
-        {
-          id: PDF_UPLOAD_ACTIONS.CANCEL.id,
-          label: PDF_UPLOAD_ACTIONS.CANCEL.label,
-          onClick: closeGlobalModal,
-          variant: "default",
-        },
-        {
-          id: PDF_UPLOAD_ACTIONS.UPLOAD.id,
-          label: PDF_UPLOAD_ACTIONS.UPLOAD.label,
-          onClick: handleExecuteUpload,
-          disabled: files.length === 0 || isBusy,
-          variant: "default",
-        },
-      ],
-    });
-  }, [
-    infoMessage,
-    files.length,
-    isBusy,
-    handleExecuteUpload,
-    closeGlobalModal,
-    updateModalConfig,
-  ]);
+  useModalFooterSync({
+    message: infoMessage,
+    executeLabel: "アップロード実行",
+    isExecuteDisabled: files.length === 0 || isBusy,
+    onExecute: handleExecuteUpload,
+  });
 
   return {
     files,

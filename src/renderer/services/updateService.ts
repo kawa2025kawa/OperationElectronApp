@@ -1,5 +1,6 @@
 // src/renderer/services/updateService.ts
 
+import semver from "semver";
 import { useAppStore } from "@renderer/store";
 import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { systemIpcService } from "@renderer/services/systemIpcService";
@@ -19,41 +20,20 @@ function setStatus(status: "OK" | "NG"): void {
 }
 
 /**
- * バージョン文字列（例: "v1.2.3"）を数値配列 [1, 2, 3] に変換する
- */
-function parseVersion(version: string): number[] {
-  const cleanVersion = version.replace(/^v/i, "").split("-")[0] ?? "";
-  return cleanVersion.split(".").map((part) => {
-    const value = Number.parseInt(part, 10);
-    return Number.isFinite(value) ? value : 0;
-  });
-}
-
-/**
  * 最新バージョンが現在のバージョンより新しいか判定する
  */
 function isNewerVersion(
   latestVersion: string,
   currentVersion: string,
 ): boolean {
-  const latest = parseVersion(latestVersion);
-  const current = parseVersion(currentVersion);
-  const maxLength = Math.max(latest.length, current.length);
+  const latest = semver.coerce(latestVersion);
+  const current = semver.coerce(currentVersion);
 
-  for (let index = 0; index < maxLength; index++) {
-    const latestPart = latest[index] ?? 0;
-    const currentPart = current[index] ?? 0;
-
-    if (latestPart > currentPart) {
-      return true;
-    }
-
-    if (latestPart < currentPart) {
-      return false;
-    }
+  if (!latest || !current) {
+    return false;
   }
 
-  return false;
+  return semver.gt(latest, current);
 }
 
 /**

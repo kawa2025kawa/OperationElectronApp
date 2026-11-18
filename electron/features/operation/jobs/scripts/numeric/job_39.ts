@@ -1,9 +1,14 @@
 // electron/features/operation/jobs/scripts/numeric/job_39.ts
 
-import { format, isSameDay } from "date-fns";
+import { format } from "date-fns";
 import path from "node:path";
-import fs from "fs-extra";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import {
+  checkFileUpdatedToday,
+  listFilesInDir,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
@@ -30,45 +35,22 @@ type JobResultData = {
 
 /**
  * 時間帯（午前・午後）に応じたフォルダの対象ファイル存在・更新日を確認する。
- *
- * 監視継続 (running):
- * - 対象ファイルが存在しない、または本日更新でない場合（バックグラウンドでポーリング監視）
- *
- * 業務上の要対応 (needsAction):
- * - ファイル件数が上限を超えている場合
- *
- * システムエラー:
- * - フォルダが存在しない、アクセス不能などのシステム障害
  */
 export async function runJob39(): Promise<JobResult> {
-  const logger = new JobLogger();
-
-  try {
+  return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
     const result = await checkTargetFiles();
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-    throw logger.fail(`ファイル処理に失敗しました${detail}`);
-  }
+  });
 }
 
-/**
- * フォルダ検証および対象ファイル群の存在チェックを行う。
- */
 async function checkTargetFiles(): Promise<JobResultData> {
   const now = new Date();
   const isBeforeNoon = now.getHours() < 12;
   const today = format(now, "yyyyMMdd");
   const targetDir = isBeforeNoon ? CONFIG.beforeNoonDir : CONFIG.afterNoonDir;
 
-  const dirStat = await fs.stat(targetDir);
-  if (!dirStat.isDirectory()) {
-    throw new Error(`フォルダではありません: ${targetDir}`);
+  if (!(await directoryExists(targetDir))) {
+    throw new Error(`フォルダが存在しないかアクセスできません: ${targetDir}`);
   }
 
   let results: FileCheckResult[];
@@ -76,9 +58,12 @@ async function checkTargetFiles(): Promise<JobResultData> {
   if (isBeforeNoon) {
     results = await Promise.all(
       CONFIG.targetFiles.map(async (targetName) => {
-        const filePath = path.join(targetDir, targetName);
+        const status = await checkFileUpdatedToday(
+          path.join(targetDir, targetName),
+          now,
+        );
 
-        if (!(await fs.pathExists(filePath))) {
+        if (!status.exists) {
           return {
             targetName,
             foundNames: [],
@@ -87,33 +72,22 @@ async function checkTargetFiles(): Promise<JobResultData> {
           };
         }
 
-        const stats = await fs.stat(filePath);
-        if (!stats.isFile()) {
-          return {
-            targetName,
-            foundNames: [],
-            error: "ファイルではありません",
-            issueType: "needsAction",
-          };
-        }
-
-        const isToday = isSameDay(stats.mtime, now);
         return {
           targetName,
-          foundNames: isToday ? [path.basename(filePath)] : [],
-          error: isToday ? undefined : "更新日が本日ではありません（更新待ち）",
-          issueType: isToday ? undefined : "pending",
+          foundNames: status.isToday ? [status.fileName] : [],
+          error: status.isToday
+            ? undefined
+            : "更新日が本日ではありません（更新待ち）",
+          issueType: status.isToday ? undefined : "pending",
         };
       }),
     );
   } else {
-    const entries = await fs.readdir(targetDir, { withFileTypes: true });
+    const fileNames = await listFilesInDir(targetDir);
 
     results = CONFIG.targetFiles.map((targetName) => {
       const prefix = `${targetName}_${today}`;
-      const foundNames = entries
-        .filter((entry) => entry.isFile() && entry.name.startsWith(prefix))
-        .map((entry) => entry.name);
+      const foundNames = fileNames.filter((name) => name.startsWith(prefix));
 
       if (foundNames.length === 0) {
         return {
@@ -147,9 +121,6 @@ async function checkTargetFiles(): Promise<JobResultData> {
   };
 }
 
-/**
- * ログを出力し、ステータスを判定する。
- */
 function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {
   logger.log(
     `時間帯判定        : ${result.isBeforeNoon ? "午前 (12時前)" : "午後 (12時以降)"}`,

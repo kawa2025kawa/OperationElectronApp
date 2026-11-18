@@ -9,6 +9,12 @@ import {
 
 const columnHelper = createColumnHelper<SpreadSheetTableFeatures, Jugyoin>();
 
+export function getJugyoinRowId(row: Jugyoin, index: number): string {
+  return row.id
+    ? `${row.id}_${index}`
+    : `${row.name ? String(row.name).trim() : "jugyoin"}_${index}`;
+}
+
 export function getJugyoinColumns() {
   return columnHelper.columns([
     columnHelper.accessor("bumon", {

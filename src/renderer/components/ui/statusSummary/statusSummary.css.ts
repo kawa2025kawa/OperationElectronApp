@@ -2,6 +2,7 @@
 
 import {
   createVar,
+  keyframes,
   style,
   styleVariants,
   type StyleRule,
@@ -11,6 +12,28 @@ import { getStatusTheme } from "@renderer/styles/tokens/statusTheme";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 
 const glowShadowVar = createVar();
+
+const neonGlowPulse = keyframes({
+  "0%, 100%": {
+    opacity: 1,
+    transform: "scale(1)",
+  },
+  "50%": {
+    opacity: 0.35,
+    transform: "scale(0.985)",
+  },
+});
+
+const neonBorderPulse = keyframes({
+  "0%, 100%": {
+    boxShadow:
+      "inset 0 0 8px currentColor, 0 0 6px currentColor, 0 0 14px currentColor",
+  },
+  "50%": {
+    boxShadow:
+      "inset 0 0 2px currentColor, 0 0 2px currentColor, 0 0 5px currentColor",
+  },
+});
 
 export const container = style({
   display: "flex",
@@ -39,6 +62,12 @@ export const statusItem = style({
   isolation: "isolate",
 });
 
+export const statusItemProgress = style({
+  cursor: "default",
+});
+
+export const statusItemActive = style({});
+
 export const valueBadge = style({
   position: "relative",
   display: "flex",
@@ -52,22 +81,35 @@ export const valueBadge = style({
   fontWeight: tokens.font.weight.bold,
   backgroundColor: tokens.color.bg.base,
   boxShadow: tokens.shadow.raised.low,
+  border: "2px solid transparent",
+  boxSizing: "border-box",
+  transition: `border-color ${tokens.transition.ease}, box-shadow ${tokens.transition.ease}`,
 
   "::before": {
     content: '""',
     position: "absolute",
-    inset: 0,
+    inset: "-2px",
     borderRadius: tokens.radius.md,
     boxShadow: glowShadowVar,
     opacity: 0,
     transition: `opacity ${tokens.transition.ease}`,
     pointerEvents: "none",
-    willChange: "opacity",
+    willChange: "opacity, transform",
   },
 
   selectors: {
     [`${statusItem}:hover &::before`]: {
       opacity: 1,
+    },
+    [`${statusItemActive} &`]: {
+      borderColor: "currentColor",
+      animation: `${neonBorderPulse} 1.6s ease-in-out infinite`,
+    },
+    [`${statusItemActive} &::before`]: {
+      opacity: 1,
+      border: "2px solid currentColor",
+      boxShadow: `${glowShadowVar}, 0 0 12px currentColor, 0 0 22px currentColor`,
+      animation: `${neonGlowPulse} 1.6s ease-in-out infinite`,
     },
   },
 });
@@ -83,6 +125,10 @@ export const label = style({
   selectors: {
     [`${statusItem}:hover &`]: {
       color: tokens.color.text.hover,
+    },
+    [`${statusItemActive} &`]: {
+      color: tokens.color.text.hover,
+      textShadow: "0 0 8px currentColor",
     },
   },
 });

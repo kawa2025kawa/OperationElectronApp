@@ -1,12 +1,14 @@
-/**
- * electron/features/operation/jobs/scripts/numeric/job_56.ts
- */
+// electron/features/operation/jobs/scripts/numeric/job_56.ts
 
 import { format } from "date-fns";
 import fs from "fs-extra";
 import path from "node:path";
 import iconv from "iconv-lite";
-import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  listFilesInExistingDir,
+  readEncodedLines,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const CONFIG = {
   targetDir: "\\\\172.25.101.51\\if\\WEB-SV\\RCV\\SV",
@@ -57,12 +59,11 @@ function validateLine(
 }
 
 async function validateFile(filePath: string): Promise<ValidationResult> {
-  const [stats, buffer] = await Promise.all([
+  const [stats, lines] = await Promise.all([
     fs.stat(filePath),
-    fs.readFile(filePath),
+    readEncodedLines(filePath, CONFIG.encoding, false),
   ]);
   const fileName = path.basename(filePath);
-  const lines = iconv.decode(buffer, CONFIG.encoding).split(/\r?\n/);
 
   return {
     fileName,
@@ -77,26 +78,16 @@ async function validateFile(filePath: string): Promise<ValidationResult> {
 }
 
 export async function runJob56(): Promise<string> {
-  const logger = new JobLogger();
-  const today = format(new Date(), "yyyyMMdd");
-  const filePrefix = `SEIKYUDT_${today}`;
+  return runJobWithLogger("システムエラーが発生しました", async (logger) => {
+    const today = format(new Date(), "yyyyMMdd");
+    const filePrefix = `SEIKYUDT_${today}`;
 
-  logger.log(`対象フォルダ : ${CONFIG.targetDir}`);
+    logger.log(`対象フォルダ : ${CONFIG.targetDir}`);
 
-  try {
-    const dirStats = await fs.stat(CONFIG.targetDir);
-
-    if (!dirStats.isDirectory()) {
-      throw new Error(`フォルダではありません: ${CONFIG.targetDir}`);
-    }
-
-    const targetFiles = (
-      await fs.readdir(CONFIG.targetDir, {
-        withFileTypes: true,
-      })
-    )
-      .filter((entry) => entry.isFile() && entry.name.startsWith(filePrefix))
-      .map((entry) => path.join(CONFIG.targetDir, entry.name));
+    const fileNames = await listFilesInExistingDir(CONFIG.targetDir);
+    const targetFiles = fileNames
+      .filter((name) => name.startsWith(filePrefix))
+      .map((name) => path.join(CONFIG.targetDir, name));
 
     if (targetFiles.length === 0) {
       logger.log(`対象ファイルなし (${filePrefix}*)`);
@@ -125,10 +116,5 @@ export async function runJob56(): Promise<string> {
           `データ不正 (${allErrors.length} 件のエラー):\n${allErrors.join("\n")}`,
         )
       : logger.complete(`対象 ${targetFiles.length} ファイル検証完了`);
-  } catch (error: unknown) {
-    const detail =
-      error instanceof Error ? ` (${error.message})` : ` (${String(error)})`;
-
-    throw logger.fail(`システムエラーが発生しました${detail}`);
-  }
+  });
 }

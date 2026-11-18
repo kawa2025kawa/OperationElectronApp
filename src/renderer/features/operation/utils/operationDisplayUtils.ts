@@ -1,8 +1,9 @@
 // src/renderer/features/operation/utils/operationDisplayUtils.ts
 
-import type {
-  JobStatus,
-  OperationViewItem,
+import {
+  JOB_STATUS_VALUES,
+  type JobStatus,
+  type OperationViewItem,
 } from "@shared/types/operation/operationTypes";
 import { OPERATION_FIELD_LABELS } from "@shared/types/operation/operationTypes";
 import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
@@ -77,6 +78,13 @@ const OPERATION_INFO_ROW_DEFINITIONS = {
     },
   ],
 } as const satisfies Record<ViewMode, readonly InfoRowDefinition[]>;
+
+export function isJobStatus(value: unknown): value is JobStatus {
+  return (
+    typeof value === "string" &&
+    (JOB_STATUS_VALUES as readonly string[]).includes(value)
+  );
+}
 
 // 作業名が未設定の場合の代替表示値を返す。
 export function getOperationWorkName(

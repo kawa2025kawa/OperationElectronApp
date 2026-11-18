@@ -1,20 +1,46 @@
 ﻿// src/renderer/hooks/usePersistentScroll.ts
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { useAppStore } from "@renderer/store";
 
 export interface UsePersistentScrollOptions {
-  /** スクロール位置を識別する一意キー（例: "operation:operation", "store"） */
+  /** スクロール位置を識別する一意キー */
   readonly scrollKey: string;
-  /** 表示可能な行データが存在し、スクロール復元が可能かどうか */
+  /** スクロール復元が可能かどうか */
   readonly canRestore: boolean;
-  /** 検索フィルタ適用中かどうか（検索中は保存を上書きせず、解除時に復元する） */
+  /** 検索フィルタ適用中は保存・復元しない */
   readonly isFiltered?: boolean;
-  /** 外部要因（データ再取得や検索解除など）で再復元を促すための依存値 */
+  /** データ更新などによる再復元のトリガー */
   readonly restoreTrigger?: unknown;
-  /** 横スクロール位置が変わった際にヘッダー等を同期するためのコールバック */
+  /** 横スクロール位置の同期 */
   readonly onHorizontalSync?: (scrollLeft: number) => void;
+  /** 復元後の仮想スクロール等との同期 */
+  readonly onAfterRestore?: (position: { top: number; left: number }) => void;
 }
+
+interface ScrollPosition {
+  top: number;
+  left: number;
+}
+
+interface ScrollOptions {
+  scrollKey: string;
+  canRestore: boolean;
+  isFiltered: boolean;
+}
+
+const isInitialScrollPosition = (element: HTMLElement): boolean =>
+  element.scrollTop === 0 &&
+  element.scrollLeft === 0 &&
+  element.scrollHeight <= element.clientHeight &&
+  element.scrollWidth <= element.clientWidth;
+
+const cancelFrame = (frameId: { current: number | null }): void => {
+  if (frameId.current === null) return;
+
+  cancelAnimationFrame(frameId.current);
+  frameId.current = null;
+};
 
 export function usePersistentScroll<
   TElement extends HTMLElement = HTMLDivElement,
@@ -24,154 +50,192 @@ export function usePersistentScroll<
   isFiltered = false,
   restoreTrigger,
   onHorizontalSync,
+  onAfterRestore,
 }: UsePersistentScrollOptions) {
   const containerRef = useRef<TElement | null>(null);
+
   const rafSaveIdRef = useRef<number | null>(null);
   const rafRestoreIdRef = useRef<number | null>(null);
-  const isRestoringRef = useRef(false);
-  const previousFilteredRef = useRef(isFiltered);
+  const rafRestoreReleaseIdRef = useRef<number | null>(null);
 
-  const isModalOpen = useAppStore((state) => state.modal.isOpen);
+  const isRestoringRef = useRef(false);
+
+  const optionsRef = useRef<ScrollOptions>({
+    scrollKey,
+    canRestore,
+    isFiltered,
+  });
+
   const setScrollPosition = useAppStore((state) => state.setScrollPosition);
 
-  const applySavedPosition = useCallback(() => {
+  // イベント・RAFから参照する設定をコミット後に更新
+  useLayoutEffect(() => {
+    optionsRef.current = {
+      scrollKey,
+      canRestore,
+      isFiltered,
+    };
+  }, [scrollKey, canRestore, isFiltered]);
+
+  // 復元関連のRAFをまとめてキャンセル
+  const cancelRestoreFrames = useCallback(() => {
+    cancelFrame(rafRestoreIdRef);
+    cancelFrame(rafRestoreReleaseIdRef);
+  }, []);
+
+  // 保存処理
+  const savePosition = useCallback(
+    (key: string, container: TElement) => {
+      const options = optionsRef.current;
+
+      if (
+        !options.canRestore ||
+        options.isFiltered ||
+        options.scrollKey !== key ||
+        isRestoringRef.current
+      ) {
+        return;
+      }
+
+      setScrollPosition(key, {
+        top: container.scrollTop,
+        left: container.scrollLeft,
+      });
+    },
+    [setScrollPosition],
+  );
+
+  // 保存済み位置を復元
+  const restorePosition = useCallback(() => {
     const container = containerRef.current;
+
     if (!container || !canRestore || isFiltered) return;
 
     const saved = useAppStore.getState().scrollPositions[scrollKey];
-    const targetTop = saved?.top ?? 0;
-    const targetLeft = saved?.left ?? 0;
 
+    cancelRestoreFrames();
     isRestoringRef.current = true;
-
-    if (rafRestoreIdRef.current !== null) {
-      cancelAnimationFrame(rafRestoreIdRef.current);
-    }
 
     rafRestoreIdRef.current = requestAnimationFrame(() => {
       rafRestoreIdRef.current = null;
-      const el = containerRef.current;
-      if (!el) {
+
+      const currentContainer = containerRef.current;
+
+      if (!currentContainer) {
         isRestoringRef.current = false;
         return;
       }
 
-      if (el.scrollTop !== targetTop) {
-        el.scrollTop = targetTop;
-      }
-      if (el.scrollLeft !== targetLeft) {
-        el.scrollLeft = targetLeft;
-      }
-      onHorizontalSync?.(el.scrollLeft);
-      isRestoringRef.current = false;
-    });
-  }, [canRestore, isFiltered, scrollKey, onHorizontalSync]);
+      const position: ScrollPosition = {
+        top: saved?.top ?? 0,
+        left: saved?.left ?? 0,
+      };
 
-  // 初回マウント・画面切替・データ更新・モーダル開閉のたびに最後のスクロール位置へ復元する
-  useEffect(() => {
-    if (!canRestore || isFiltered) return;
-    applySavedPosition();
+      currentContainer.scrollTop = position.top;
+      currentContainer.scrollLeft = position.left;
+
+      const restoredPosition: ScrollPosition = {
+        top: currentContainer.scrollTop,
+        left: currentContainer.scrollLeft,
+      };
+
+      onHorizontalSync?.(restoredPosition.left);
+      onAfterRestore?.(restoredPosition);
+
+      rafRestoreReleaseIdRef.current = requestAnimationFrame(() => {
+        rafRestoreReleaseIdRef.current = null;
+        isRestoringRef.current = false;
+      });
+    });
   }, [
     canRestore,
     isFiltered,
     scrollKey,
-    isModalOpen,
-    restoreTrigger,
-    applySavedPosition,
+    onHorizontalSync,
+    onAfterRestore,
+    cancelRestoreFrames,
   ]);
 
-  // 検索フィルタ解除時のスクロール復元
+  // 初回表示・画面切替・データ更新・検索解除時に復元
   useEffect(() => {
-    const wasFiltered = previousFilteredRef.current;
-    previousFilteredRef.current = isFiltered;
-
-    if (wasFiltered && !isFiltered && canRestore) {
-      applySavedPosition();
+    if (!canRestore || isFiltered) {
+      cancelRestoreFrames();
+      isRestoringRef.current = false;
+      return;
     }
-  }, [isFiltered, canRestore, applySavedPosition]);
 
-  // コンテナのリサイズ（モーダルやレイアウト変動に伴う再計測）時にも位置を維持する
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || typeof ResizeObserver === "undefined") return;
+    restorePosition();
+  }, [
+    canRestore,
+    isFiltered,
+    scrollKey,
+    restoreTrigger,
+    restorePosition,
+    cancelRestoreFrames,
+  ]);
 
-    const observer = new ResizeObserver(() => {
-      if (!canRestore || isFiltered || isRestoringRef.current) return;
-      const saved = useAppStore.getState().scrollPositions[scrollKey];
-      if (!saved) return;
-
-      if (
-        (saved.top > 0 && container.scrollTop === 0) ||
-        (saved.left > 0 && container.scrollLeft === 0)
-      ) {
-        applySavedPosition();
-      }
-    });
-
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [canRestore, isFiltered, scrollKey, applySavedPosition]);
-
-  // ユーザーによるスクロール操作を即時保存（意図しない0リセットは除外）
+  // スクロール位置を保存し、横スクロールを同期
   const handleScroll = useCallback(() => {
     const container = containerRef.current;
+
     if (!container) return;
 
     onHorizontalSync?.(container.scrollLeft);
 
-    if (!canRestore || isFiltered || isRestoringRef.current) {
+    const options = optionsRef.current;
+
+    if (!options.canRestore || options.isFiltered || isRestoringRef.current) {
       return;
     }
 
-    const { scrollTop, scrollLeft, scrollHeight, clientHeight } = container;
+    const targetKey = options.scrollKey;
 
-    // コンテンツが描画される前の一時的な0リセットイベントで保存済み位置を消さない
-    if (scrollTop === 0 && scrollLeft === 0 && scrollHeight <= clientHeight) {
-      return;
-    }
-
-    if (rafSaveIdRef.current !== null) {
-      cancelAnimationFrame(rafSaveIdRef.current);
-    }
+    cancelFrame(rafSaveIdRef);
 
     rafSaveIdRef.current = requestAnimationFrame(() => {
       rafSaveIdRef.current = null;
-      const currentEl = containerRef.current;
-      if (!currentEl || !canRestore || isFiltered || isRestoringRef.current) {
-        return;
-      }
-      setScrollPosition(scrollKey, {
-        top: currentEl.scrollTop,
-        left: currentEl.scrollLeft,
-      });
-    });
-  }, [canRestore, isFiltered, scrollKey, setScrollPosition, onHorizontalSync]);
 
-  // アンマウント時に未反映のRAFをフラッシュして保存
+      const currentContainer = containerRef.current;
+
+      if (!currentContainer) return;
+
+      savePosition(targetKey, currentContainer);
+    });
+  }, [onHorizontalSync, savePosition]);
+
+  // アンマウント時に保存し、保留中のRAFを解放
   useEffect(() => {
     const container = containerRef.current;
 
     return () => {
-      if (rafSaveIdRef.current !== null) {
-        cancelAnimationFrame(rafSaveIdRef.current);
-        rafSaveIdRef.current = null;
+      cancelFrame(rafSaveIdRef);
+
+      const wasRestoring = isRestoringRef.current;
+
+      cancelRestoreFrames();
+      isRestoringRef.current = false;
+
+      const options = optionsRef.current;
+
+      if (
+        !container ||
+        !options.canRestore ||
+        options.isFiltered ||
+        wasRestoring ||
+        isInitialScrollPosition(container)
+      ) {
+        return;
       }
-      if (rafRestoreIdRef.current !== null) {
-        cancelAnimationFrame(rafRestoreIdRef.current);
-        rafRestoreIdRef.current = null;
-      }
-      if (container && canRestore && !isFiltered) {
-        setScrollPosition(scrollKey, {
-          top: container.scrollTop,
-          left: container.scrollLeft,
-        });
-      }
+
+      setScrollPosition(options.scrollKey, {
+        top: container.scrollTop,
+        left: container.scrollLeft,
+      });
     };
-  }, [canRestore, isFiltered, scrollKey, setScrollPosition]);
+  }, [setScrollPosition, cancelRestoreFrames]);
 
   return {
     containerRef,
     handleScroll,
-    restoreScrollPosition: applySavedPosition,
   };
 }

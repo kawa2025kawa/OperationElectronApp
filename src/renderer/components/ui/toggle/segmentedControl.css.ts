@@ -2,7 +2,10 @@
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { focusRing } from "@renderer/styles/global/surfaces.css";
+import {
+  brandGradientTextRule,
+  focusRing,
+} from "@renderer/styles/global/surfaces.css";
 
 export const containerBase = style({
   position: "relative",
@@ -90,12 +93,6 @@ export const itemText = style({
   zIndex: 1,
 
   selectors: {
-    '&[data-active="true"]': {
-      backgroundImage: tokens.gradient.brand,
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent",
-      backgroundClip: "text",
-      color: "transparent",
-    },
+    '&[data-active="true"]': brandGradientTextRule,
   },
 });

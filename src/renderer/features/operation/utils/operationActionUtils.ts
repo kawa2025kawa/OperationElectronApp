@@ -117,12 +117,14 @@ export function buildOperationMenuActions(
 
   // 2. JC: 値が空もしくは-以外は表示
   if (isValidValue(item.jobId)) {
+    const jobId = String(item.jobId).trim();
+
     actions.push({
       key: "jc",
       label: "JC",
       execute: () => {
         void operationService
-          .executeJcJob(kanriNo, { onSuccess: onRefreshTable })
+          .executeJcJob(kanriNo, { jobId, onSuccess: onRefreshTable })
           .catch(() => undefined);
       },
     });

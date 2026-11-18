@@ -1,12 +1,15 @@
 // electron/features/operation/jobs/scripts/eseries/job_e29.ts
 
 import path from "node:path";
-import fs from "fs-extra";
-import iconv from "iconv-lite";
 import * as ExcelJS from "exceljs";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { parseCsv } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
+import { readParsedCsv } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
+import {
+  findFilesByKeywords,
+  resolveInputPaths,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import { parseAmount, parseRealYosanAmount } from "../helpers/parseAmount";
 
 const CONFIG = {
@@ -40,85 +43,26 @@ type JobResultData = {
 
 /**
  * リアル予算（Excel）と MD予算（MEIS0120 CSV）を集計し、各予算合計および差分を算出・確認する。
- *
- * 入力ファイル:
- * - リアル予算 Excelファイル（シート: 店舗毎（税抜き））
- * - MEIS0120 CSVファイル（Shift_JIS）
- *
- * 業務上の要対応:
- * - なし（集計結果と差分を出力して正常終了）
- *
- * システムエラー:
- * - 入力ファイル未指定・不足
- * - 対象シート不在
- * - ファイル読み込み・パース失敗
  */
 export async function runJobE29(
   inputFilePath?: string | string[],
 ): Promise<string> {
-  const logger = new JobLogger();
-
-  try {
+  return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
     const inputPaths = resolveInputPaths(inputFilePath);
     const result = await aggregateBudgets(inputPaths);
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-
-    throw logger.fail(`ファイル処理に失敗しました${detail}`);
-  }
+  });
 }
 
-/**
- * 入力ファイルパス配列を平坦化・正規化する。
- */
-function resolveInputPaths(inputFilePath?: string | string[]): string[] {
-  if (!inputFilePath) return [];
-  return Array.isArray(inputFilePath) ? inputFilePath : [inputFilePath];
-}
-
-/**
- * 入力パスから対象ファイル（リアル予算、MEIS0120）を特定・検証する。
- */
-function findTargetFiles(inputPaths: string[]): {
-  realYosanPath: string;
-  meis0120Path: string;
-} {
-  const realYosanPath = inputPaths.find((filePath) =>
-    path.basename(filePath).includes(CONFIG.realYosanKeyword),
-  );
-  const meis0120Path = inputPaths.find((filePath) =>
-    path.basename(filePath).includes(CONFIG.meis0120Keyword),
-  );
-
-  const missing: string[] = [];
-  if (!realYosanPath) missing.push(CONFIG.realYosanKeyword);
-  if (!meis0120Path) missing.push(CONFIG.meis0120Keyword);
-
-  if (missing.length > 0) {
-    throw new Error(`必要なファイルが不足しています: ${missing.join(", ")}`);
-  }
-
-  return {
-    realYosanPath: realYosanPath!,
-    meis0120Path: meis0120Path!,
-  };
-}
-
-/**
- * リアル予算・MD予算ファイルを並列で集計し、結果データを算出する。
- */
 async function aggregateBudgets(inputPaths: string[]): Promise<JobResultData> {
   if (inputPaths.length === 0) {
     throw new Error("入力ファイルが指定されていません");
   }
 
-  const { realYosanPath, meis0120Path } = findTargetFiles(inputPaths);
+  const { realYosanPath, meis0120Path } = findFilesByKeywords(inputPaths, {
+    realYosanPath: CONFIG.realYosanKeyword,
+    meis0120Path: CONFIG.meis0120Keyword,
+  });
 
   const [realYosanMap, meisYosanMap] = await Promise.all([
     parseRealYosan(realYosanPath),
@@ -140,9 +84,6 @@ async function aggregateBudgets(inputPaths: string[]): Promise<JobResultData> {
   };
 }
 
-/**
- * Excelセルの値をプレーン文字列として抽出する。
- */
 function parseCellString(value: unknown): string {
   if (value == null) return "";
 
@@ -162,9 +103,6 @@ function parseCellString(value: unknown): string {
   return String(value).trim();
 }
 
-/**
- * セル値から店舗コード（3桁数値）を抽出する。
- */
 function extractStoreCode(value: unknown): string | null {
   const text = parseCellString(value);
 
@@ -173,26 +111,18 @@ function extractStoreCode(value: unknown): string | null {
   return text.match(CONFIG.storeCodeRegex)?.[1] ?? null;
 }
 
-/**
- * セル値が合計行であるかを判定する。
- */
 function isTotalRow(value: unknown): boolean {
   const text = parseCellString(value);
 
   return Boolean(
     text &&
-    !CONFIG.existingStoreRegex.test(text) &&
-    CONFIG.totalRowRegex.test(text),
+      !CONFIG.existingStoreRegex.test(text) &&
+      CONFIG.totalRowRegex.test(text),
   );
 }
 
-/**
- * MEIS0120 CSVファイルを読み込み、店舗別予算Mapを生成する。
- */
 async function parseMeisYosan(filePath: string): Promise<YosanMap> {
-  const rawBuffer = await fs.readFile(filePath);
-  const text = iconv.decode(rawBuffer, CONFIG.csvEncoding);
-  const rows = parseCsv(text).slice(1);
+  const rows = (await readParsedCsv(filePath, CONFIG.csvEncoding)).slice(1);
   const result = new Map<string, number>();
 
   for (const row of rows) {
@@ -209,9 +139,6 @@ async function parseMeisYosan(filePath: string): Promise<YosanMap> {
   return result;
 }
 
-/**
- * リアル予算 Excelファイルを読み込み、店舗別予算Mapを生成する。
- */
 async function parseRealYosan(filePath: string): Promise<YosanMap> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(filePath);
@@ -242,23 +169,14 @@ async function parseRealYosan(filePath: string): Promise<YosanMap> {
   return result;
 }
 
-/**
- * 予算Mapの合計値を算出する。
- */
 function sumYosan(map: YosanMap): number {
   return [...map.values()].reduce((sum, amount) => sum + amount, 0);
 }
 
-/**
- * 金額を日本円表記にフォーマットする。
- */
 function formatYen(amount: number): string {
   return `${amount.toLocaleString("ja-JP")}円`;
 }
 
-/**
- * 集計結果をログに出力し、完了メッセージを返却する。
- */
 function writeResultLog(logger: JobLogger, result: JobResultData): string {
   logger.section("入力ファイル");
   logger.log(`リアル予算 : ${path.basename(result.realYosanPath)}`);

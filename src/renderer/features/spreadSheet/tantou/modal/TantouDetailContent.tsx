@@ -1,46 +1,15 @@
 // src/renderer/features/spreadSheet/tantou/modal/TantouDetailContent.tsx
 
-import { memo, useMemo } from "react";
-import { motion } from "motion/react";
-import { Tabs } from "@base-ui/react/tabs";
+import { memo } from "react";
+import { AnimatedTabs } from "@renderer/components/ui/tabs/AnimatedTabs";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import type { Tantou } from "@shared/types/spreadsheet/spreadsheetTypes";
-import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
-import {
-  formatDateForHeader,
-  getOffsetDate,
-} from "../../utils/spreadsheetDateUtils";
+import { useTantouDetailContent } from "./useTantouDetailContent";
 import * as styles from "./tantouDetailContent.css";
 
 export interface TantouDetailContentProps {
   data: Tantou;
 }
-
-const TANTOU_DETAIL_FIELDS = [
-  { key: "Hayaban", label: "早番" },
-  { key: "Shikai", label: "司会" },
-  { key: "Uketsuke", label: "受付" },
-  { key: "Denwa", label: "電話" },
-  { key: "Nimotsu", label: "荷物" },
-  { key: "2F", label: "2F" },
-  { key: "3F", label: "3F" },
-  { key: "Tensou", label: "転送" },
-  { key: "AmAttendanceRate", label: "AM出勤率" },
-  { key: "PmAttendanceRate", label: "PM出勤率" },
-] as const;
-
-const createDetailGroup = (prefix: "today" | "tomorrow", title: string) => ({
-  title,
-  items: TANTOU_DETAIL_FIELDS.map(({ key, label }) => ({
-    key: `${prefix}${key}`,
-    label,
-  })),
-});
-
-const TANTOU_DETAIL_GROUPS = [
-  createDetailGroup("today", "本日"),
-  createDetailGroup("tomorrow", "明日"),
-] as const;
 
 interface TantouDetailRowProps {
   label: string;
@@ -55,7 +24,7 @@ const TantouDetailRow = memo(function TantouDetailRow({
     <div className={styles.detailRow}>
       <div className={styles.fieldLabel}>{label}</div>
       <div className={styles.fieldValueContainer}>
-        <div className={styles.fieldValue}>{value || "-"}</div>
+        <div className={styles.fieldValue}>{value}</div>
       </div>
     </div>
   );
@@ -63,59 +32,22 @@ const TantouDetailRow = memo(function TantouDetailRow({
 
 export const TantouDetailContent: GlobalModalComponent<TantouDetailContentProps> =
   memo(({ data }) => {
-    const { selectedIndex, setSelectedIndex, displayItems } =
-      useSpreadSheetTabData(data, TANTOU_DETAIL_GROUPS);
-
-    const tabs = useMemo(() => {
-      const now = new Date();
-      return [
-        { id: 0, label: `本日 ${formatDateForHeader(now)}` },
-        { id: 1, label: `明日 ${formatDateForHeader(getOffsetDate(1, now))}` },
-      ];
-    }, []);
+    const { selectedIndex, setSelectedIndex, tabs, displayItems } =
+      useTantouDetailContent(data);
 
     return (
-      <Tabs.Root
-        className={styles.container}
-        value={selectedIndex}
-        onValueChange={(value) => setSelectedIndex(Number(value))}
+      <AnimatedTabs
+        layoutId="tantouDetailTabSlider"
+        tabs={tabs}
+        selectedIndex={selectedIndex}
+        onChange={setSelectedIndex}
       >
-        <Tabs.List className={styles.tabBar}>
-          {tabs.map((tab) => {
-            const isActive = selectedIndex === tab.id;
-
-            return (
-              <Tabs.Tab
-                key={tab.id}
-                value={tab.id}
-                className={styles.tabButton}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="tantouDetailTabSlider"
-                    className={styles.tabSlider}
-                    transition={{
-                      type: "spring",
-                      stiffness: 380,
-                      damping: 30,
-                    }}
-                  />
-                )}
-
-                <span className={styles.buttonText}>{tab.label}</span>
-              </Tabs.Tab>
-            );
-          })}
-        </Tabs.List>
-
-        <Tabs.Panel className={styles.listContainer} value={selectedIndex}>
-          <div className={styles.detailList}>
-            {displayItems.map(({ label, value }) => (
-              <TantouDetailRow key={label} label={label} value={value} />
-            ))}
-          </div>
-        </Tabs.Panel>
-      </Tabs.Root>
+        <div className={styles.detailList}>
+          {displayItems.map(({ label, value }) => (
+            <TantouDetailRow key={label} label={label} value={value} />
+          ))}
+        </div>
+      </AnimatedTabs>
     );
   });
 

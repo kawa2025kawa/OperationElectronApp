@@ -5,25 +5,16 @@ import { Select } from "@base-ui/react/select";
 
 import { AuthView } from "@renderer/features/auth/AuthView";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
-import type { EmailTemplateKey } from "@renderer/features/other/types/gmailDraftUiTypes";
 
 import * as styles from "./gmailDraftContent.css";
-import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftUiTypes";
 import { useGmailModalLogic } from "./useGmailModalLogic";
-
-const TEMPLATE_SELECT_ITEMS = [
-  { value: null, label: "手動作成" },
-  ...EMAIL_TEMPLATE_OPTIONS.map(({ key, label }) => ({
-    value: key,
-    label,
-  })),
-];
 
 export const GmailDraftContent: GlobalModalComponent = memo(() => {
   const {
     isAuthenticated,
     userEmail,
     templateKey,
+    templateItems,
     formValues,
     isSaving,
     handleInputChange,
@@ -39,11 +30,9 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
       <div className={styles.fieldGroup}>
         <Select.Root
           value={templateKey}
-          items={TEMPLATE_SELECT_ITEMS}
+          items={templateItems}
           disabled={isSaving}
-          onValueChange={(value) =>
-            handleTemplateChange(value as EmailTemplateKey | null)
-          }
+          onValueChange={handleTemplateChange}
         >
           <Select.Label className={styles.label}>テンプレート</Select.Label>
 
@@ -61,7 +50,7 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
             >
               <Select.Popup className={styles.selectPopup}>
                 <Select.List className={styles.selectList}>
-                  {TEMPLATE_SELECT_ITEMS.map((item) => (
+                  {templateItems.map((item) => (
                     <Select.Item
                       key={item.value ?? "manual"}
                       value={item.value}

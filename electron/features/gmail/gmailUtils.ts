@@ -1,16 +1,10 @@
 // electron/features/gmail/gmailUtils.ts
 
+import { format, subMonths } from "date-fns";
 import type { BuildRawMessageParams } from "./gmailTypes";
 
-export function getPreviousYearMonth(): string {
-  const date = new Date();
-  date.setDate(1);
-  date.setMonth(date.getMonth() - 1);
-
-  return `${date.getFullYear()}年${String(date.getMonth() + 1).padStart(
-    2,
-    "0",
-  )}月`;
+export function getPreviousYearMonth(now: Date = new Date()): string {
+  return format(subMonths(now, 1), "yyyy年MM月");
 }
 
 export function stripHtmlTags(html: string): string {

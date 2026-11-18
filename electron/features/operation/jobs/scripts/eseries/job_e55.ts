@@ -1,10 +1,12 @@
 // electron/features/operation/jobs/scripts/eseries/job_e55.ts
 
-import fs from "fs-extra";
-import iconv from "iconv-lite";
-import { isSameDay } from "date-fns";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  checkFileUpdatedToday,
+  readEncodedLines,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 type JobE55CheckStatus =
   | "SUCCESS"
@@ -38,67 +40,20 @@ const CONFIG = {
 } as const;
 
 /**
- * e5 仕入原価リストデータ作成完了後の整合性チェックを行う（対象: 12.すねおり店
- *
- * 確認先:
- * - PC0140.dat: \\192.12.2.1\d$\BELC\ftp\PC0140.dat
- * - TENF0140.dat: \\C0088150\nec\ftp\TENF0140.dat
- *
- * 業務上の要対応:
- * - いずれかのファイルが存在しない、または本日更新でない場合
- * - PC0140.dat に対象行（部門01・店番号012）が存在しない場合
- * - PC0140.dat と TENF0140.dat で対象行の内容が一致しない場合
- *
- * システムエラー:
- * - ファイル読み込み・デコード失敗
+ * e5 仕入原価リストデータ作成完了後の整合性チェックを行う（対象: 12.すねおり店）
  */
 export async function runJobE55(): Promise<JobResult> {
-  const logger = new JobLogger();
-
-  try {
+  return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
     const result = await checkCostListData();
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-
-    throw logger.fail(`ファイル処理に失敗しました${detail}`);
-  }
+  });
 }
 
-/**
- * ファイルが存在し、更新日が本日であるかを確認する。
- */
-async function isUpdatedToday(filePath: string): Promise<boolean> {
-  if (!(await fs.pathExists(filePath))) {
-    return false;
-  }
-
-  const fileStat = await fs.stat(filePath);
-  return isSameDay(fileStat.mtime, new Date());
-}
-
-/**
- * 指定エンコーディングでテキスト行配列を読み込む。
- */
-async function readLines(filePath: string): Promise<string[]> {
-  const buffer = await fs.readFile(filePath);
-  return iconv
-    .decode(buffer, CONFIG.encoding)
-    .split(/\r?\n/)
-    .filter((line) => line.trim());
-}
-
-/**
- * 対象ファイルの更新日時および仕入原価データの整合性を検証する。
- */
 async function checkCostListData(): Promise<JobE55ResultData> {
+  const now = new Date();
   for (const filePath of [CONFIG.sourcePath, CONFIG.targetPath]) {
-    if (!(await isUpdatedToday(filePath))) {
+    const status = await checkFileUpdatedToday(filePath, now);
+    if (!status.isToday) {
       return {
         status: "NOT_UPDATED_TODAY",
         invalidFilePath: filePath,
@@ -107,8 +62,8 @@ async function checkCostListData(): Promise<JobE55ResultData> {
   }
 
   const [sourceLines, targetLines] = await Promise.all([
-    readLines(CONFIG.sourcePath),
-    readLines(CONFIG.targetPath),
+    readEncodedLines(CONFIG.sourcePath, CONFIG.encoding),
+    readEncodedLines(CONFIG.targetPath, CONFIG.encoding),
   ]);
 
   const targetLine = sourceLines.find((line) =>
@@ -147,9 +102,6 @@ async function checkCostListData(): Promise<JobE55ResultData> {
   };
 }
 
-/**
- * 検証結果をログ出力し、JobResult を返却する。
- */
 function writeResultLog(
   logger: JobLogger,
   result: JobE55ResultData,

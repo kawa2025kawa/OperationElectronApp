@@ -1,4 +1,4 @@
-﻿// src/renderer/store/slices/centerSlice.ts
+// src/renderer/store/slices/centerSlice.ts
 
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
@@ -12,6 +12,12 @@ export interface CenterSlice extends ActiveFlags {
   toggleCenter: (id: CenterId) => Promise<void>;
   applyCenterFlags: (flags: ActiveFlags) => void;
 }
+
+const getCenterFlagsSnapshot = (state: ActiveFlags): ActiveFlags => ({
+  is1CActive: state.is1CActive,
+  is2CActive: state.is2CActive,
+  is3CActive: state.is3CActive,
+});
 
 // センターフラグ（1C/2C/3C）の有効状態を管理するスライスを生成する。
 export const createCenterSlice: StateCreator<
@@ -36,12 +42,7 @@ export const createCenterSlice: StateCreator<
 
     // 指定センターの状態を切り替え、保存失敗時はバックエンドの状態へ戻す。
     toggleCenter: async (id) => {
-      const previousFlags: ActiveFlags = {
-        is1CActive: get().is1CActive,
-        is2CActive: get().is2CActive,
-        is3CActive: get().is3CActive,
-      };
-
+      const previousFlags = getCenterFlagsSnapshot(get());
       const key = `is${id}Active` as keyof ActiveFlags;
       const revision = ++updateRevision;
 
@@ -49,11 +50,7 @@ export const createCenterSlice: StateCreator<
         state[key] = !state[key];
       });
 
-      const nextFlags: ActiveFlags = {
-        is1CActive: get().is1CActive,
-        is2CActive: get().is2CActive,
-        is3CActive: get().is3CActive,
-      };
+      const nextFlags = getCenterFlagsSnapshot(get());
 
       try {
         await operationService.setActiveFlags(nextFlags);

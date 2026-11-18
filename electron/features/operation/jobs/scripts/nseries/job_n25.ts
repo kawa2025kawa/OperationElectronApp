@@ -4,6 +4,7 @@ import { chromium, type Browser } from "playwright";
 import { addDays, format } from "date-fns";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 interface JobN25ResultData {
@@ -28,53 +29,34 @@ const CONFIG = {
 
 /**
  * ベルク勤怠管理システム（BELCTA）へログインし、業務日付を確認する。
- *
- * 監視継続 (running):
- * - 画面上の業務日付がまだ翌日日付になっていない場合（ポーリングによりバックグラウンドで監視を継続）
- *
- * 正常終了 (success):
- * - 画面上の業務日付が翌日日付と一致した場合
- *
- * システムエラー:
- * - ログイン情報未設定
- * - ネットワーク不通、ログイン画面アクセス失敗、DOM要素取得失敗
  */
 export async function runJobN25(): Promise<JobResult> {
   console.info(`[N25][Runner] runJobN25開始: ${new Date().toISOString()}`);
 
-  const logger = new JobLogger();
+  return runJobWithLogger(
+    "業務日付の取得・検証に失敗しました",
+    async (logger) => {
+      if (!CONFIG.userId || !CONFIG.password) {
+        throw logger.fail(
+          "ログイン認証情報が設定されていません。BELCTA_USER_ID / BELCTA_PASSWORD を設定してください。",
+        );
+      }
 
-  if (!CONFIG.userId || !CONFIG.password) {
-    throw logger.fail(
-      "ログイン認証情報が設定されていません。BELCTA_USER_ID / BELCTA_PASSWORD を設定してください。",
-    );
-  }
+      const expectedDate = format(addDays(new Date(), 1), "yyyy/MM/dd");
+      const result = await fetchAndValidateBusinessDate(expectedDate);
 
-  try {
-    const expectedDate = format(addDays(new Date(), 1), "yyyy/MM/dd");
-    const result = await fetchAndValidateBusinessDate(expectedDate);
+      console.info("[N25][Runner] 業務日付取得結果:", {
+        取得日時: new Date().toISOString(),
+        期待する翌日: result.expectedDate,
+        BELCTA取得日付: result.actualDate,
+        一致判定: result.isMatched,
+      });
 
-    console.info("[N25][Runner] 業務日付取得結果:", {
-      取得日時: new Date().toISOString(),
-      期待する翌日: result.expectedDate,
-      BELCTA取得日付: result.actualDate,
-      一致判定: result.isMatched,
-    });
-
-    return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-    throw logger.fail(`業務日付の取得・検証に失敗しました${detail}`);
-  }
+      return writeResultLog(logger, result);
+    },
+  );
 }
 
-/**
- * ブラウザを起動してログインし、画面上の業務日付を取得・照合する。
- */
 async function fetchAndValidateBusinessDate(
   expectedDate: string,
 ): Promise<JobN25ResultData> {
@@ -131,9 +113,6 @@ async function fetchAndValidateBusinessDate(
   }
 }
 
-/**
- * 取得結果をログに出力し、JobResult を返却する。
- */
 function writeResultLog(
   logger: JobLogger,
   result: JobN25ResultData,

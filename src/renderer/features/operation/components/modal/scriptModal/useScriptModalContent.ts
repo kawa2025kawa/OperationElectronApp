@@ -10,17 +10,16 @@ import {
   type ScriptExecutionState,
   type ScriptFileItem,
 } from "@renderer/features/operation/utils/scriptModalUtils";
+import { useModalFooterSync } from "@renderer/hooks/useModalFooterSync";
 import { useAppStore } from "@renderer/store";
+import { toErrorMessage } from "@renderer/utils/errorUtils";
 import type {
   JobResult,
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
+import { SCRIPT_MODAL_LABELS } from "./scriptModalConstants";
 
 export type { InfoBoxMessage };
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 export function useScriptModalContent(
   item: OperationViewItem | null | undefined,
@@ -54,6 +53,7 @@ export function useScriptModalContent(
     Boolean(kanriNo) &&
     Boolean(scriptKey) &&
     (!isFileSelectionRequired || selectedFiles.length > 0);
+  const isExecuteDisabled = !isExecutable;
 
   const infoMessage = getScriptInfoMessage(executionState, executionResult);
 
@@ -73,6 +73,12 @@ export function useScriptModalContent(
     setSelectedFiles((current) =>
       current.filter((_, currentIndex) => currentIndex !== index),
     );
+  }, []);
+
+  const handleOpenArtifact = useCallback((artifactPath: string) => {
+    void operationService
+      .openExternal(artifactPath, "成果物を開けませんでした")
+      .catch(() => undefined);
   }, []);
 
   const handleExecute = useCallback(async () => {
@@ -102,12 +108,10 @@ export function useScriptModalContent(
       setExecutionState(getScriptExecutionState(result));
       setSelectedFiles([]);
     } catch (error) {
-      const message = toErrorMessage(error);
-
       setExecutionResult({
         success: false,
         kind: "error",
-        message,
+        message: toErrorMessage(error),
       });
       setExecutionState("error");
     } finally {
@@ -124,6 +128,17 @@ export function useScriptModalContent(
     currentMode,
   ]);
 
+  useModalFooterSync({
+    hideActions: isFinished,
+    cancelLabel: SCRIPT_MODAL_LABELS.CANCEL_BUTTON,
+    isCancelDisabled: isExecuting,
+    executeLabel: isExecuting
+      ? SCRIPT_MODAL_LABELS.EXECUTING_BUTTON
+      : SCRIPT_MODAL_LABELS.EXECUTE_BUTTON,
+    isExecuteDisabled: isExecuteDisabled || isExecuting,
+    onExecute: handleExecute,
+  });
+
   return {
     state: {
       infoMessage,
@@ -132,14 +147,14 @@ export function useScriptModalContent(
       isFinished,
       isDropZoneVisible,
       isExecutable,
-      isExecuteDisabled: !isExecutable,
+      isExecuteDisabled,
       isExecuting,
-      isRequirementLoading: false,
-      requirementError: null,
+      defaultArtifactName: SCRIPT_MODAL_LABELS.DEFAULT_ARTIFACT_NAME,
     },
     actions: {
       handleFileSelect,
       handleRemoveFile,
+      handleOpenArtifact,
       handleExecute,
       handleClose: closeGlobalModal,
     },

@@ -1,4 +1,4 @@
-// src/renderer/features/operation/components/contextMenu/statusContextMenu.css.ts
+﻿// src/renderer/features/operation/components/contextMenu/statusContextMenu.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 
@@ -15,9 +15,9 @@ export const content = style({
   display: "grid",
   gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
   gridTemplateRows: "auto auto auto auto",
-  gap: tokens.space.xs,
-  minWidth: "280px",
-  padding: tokens.space.sm,
+  gap: tokens.space.sm,
+  minWidth: "340px",
+  padding: tokens.space.md,
   borderRadius: tokens.radius.lg,
   boxSizing: "border-box",
 
@@ -36,31 +36,32 @@ export const rowKanriNo = style({
   justifyContent: "space-between",
   gap: tokens.space.sm,
   paddingLeft: tokens.space.xs,
-  minHeight: "32px",
+  minHeight: "38px",
   fontFamily: tokens.font.mono,
-  fontSize: tokens.font.size.xs,
-  fontWeight: tokens.font.weight.bold,
+  fontSize: tokens.font.size.lg,
+  fontWeight: 800,
   color: tokens.color.accent.neonCyan,
   letterSpacing: "0.06em",
   whiteSpace: "nowrap",
 });
 
 export const closeButtonCompact = style({
-  width: "26px",
-  height: "26px",
-  fontSize: "1rem",
+  width: "30px",
+  height: "30px",
+  fontSize: "1.15rem",
 });
 
 // 2段目: WorkName（4列貫通）
 export const rowWorkName = style({
   gridColumn: "1 / -1",
   gridRow: 2,
-  padding: `0 ${tokens.space.xs} ${tokens.space.xs}`,
+  padding: `0 ${tokens.space.xs} ${tokens.space.sm}`,
   marginBottom: tokens.space.xs,
   borderBottom: `1px solid ${tokens.color.border.default}`,
   color: tokens.color.text.hover,
-  fontSize: tokens.font.size.sm,
+  fontSize: tokens.font.size.lg,
   fontWeight: tokens.font.weight.bold,
+  lineHeight: 1.35,
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -71,16 +72,16 @@ export const itemBase = style({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: "3px",
+  gap: "4px",
   width: "100%",
-  height: "34px",
-  padding: "0 4px",
+  height: "42px",
+  padding: "0 6px",
   border: "1px solid transparent",
   borderRadius: tokens.radius.sm,
   outline: "none",
   backgroundColor: "rgba(255, 255, 255, 0.03)",
   color: "inherit",
-  fontSize: tokens.font.size.xs,
+  fontSize: tokens.font.size.sm,
   fontWeight: tokens.font.weight.bold,
   textAlign: "center",
   whiteSpace: "nowrap",
@@ -103,7 +104,7 @@ export const itemBase = style({
 
 export const currentIndicator = style({
   fontFamily: tokens.font.mono,
-  fontSize: "10px",
+  fontSize: tokens.font.size.xs,
   lineHeight: 1,
   opacity: 0.95,
 });

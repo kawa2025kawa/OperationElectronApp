@@ -17,6 +17,8 @@ type OperationStatusUpdate = Pick<
   "kanriNo" | "status" | "comment"
 >;
 
+const ALL_VIEW_MODES: readonly ViewMode[] = ["operation", "irregular", "today"];
+
 /** 行データに対してステータス通知の差分を適用する */
 function applyNotificationToRow(
   row: OperationViewItem,
@@ -33,6 +35,27 @@ function applyNotificationToRow(
     row.comment = "";
     delete row.startTime;
     delete row.endTime;
+  }
+}
+
+/** tableRows と全モードキャッシュの該当行に対して一括で更新処理を適用する */
+function forEachCachedRow(
+  state: AppState,
+  updater: (row: OperationViewItem, kanriNo: string) => void,
+): void {
+  const applyToList = (rows: OperationViewItem[] | undefined) => {
+    if (!rows) return;
+    for (const row of rows) {
+      const kanriNo = row.kanriNo?.trim();
+      if (kanriNo) {
+        updater(row, kanriNo);
+      }
+    }
+  };
+
+  applyToList(state.tableRows);
+  for (const mode of ALL_VIEW_MODES) {
+    applyToList(state.tableRowsByMode[mode]);
   }
 }
 
@@ -130,33 +153,12 @@ export const createOperationStatusSlice: StateCreator<
       if (notificationMap.size === 0) return;
 
       set((state) => {
-        // 現在表示中の行を更新
-        for (const row of state.tableRows) {
-          const rowKanriNo = row.kanriNo?.trim();
-          if (!rowKanriNo) continue;
-
-          const notification = notificationMap.get(rowKanriNo);
+        forEachCachedRow(state, (row, kanriNo) => {
+          const notification = notificationMap.get(kanriNo);
           if (notification) {
             applyNotificationToRow(row, notification);
           }
-        }
-
-        // キャッシュされている全モードの行も同期更新
-        const modes: ViewMode[] = ["operation", "irregular", "today"];
-        for (const mode of modes) {
-          const cachedRows = state.tableRowsByMode[mode];
-          if (cachedRows) {
-            for (const row of cachedRows) {
-              const rowKanriNo = row.kanriNo?.trim();
-              if (!rowKanriNo) continue;
-
-              const notification = notificationMap.get(rowKanriNo);
-              if (notification) {
-                applyNotificationToRow(row, notification);
-              }
-            }
-          }
-        }
+        });
       });
 
       void get().fetchStatusSummary();
@@ -167,24 +169,12 @@ export const createOperationStatusSlice: StateCreator<
       if (!kanriNo || !update.status) return;
 
       set((state) => {
-        const targetRow = state.tableRows.find(
-          (row) => row.kanriNo?.trim() === kanriNo,
-        );
-        if (targetRow) {
-          targetRow.status = update.status;
-          targetRow.comment = update.comment ?? "";
-        }
-
-        const modes: ViewMode[] = ["operation", "irregular", "today"];
-        for (const mode of modes) {
-          const cached = state.tableRowsByMode[mode]?.find(
-            (row) => row.kanriNo?.trim() === kanriNo,
-          );
-          if (cached) {
-            cached.status = update.status;
-            cached.comment = update.comment ?? "";
+        forEachCachedRow(state, (row, rowKanriNo) => {
+          if (rowKanriNo === kanriNo) {
+            row.status = update.status;
+            row.comment = update.comment ?? "";
           }
-        }
+        });
       });
 
       void get().fetchStatusSummary();

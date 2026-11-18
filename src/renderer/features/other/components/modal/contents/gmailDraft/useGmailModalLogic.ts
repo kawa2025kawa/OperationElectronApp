@@ -1,6 +1,6 @@
 // src/renderer/features/other/components/modal/contents/gmailDraft/useGmailModalLogic.ts
 
-import { useCallback, useEffect, useState, type ChangeEvent } from "react";
+import { useCallback, useState, type ChangeEvent } from "react";
 import { useShallow } from "zustand/shallow";
 
 import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftUiTypes";
@@ -8,13 +8,23 @@ import type {
   EmailTemplateKey,
   GmailDraftFormValues,
 } from "@renderer/features/other/types/gmailDraftUiTypes";
-import { useAppStore } from "@renderer/store";
+import { useModalFooterSync } from "@renderer/hooks/useModalFooterSync";
 import { otherIpcService } from "@renderer/services/otherIpcService";
+import { useAppStore } from "@renderer/store";
+import { toErrorMessage } from "@renderer/utils/errorUtils";
 
 export interface GmailMessage {
   text: string;
   type: "info" | "success" | "error" | "warning";
 }
+
+export const TEMPLATE_SELECT_ITEMS = [
+  { value: null, label: "手動作成" },
+  ...EMAIL_TEMPLATE_OPTIONS.map(({ key, label }) => ({
+    value: key,
+    label,
+  })),
+];
 
 const DEFAULT_GMAIL_MESSAGE: GmailMessage = {
   text: "Gmail下書き作成用の宛先・件名・本文を入力してください。",
@@ -29,19 +39,11 @@ const createInitialFormValues = (): GmailDraftFormValues => ({
 });
 
 export function useGmailModalLogic() {
-  const {
-    isAuthenticated,
-    familyName,
-    userEmail,
-    updateModalConfig,
-    closeGlobalModal,
-  } = useAppStore(
+  const { isAuthenticated, familyName, userEmail } = useAppStore(
     useShallow((state) => ({
       isAuthenticated: state.isAuthenticated,
       familyName: state.familyName,
       userEmail: state.userEmail,
-      updateModalConfig: state.updateModalConfig,
-      closeGlobalModal: state.closeGlobalModal,
     })),
   );
 
@@ -66,18 +68,19 @@ export function useGmailModalLogic() {
   );
 
   const handleTemplateChange = useCallback(
-    async (value: EmailTemplateKey | null) => {
-      if (!value) {
+    async (value: unknown) => {
+      const nextKey = (value as EmailTemplateKey | null) ?? null;
+
+      if (!nextKey) {
         setTemplateKey(null);
         setFormValues(createInitialFormValues());
-        setInfoMessage({
-          text: "Gmail下書き作成用の宛先・件名・本文を入力してください。",
-          type: "info",
-        });
+        setInfoMessage(DEFAULT_GMAIL_MESSAGE);
         return;
       }
 
-      const option = EMAIL_TEMPLATE_OPTIONS.find((item) => item.key === value);
+      const option = EMAIL_TEMPLATE_OPTIONS.find(
+        (item) => item.key === nextKey,
+      );
       if (!option) return;
 
       const key: EmailTemplateKey = option.key;
@@ -97,10 +100,7 @@ export function useGmailModalLogic() {
       } catch (error) {
         console.error("[useGmailModalLogic] Failed to create template:", error);
         setInfoMessage({
-          text:
-            error instanceof Error
-              ? error.message
-              : "テンプレートの生成に失敗しました。",
+          text: toErrorMessage(error, "テンプレートの生成に失敗しました。"),
           type: "error",
         });
       }
@@ -132,10 +132,7 @@ export function useGmailModalLogic() {
     } catch (error) {
       console.error("[useGmailModalLogic] Failed to create draft:", error);
       setInfoMessage({
-        text:
-          error instanceof Error
-            ? error.message
-            : "下書き作成中にエラーが発生しました。",
+        text: toErrorMessage(error, "下書き作成中にエラーが発生しました。"),
         type: "error",
       });
     } finally {
@@ -143,41 +140,20 @@ export function useGmailModalLogic() {
     }
   }, [formValues]);
 
-  useEffect(() => {
-    updateModalConfig({
-      message: infoMessage,
-      rightActions: isAuthenticated
-        ? [
-            {
-              id: "cancel",
-              label: "キャンセル",
-              onClick: closeGlobalModal,
-              disabled: isProcessing,
-            },
-            {
-              id: "create-draft",
-              label: isProcessing ? "作成中..." : "下書き作成",
-              onClick: handleExecute,
-              disabled: !formValues.to.trim() || isProcessing,
-              variant: "default",
-            },
-          ]
-        : [],
-    });
-  }, [
-    isAuthenticated,
-    infoMessage,
-    formValues.to,
-    isProcessing,
-    handleExecute,
-    updateModalConfig,
-    closeGlobalModal,
-  ]);
+  useModalFooterSync({
+    message: infoMessage,
+    hideActions: !isAuthenticated,
+    isCancelDisabled: isProcessing,
+    executeLabel: isProcessing ? "作成中..." : "下書き作成",
+    isExecuteDisabled: !formValues.to.trim() || isProcessing,
+    onExecute: handleExecute,
+  });
 
   return {
     isAuthenticated,
     userEmail,
     templateKey,
+    templateItems: TEMPLATE_SELECT_ITEMS,
     formValues,
     isSaving: isProcessing,
     handleInputChange,

@@ -1,18 +1,15 @@
-﻿// electron/features/operation/infrastructure/storage/storageHelper.ts
+// electron/features/operation/infrastructure/storage/storageHelper.ts
 
 import path from "node:path";
 import { app } from "electron";
 import { format } from "date-fns";
 import fs from "fs-extra";
+import Store, { type Options as StoreOptions } from "electron-store";
 
-export const getDatedFilePath = (
+export const getDatedStoreName = (
   prefix: string,
   pattern = "yyyyMMdd",
-): string =>
-  path.join(
-    app.getPath("userData"),
-    `${prefix}${format(new Date(), pattern)}.json`,
-  );
+): string => `${prefix}${format(new Date(), pattern)}`;
 
 export async function cleanupDatedFiles(
   prefix: string,
@@ -34,10 +31,14 @@ export async function cleanupDatedFiles(
   }
 }
 
-export async function writeJsonSafely(
-  filePath: string,
-  data: unknown,
-): Promise<void> {
-  await fs.ensureDir(path.dirname(filePath));
-  await fs.writeJson(filePath, data, { spaces: 2 });
+export function createDatedJsonStore<T extends Record<string, unknown>>(
+  prefix: string,
+  defaults: StoreOptions<T>["defaults"],
+  pattern = "yyyyMMdd",
+): Store<T> {
+  return new Store<T>({
+    name: getDatedStoreName(prefix, pattern),
+    defaults,
+    clearInvalidConfig: true,
+  });
 }

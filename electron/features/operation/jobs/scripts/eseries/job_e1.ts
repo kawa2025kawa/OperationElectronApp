@@ -1,9 +1,12 @@
 // electron/features/operation/jobs/scripts/eseries/job_e1.ts
 
 import path from "node:path";
-import fs from "fs-extra";
-import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  checkFileUpdatedToday,
+  listFilesInDir,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const TARGET_KEYWORDS_E1 = ["EOB_DSP_001"] as const;
 
@@ -24,52 +27,39 @@ const CONFIG = {
 
 /**
  * 当日分の EOB棚割ファイルを受信しているか確認する。
- *
- * 確認先:
- * - SND フォルダ
- *
- * 業務上の要対応:
- * - 本日更新された対象ファイルが存在しない（未受信）場合
- *
- * システムエラー:
- * - フォルダへのアクセス失敗
- * - ファイルステータス取得失敗
  */
 export async function runJobE1(): Promise<string> {
-  const logger = new JobLogger();
-
-  try {
+  return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
     const result = await checkTargetFiles();
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-
-    throw logger.fail(`ファイル処理に失敗しました${detail}`);
-  }
+  });
 }
 
-/**
- * 対象フォルダからキーワードに一致する本日更新ファイルを検索・確認する。
- */
 async function checkTargetFiles(): Promise<JobE1ResultData> {
-  const today = format(new Date(), "yyyy-MM-dd");
-  const entries = await fs.readdir(CONFIG.targetDir, {
-    withFileTypes: true,
-  });
+  const now = new Date();
+  const fileNames = await listFilesInDir(CONFIG.targetDir);
 
   const matchedFiles: MatchedFileE1[] = [];
   const missingKeywords: string[] = [];
 
   for (const keyword of CONFIG.keywords) {
-    const matchedFile = await findTodayFile(entries, keyword, today);
+    let foundFileName: string | null = null;
 
-    if (matchedFile) {
-      matchedFiles.push({ keyword, fileName: matchedFile });
+    for (const fileName of fileNames) {
+      if (!fileName.includes(keyword)) continue;
+
+      const status = await checkFileUpdatedToday(
+        path.join(CONFIG.targetDir, fileName),
+        now,
+      );
+      if (status.isToday) {
+        foundFileName = fileName;
+        break;
+      }
+    }
+
+    if (foundFileName) {
+      matchedFiles.push({ keyword, fileName: foundFileName });
     } else {
       missingKeywords.push(keyword);
     }
@@ -81,32 +71,6 @@ async function checkTargetFiles(): Promise<JobE1ResultData> {
   };
 }
 
-/**
- * 指定キーワードを含み、更新日が当日であるファイルを探索する。
- */
-async function findTodayFile(
-  entries: fs.Dirent[],
-  keyword: string,
-  today: string,
-): Promise<string | null> {
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.includes(keyword)) {
-      continue;
-    }
-
-    const { mtime } = await fs.stat(path.join(CONFIG.targetDir, entry.name));
-
-    if (format(mtime, "yyyy-MM-dd") === today) {
-      return entry.name;
-    }
-  }
-
-  return null;
-}
-
-/**
- * 検索結果をログに出力し、最終ステータスを判定する。
- */
 function writeResultLog(logger: JobLogger, result: JobE1ResultData): string {
   logger.section("対象フォルダ");
   logger.log(CONFIG.targetDir);

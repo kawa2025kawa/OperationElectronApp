@@ -2,6 +2,7 @@
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
+import { createBeforeGlowRule } from "@renderer/styles/global/surfaces.css";
 
 const glowTransition = tokens.transition.glow;
 
@@ -13,17 +14,10 @@ export const inner = style({
   maxWidth: "300px",
   isolation: "isolate",
 
-  "::before": {
-    content: '""',
-    position: "absolute",
-    inset: -1,
+  "::before": createBeforeGlowRule(tokens.shadow.glowRaised.md, {
     borderRadius: tokens.radius.full,
-    boxShadow: tokens.shadow.glowRaised.md,
-    opacity: 0,
-    transition: `opacity ${glowTransition}`,
-    pointerEvents: "none",
     willChange: "opacity",
-  },
+  }),
 
   selectors: {
     "&:hover::before": {

@@ -1,13 +1,17 @@
 // electron/features/operation/jobs/scripts/eseries/job_e8.ts
 
 import path from "node:path";
-import os from "node:os";
-import fs from "fs-extra";
-import { isSameDay } from "date-fns";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { createZipArchive } from "@electron/features/operation/jobs/scripts/helpers/zipHelper";
-import { formatDateTime } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import {
+  checkFileUpdatedToday,
+  createDesktopZip,
+  listFilesInDir,
+  logCheckedFiles,
+  logDateIssuesAndNeedsAction,
+  runJobWithLogger,
+  type CheckedFileStatus,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const TARGET_FILES_E8 = [
   "JCATANAWARI.TXT",
@@ -15,17 +19,10 @@ const TARGET_FILES_E8 = [
   "SHELF_ERR_DATA.TXT",
 ] as const;
 
-interface FileStatusE8 {
-  fileName: string;
-  filePath: string;
-  mtime: Date;
-  isToday: boolean;
-}
-
 interface JobE8ResultData {
-  matchedFiles: FileStatusE8[];
+  matchedFiles: CheckedFileStatus[];
   missingFiles: string[];
-  dateIssueFiles: FileStatusE8[];
+  dateIssueFiles: CheckedFileStatus[];
   zipFilePath?: string | null;
 }
 
@@ -39,66 +36,31 @@ const CONFIG = {
  * 棚割関連ファイル（3ファイル）の存在と更新日を確認し、ZIPアーカイブを作成する。
  */
 export async function runJobE8(): Promise<string> {
-  const logger = new JobLogger();
-
-  try {
+  return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
     const result = await checkAndArchiveFiles();
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-
-    throw logger.fail(`ファイル処理に失敗しました${detail}`);
-  }
+  });
 }
 
-/**
- * ファイルの存在と日付を検証し、全条件を満たしていればZIPを作成する。
- */
 async function checkAndArchiveFiles(): Promise<JobE8ResultData> {
   const now = new Date();
-  const entries = await fs.readdir(CONFIG.targetDir, { withFileTypes: true });
-
-  const currentFiles = entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name);
-
-  const currentFileSet = new Set(currentFiles);
+  const currentFileSet = new Set(await listFilesInDir(CONFIG.targetDir));
   const missingFiles = CONFIG.targetFiles.filter(
     (fileName) => !currentFileSet.has(fileName),
   );
 
-  const matchedFiles: FileStatusE8[] = [];
-  const dateIssueFiles: FileStatusE8[] = [];
+  const presentFiles = CONFIG.targetFiles.filter((fileName) =>
+    currentFileSet.has(fileName),
+  );
 
-  for (const fileName of CONFIG.targetFiles) {
-    if (!currentFileSet.has(fileName)) {
-      continue;
-    }
+  const matchedFiles = await Promise.all(
+    presentFiles.map((fileName) =>
+      checkFileUpdatedToday(path.join(CONFIG.targetDir, fileName), now),
+    ),
+  );
 
-    const filePath = path.join(CONFIG.targetDir, fileName);
-    const fileStat = await fs.stat(filePath);
-    const isToday = isSameDay(fileStat.mtime, now);
+  const dateIssueFiles = matchedFiles.filter((file) => !file.isToday);
 
-    const fileStatus: FileStatusE8 = {
-      fileName,
-      filePath,
-      mtime: fileStat.mtime,
-      isToday,
-    };
-
-    matchedFiles.push(fileStatus);
-
-    if (!isToday) {
-      dateIssueFiles.push(fileStatus);
-    }
-  }
-
-  // 不足または日付不整合がある場合はアーカイブを作成しない
   if (missingFiles.length > 0 || dateIssueFiles.length > 0) {
     return {
       matchedFiles,
@@ -107,11 +69,10 @@ async function checkAndArchiveFiles(): Promise<JobE8ResultData> {
     };
   }
 
-  const zipFilePath = await createZipArchive({
-    filePaths: matchedFiles.map((file) => file.filePath),
-    outputDir: path.join(os.homedir(), "Desktop"),
-    zipPrefix: CONFIG.zipPrefix,
-  });
+  const zipFilePath = await createDesktopZip(
+    matchedFiles.map((file) => file.filePath),
+    CONFIG.zipPrefix,
+  );
 
   return {
     matchedFiles,
@@ -121,19 +82,11 @@ async function checkAndArchiveFiles(): Promise<JobE8ResultData> {
   };
 }
 
-/**
- * 検証結果をログに出力し、最終ステータスを判定する。
- */
 function writeResultLog(logger: JobLogger, result: JobE8ResultData): string {
   logger.section("対象フォルダ");
   logger.log(CONFIG.targetDir);
 
-  if (result.matchedFiles.length > 0) {
-    logger.section("検出ファイル");
-    for (const file of result.matchedFiles) {
-      logger.log(`${file.fileName} (${formatDateTime(file.mtime)})`);
-    }
-  }
+  logCheckedFiles(logger, result.matchedFiles);
 
   if (result.zipFilePath) {
     logger.section("出力先");
@@ -152,17 +105,7 @@ function writeResultLog(logger: JobLogger, result: JobE8ResultData): string {
   }
 
   if (result.dateIssueFiles.length > 0) {
-    logger.section("日付不整合ファイル");
-    const issues = result.dateIssueFiles.map(
-      (file) =>
-        `更新日が本日ではありません: ${file.fileName} (${formatDateTime(file.mtime, "yyyy/MM/dd")})`,
-    );
-
-    for (const issue of issues) {
-      logger.log(issue);
-    }
-
-    return logger.needsAction(issues.join("\n"));
+    return logDateIssuesAndNeedsAction(logger, result.dateIssueFiles);
   }
 
   if (!result.zipFilePath) {

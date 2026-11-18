@@ -4,6 +4,7 @@ import type { StateCreator } from "zustand";
 
 import { operationService } from "@renderer/features/operation/service/operationService";
 import type { AppState } from "@renderer/store";
+import type { JobStatus } from "@shared/types/operation/operationTypes";
 import {
   EMPTY_STATUS_SUMMARY,
   type StatusSummary,
@@ -11,8 +12,11 @@ import {
 
 export interface StatusSummarySlice {
   summary: StatusSummary;
+  summaryStatusFilter: JobStatus | null;
   fetchStatusSummary: () => Promise<void>;
   setStatusSummary: (summary: StatusSummary) => void;
+  setSummaryStatusFilter: (status: JobStatus | null) => void;
+  toggleSummaryStatusFilter: (status: JobStatus) => void;
 }
 
 export const createStatusSummarySlice: StateCreator<
@@ -25,6 +29,7 @@ export const createStatusSummarySlice: StateCreator<
 
   return {
     summary: { ...EMPTY_STATUS_SUMMARY },
+    summaryStatusFilter: null,
 
     fetchStatusSummary: async () => {
       const currentRequestId = ++requestId;
@@ -52,6 +57,17 @@ export const createStatusSummarySlice: StateCreator<
       requestId += 1;
 
       set({ summary });
+    },
+
+    setSummaryStatusFilter: (status) => {
+      set({ summaryStatusFilter: status });
+    },
+
+    toggleSummaryStatusFilter: (status) => {
+      set((state) => ({
+        summaryStatusFilter:
+          state.summaryStatusFilter === status ? null : status,
+      }));
     },
   };
 };

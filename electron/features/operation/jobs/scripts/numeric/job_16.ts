@@ -4,6 +4,10 @@ import path from "node:path";
 import fs from "fs-extra";
 import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  listFilesInDir,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const CONFIG = {
   normalErrorPath: "\\\\192.88.1.3\\syn_tran",
@@ -20,34 +24,13 @@ type JobResultData = {
 };
 
 export async function runJob16(): Promise<string> {
-  const logger = new JobLogger();
-
-  try {
+  return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
     const result = await findTargetFile();
-
     await moveTargetFile(result);
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-
-    throw logger.fail(`ファイル処理に失敗しました${detail}`);
-  }
+  });
 }
 
-/**
- * 実行時刻に応じた確認先を選択する。
- *
- * 08:30以前:
- * - 通常フォルダ
- *
- * 08:30以降:
- * - ファーマーズエラーフォルダ
- */
 function selectDirectoryByTime(now: Date): string {
   const cutoff = new Date(now);
   cutoff.setHours(CONFIG.cutoffHour, CONFIG.cutoffMinute, 0, 0);
@@ -55,34 +38,21 @@ function selectDirectoryByTime(now: Date): string {
   return now <= cutoff ? CONFIG.normalErrorPath : CONFIG.farmersErrorPath;
 }
 
-/**
- * 当日分の SANSAN エラーファイルを検索する。
- *
- * 対象ファイルは1件のみを前提とする。
- */
 async function findTargetFile(): Promise<JobResultData> {
   const now = new Date();
   const today = format(now, "yyyyMMdd");
   const searchPattern = `${CONFIG.targetPrefix}${today}`;
   const targetDir = selectDirectoryByTime(now);
 
-  const entries = await fs.readdir(targetDir, {
-    withFileTypes: true,
-  });
-
-  const targetFile = entries.find(
-    (entry) => entry.isFile() && entry.name.includes(searchPattern),
-  );
+  const fileNames = await listFilesInDir(targetDir);
+  const targetFile = fileNames.find((name) => name.includes(searchPattern));
 
   return {
     targetDir,
-    targetFile: targetFile ? path.join(targetDir, targetFile.name) : null,
+    targetFile: targetFile ? path.join(targetDir, targetFile) : null,
   };
 }
 
-/**
- * 検出したエラーファイルを確認済フォルダへ移動する。
- */
 async function moveTargetFile(result: JobResultData): Promise<void> {
   if (result.targetFile === null) {
     return;
@@ -102,9 +72,6 @@ async function moveTargetFile(result: JobResultData): Promise<void> {
   result.targetFile = destinationPath;
 }
 
-/**
- * 検索結果と移動結果をログに出力する。
- */
 function writeResultLog(logger: JobLogger, result: JobResultData): string {
   if (result.targetFile === null) {
     logger.log("エラーファイルなし");

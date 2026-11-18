@@ -1,26 +1,19 @@
-﻿// src/shared/utils/dateTimeUtils.ts
+// src/shared/utils/dateTimeUtils.ts
+
+import { TZDate } from "@date-fns/tz";
+import { format, isValid, parseISO } from "date-fns";
+
+const JST_TIME_ZONE = "Asia/Tokyo" as const;
+const JAPAN_DATE_TIME_FORMAT = "yyyy/MM/dd HH:mm:ss" as const;
 
 const ISO_DATE_TIME_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
-const JAPAN_DATE_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
-  timeZone: "Asia/Tokyo",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  hourCycle: "h23",
-});
-
-function isValidDate(date: Date): boolean {
-  return !Number.isNaN(date.getTime());
-}
-
 /** Date オブジェクトを日本時間（YYYY/MM/DD HH:mm:ss）に整形する */
 export function formatJapanDateTime(date: Date): string {
-  return isValidDate(date) ? JAPAN_DATE_FORMATTER.format(date) : String(date);
+  return isValid(date)
+    ? format(new TZDate(date, JST_TIME_ZONE), JAPAN_DATE_TIME_FORMAT)
+    : String(date);
 }
 
 /** ISO 8601 形式の日時文字列であれば日本時間（YYYY/MM/DD HH:mm:ss）に整形して返す */
@@ -29,6 +22,8 @@ export function tryFormatIsoDateTime(value: string): string {
     return value;
   }
 
-  const date = new Date(value);
-  return isValidDate(date) ? JAPAN_DATE_FORMATTER.format(date) : value;
+  const date = parseISO(value);
+  return isValid(date)
+    ? format(new TZDate(date, JST_TIME_ZONE), JAPAN_DATE_TIME_FORMAT)
+    : value;
 }

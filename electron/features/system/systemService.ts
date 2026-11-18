@@ -1,6 +1,6 @@
 // electron/features/system/systemService.ts
 
-import { BrowserWindow, shell } from "electron";
+import { app, BrowserWindow, shell } from "electron";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,10 +23,13 @@ const SYSTEM_CONFIG: SystemServiceConfig = {
   manualBaseUrl: "https://sites.google.com/belc.co.jp",
 } as const;
 
-const UPDATE_INFO_PATH = path.join(
-  SYSTEM_CONFIG.updateDirectory,
-  SYSTEM_CONFIG.updateInfoFileName,
-);
+function getUpdateInfoPath(): string {
+  const baseDirectory = app.isPackaged
+    ? SYSTEM_CONFIG.updateDirectory
+    : app.getAppPath();
+
+  return path.join(baseDirectory, SYSTEM_CONFIG.updateInfoFileName);
+}
 
 // 対象管理Noに対応するWebマニュアルのURLを生成して返す。
 export function getManualUrl(target: string, isAuto = false): string {
@@ -74,10 +77,11 @@ export async function openExternalOrPath(target: string): Promise<void> {
   }
 }
 
-// 共有フォルダからアプリの最新アップデート情報を読み込んで返す。
+// アップデート情報を読み込んで返す（本番は共有フォルダ、開発時はローカルプロジェクトルートを参照）。
 export async function readUpdateInfo(): Promise<UpdateInfo | null> {
   try {
-    const content = await fs.readFile(UPDATE_INFO_PATH, "utf-8");
+    const updateInfoPath = getUpdateInfoPath();
+    const content = await fs.readFile(updateInfoPath, "utf-8");
     const data: unknown = JSON.parse(content);
     if (
       typeof data === "object" &&

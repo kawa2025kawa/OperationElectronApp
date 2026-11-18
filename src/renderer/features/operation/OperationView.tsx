@@ -1,37 +1,24 @@
 // src/renderer/features/operation/OperationView.tsx
 
-import { memo, useCallback, useMemo, useTransition } from "react";
+import { memo } from "react";
 import { motion } from "motion/react";
 
 import { OperationTable } from "@renderer/features/operation/components/table/OperationTable";
-import type { ViewMode } from "@shared/types/registry/viewDefinition";
 
 import { useOperationViewLogic } from "./hooks/useOperationViewLogic";
-import { createInfoRows } from "./utils/operationDisplayUtils";
 import { OperationModeSwitcher } from "./components/operationModeSwitcher/OperationModeSwitcher";
 import { OperationActionMenu } from "./components/operationActionMenu/OperationActionMenu";
 import { OperationInfoRow } from "./components/operationInfoRow/OperationInfoRow";
 import * as styles from "./operationView.css";
 
 export const OperationView = memo(function OperationView() {
-  const { currentMode, selectedId, selectedItem, status, setMode } =
-    useOperationViewLogic();
-
-  const [, startTransition] = useTransition();
-
-  const infoRows = useMemo(
-    () => createInfoRows(currentMode, selectedItem, status),
-    [currentMode, selectedItem, status],
-  );
-
-  const handleModeChange = useCallback(
-    (mode: ViewMode): void => {
-      startTransition(() => {
-        setMode(mode);
-      });
-    },
-    [setMode],
-  );
+  const {
+    currentMode,
+    selectedId,
+    selectedItem,
+    infoRows,
+    handleModeChange,
+  } = useOperationViewLogic();
 
   return (
     <div className={styles.container}>

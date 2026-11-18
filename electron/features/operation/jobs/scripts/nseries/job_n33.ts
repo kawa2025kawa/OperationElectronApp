@@ -7,6 +7,7 @@ import { PassThrough, type Readable } from "node:stream";
 import readline from "node:readline";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const TARGET_CODES = ["S330", "S332"] as const;
 
@@ -51,39 +52,14 @@ const CONFIG = {
 
 /**
  * FEP FTPサーバー上の当日CSV（S330, S332）をストリーム走査し、未格納データの有無を検証する。
- *
- * 接続先:
- * - 172.31.1.4:21 (/fep/chkcount/)
- *
- * 業務上の要対応:
- * - 当日の対象CSVファイルが存在しない場合
- * - 除外店舗以外の未格納データが存在する場合
- *
- * システムエラー:
- * - FTP接続・フォルダ移動失敗
- * - ファイル一覧取得・ストリームダウンロード失敗
  */
 export async function runJobN33(): Promise<string> {
-  const logger = new JobLogger();
-
-  try {
+  return runJobWithLogger("FTPチェック処理に失敗しました", async (logger) => {
     const result = await checkFtpCsvFiles();
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-
-    throw logger.fail(`FTPチェック処理に失敗しました${detail}`);
-  }
+  });
 }
 
-/**
- * 店コードが除外パターンに合致するか判定する。
- */
 function isExcludedStoreCode(code: string): boolean {
   return CONFIG.excludeStoreCodes.some((pattern) =>
     pattern.includes("*")
@@ -93,9 +69,6 @@ function isExcludedStoreCode(code: string): boolean {
   );
 }
 
-/**
- * FTPファイル一覧から対象コード・当日日付の最新CSVを特定する。
- */
 function findTargetFile(
   files: Awaited<ReturnType<Client["list"]>>,
   codeName: string,
@@ -109,9 +82,6 @@ function findTargetFile(
     .sort((a, b) => b.name.localeCompare(a.name))[0];
 }
 
-/**
- * Shift_JIS CSVストリームを読み込み、未格納行を抽出する。
- */
 async function processCsvStream(stream: Readable): Promise<UnassignedDetail[]> {
   const reader = readline.createInterface({
     input: stream.pipe(iconv.decodeStream("Shift_JIS")),
@@ -152,9 +122,6 @@ async function processCsvStream(stream: Readable): Promise<UnassignedDetail[]> {
   return unassignedItems;
 }
 
-/**
- * FTPサーバーへ接続し、対象コードごとのCSV検証を実行する。
- */
 async function checkFtpCsvFiles(): Promise<JobN33ResultData> {
   const client = new Client();
   const today = format(new Date(), "yyyyMMdd");
@@ -211,9 +178,6 @@ async function checkFtpCsvFiles(): Promise<JobN33ResultData> {
   }
 }
 
-/**
- * 検証結果をログに出力し、最終ステータスを判定する。
- */
 function writeResultLog(logger: JobLogger, result: JobN33ResultData): string {
   logger.section("FTP接続情報");
   logger.log(`接続先        : ${CONFIG.ftp.host}:${CONFIG.ftp.port}`);

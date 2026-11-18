@@ -1,6 +1,6 @@
-﻿// src/renderer/features/operation/components/table/OperationTableRow.tsx
+// src/renderer/features/operation/components/table/OperationTableRow.tsx
 
-import { memo, type KeyboardEvent, type MouseEvent } from "react";
+import { memo, useCallback, type KeyboardEvent, type MouseEvent } from "react";
 import { useTable, type Row } from "@tanstack/react-table";
 
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
@@ -43,12 +43,26 @@ export const OperationTableRow = memo(function OperationTableRow({
       Boolean(kanriNo) && state.selectedIds[state.currentMode] === kanriNo,
   );
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
-    if (event.key !== "Enter") return;
+  const handleClick = useCallback(() => {
+    onRowClick(kanriNo);
+  }, [onRowClick, kanriNo]);
 
-    event.preventDefault();
-    onMarkSuccess(kanriNo);
-  };
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLTableRowElement>) => {
+      if (event.key !== "Enter") return;
+
+      event.preventDefault();
+      onMarkSuccess(kanriNo);
+    },
+    [onMarkSuccess, kanriNo],
+  );
+
+  const handleContextMenu = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      onStatusContextMenu(event, row.original);
+    },
+    [onStatusContextMenu, row.original],
+  );
 
   return (
     <tr
@@ -59,7 +73,7 @@ export const OperationTableRow = memo(function OperationTableRow({
           ? styles.tableRowStates.selected
           : styles.tableRowStates.clickable
       }`}
-      onClick={() => onRowClick(kanriNo)}
+      onClick={handleClick}
       onKeyDown={handleKeyDown}
     >
       {row.getAllCells().map((cell) => {
@@ -79,9 +93,7 @@ export const OperationTableRow = memo(function OperationTableRow({
                 <div
                   className={styles.statusBadgeAnchor}
                   data-context-open={isContextOpen}
-                  onContextMenu={(event) =>
-                    onStatusContextMenu(event, row.original)
-                  }
+                  onContextMenu={handleContextMenu}
                 >
                   <StatusBadge status={row.original.status} />
                 </div>

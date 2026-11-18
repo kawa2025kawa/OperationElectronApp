@@ -5,6 +5,10 @@ import { format } from "date-fns";
 import fs from "fs-extra";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  listFilesInExistingDir,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const CONFIG = {
   targetDir: "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV",
@@ -25,31 +29,12 @@ type JobResultData = {
 
 /**
  * 事前連携ファイル（Okurikomi_toMD_JIZEN, htsf0060_JIZEN）の存在を確認する。
- *
- * 監視継続 (running):
- * - 対象ファイルが不足している場合（バックグラウンドでポーリング監視）
- *
- * 正常終了 (success):
- * - すべての対象ファイルが存在する場合
- *
- * システムエラー:
- * - フォルダへのアクセス失敗、ステータス取得失敗
  */
 export async function runJob80(): Promise<JobResult> {
-  const logger = new JobLogger();
-
-  try {
+  return runJobWithLogger("ファイル確認に失敗しました", async (logger) => {
     const result = await checkRequiredFiles();
-
     return writeResultLog(logger, result);
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("\n\n▶ ")) {
-      throw error;
-    }
-
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-    throw logger.fail(`ファイル確認に失敗しました${detail}`);
-  }
+  });
 }
 
 function getDateKey(date = new Date()): string {
@@ -60,48 +45,41 @@ function formatModifiedTime(date: Date): string {
   return format(date, "yyyy/MM/dd HH:mm:ss");
 }
 
-async function validateTargetDirectory(): Promise<void> {
-  const stats = await fs.stat(CONFIG.targetDir);
-  if (!stats.isDirectory()) {
-    throw new Error(`フォルダが存在しません: ${CONFIG.targetDir}`);
-  }
-}
+async function findMatchedFile(
+  fileNames: readonly string[],
+  prefix: string,
+): Promise<MatchedFile | null> {
+  const matchedName = fileNames.find((name) => name.startsWith(prefix));
 
-async function findMatchedFile(prefix: string): Promise<MatchedFile | null> {
-  const entries = await fs.readdir(CONFIG.targetDir, {
-    withFileTypes: true,
-  });
-  const entry = entries.find(
-    (item) => item.isFile() && item.name.startsWith(prefix),
-  );
-
-  if (!entry) {
+  if (!matchedName) {
     return null;
   }
 
-  const filePath = path.join(CONFIG.targetDir, entry.name);
+  const filePath = path.join(CONFIG.targetDir, matchedName);
   const stat = await fs.stat(filePath);
 
   return {
-    fileName: entry.name,
+    fileName: matchedName,
     filePath,
     mtime: stat.mtime,
   };
 }
 
 async function findRequiredFiles(
+  fileNames: readonly string[],
   prefixes: readonly string[],
 ): Promise<(MatchedFile | null)[]> {
-  return Promise.all(prefixes.map(findMatchedFile));
+  return Promise.all(
+    prefixes.map((prefix) => findMatchedFile(fileNames, prefix)),
+  );
 }
 
-/**
- * 固定名または日付付き名で必須ファイルを探索・確認する。
- */
 async function checkRequiredFiles(): Promise<JobResultData> {
-  await validateTargetDirectory();
-
-  const fixedFiles = await findRequiredFiles(CONFIG.requiredFiles);
+  const fileNames = await listFilesInExistingDir(
+    CONFIG.targetDir,
+    `フォルダが存在しません: ${CONFIG.targetDir}`,
+  );
+  const fixedFiles = await findRequiredFiles(fileNames, CONFIG.requiredFiles);
 
   if (fixedFiles.every((file) => file !== null)) {
     return {
@@ -112,6 +90,7 @@ async function checkRequiredFiles(): Promise<JobResultData> {
   }
 
   const datedFiles = await findRequiredFiles(
+    fileNames,
     CONFIG.requiredFiles.map((target) => `${target}_${getDateKey()}`),
   );
 
@@ -124,9 +103,6 @@ async function checkRequiredFiles(): Promise<JobResultData> {
   };
 }
 
-/**
- * 検出結果をログに出力し、JobResult を返却する。
- */
 function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {
   logger.log(`対象フォルダ : ${result.targetDir}`);
   logger.section("検出ファイル");

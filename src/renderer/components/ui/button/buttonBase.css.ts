@@ -2,8 +2,7 @@
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-
-const t = tokens.transition.normal;
+import { createBeforeGlowRule } from "@renderer/styles/global/surfaces.css";
 
 /**
  * 全ボタン共通の基底スタイル
@@ -23,7 +22,7 @@ export const baseButton = style({
   transform: "translateZ(0)",
   backfaceVisibility: "hidden",
   WebkitBackfaceVisibility: "hidden",
-  transition: `transform ${tokens.transition.ease}, color ${tokens.transition.ease}, border-color ${tokens.transition.ease}, background-color ${t}, opacity ${tokens.transition.fast}`,
+  transition: `transform ${tokens.transition.ease}, color ${tokens.transition.ease}, border-color ${tokens.transition.ease}, background-color ${tokens.transition.normal}, opacity ${tokens.transition.fast}`,
 
   selectors: {
     "&:disabled": {
@@ -52,17 +51,9 @@ export const neonGlowButton = style([
     border: `1px solid ${tokens.color.border.default}`,
     boxShadow: tokens.shadow.raised.high,
 
-    "::before": {
-      content: '""',
-      position: "absolute",
-      inset: -1,
-      borderRadius: "inherit",
-      boxShadow: tokens.shadow.glowRaised.high,
-      opacity: 0,
-      transition: `opacity ${tokens.transition.glow}`,
-      pointerEvents: "none",
+    "::before": createBeforeGlowRule(tokens.shadow.glowRaised.high, {
       willChange: "opacity",
-    },
+    }),
 
     selectors: {
       "&:hover:not(:disabled)": {
