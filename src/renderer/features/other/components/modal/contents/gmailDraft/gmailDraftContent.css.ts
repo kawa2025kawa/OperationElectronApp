@@ -1,4 +1,4 @@
-// src/renderer/features/other/components/modal/contents/gmailDraft/gmailDraftContent.css.ts
+﻿// src/renderer/features/other/components/modal/contents/gmailDraft/gmailDraftContent.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -34,7 +34,7 @@ export const bodyFieldGroup = style([
 ]);
 
 export const label = style({
-  fontSize: tokens.font.size.sm,
+  fontSize: tokens.font.size.md,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.base,
 });
@@ -46,7 +46,7 @@ export const input = style({
   backgroundColor: tokens.color.bg.base,
   border: `1px solid ${tokens.color.border.subtle}`,
   color: tokens.color.text.base,
-  fontSize: tokens.font.size.sm,
+  fontSize: tokens.font.size.md,
   outline: "none",
   boxSizing: "border-box",
   boxShadow: tokens.shadow.pressed.low,
@@ -74,6 +74,7 @@ export const selectInput = style([
     alignItems: "center",
     justifyContent: "space-between",
     paddingRight: "32px",
+    fontWeight: tokens.font.weight.bold,
     cursor: "pointer",
     textAlign: "left",
     backgroundColor: tokens.color.bg.base,
@@ -140,6 +141,7 @@ export const selectItem = style({
   backgroundColor: "transparent",
   color: tokens.color.text.base,
   fontSize: tokens.font.size.sm,
+  fontWeight: tokens.font.weight.bold,
   textAlign: "left",
   cursor: "pointer",
   outline: "none",
@@ -152,7 +154,6 @@ export const selectItem = style({
     },
     "&[data-selected]": {
       color: tokens.color.accent.base,
-      fontWeight: tokens.font.weight.bold,
     },
     "&[data-disabled]": {
       opacity: 0.5,

@@ -26,7 +26,7 @@ import {
   type OperationColumnMeta,
   type TableFeaturesType,
 } from "./operationTableConfig";
-import { useOperationTableContextMenu } from "./useOperationTableContextMenu";
+import { useOperationTableContextMenuStore } from "./useOperationTableContextMenu";
 import {
   useOperationTableVirtualizer,
   type OperationRowVirtualizer,
@@ -133,12 +133,12 @@ export function useOperationTable() {
       onAfterRestore: handleAfterRestore,
     });
 
-  const contextMenu = useOperationTableContextMenu();
+  const contextMenuStore = useOperationTableContextMenuStore();
 
   const handleTableScroll = useCallback(() => {
-    contextMenu.handleBodyScroll();
+    contextMenuStore.close();
     handlePersistentScroll();
-  }, [contextMenu, handlePersistentScroll]);
+  }, [contextMenuStore, handlePersistentScroll]);
 
   useLayoutEffect(() => {
     const header = headerContainerRef.current;
@@ -224,7 +224,7 @@ export function useOperationTable() {
     paddingTop,
     paddingBottom,
     isLoading: isSwitchingMode,
-    contextMenu,
+    contextMenuStore,
     handleTableScroll,
     handleRowClick,
     handleMarkSuccess,

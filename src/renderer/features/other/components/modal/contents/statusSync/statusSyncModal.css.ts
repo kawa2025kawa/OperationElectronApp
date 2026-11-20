@@ -2,7 +2,6 @@
 
 import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
-import { focusRing } from "@renderer/styles/global/surfaces.css";
 
 export const container = style({
   display: "flex",
@@ -64,50 +63,17 @@ export const modeHeader = style({
   flexShrink: 0,
 });
 
-export const modeToggle = style({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: tokens.space.xs,
-  padding: tokens.space.xs,
-  borderRadius: tokens.radius.full,
-  backgroundColor: tokens.glass.surfaceSubtle,
-  border: `1px solid ${tokens.glass.border}`,
-  boxShadow: tokens.shadow.pressed.low,
+export const modeToggleWrapper = style({
+  minWidth: "180px",
 });
 
-export const modeToggleButton = style([
-  focusRing,
+export const modeToggleWrapperDisabled = style([
+  modeToggleWrapper,
   {
-    minWidth: "88px",
-    padding: `${tokens.space.sm} ${tokens.space.lg}`,
-    border: "1px solid transparent",
-    borderRadius: tokens.radius.full,
-    backgroundColor: "transparent",
-    color: tokens.color.text.base,
-    fontFamily: tokens.font.mono,
-    fontSize: tokens.font.size.sm,
-    fontWeight: tokens.font.weight.bold,
-    letterSpacing: "0.06em",
-    cursor: "pointer",
-    transition: `color ${tokens.transition.fast}, background-color ${tokens.transition.fast}, border-color ${tokens.transition.fast}`,
-    selectors: {
-      "&:hover:not(:disabled)": {
-        color: tokens.color.text.hover,
-        backgroundColor: tokens.glass.surface,
-      },
-      "&:disabled": {
-        cursor: "default",
-      },
-    },
+    opacity: 0.6,
+    pointerEvents: "none",
   },
 ]);
-
-export const modeToggleButtonActive = style({
-  color: tokens.color.accent.base,
-  backgroundColor: tokens.color.bg.frostedGlass,
-  borderColor: tokens.color.border.accent,
-  boxShadow: tokens.shadow.glow.brand,
-});
 
 export const infoGrid = style({
   display: "grid",

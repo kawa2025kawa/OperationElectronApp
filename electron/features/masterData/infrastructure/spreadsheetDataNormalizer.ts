@@ -135,6 +135,7 @@ export function normalizeSpreadsheetMasterData(
       normalizeLinks,
     ),
     rdps: normalizeSpreadsheetRows(data.rdps ?? []),
+    dailyUpdateStatus: data.dailyUpdateStatus,
     errors: { ...data.errors },
   };
 }

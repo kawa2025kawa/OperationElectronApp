@@ -2,11 +2,8 @@
 
 import { isSameJstDay } from "./jstDate";
 
-// メモリー・ディスクキャッシュの操作をまとめた設定。
+// メモリーキャッシュの操作をまとめた設定。
 export interface MasterDataCacheServiceOptions<T> {
-  loadCache: () => Promise<{ fetchedAt: string; data: T } | null>;
-  saveCache: (data: T) => Promise<void>;
-  deleteCache: () => Promise<void>;
   loadFreshData: () => Promise<T>;
   shouldCache?: (data: T) => boolean;
   logPrefix: string;
@@ -17,7 +14,7 @@ interface MemoryCache<T> {
   fetchedAt: string;
 }
 
-// マスターデータの取得・更新・削除を共通管理する。
+// マスターデータの取得・更新・削除を共通管理する（アプリ起動ごとに最新を取得し、同一セッション内のみメモリー保持）。
 export function createMasterDataCacheService<T>(
   options: MasterDataCacheServiceOptions<T>,
 ) {
@@ -25,9 +22,8 @@ export function createMasterDataCacheService<T>(
 
   let refreshPromise: Promise<T> | null = null;
   let clearPromise: Promise<void> | null = null;
-  let cacheGeneration = 0;
 
-  // 最新データを取得して、キャッシュ可能な場合だけ保存する。
+  // 最新データを取得して、キャッシュ可能な場合だけメモリーに保存する。
   async function refresh(): Promise<T> {
     while (true) {
       const pendingClear = clearPromise;
@@ -48,8 +44,6 @@ export function createMasterDataCacheService<T>(
           memoryCache = null;
           return data;
         }
-
-        await options.saveCache(data);
 
         memoryCache = {
           data,
@@ -74,7 +68,7 @@ export function createMasterDataCacheService<T>(
     }
   }
 
-  // 有効なメモリー・ディスクキャッシュを確認してマスターデータを返す。
+  // 有効なメモリーキャッシュを確認してマスターデータを返す。
   async function get(): Promise<T> {
     while (true) {
       const pendingClear = clearPromise;
@@ -88,33 +82,15 @@ export function createMasterDataCacheService<T>(
         return memoryCache.data;
       }
 
-      const generationAtReadStart = cacheGeneration;
-      const cached = await options.loadCache();
-
-      if (generationAtReadStart !== cacheGeneration) {
-        continue;
-      }
-
-      if (cached && isSameJstDay(cached.fetchedAt)) {
-        memoryCache = {
-          data: cached.data,
-          fetchedAt: cached.fetchedAt,
-        };
-
-        return cached.data;
-      }
-
       return refresh();
     }
   }
 
-  // 実行中の更新完了を待って、メモリー・ディスクキャッシュを削除する。
+  // 実行中の更新完了を待って、メモリーキャッシュを削除する。
   async function clear(): Promise<void> {
     if (clearPromise) {
       return clearPromise;
     }
-
-    cacheGeneration += 1;
 
     const pendingRefresh = refreshPromise;
 
@@ -128,8 +104,6 @@ export function createMasterDataCacheService<T>(
       }
 
       memoryCache = null;
-
-      await options.deleteCache();
     })();
 
     clearPromise = currentClear;

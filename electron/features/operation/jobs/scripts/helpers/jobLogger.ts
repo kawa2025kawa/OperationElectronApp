@@ -33,9 +33,9 @@ export class JobLogger {
   /**
    * 対応が必要な業務結果を記録する。
    */
-  public needsAction(summary: string): string {
+  public needsAction(summary?: string): string {
     this.lines.push(
-      `▶ [${format(new Date(), "MM/dd HH:mm:ss")}] 要対応 : ${summary}`,
+      `▶ [${format(new Date(), "MM/dd HH:mm:ss")}] 要対応${summary ? ` : ${summary}` : ""}`,
     );
 
     return this.lines.join("\n");

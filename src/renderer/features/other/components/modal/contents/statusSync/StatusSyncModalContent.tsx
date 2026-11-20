@@ -1,12 +1,12 @@
 ﻿// src/renderer/features/other/components/modal/contents/statusSync/StatusSyncModalContent.tsx
 
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
+import { SegmentedControl } from "@renderer/components/ui/toggle/SegmentedControl";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import * as styles from "./statusSyncModal.css";
 import {
   useStatusSyncLoad,
   useStatusSyncSave,
-  type StatusSyncInfoMessage,
   type StatusSyncMode,
 } from "./useStatusSyncModalContent";
 
@@ -14,58 +14,15 @@ export type { StatusSyncMode };
 
 type StatusSyncModalContentProps = Record<string, never>;
 
-interface ModeHeaderProps {
-  mode: StatusSyncMode;
-  disabled: boolean;
-  onModeChange: (mode: StatusSyncMode) => void;
-}
+const MODE_ITEMS = [
+  { id: "save", label: "SAVE" },
+  { id: "load", label: "LOAD" },
+] as const;
 
-const StatusSyncLayout = memo(function StatusSyncLayout({
-  infoMessage,
-  mode,
-  disabled,
-  onModeChange,
-  children,
-}: ModeHeaderProps & {
-  infoMessage: StatusSyncInfoMessage;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={styles.container}>
-      <div className={styles.infoBoxVariants[infoMessage.type]}>
-        {infoMessage.text}
-      </div>
-
-      <div className={styles.modeHeader}>
-        <div className={styles.modeToggle}>
-          {(["save", "load"] as const).map((targetMode) => {
-            const isActive = mode === targetMode;
-            return (
-              <button
-                key={targetMode}
-                type="button"
-                className={`${styles.modeToggleButton} ${
-                  isActive ? styles.modeToggleButtonActive : ""
-                }`}
-                onClick={() => onModeChange(targetMode)}
-                disabled={disabled || isActive}
-              >
-                {targetMode.toUpperCase()}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {children}
-    </div>
-  );
-});
-
-const SaveModeContent = memo(function SaveModeContent({
-  onModeChange,
+const SaveModeBody = memo(function SaveModeBody({
+  onLockChange,
 }: {
-  onModeChange: (mode: StatusSyncMode) => void;
+  onLockChange: (locked: boolean) => void;
 }) {
   const {
     operatorName,
@@ -76,13 +33,16 @@ const SaveModeContent = memo(function SaveModeContent({
     infoMessage,
   } = useStatusSyncSave();
 
+  useEffect(() => {
+    onLockChange(isLocked);
+  }, [isLocked, onLockChange]);
+
   return (
-    <StatusSyncLayout
-      infoMessage={infoMessage}
-      mode="save"
-      disabled={isLocked}
-      onModeChange={onModeChange}
-    >
+    <>
+      <div className={styles.infoBoxVariants[infoMessage.type]}>
+        {infoMessage.text}
+      </div>
+
       <div className={styles.infoGrid}>
         <span className={styles.label}>担当者名</span>
         <span className={styles.value}>{operatorName}</span>
@@ -104,25 +64,28 @@ const SaveModeContent = memo(function SaveModeContent({
           placeholder="未完了の作業、注意事項、次に対応する内容などを入力"
         />
       </div>
-    </StatusSyncLayout>
+    </>
   );
 });
 
-const LoadModeContent = memo(function LoadModeContent({
-  onModeChange,
+const LoadModeBody = memo(function LoadModeBody({
+  onLockChange,
 }: {
-  onModeChange: (mode: StatusSyncMode) => void;
+  onLockChange: (locked: boolean) => void;
 }) {
   const { isLoadingPreview, preview, isLocked, infoMessage } =
     useStatusSyncLoad();
 
+  useEffect(() => {
+    onLockChange(isLocked);
+  }, [isLocked, onLockChange]);
+
   return (
-    <StatusSyncLayout
-      infoMessage={infoMessage}
-      mode="load"
-      disabled={isLocked}
-      onModeChange={onModeChange}
-    >
+    <>
+      <div className={styles.infoBoxVariants[infoMessage.type]}>
+        {infoMessage.text}
+      </div>
+
       {isLoadingPreview ? (
         <div className={styles.noteBox}>前回の保存情報を読み込み中...</div>
       ) : !preview?.hasData ? (
@@ -153,18 +116,46 @@ const LoadModeContent = memo(function LoadModeContent({
           </div>
         </>
       )}
-    </StatusSyncLayout>
+    </>
   );
 });
 
 export const StatusSyncModalContent: GlobalModalComponent<StatusSyncModalContentProps> =
   memo(function StatusSyncModalContent() {
     const [mode, setMode] = useState<StatusSyncMode>("save");
+    const [isLocked, setIsLocked] = useState(false);
 
-    return mode === "save" ? (
-      <SaveModeContent onModeChange={setMode} />
-    ) : (
-      <LoadModeContent onModeChange={setMode} />
+    return (
+      <div className={styles.container}>
+        <div className={styles.modeHeader}>
+          <div
+            className={
+              isLocked
+                ? styles.modeToggleWrapperDisabled
+                : styles.modeToggleWrapper
+            }
+          >
+            <SegmentedControl
+              id="status-sync-mode"
+              items={MODE_ITEMS}
+              value={mode}
+              onChange={(nextMode) => {
+                if (!isLocked) {
+                  setMode(nextMode);
+                }
+              }}
+              size="md"
+              fullWidth={false}
+            />
+          </div>
+        </div>
+
+        {mode === "save" ? (
+          <SaveModeBody onLockChange={setIsLocked} />
+        ) : (
+          <LoadModeBody onLockChange={setIsLocked} />
+        )}
+      </div>
     );
   });
 

@@ -3,7 +3,10 @@
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 import type { AppState } from "@renderer/store";
-import type { SpreadsheetMasterDataResponse } from "@shared/types/masterData/spreadsheetMasterDataTypes";
+import type {
+  SpreadsheetDailyUpdateStatus,
+  SpreadsheetMasterDataResponse,
+} from "@shared/types/masterData/spreadsheetMasterDataTypes";
 import {
   SHEETS,
   type SheetDataResponse,
@@ -26,6 +29,7 @@ function createSheetState<T>(value: T): Record<SheetId, T> {
 export interface SpreadSheetSlice {
   sheetData: SheetDataState;
   sheetErrors: Partial<Record<SheetId, string>>;
+  dailyUpdateStatus: SpreadsheetDailyUpdateStatus | null;
 
   updateSheetData<TSheetId extends SheetId>(
     sheetId: TSheetId,
@@ -57,6 +61,7 @@ export const createSpreadSheetSlice: StateCreator<
   const applyMasterData = (masterData: SpreadsheetMasterDataResponse): void => {
     set((state) => {
       state.sheetErrors = { ...masterData.errors };
+      state.dailyUpdateStatus = masterData.dailyUpdateStatus;
 
       state.sheetData[SHEETS.STORE.sheetName] = masterData.errors[
         SHEETS.STORE.sheetName
@@ -105,8 +110,10 @@ export const createSpreadSheetSlice: StateCreator<
         applyMasterData(masterData);
 
         const errors = masterData.errors;
+        const { dailyUpdateStatus } = masterData;
 
         get().setInitStatus({
+          sheetSync: dailyUpdateStatus.isUpdatedToday ? "OK" : "NG",
           store: errors[SHEETS.STORE.sheetName] ? "NG" : "OK",
           kokyuhyo: errors[SHEETS.KOKYUHYO.sheetName] ? "NG" : "OK",
           jugyoin: errors[SHEETS.JUGYOIN.sheetName] ? "NG" : "OK",
@@ -115,6 +122,14 @@ export const createSpreadSheetSlice: StateCreator<
           irregularMaster: errors[SHEETS.IRREGULAR.sheetName] ? "NG" : "OK",
           rdp: errors[SHEETS.RDP.sheetName] ? "NG" : "OK",
         });
+
+        if (!dailyUpdateStatus.isUpdatedToday) {
+          toast.warning(
+            dailyUpdateStatus.warningMessage ??
+              "スプレッドシートのデータが本日更新されていません",
+            { duration: 15000 },
+          );
+        }
 
         return masterData;
       } catch (error: unknown) {
@@ -131,9 +146,11 @@ export const createSpreadSheetSlice: StateCreator<
           ) as Partial<Record<SheetId, string>>;
 
           state.sheetData = createSheetState(null) as SheetDataState;
+          state.dailyUpdateStatus = null;
         });
 
         get().setInitStatus({
+          sheetSync: "NG",
           store: "NG",
           jugyoin: "NG",
           kokyuhyo: "NG",
@@ -151,6 +168,7 @@ export const createSpreadSheetSlice: StateCreator<
   return {
     sheetData: createSheetState(null) as SheetDataState,
     sheetErrors: {},
+    dailyUpdateStatus: null,
     updateSheetData,
     fetchMasterData,
   };

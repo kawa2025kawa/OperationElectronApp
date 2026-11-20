@@ -4,8 +4,10 @@ import path from "node:path";
 import fs from "fs-extra";
 import { format } from "date-fns";
 import { TextDecoder } from "node:util";
+import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
   targetDir: "\\\\192.88.2.222\\c$\\NTS\\EDIMstr\\Log",
@@ -18,6 +20,13 @@ const CONFIG = {
   statusLength: 40,
   encoding: "shift_jis",
 } as const;
+
+const KANRI_NO_TO_ORDER_NUMBER: Readonly<Record<string, number>> = {
+  "301": 1,
+  "371": 2,
+  "451": 3,
+  "481": 4,
+};
 
 type OrderHistory = {
   orderNumber: number;
@@ -34,6 +43,11 @@ type JobResultData = {
 };
 
 const decoder = new TextDecoder(CONFIG.encoding);
+
+function resolveTargetOrderNumber(kanriNo?: string): number | undefined {
+  if (!kanriNo) return undefined;
+  return KANRI_NO_TO_ORDER_NUMBER[normalizeKanriNo(kanriNo)];
+}
 
 async function findTargetFile(): Promise<string | null> {
   const today = format(new Date(), "yyyyMMdd");
@@ -117,10 +131,38 @@ async function getOrderHistory(): Promise<JobResultData> {
   };
 }
 
-function writeResultLog(logger: JobLogger, result: JobResultData): string {
+function formatHistoryLine(history: OrderHistory): string {
+  return [
+    history.label,
+    history.time,
+    history.status,
+    history.executionType,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function evaluateResult(
+  logger: JobLogger,
+  result: JobResultData,
+  targetOrderNumber?: number,
+): JobResult {
+  const targetLabel =
+    targetOrderNumber !== undefined
+      ? `No.${targetOrderNumber}発注（${targetOrderNumber}回目送信）`
+      : undefined;
+
   if (result.targetFile === null) {
     logger.log("当日分のCTLファイルなし");
-    return logger.complete();
+    const reason = targetLabel
+      ? `当日分のCTLファイルが存在しません（対象: ${targetLabel}）`
+      : "当日分のCTLファイルが存在しません";
+
+    return {
+      success: true,
+      kind: "needsAction",
+      message: logger.needsAction(reason),
+    };
   }
 
   logger.section("対象ファイル");
@@ -128,26 +170,57 @@ function writeResultLog(logger: JobLogger, result: JobResultData): string {
 
   if (result.histories.length === 0) {
     logger.log("発注履歴なし");
-    return logger.complete();
+  } else {
+    logger.section("発注履歴（当日分）");
+    for (const history of result.histories) {
+      logger.log(formatHistoryLine(history));
+    }
   }
 
-  logger.section("発注履歴");
-
-  for (const history of result.histories) {
-    logger.log(
-      `${history.label} ${history.time} ${history.status} ${history.executionType}`,
+  if (targetOrderNumber !== undefined) {
+    const matched = result.histories.find(
+      (history) => history.orderNumber === targetOrderNumber,
     );
+
+    if (!matched) {
+      return {
+        success: true,
+        kind: "needsAction",
+        message: logger.needsAction(
+          `${targetLabel}の送信履歴が見つかりません`,
+        ),
+      };
+    }
+
+    return {
+      success: true,
+      kind: "success",
+      message: logger.complete(`確認完了: ${formatHistoryLine(matched)}`),
+    };
   }
 
-  return logger.complete();
+  if (result.histories.length === 0) {
+    return {
+      success: true,
+      kind: "needsAction",
+      message: logger.needsAction("発注送信履歴が見つかりません"),
+    };
+  }
+
+  return {
+    success: true,
+    kind: "success",
+    message: logger.complete("確認完了"),
+  };
 }
 
-export async function runJobScskCheck(): Promise<string> {
+export async function runJobScskCheck(kanriNo?: string): Promise<JobResult> {
   return runJobWithLogger(
     "CTLファイルの解析に失敗しました",
     async (logger) => {
+      const targetOrderNumber = resolveTargetOrderNumber(kanriNo);
       const result = await getOrderHistory();
-      return writeResultLog(logger, result);
+      return evaluateResult(logger, result, targetOrderNumber);
     },
   );
 }

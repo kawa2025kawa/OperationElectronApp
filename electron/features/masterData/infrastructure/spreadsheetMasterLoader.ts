@@ -1,10 +1,13 @@
 // electron/features/masterData/infrastructure/spreadsheetMasterLoader.ts
 
+import type { SpreadsheetDailyUpdateStatus } from "@shared/types/masterData/spreadsheetMasterDataTypes";
 import {
   SHEETS,
   type SheetData,
   type SheetId,
+  type UpdateMeta,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { isSameJstDay } from "../application/jstDate";
 import type { RdpMaster } from "../../rdp/rdpMasterTypes";
 import type { SpreadsheetMasterData } from "../types/internalSpreadsheetMasterDataTypes";
 import { fetchSheet } from "./spreadsheetClient";
@@ -15,6 +18,12 @@ interface SheetLoadResult<TRow> {
   data: TRow[];
   error?: string;
 }
+
+const REQUIRED_UPDATE_TARGETS = [
+  { key: "Orchestrator", label: "全体統合(Orchestrator)" },
+  { key: SHEETS.KOKYUHYO.sheetName, label: "公休表(KokyuhyoMasterData)" },
+  { key: SHEETS.JUGYOIN.sheetName, label: "従業員(JugyoinMasterData)" },
+] as const;
 
 async function loadSheetData<
   TSheetId extends SheetId,
@@ -50,6 +59,113 @@ function collectSheetErrors(
   return errors;
 }
 
+function evaluateDailyUpdateStatus(
+  metaResult: SheetLoadResult<UpdateMeta>,
+): SpreadsheetDailyUpdateStatus {
+  if (metaResult.error) {
+    return {
+      isUpdatedToday: false,
+      updatedAt: null,
+      kokyuhyoUpdatedAt: null,
+      jugyoinUpdatedAt: null,
+      status: null,
+      message: null,
+      warningMessage: `スプレッドシートの更新状況を確認できませんでした（${metaResult.error}）`,
+    };
+  }
+
+  const rows = metaResult.data;
+  if (rows.length === 0) {
+    return {
+      isUpdatedToday: false,
+      updatedAt: null,
+      kokyuhyoUpdatedAt: null,
+      jugyoinUpdatedAt: null,
+      status: null,
+      message: null,
+      warningMessage:
+        "スプレッドシートの最終更新日時が記録されていません（GAS未実行の可能性）",
+    };
+  }
+
+  const metaByTarget = new Map<string, UpdateMeta>();
+  for (const row of rows) {
+    const target = row.target?.trim();
+    if (target) {
+      metaByTarget.set(target, row);
+    }
+  }
+
+  const orchestratorRow = metaByTarget.get("Orchestrator") ?? rows[0];
+  const kokyuhyoRow =
+    metaByTarget.get(SHEETS.KOKYUHYO.sheetName) ?? orchestratorRow;
+  const jugyoinRow =
+    metaByTarget.get(SHEETS.JUGYOIN.sheetName) ?? orchestratorRow;
+
+  const updatedAt = orchestratorRow?.updatedAt?.trim() || null;
+  const kokyuhyoUpdatedAt = kokyuhyoRow?.updatedAt?.trim() || null;
+  const jugyoinUpdatedAt = jugyoinRow?.updatedAt?.trim() || null;
+  const status = orchestratorRow?.status?.trim() || null;
+  const message = orchestratorRow?.message?.trim() || null;
+
+  const issues: string[] = [];
+
+  if (metaByTarget.size > 0) {
+    for (const { key, label } of REQUIRED_UPDATE_TARGETS) {
+      const record = metaByTarget.get(key);
+      const recordUpdatedAt = record?.updatedAt?.trim() || "";
+      const recordStatus = record?.status?.trim().toUpperCase() || "";
+      const recordMessage = record?.message?.trim() || "";
+
+      if (!record || !recordUpdatedAt) {
+        issues.push(`${label}: 更新記録なし`);
+        continue;
+      }
+
+      if (recordStatus && recordStatus !== "OK") {
+        issues.push(
+          `${label}: エラー(${recordStatus}${recordMessage ? ` - ${recordMessage}` : ""})`,
+        );
+        continue;
+      }
+
+      if (!isSameJstDay(recordUpdatedAt)) {
+        issues.push(`${label}: 本日未更新(最終: ${recordUpdatedAt})`);
+      }
+    }
+  } else {
+    if (!updatedAt) {
+      issues.push("最終更新日時が記録されていません");
+    } else if (status && status.toUpperCase() !== "OK") {
+      issues.push(`GASエラー(${status}${message ? ` / ${message}` : ""})`);
+    } else if (!isSameJstDay(updatedAt)) {
+      issues.push(`本日未更新（最終更新: ${updatedAt}）`);
+    }
+  }
+
+  if (issues.length > 0) {
+    return {
+      isUpdatedToday: false,
+      updatedAt,
+      kokyuhyoUpdatedAt,
+      jugyoinUpdatedAt,
+      status: status ?? "NG",
+      message,
+      warningMessage: `スプレッドシート定期更新（GAS）異常: ${issues.join(" / ")}`,
+    };
+  }
+
+  return {
+    isUpdatedToday: true,
+    updatedAt,
+    kokyuhyoUpdatedAt,
+    jugyoinUpdatedAt,
+    status: status ?? "OK",
+    message,
+    warningMessage: null,
+  };
+}
+
 export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData> {
   const [
     stores,
@@ -59,6 +175,7 @@ export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData
     operations,
     irregulars,
     rdps,
+    updateMeta,
   ] = await Promise.all([
     loadSheetData(SHEETS.STORE.sheetName),
     loadSheetData(SHEETS.KOKYUHYO.sheetName),
@@ -67,6 +184,7 @@ export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData
     loadSheetData(SHEETS.OPERATION.sheetName),
     loadSheetData(SHEETS.IRREGULAR.sheetName),
     loadSheetData<typeof SHEETS.RDP.sheetName, RdpMaster>(SHEETS.RDP.sheetName),
+    loadSheetData(SHEETS.UPDATE_META.sheetName),
   ]);
 
   const errors = collectSheetErrors([
@@ -77,6 +195,7 @@ export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData
     [SHEETS.OPERATION.sheetName, operations],
     [SHEETS.IRREGULAR.sheetName, irregulars],
     [SHEETS.RDP.sheetName, rdps],
+    [SHEETS.UPDATE_META.sheetName, updateMeta],
   ]);
 
   return {
@@ -88,6 +207,7 @@ export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData
     irregulars: irregulars.data,
     todayIrregulars: [],
     rdps: rdps.data,
+    dailyUpdateStatus: evaluateDailyUpdateStatus(updateMeta),
     errors,
   };
 }

@@ -77,7 +77,7 @@ export const valueBadge = style({
   height: "32px",
   borderRadius: tokens.radius.md,
   fontFamily: tokens.font.mono,
-  fontSize: tokens.font.size.sm,
+  fontSize: tokens.font.size.md,
   fontWeight: tokens.font.weight.bold,
   backgroundColor: tokens.color.bg.base,
   boxShadow: tokens.shadow.raised.low,

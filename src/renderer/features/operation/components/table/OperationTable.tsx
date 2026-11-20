@@ -1,6 +1,6 @@
 // src/renderer/features/operation/components/table/OperationTable.tsx
 
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { ContextMenu } from "@base-ui/react/context-menu";
 
@@ -9,8 +9,82 @@ import { StatusContextMenu } from "@renderer/features/operation/components/conte
 
 import { OperationTableRow } from "./OperationTableRow";
 import { useOperationTable } from "./useOperationTable";
+import {
+  useOperationTableContextMenuLayer,
+  type OperationTableContextMenuStore,
+} from "./useOperationTableContextMenu";
 import type { OperationColumnMeta } from "./operationTableConfig";
 import * as styles from "./operationTable.css";
+
+interface OperationContextMenuLayerProps {
+  readonly store: OperationTableContextMenuStore;
+}
+
+const OperationContextMenuLayer = memo(function OperationContextMenuLayer({
+  store,
+}: OperationContextMenuLayerProps) {
+  const { target, laserCoords, popupRef, virtualAnchor, close } =
+    useOperationTableContextMenuLayer(store);
+
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) close();
+    },
+    [close],
+  );
+
+  return (
+    <>
+      <ContextMenu.Root
+        open={target !== null}
+        onOpenChange={handleOpenChange}
+      >
+        <StatusContextMenu
+          kanriNo={target?.kanriNo ?? null}
+          workName={target?.workName}
+          currentStatus={target?.status}
+          menuWidth={target?.menuWidth}
+          anchor={virtualAnchor}
+          popupRef={popupRef}
+          onClose={close}
+        />
+      </ContextMenu.Root>
+
+      {target &&
+        laserCoords &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <svg className={styles.laserOverlay} aria-hidden="true">
+            <path
+              d={laserCoords.pathD}
+              className={styles.laserGlowPath}
+            />
+            <path
+              d={laserCoords.pathD}
+              className={styles.laserCorePath}
+            />
+            <path
+              d={laserCoords.pathD}
+              className={styles.laserHighlightPath}
+            />
+            <circle
+              cx={laserCoords.startX}
+              cy={laserCoords.startY}
+              r={3.5}
+              className={styles.laserNode}
+            />
+            <circle
+              cx={laserCoords.endX}
+              cy={laserCoords.endY}
+              r={3.5}
+              className={styles.laserNode}
+            />
+          </svg>,
+          document.body,
+        )}
+    </>
+  );
+});
 
 export const OperationTable = memo(function OperationTable() {
   "use no memo";
@@ -26,7 +100,7 @@ export const OperationTable = memo(function OperationTable() {
     paddingTop,
     paddingBottom,
     isLoading,
-    contextMenu,
+    contextMenuStore,
     handleTableScroll,
     handleRowClick,
     handleMarkSuccess,
@@ -115,19 +189,15 @@ export const OperationTable = memo(function OperationTable() {
                   const row = tableRows[virtualRow.index];
                   if (!row) return null;
 
-                  const rowKanriNo = row.original.kanriNo.trim();
-
                   return (
                     <OperationTableRow
                       key={row.id}
                       row={row}
                       table={table}
-                      isContextOpen={
-                        contextMenu.target?.kanriNo === rowKanriNo
-                      }
+                      isContextOpen={false}
                       onRowClick={handleRowClick}
                       onMarkSuccess={handleMarkSuccess}
-                      onStatusContextMenu={contextMenu.open}
+                      onStatusContextMenu={contextMenuStore.open}
                     />
                   );
                 })}
@@ -150,55 +220,7 @@ export const OperationTable = memo(function OperationTable() {
         </table>
       </div>
 
-      <ContextMenu.Root
-        open={contextMenu.target !== null}
-        onOpenChange={(open) => {
-          if (!open) contextMenu.close();
-        }}
-      >
-        <StatusContextMenu
-          kanriNo={contextMenu.target?.kanriNo ?? null}
-          workName={contextMenu.target?.workName}
-          currentStatus={contextMenu.target?.status}
-          menuWidth={contextMenu.target?.menuWidth}
-          anchor={contextMenu.virtualAnchor}
-          popupRef={contextMenu.popupRef}
-          onClose={contextMenu.close}
-        />
-      </ContextMenu.Root>
-
-      {contextMenu.target &&
-        contextMenu.laserCoords &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <svg className={styles.laserOverlay} aria-hidden="true">
-            <path
-              d={contextMenu.laserCoords.pathD}
-              className={styles.laserGlowPath}
-            />
-            <path
-              d={contextMenu.laserCoords.pathD}
-              className={styles.laserCorePath}
-            />
-            <path
-              d={contextMenu.laserCoords.pathD}
-              className={styles.laserHighlightPath}
-            />
-            <circle
-              cx={contextMenu.laserCoords.startX}
-              cy={contextMenu.laserCoords.startY}
-              r={3.5}
-              className={styles.laserNode}
-            />
-            <circle
-              cx={contextMenu.laserCoords.endX}
-              cy={contextMenu.laserCoords.endY}
-              r={3.5}
-              className={styles.laserNode}
-            />
-          </svg>,
-          document.body,
-        )}
+      <OperationContextMenuLayer store={contextMenuStore} />
     </div>
   );
 });

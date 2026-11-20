@@ -20,14 +20,14 @@ type FileMatchResult = {
   keyword: string;
   expectedCount: number;
   actualCount: number;
+  missingCount: number;
   fileNames: string[];
 };
 
 type JobResultData = {
   targetDir: string;
   results: FileMatchResult[];
-  missingErrors: string[];
-  excessErrors: string[];
+  hasMismatch: boolean;
 };
 
 /**
@@ -43,74 +43,53 @@ export async function runJob62(): Promise<JobResult> {
 async function checkExpectedFiles(): Promise<JobResultData> {
   const fileNames = await listFilesInDir(CONFIG.targetDir);
 
-  const missingErrors: string[] = [];
-  const excessErrors: string[] = [];
-  const results: FileMatchResult[] = [];
-
-  for (const { keyword, count } of CONFIG.expectedFiles) {
-    const matchedFiles = fileNames.filter((fileName) =>
-      fileName.includes(keyword),
-    );
-
-    results.push({
-      keyword,
-      expectedCount: count,
-      actualCount: matchedFiles.length,
-      fileNames: matchedFiles,
-    });
-
-    if (matchedFiles.length < count) {
-      missingErrors.push(
-        `${keyword} (期待: ${count}, 検出: ${matchedFiles.length})`,
+  const results: FileMatchResult[] = CONFIG.expectedFiles.map(
+    ({ keyword, count }) => {
+      const matchedFiles = fileNames.filter((fileName) =>
+        fileName.includes(keyword),
       );
-    } else if (matchedFiles.length > count) {
-      excessErrors.push(
-        `${keyword} (期待: ${count}, 検出: ${matchedFiles.length})`,
-      );
-    }
-  }
+      const actualCount = matchedFiles.length;
+      const missingCount = Math.max(0, count - actualCount);
+
+      return {
+        keyword,
+        expectedCount: count,
+        actualCount,
+        missingCount,
+        fileNames: matchedFiles,
+      };
+    },
+  );
+
+  const hasMismatch = results.some(
+    (item) => item.actualCount !== item.expectedCount,
+  );
 
   return {
     targetDir: CONFIG.targetDir,
     results,
-    missingErrors,
-    excessErrors,
+    hasMismatch,
   };
 }
 
 function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {
-  logger.log(`対象フォルダ : ${result.targetDir}`);
+  logger.section("対象フォルダ");
+  logger.log(result.targetDir);
+  logger.log();
 
-  logger.section("検出ファイル");
+  logger.section("対象ファイル");
   for (const item of result.results) {
-    for (const fileName of item.fileNames) {
-      logger.log(fileName);
-    }
+    logger.log(
+      `${item.keyword} (検出: ${item.actualCount}, 未検出: ${item.missingCount})`,
+    );
   }
+  logger.log();
 
-  if (result.excessErrors.length > 0) {
+  if (result.hasMismatch) {
     return {
       success: true,
       kind: "needsAction",
-      message: logger.needsAction(
-        `ファイル件数超過:\n${result.excessErrors.join("\n")}`,
-      ),
-      data: result,
-    };
-  }
-
-  if (result.missingErrors.length > 0) {
-    logger.section("未検出・件数不足ファイル");
-    for (const err of result.missingErrors) {
-      logger.log(`${err}（配置待ち）`);
-    }
-
-    return {
-      success: true,
-      kind: "running",
-      message: logger.complete(
-        `ファイル未達 (${result.missingErrors.join(", ")})。バックグラウンドで監視中`,
-      ),
+      message: logger.needsAction(),
       data: result,
     };
   }

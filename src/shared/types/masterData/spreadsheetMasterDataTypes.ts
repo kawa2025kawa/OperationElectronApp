@@ -11,6 +11,16 @@ import type {
 } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 
+export interface SpreadsheetDailyUpdateStatus {
+  isUpdatedToday: boolean;
+  updatedAt: string | null;
+  kokyuhyoUpdatedAt: string | null;
+  jugyoinUpdatedAt: string | null;
+  status: string | null;
+  message: string | null;
+  warningMessage: string | null;
+}
+
 /** Renderer に公開するスプレッドシートマスターデータ */
 export interface SpreadsheetMasterDataResponse {
   stores: SheetData<typeof SHEETS.STORE.sheetName>;
@@ -21,6 +31,8 @@ export interface SpreadsheetMasterDataResponse {
   operations: OperationMaster[];
   irregulars: IrregularMaster[];
   todayIrregulars: TodayIrregularMaster[];
+
+  dailyUpdateStatus: SpreadsheetDailyUpdateStatus;
 
   errors: Partial<Record<SheetId, string>>;
 }

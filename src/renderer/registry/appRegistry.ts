@@ -55,7 +55,7 @@ export const APP_REGISTRY: AppRegistryMap = {
     component: OperationView,
     search: {
       placeholder: "検索...",
-      searchKeys: ["kanriNo", "workName", "jobId", "comment"],
+      searchKeys: [],
     },
   }),
 
@@ -64,7 +64,7 @@ export const APP_REGISTRY: AppRegistryMap = {
     sheetId: SHEETS.KOKYUHYO.sheetName,
     search: {
       placeholder: "名前、名前カナで検索...",
-      searchKeys: ["name", "nameKana"],
+      searchKeys: [],
     },
   }),
 
@@ -73,7 +73,7 @@ export const APP_REGISTRY: AppRegistryMap = {
     sheetId: SHEETS.JUGYOIN.sheetName,
     search: {
       placeholder: "部門、名前で検索...",
-      searchKeys: ["bumon", "bumonKana", "name", "nameKana"],
+      searchKeys: [],
     },
   }),
 
@@ -82,14 +82,7 @@ export const APP_REGISTRY: AppRegistryMap = {
     sheetId: SHEETS.STORE.sheetName,
     search: {
       placeholder: "店舗コード、店舗名、住所等で検索...",
-      searchKeys: [
-        "shopCode",
-        "shopName",
-        "shopKana",
-        "address",
-        "phoneNumber",
-        "centerName",
-      ],
+      searchKeys: [],
     },
   }),
 

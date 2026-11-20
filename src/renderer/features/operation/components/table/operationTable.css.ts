@@ -87,6 +87,8 @@ export const tableRowBase = style({
   color: tokens.color.text.base,
   boxShadow: tokens.shadow.raised.low,
   outline: "none",
+  contain: "paint",
+  transform: "translateZ(0)",
   transition: `color ${tokens.transition.fast}`,
 
   selectors: {

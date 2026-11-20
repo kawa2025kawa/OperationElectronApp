@@ -1,4 +1,4 @@
-// src/renderer/features/spreadSheet/shop/modal/ShopModalContent.tsx
+﻿// src/renderer/features/spreadSheet/shop/modal/ShopModalContent.tsx
 
 import { memo } from "react";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
@@ -77,7 +77,7 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
       >
         {isTimeRecorderTab ? (
           <div className={styles.trTabWrapper}>
-            <div className={styles.terminalSection}>
+            <div className={styles.trTerminalSection}>
               <div className={styles.terminalHeaderRow}>
                 <div className={styles.terminalHeaderBadge}>
                   {trHeaderBadge}
@@ -89,13 +89,15 @@ export const ShopModalContent: GlobalModalComponent<ShopModalContentProps> =
                 </div>
               </div>
 
-              {terminalRows.map((row) => (
-                <ShopTerminalRow
-                  key={row.type}
-                  badge={row.badge}
-                  cells={row.cells}
-                />
-              ))}
+              <div className={styles.trRowsScrollArea}>
+                {terminalRows.map((row) => (
+                  <ShopTerminalRow
+                    key={row.type}
+                    badge={row.badge}
+                    cells={row.cells}
+                  />
+                ))}
+              </div>
             </div>
 
             {timeRecorderActions.length > 0 && (

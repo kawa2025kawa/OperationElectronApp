@@ -106,6 +106,11 @@ export type Tantou = Record<
   string
 >;
 
+export type UpdateMeta = Record<
+  "target" | "updatedAt" | "status" | "message",
+  string
+>;
+
 // ============================================================
 // Spreadsheet Definitions
 // ============================================================
@@ -143,6 +148,10 @@ export const SHEETS = {
     sheetName: "RdpMasterData",
     spreadsheetId: SPREADSHEET_ID.MASTER,
   },
+  UPDATE_META: {
+    sheetName: "UpdateMetaData",
+    spreadsheetId: SPREADSHEET_ID.MASTER,
+  },
 } as const;
 
 // ============================================================
@@ -161,6 +170,7 @@ type SheetRowMap = {
   [SHEETS.OPERATION.sheetName]: OperationMaster;
   [SHEETS.IRREGULAR.sheetName]: IrregularMaster;
   [SHEETS.RDP.sheetName]: RdpTarget;
+  [SHEETS.UPDATE_META.sheetName]: UpdateMeta;
 };
 
 type SheetRow<TSheetId extends SheetId> = SheetRowMap[TSheetId];

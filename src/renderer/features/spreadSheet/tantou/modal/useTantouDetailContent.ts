@@ -1,11 +1,13 @@
 // src/renderer/features/spreadSheet/tantou/modal/useTantouDetailContent.ts
 
 import { useMemo } from "react";
+import { useAppStore, type AppState } from "@renderer/store";
 import type { Tantou } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
 import {
   formatDateForHeader,
   getOffsetDate,
+  resolveScheduleBaseDate,
 } from "../../utils/spreadsheetDateUtils";
 
 const TANTOU_DETAIL_FIELDS = [
@@ -38,13 +40,20 @@ export function useTantouDetailContent(data: Tantou) {
   const { selectedIndex, setSelectedIndex, displayItems } =
     useSpreadSheetTabData(data, TANTOU_DETAIL_GROUPS);
 
+  const kokyuhyoUpdatedAt = useAppStore(
+    (state: AppState) => state.dailyUpdateStatus?.kokyuhyoUpdatedAt,
+  );
+
   const tabs = useMemo(() => {
-    const now = new Date();
+    const baseDate = resolveScheduleBaseDate(kokyuhyoUpdatedAt);
     return [
-      { id: 0, label: `本日 ${formatDateForHeader(now)}` },
-      { id: 1, label: `明日 ${formatDateForHeader(getOffsetDate(1, now))}` },
+      { id: 0, label: `本日 ${formatDateForHeader(baseDate)}` },
+      {
+        id: 1,
+        label: `明日 ${formatDateForHeader(getOffsetDate(1, baseDate))}`,
+      },
     ];
-  }, []);
+  }, [kokyuhyoUpdatedAt]);
 
   return {
     selectedIndex,

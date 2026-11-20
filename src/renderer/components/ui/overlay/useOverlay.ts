@@ -14,6 +14,7 @@ const PANEL_LABELS: Record<keyof InitStatus, string> = {
   irregularMaster: "Irregular Master",
   rdp: "RDP Master",
   auth: "Google Auth",
+  sheetSync: "Sheet Daily Sync",
   store: "Store Master",
   jugyoin: "jugyoin Master",
   kokyuhyo: "kokyuhyo Data",

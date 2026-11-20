@@ -1,7 +1,9 @@
-// src/renderer/features/table/utils/tableSearchUtils.ts
+﻿// src/renderer/features/table/utils/tableSearchUtils.ts
 
 import type { Row, RowData, TableFeatures } from "@tanstack/react-table";
 import { getRawValueByPath } from "@shared/utils/getValueByPath";
+
+const EXCLUDED_GLOBAL_SEARCH_KEYS = new Set<string>(["status"]);
 
 // 値に検索文字列が含まれるか判定する。
 function includesSearchTerm(value: unknown, term: string): boolean {
@@ -12,6 +14,35 @@ function includesSearchTerm(value: unknown, term: string): boolean {
   return String(value).toLowerCase().includes(term);
 }
 
+// 行の検索対象値のいずれかに単一キーワードが含まれるか判定する。
+function matchesSingleTerm<TData>(
+  original: TData,
+  searchKeys: readonly string[],
+  term: string,
+): boolean {
+  if (searchKeys.length > 0) {
+    return searchKeys.some((key) =>
+      includesSearchTerm(getRawValueByPath(original, key), term),
+    );
+  }
+
+  if (
+    original === null ||
+    original === undefined ||
+    typeof original !== "object"
+  ) {
+    return includesSearchTerm(original, term);
+  }
+
+  return Object.entries(original as Record<string, unknown>).some(
+    ([key, value]) =>
+      !EXCLUDED_GLOBAL_SEARCH_KEYS.has(key) &&
+      (value === null || typeof value !== "object")
+        ? includesSearchTerm(value, term)
+        : false,
+  );
+}
+
 export function createRegistryGlobalFilter<
   TFeatures extends TableFeatures,
   TData extends RowData,
@@ -20,7 +51,7 @@ export function createRegistryGlobalFilter<
   const resultCache = new WeakMap<
     Row<TFeatures, TData>,
     {
-      term: string;
+      normalizedQuery: string;
       result: boolean;
     }
   >();
@@ -32,42 +63,28 @@ export function createRegistryGlobalFilter<
   ): boolean => {
     if (skipFilter) return true;
 
-    const term = String(filterValue ?? "")
+    const terms = String(filterValue ?? "")
       .trim()
-      .toLowerCase();
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
 
-    if (!term) return true;
+    if (terms.length === 0) return true;
 
+    const normalizedQuery = terms.join(" ");
     const cached = resultCache.get(row);
 
-    if (cached?.term === term) {
+    if (cached?.normalizedQuery === normalizedQuery) {
       return cached.result;
     }
 
     const original = row.original;
-    let result: boolean;
-
-    if (searchKeys.length > 0) {
-      result = searchKeys.some((key) =>
-        includesSearchTerm(getRawValueByPath(original, key), term),
-      );
-    } else if (
-      original === null ||
-      original === undefined ||
-      typeof original !== "object"
-    ) {
-      result = includesSearchTerm(original, term);
-    } else {
-      result = Object.values(original as Record<string, unknown>).some(
-        (value) =>
-          value === null || typeof value !== "object"
-            ? includesSearchTerm(value, term)
-            : false,
-      );
-    }
+    const result = terms.every((term) =>
+      matchesSingleTerm(original, searchKeys, term),
+    );
 
     resultCache.set(row, {
-      term,
+      normalizedQuery,
       result,
     });
 

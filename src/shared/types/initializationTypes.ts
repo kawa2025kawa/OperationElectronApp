@@ -5,8 +5,8 @@ export const SETTLED_INIT_STATUS_VALUES = ["OK", "NG", "CONNECTED"] as const;
 export type InitStatusValue = "LOADING" | "OK" | "NG" | "PENDING" | "CONNECTED";
 
 /**
- * 初期化項目のキー定義。
- * InitStatus、初期値、ローディング値の共通ソースとする。
+- 初期化項目のキー定義。
+- InitStatus、初期値、ローディング値の共通ソースとする。
  */
 const INIT_STATUS_KEYS = [
   "update",
@@ -16,6 +16,7 @@ const INIT_STATUS_KEYS = [
   "irregularMaster",
   "rdp",
   "auth",
+  "sheetSync",
   "store",
   "jugyoin",
   "kokyuhyo",
@@ -27,8 +28,8 @@ export type InitStatusKey = (typeof INIT_STATUS_KEYS)[number];
 export type InitStatus = Record<InitStatusKey, InitStatusValue>;
 
 /**
- * 初期化項目のグループ。
- * 同じ処理で一括更新する項目をまとめる。
+- 初期化項目のグループ。
+- 同じ処理で一括更新する項目をまとめる。
  */
 export const INIT_STATUS_GROUPS = {
   operationData: ["operation", "irregular"],

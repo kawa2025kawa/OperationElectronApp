@@ -1,4 +1,4 @@
-// src/renderer/features/spreadSheet/shop/modal/shopModalContent.css.ts
+﻿// src/renderer/features/spreadSheet/shop/modal/shopModalContent.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -37,7 +37,10 @@ const gridBase = {
 
 export const trTabWrapper = style({
   ...flexColumn,
-  gap: tokens.space.md,
+  flex: 1,
+  minHeight: 0,
+  gap: tokens.space.sm,
+  overflow: "hidden",
 });
 
 export const terminalSection = style({
@@ -46,15 +49,43 @@ export const terminalSection = style({
   width: "100%",
 });
 
+export const trTerminalSection = style([
+  terminalSection,
+  {
+    flex: 1,
+    minHeight: 0,
+    gap: tokens.space.xs,
+    overflow: "hidden",
+  },
+]);
+
+export const trRowsScrollArea = style({
+  ...flexColumn,
+  flex: 1,
+  minHeight: 0,
+  gap: tokens.space.sm,
+  overflowY: "auto",
+  overflowX: "hidden",
+  padding: `${tokens.space.xs} ${tokens.space.sm} ${tokens.space.sm} ${tokens.space.xs}`,
+  scrollbarGutter: "stable",
+});
+
 export const terminalHeaderRow = style({
   ...rowBase,
-  paddingTop: "6px",
-  paddingBottom: "6px",
-  borderBottom: `1px solid ${tokens.color.border.default}`,
-  marginBottom: "2px",
+  flexShrink: 0,
+  margin: `${tokens.space.xs} ${tokens.space.sm} ${tokens.space.xs} ${tokens.space.xs}`,
+  padding: "10px 16px",
+  backgroundColor: tokens.color.bg.base,
+  borderRadius: tokens.radius.md,
+  boxShadow: tokens.shadow.raised.high,
+  borderTop: `1px solid ${tokens.color.border.highlight}`,
+  borderLeft: `1px solid ${tokens.color.border.default}`,
+  borderRight: `1px solid ${tokens.color.border.subtle}`,
+  borderBottom: `1px solid ${tokens.color.border.subtle}`,
+  boxSizing: "border-box",
   fontSize: tokens.font.fluid.md,
   fontWeight: tokens.font.weight.bold,
-  color: tokens.color.text.hover,
+  color: tokens.color.text.base,
 });
 
 export const terminalHeaderBadge = style({
@@ -69,6 +100,7 @@ export const terminalRow = style([
   interactiveGlowCard,
   rowBase,
   {
+    flexShrink: 0,
     fontSize: tokens.font.fluid.md,
   },
 ]);
@@ -121,6 +153,7 @@ export const buttonContainer = style({
   display: "flex",
   alignItems: "center",
   flexWrap: "wrap",
-  gap: tokens.space.sm,
-  marginTop: tokens.space.xs,
+  flexShrink: 0,
+  gap: tokens.space.md,
+  padding: `${tokens.space.xs} ${tokens.space.md} ${tokens.space.md} ${tokens.space.xs}`,
 });

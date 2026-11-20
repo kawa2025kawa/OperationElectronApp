@@ -51,10 +51,8 @@ const OPERATION_SCRIPT_REGISTRY: Readonly<
     defineScript("E5", "Script1", ["manual"], (_, p) => jobs.runJobE5(p), true),
     defineScript("E55", "Script2", ["manual"], () => jobs.runJobE55()),
   ],
-  E8: [
-    defineScript("E8", "Script", ["manual"], () => jobs.runJobE8()),
-    defineScript("E88", "Script", ["manual"], () => jobs.runJobE8()),
-  ],
+  E8: [defineScript("E8", "Script", ["manual"], () => jobs.runJobE8())],
+  E88: [defineScript("E88", "Script", ["manual"], () => jobs.runJobE8())],
   E9: [defineScript("E9", "Script", ["manual"], () => jobs.runJobE9())],
   E14: [
     defineScript(
@@ -62,6 +60,15 @@ const OPERATION_SCRIPT_REGISTRY: Readonly<
       "Script",
       ["manual"],
       (_, p) => jobs.runJobE14(p),
+      true,
+    ),
+  ],
+  E27: [
+    defineScript(
+      "E27",
+      "Script",
+      ["manual"],
+      (_, p) => jobs.runJobE27(p),
       true,
     ),
   ],
@@ -115,6 +122,18 @@ const OPERATION_SCRIPT_REGISTRY: Readonly<
   "66": [defineScript("66", "ロック状態", ["manual"], jobs.runJob6066)],
   "68": [defineScript("28", "Script", ["auto", "manual"], jobs.runJob28)],
   "80": [defineScript("80", "Script", ["auto", "manual"], jobs.runJob80)],
+  //"301": [
+  //defineScript("301", "Script", ["auto", "manual"], jobs.runJobScskCheck),
+  //],
+  //"371": [
+  //defineScript("371", "Script", ["auto", "manual"], jobs.runJobScskCheck),
+  //],
+  //"451": [
+  //defineScript("451", "Script", ["auto", "manual"], jobs.runJobScskCheck),
+  //],
+  //"481": [
+  //defineScript("481", "Script", ["auto", "manual"], jobs.runJobScskCheck),
+  //],
 
   // PDF
   "30": [defineScript("30", "PDF", ["manual"])],

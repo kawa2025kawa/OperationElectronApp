@@ -1,4 +1,4 @@
-// src/renderer/features/operation/operationView.css.ts
+﻿// src/renderer/features/operation/operationView.css.ts
 
 import { style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
@@ -21,6 +21,7 @@ export const container = style({
   display: "flex",
   width: "100%",
   height: "100%",
+  minHeight: 0,
   padding: tokens.space.sm,
   gap: tokens.space.md,
   boxSizing: "border-box",
@@ -38,6 +39,7 @@ export const tableArea = style([
   {
     flex: 7,
     minWidth: 0,
+    minHeight: 0,
 
     "@media": {
       "screen and (max-width: 1024px)": {
@@ -51,6 +53,7 @@ export const tableCard = style([
   baseFlexCol,
   {
     flex: 1,
+    minHeight: 0,
     overflow: "hidden",
     backgroundColor: tokens.color.bg.base,
     borderRadius: tokens.radius.lg,
@@ -63,6 +66,8 @@ export const panelArea = style([
   {
     flex: 3,
     minWidth: "320px",
+    minHeight: 0,
+    overflow: "hidden",
 
     "@media": {
       "screen and (max-width: 1024px)": {
@@ -87,6 +92,8 @@ export const panelContainer = style({
   flex: 1,
   minHeight: 0,
   height: "100%",
+  overflow: "hidden",
+  boxSizing: "border-box",
   backgroundColor: tokens.color.bg.base,
   borderRadius: tokens.radius.lg,
   boxShadow: tokens.shadow.raised.high,
@@ -114,10 +121,8 @@ export const infoList = style({
   flex: 1,
   minHeight: 0,
   overflowY: "auto",
+  overflowX: "hidden",
   paddingTop: tokens.space.xs,
   paddingBottom: tokens.space.xs,
   gap: tokens.space.md,
-  // 独立した合成レイヤーとして保持
-  isolation: "isolate",
-  transform: "translateZ(0)",
 });

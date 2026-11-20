@@ -1,6 +1,6 @@
 // src/renderer/features/operation/components/contextMenu/useStatusContextMenu.ts
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { useAppStore } from "@renderer/store";
 import {
   JOB_STATUS,
@@ -37,17 +37,23 @@ export function useStatusContextMenu(
     (state) => state.updateOperationStatus,
   );
 
+  const kanriNoRef = useRef(kanriNo);
+  useLayoutEffect(() => {
+    kanriNoRef.current = kanriNo;
+  }, [kanriNo]);
+
   const handleSelectStatus = useCallback(
     (status: JobStatus) => {
-      if (!kanriNo) return;
+      const targetKanriNo = kanriNoRef.current;
+      if (!targetKanriNo) return;
 
       updateOperationStatus({
-        kanriNo,
+        kanriNo: targetKanriNo,
         status,
         comment: "",
       });
     },
-    [kanriNo, updateOperationStatus],
+    [updateOperationStatus],
   );
 
   const primaryItems = useMemo<StatusMenuOption[]>(

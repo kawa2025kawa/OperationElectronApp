@@ -4,6 +4,7 @@
 export * from "./eseries/job_e1";
 export * from "./eseries/job_e4";
 export * from "./eseries/job_e14";
+export * from "./eseries/job_e27";
 export * from "./eseries/job_e29";
 export * from "./eseries/job_e30";
 export * from "./eseries/job_e41";
@@ -31,3 +32,4 @@ export * from "./numeric/job_62";
 export * from "./numeric/job_64";
 export * from "./numeric/job_6066";
 export * from "./numeric/job_80";
+//export * from "./numeric/job_scskCheck";

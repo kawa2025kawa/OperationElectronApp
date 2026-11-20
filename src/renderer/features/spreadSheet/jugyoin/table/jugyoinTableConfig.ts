@@ -15,16 +15,16 @@ export function getJugyoinRowId(row: Jugyoin, index: number): string {
     : `${row.name ? String(row.name).trim() : "jugyoin"}_${index}`;
 }
 
-export function getJugyoinColumns() {
+export function getJugyoinColumns(baseDate?: Date) {
   return columnHelper.columns([
     columnHelper.accessor("bumon", {
       header: "部門",
-      size: 15,
+      size: 12,
     }),
     columnHelper.accessor("name", {
       header: "氏名",
-      size: 15,
+      size: 10,
     }),
-    ...createScheduleDayGroups<Jugyoin>({ status: 7, detail: 10.5 }),
+    ...createScheduleDayGroups<Jugyoin>({ status: 5, detail: 10.5 }, baseDate),
   ]);
 }

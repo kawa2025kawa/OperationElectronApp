@@ -14,6 +14,7 @@ import {
   type Shop,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { ScheduleModalContent } from "../components/modal/ScheduleModalContent";
+import { isSpreadSheetHolidayText } from "../components/table/spreadsheetTableConfig";
 import { ShopModalContent } from "../shop/modal/ShopModalContent";
 import {
   getJugyoinColumns,
@@ -22,9 +23,9 @@ import {
 import {
   getKokyuhyoColumns,
   getKokyuhyoRowId,
-  isKokyuhyoHolidayText,
 } from "../kokyuhyo/table/kokyuhyoTableConfig";
 import { getShopRowId, SHOP_COLUMNS } from "../shop/table/shopTableConfig";
+import { resolveScheduleBaseDate } from "../utils/spreadsheetDateUtils";
 
 type SheetRow<T extends SheetId> = SheetData<T>[number];
 type OpenSpreadsheetModal = AppState["openGlobalModal"];
@@ -58,7 +59,14 @@ export function useSpreadSheetSheetState<T extends SheetId>(
 }
 
 export function useJugyoinView() {
-  const columns = useMemo(() => getJugyoinColumns(), []);
+  const jugyoinUpdatedAt = useAppStore(
+    (state: AppState) => state.dailyUpdateStatus?.jugyoinUpdatedAt,
+  );
+  const baseDate = useMemo(
+    () => resolveScheduleBaseDate(jugyoinUpdatedAt),
+    [jugyoinUpdatedAt],
+  );
+  const columns = useMemo(() => getJugyoinColumns(baseDate), [baseDate]);
 
   const handleOpenModal = useCallback(
     (row: Jugyoin, openModal: OpenSpreadsheetModal) => {
@@ -75,11 +83,19 @@ export function useJugyoinView() {
     columns,
     getRowId: getJugyoinRowId,
     onRowClick: handleOpenModal,
+    isHolidayCell: isSpreadSheetHolidayText,
   };
 }
 
 export function useKokyuhyoView() {
-  const columns = useMemo(() => getKokyuhyoColumns(), []);
+  const kokyuhyoUpdatedAt = useAppStore(
+    (state: AppState) => state.dailyUpdateStatus?.kokyuhyoUpdatedAt,
+  );
+  const baseDate = useMemo(
+    () => resolveScheduleBaseDate(kokyuhyoUpdatedAt),
+    [kokyuhyoUpdatedAt],
+  );
+  const columns = useMemo(() => getKokyuhyoColumns(baseDate), [baseDate]);
 
   const handleOpenModal = useCallback(
     (row: Kokyuhyo, openModal: OpenSpreadsheetModal) => {
@@ -96,7 +112,7 @@ export function useKokyuhyoView() {
     columns,
     getRowId: getKokyuhyoRowId,
     onRowClick: handleOpenModal,
-    isHolidayCell: isKokyuhyoHolidayText,
+    isHolidayCell: isSpreadSheetHolidayText,
   };
 }
 

@@ -1,4 +1,4 @@
-﻿// src/renderer/features/operation/components/contextMenu/statusContextMenu.css.ts
+// src/renderer/features/operation/components/contextMenu/statusContextMenu.css.ts
 
 import { style, styleVariants } from "@vanilla-extract/css";
 

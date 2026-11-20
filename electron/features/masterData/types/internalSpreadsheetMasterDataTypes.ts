@@ -1,5 +1,6 @@
-﻿// electron/features/masterData/types/internalSpreadsheetMasterDataTypes.ts
+// electron/features/masterData/types/internalSpreadsheetMasterDataTypes.ts
 
+import type { SpreadsheetDailyUpdateStatus } from "@shared/types/masterData/spreadsheetMasterDataTypes";
 import type {
   IrregularMaster,
   OperationMaster,
@@ -21,16 +22,6 @@ export interface SpreadsheetMasterData {
   irregulars: IrregularMaster[];
   todayIrregulars: TodayIrregularMaster[];
   rdps: RdpMaster[];
+  dailyUpdateStatus: SpreadsheetDailyUpdateStatus;
   errors: Partial<Record<SheetId, string>>;
 }
-
-export const SPREADSHEET_MASTER_DATA_ARRAY_KEYS = [
-  "stores",
-  "kokyuhyos",
-  "jugyoin",
-  "kokyuhyoTantous",
-  "operations",
-  "irregulars",
-  "todayIrregulars",
-  "rdps",
-] as const satisfies readonly (keyof SpreadsheetMasterData)[];

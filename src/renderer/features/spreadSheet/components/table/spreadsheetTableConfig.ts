@@ -28,6 +28,13 @@ export interface SpreadSheetColumnMeta {
   readonly align?: "left" | "center" | "right";
 }
 
+const HOLIDAY_WORDS = ["公休", "有休", "〇連", "特休", "希休", "休"] as const;
+
+export function isSpreadSheetHolidayText(value: unknown): boolean {
+  const text = value == null ? "" : String(value);
+  return HOLIDAY_WORDS.some((word) => text.includes(word));
+}
+
 export function getSpreadSheetCellText(value: unknown): string {
   return value == null || value === "" ? "-" : String(value);
 }

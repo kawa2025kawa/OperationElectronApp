@@ -1,6 +1,6 @@
 // src/renderer/features/operation/components/contextMenu/StatusContextMenu.tsx
 
-import { memo, type ComponentProps, type Ref } from "react";
+import { memo, useMemo, type ComponentProps, type Ref } from "react";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import clsx from "clsx";
 
@@ -41,6 +41,15 @@ export const StatusContextMenu = memo<StatusContextMenuProps>(
       handleSelectStatus,
     } = useStatusContextMenu(kanriNo, workName, currentStatus);
 
+    const popupStyle = useMemo(
+      () => (menuWidth ? { width: `${menuWidth}px` } : undefined),
+      [menuWidth],
+    );
+
+    if (!kanriNo) {
+      return null;
+    }
+
     const renderStatusItems = (items: readonly StatusMenuOption[]) =>
       items.map((item) => (
         <ContextMenu.Item
@@ -68,7 +77,7 @@ export const StatusContextMenu = memo<StatusContextMenuProps>(
           <ContextMenu.Popup
             ref={popupRef}
             className={styles.content}
-            style={menuWidth ? { width: `${menuWidth}px` } : undefined}
+            style={popupStyle}
           >
             <div className={styles.rowKanriNo}>
               <span>{headerKanriNo}</span>

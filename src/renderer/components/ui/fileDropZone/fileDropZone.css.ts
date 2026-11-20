@@ -71,7 +71,7 @@ export const unifiedEmptyDropArea = style({
 
 globalStyle(`${unifiedEmptyDropArea} > .primary-label`, {
   marginBottom: tokens.space.xs,
-  fontSize: tokens.font.size.sm,
+  fontSize: tokens.font.size.lg,
   fontWeight: tokens.font.weight.bold,
 });
 
