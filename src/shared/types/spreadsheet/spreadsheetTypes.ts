@@ -177,8 +177,6 @@ type SheetRow<TSheetId extends SheetId> = SheetRowMap[TSheetId];
 
 export type SheetData<TSheetId extends SheetId> = SheetRow<TSheetId>[];
 
-export type SpreadSheetEntity = SheetRow<SheetId>;
-
 // ============================================================
 // Renderer Sheet State
 // ============================================================

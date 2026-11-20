@@ -16,18 +16,6 @@ export async function directoryExists(dirPath: string): Promise<boolean> {
 }
 
 /**
- * ファイルが存在するか確認する共通関数
- */
-export async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    const stats = await fs.stat(filePath);
-    return stats.isFile();
-  } catch {
-    return false;
-  }
-}
-
-/**
  * 日付を指定形式の文字列に変換する。既定値: yyyyMMdd
  */
 export function getDateKey(

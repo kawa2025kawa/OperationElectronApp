@@ -1,4 +1,4 @@
-// src/renderer/features/operation/components/table/useOperationTableContextMenu.ts
+﻿// src/renderer/features/operation/components/table/useOperationTableContextMenu.ts
 
 import {
   useCallback,
@@ -15,7 +15,7 @@ import type {
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
 
-export interface ContextMenuTarget {
+interface ContextMenuTarget {
   kanriNo: string;
   workName: string;
   status?: JobStatus;
@@ -207,7 +207,6 @@ export function useOperationTableContextMenuLayer(
 
   useEffect(() => {
     if (!target) {
-      setLaserCoords(null);
       return;
     }
 

@@ -24,7 +24,7 @@ type CsvOptions = {
 /**
  * 1行のCSV文字列をパースして各カラムの配列（各要素トリム済）を返します。
  */
-export function parseCsvLine(line: string): string[] {
+function parseCsvLine(line: string): string[] {
   const { data } = Papa.parse<string[]>(line, {
     delimiter: ",",
     quoteChar: '"',
@@ -39,7 +39,7 @@ export function parseCsvLine(line: string): string[] {
 /**
  * 複数行のCSVテキストを一括でパースします（セル内改行にも対応）。
  */
-export function parseCsv(csv: string): string[][] {
+function parseCsv(csv: string): string[][] {
   const { data } = Papa.parse<string[]>(csv, {
     delimiter: ",",
     quoteChar: '"',

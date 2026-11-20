@@ -216,8 +216,6 @@ export type OperationViewItem = (
   endTime?: string | null;
 };
 
-export type SelectedOperationItem = OperationViewItem & OperationStatusState;
-
 /* =========================
  * Field Labels (Table & Detail Info)
  * ========================= */

@@ -4,7 +4,7 @@ import { useCallback, useMemo } from "react";
 import { operationService } from "@renderer/features/operation/service/operationService";
 import type { LinkConfig } from "@shared/types/operation/operationTypes";
 
-export const LINK_MODAL_EMPTY_MESSAGE = "リンクがありません" as const;
+const LINK_MODAL_EMPTY_MESSAGE = "リンクがありません" as const;
 const OPEN_ERROR_PREFIX = "リンクを開けませんでした" as const;
 
 export function useLinkModalContent(link?: LinkConfig[] | null) {

@@ -1,6 +1,6 @@
 // electron/features/masterData/infrastructure/googleSheetsHelper.ts
 
-export const GOOGLE_SHEETS_API_BASE_URL =
+const GOOGLE_SHEETS_API_BASE_URL =
   "https://sheets.googleapis.com/v4/spreadsheets" as const;
 
 export function quoteSheetName(sheetName: string): string {

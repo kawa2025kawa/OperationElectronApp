@@ -33,7 +33,7 @@ export interface OperationColumnMeta {
   readonly align?: keyof typeof styles.alignVariants;
 }
 
-export const OPERATION_COLUMN_CONFIG = {
+const OPERATION_COLUMN_CONFIG = {
   kanriNo: {
     label: OPERATION_FIELD_LABELS.kanriNo,
     width: "90px",
@@ -76,9 +76,9 @@ export const OPERATION_COLUMN_CONFIG = {
   },
 } as const satisfies Record<string, OperationColumnMeta>;
 
-export type OperationColumn = keyof typeof OPERATION_COLUMN_CONFIG;
+type OperationColumn = keyof typeof OPERATION_COLUMN_CONFIG;
 
-export const VISIBLE_OPERATION_COLUMNS = {
+const VISIBLE_OPERATION_COLUMNS = {
   operation: ["kanriNo", "scheduledTime", "workName", "jobId", "status"],
   irregular: ["kanriNo", "scheduledTime", "cycle1", "cycle2", "workName"],
   today: ["kanriNo", "scheduledTime", "workName", "status"],
@@ -86,21 +86,11 @@ export const VISIBLE_OPERATION_COLUMNS = {
 
 export const EMPTY_OPERATION_ROWS: OperationViewItem[] = [];
 
-export function getOperationColumnMeta(
-  column: OperationColumn,
-): OperationColumnMeta {
+function getOperationColumnMeta(column: OperationColumn): OperationColumnMeta {
   return OPERATION_COLUMN_CONFIG[column];
 }
 
-export function getOperationColumnAlignment(column: OperationColumn): string {
-  const alignment = getOperationColumnMeta(column).align ?? "left";
-  return styles.alignVariants[alignment];
-}
-
-export function getCellValue(
-  row: OperationViewItem,
-  column: OperationColumn,
-): string {
+function getCellValue(row: OperationViewItem, column: OperationColumn): string {
   if (!Object.prototype.hasOwnProperty.call(row, column)) {
     return toMissingPropertyDisplayValue();
   }

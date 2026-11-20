@@ -1,4 +1,4 @@
-// src/renderer/features/other/components/modal/contents/resetStatus/useResetStatusModalContent.ts
+﻿// src/renderer/features/other/components/modal/contents/resetStatus/useResetStatusModalContent.ts
 
 import { useCallback, useState } from "react";
 import { format } from "date-fns";
@@ -8,7 +8,7 @@ import { toErrorMessage } from "@renderer/utils/errorUtils";
 
 export type ResetExecutionState = "idle" | "completed" | "error";
 
-export interface ResetInfoMessage {
+interface ResetInfoMessage {
   text: string;
   type: "info" | "success" | "error";
 }

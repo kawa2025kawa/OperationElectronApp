@@ -4,13 +4,10 @@ import { createColumnHelper } from "@tanstack/react-table";
 import type { Kokyuhyo } from "@shared/types/spreadsheet/spreadsheetTypes";
 import {
   createScheduleDayGroups,
-  isSpreadSheetHolidayText,
   type SpreadSheetTableFeatures,
 } from "@renderer/features/spreadSheet/components/table/spreadsheetTableConfig";
 
 const columnHelper = createColumnHelper<SpreadSheetTableFeatures, Kokyuhyo>();
-
-export const isKokyuhyoHolidayText = isSpreadSheetHolidayText;
 
 export function getKokyuhyoRowId(row: Kokyuhyo, index: number): string {
   return row.id

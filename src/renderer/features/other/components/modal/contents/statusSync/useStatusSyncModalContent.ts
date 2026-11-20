@@ -1,4 +1,4 @@
-// src/renderer/features/other/components/modal/contents/statusSync/useStatusSyncModalContent.ts
+﻿// src/renderer/features/other/components/modal/contents/statusSync/useStatusSyncModalContent.ts
 
 import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
@@ -10,7 +10,7 @@ import type { StatusSyncPreviewResult } from "@shared/types/electron/ipcTypes";
 
 export type StatusSyncMode = "save" | "load";
 
-export interface StatusSyncInfoMessage {
+interface StatusSyncInfoMessage {
   text: string;
   type: "info" | "success" | "error";
 }

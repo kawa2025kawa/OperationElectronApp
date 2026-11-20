@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { Tabs } from "@base-ui/react/tabs";
 import * as styles from "./animatedTabs.css";
 
-export interface AnimatedTabItem {
+interface AnimatedTabItem {
   readonly id: number;
   readonly label: string;
 }

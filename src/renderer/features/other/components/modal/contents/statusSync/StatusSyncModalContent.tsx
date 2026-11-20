@@ -10,8 +10,6 @@ import {
   type StatusSyncMode,
 } from "./useStatusSyncModalContent";
 
-export type { StatusSyncMode };
-
 type StatusSyncModalContentProps = Record<string, never>;
 
 const MODE_ITEMS = [

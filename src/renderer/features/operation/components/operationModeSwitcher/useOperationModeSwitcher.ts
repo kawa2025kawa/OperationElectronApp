@@ -7,7 +7,7 @@ import {
   type ViewMode,
 } from "@shared/types/registry/viewDefinition";
 
-export const OPERATION_MODE_ITEMS = Object.values(VIEW_MODES).map((mode) => ({
+const OPERATION_MODE_ITEMS = Object.values(VIEW_MODES).map((mode) => ({
   id: mode,
   label: VIEW_MODE_LABELS[mode],
 }));

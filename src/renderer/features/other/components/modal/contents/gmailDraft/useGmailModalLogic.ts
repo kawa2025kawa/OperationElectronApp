@@ -18,7 +18,7 @@ export interface GmailMessage {
   type: "info" | "success" | "error" | "warning";
 }
 
-export const TEMPLATE_SELECT_ITEMS = [
+const TEMPLATE_SELECT_ITEMS = [
   { value: null, label: "手動作成" },
   ...EMAIL_TEMPLATE_OPTIONS.map(({ key, label }) => ({
     value: key,

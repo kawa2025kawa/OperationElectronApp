@@ -12,7 +12,7 @@ type TableHeader<TData extends RowData> = Header<
   unknown
 >;
 
-export type GroupedHeaderCell<TData extends RowData> =
+type GroupedHeaderCell<TData extends RowData> =
   | {
       readonly kind: "customPlaceholder";
       readonly id: string;

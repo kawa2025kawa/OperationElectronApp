@@ -14,7 +14,7 @@ const NETWORK_CREDENTIALS_CONFIG = {
   commandTimeoutMs: 10_000,
 } as const;
 
-export interface NetworkCredential {
+interface NetworkCredential {
   username: string;
   password: string;
 }
@@ -118,7 +118,7 @@ function isAccessDeniedError(error: unknown): boolean {
  * net use コマンドで共有ルートへ接続する。
  * @returns 認証接続を試行して成功した場合は true、定義なし・失敗時は false
  */
-export async function ensureNetworkShareConnected(
+async function ensureNetworkShareConnected(
   targetPath: string,
 ): Promise<boolean> {
   if (process.platform !== "win32") {

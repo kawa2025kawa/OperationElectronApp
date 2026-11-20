@@ -6,7 +6,6 @@ import {
   getScriptExecutionState,
   getScriptInfoMessage,
   toScriptFileItems,
-  type InfoBoxMessage,
   type ScriptExecutionState,
   type ScriptFileItem,
 } from "@renderer/features/operation/utils/scriptModalUtils";
@@ -18,8 +17,6 @@ import type {
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
 import { SCRIPT_MODAL_LABELS } from "./scriptModalConstants";
-
-export type { InfoBoxMessage };
 
 export function useScriptModalContent(
   item: OperationViewItem | null | undefined,

@@ -1,4 +1,4 @@
-// src/renderer/features/spreadSheet/utils/spreadsheetDateUtils.ts
+﻿// src/renderer/features/spreadSheet/utils/spreadsheetDateUtils.ts
 
 import { TZDate } from "@date-fns/tz";
 import holidayJp from "@holiday-jp/holiday_jp";
@@ -7,10 +7,10 @@ import { ja } from "date-fns/locale/ja";
 
 const JST_TIME_ZONE = "Asia/Tokyo" as const;
 
-export type DayTone = "weekday" | "saturday" | "holiday";
+type DayTone = "weekday" | "saturday" | "holiday";
 
 /** 日本の祝日（振替休日・国民の休日を含む）かを判定する */
-export function isJapaneseHoliday(date: Date): boolean {
+function isJapaneseHoliday(date: Date): boolean {
   return holidayJp.isHoliday(date);
 }
 

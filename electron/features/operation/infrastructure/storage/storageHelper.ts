@@ -1,4 +1,4 @@
-// electron/features/operation/infrastructure/storage/storageHelper.ts
+﻿// electron/features/operation/infrastructure/storage/storageHelper.ts
 
 import path from "node:path";
 import { app } from "electron";
@@ -6,10 +6,8 @@ import { format } from "date-fns";
 import fs from "fs-extra";
 import Store, { type Options as StoreOptions } from "electron-store";
 
-export const getDatedStoreName = (
-  prefix: string,
-  pattern = "yyyyMMdd",
-): string => `${prefix}${format(new Date(), pattern)}`;
+const getDatedStoreName = (prefix: string, pattern = "yyyyMMdd"): string =>
+  `${prefix}${format(new Date(), pattern)}`;
 
 export async function cleanupDatedFiles(
   prefix: string,

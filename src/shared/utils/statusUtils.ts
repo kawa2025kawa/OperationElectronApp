@@ -40,27 +40,6 @@ export function isRunningStatus(
 }
 
 /**
- * 指定されたステータスが「実行可能（READY）」かどうかを判定する。
- */
-export function isReadyStatus(status?: JobStatus | null): boolean {
-  return status === JOB_STATUS.READY;
-}
-
-/**
- * 指定されたステータスが「待機（WAITING）」かどうかを判定する。
- */
-export function isWaitingStatus(status?: JobStatus | null): boolean {
-  return status === JOB_STATUS.WAITING;
-}
-
-/**
- * 指定されたステータスが「エラー（ERROR）」かどうかを判定する。
- */
-export function isErrorStatus(status?: JobStatus | null): boolean {
-  return status === JOB_STATUS.ERROR;
-}
-
-/**
  * ステータスが自動計算で上書きされない保護状態（実行中・完了・要対応・エラー等）か判定する。
  */
 export function isProtectedStatus(

@@ -8,7 +8,7 @@ export interface ResolvedFileItem {
 }
 
 /** ブラウザの File オブジェクトからローカルファイルパスを取得する */
-export function resolveDroppedFilePath(file: File): string {
+function resolveDroppedFilePath(file: File): string {
   const fromBridge = window.electronAPI.getFilePath(file);
   if (fromBridge) {
     return fromBridge;
@@ -26,7 +26,8 @@ export function toResolvedFileItem(
   file: File,
   fallbackToName = false,
 ): ResolvedFileItem | null {
-  const path = resolveDroppedFilePath(file) || (fallbackToName ? file.name : "");
+  const path =
+    resolveDroppedFilePath(file) || (fallbackToName ? file.name : "");
   if (!path) {
     return null;
   }
