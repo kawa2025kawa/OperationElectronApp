@@ -1,9 +1,9 @@
 // electron/features/operation/jobs/scripts/nseries/job_n31.ts
 
 import { chromium, type Page } from "playwright";
-import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 interface JobN31ResultData {
   orderDate: string;
@@ -48,7 +48,7 @@ const CONFIG = {
 } as const;
 
 /**
- * ベルク WEB-EDI にログインし、本日日付の発注一覧照会処理を自動実行する。
+- ベルク WEB-EDI にログインし、本日日付の発注一覧照会処理を自動実行する。
  */
 export async function runJobN31(): Promise<string> {
   return runJobWithLogger("WEB-EDI操作に失敗しました", async (logger) => {
@@ -79,7 +79,7 @@ async function selectSupplier(page: Page): Promise<void> {
 }
 
 async function executeWebEdiOrder(): Promise<JobN31ResultData> {
-  const orderDate = format(new Date(), "yyyy/MM/dd");
+  const orderDate = getDateKey(new Date(), "yyyy/MM/dd");
   const browser = await chromium.launch({
     headless: false,
     channel: "chrome",

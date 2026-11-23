@@ -1,4 +1,4 @@
-﻿// src/renderer/features/spreadSheet/utils/spreadsheetDateUtils.ts
+// src/renderer/features/spreadSheet/utils/spreadsheetDateUtils.ts
 
 import { TZDate } from "@date-fns/tz";
 import holidayJp from "@holiday-jp/holiday_jp";
@@ -13,9 +13,6 @@ type DayTone = "weekday" | "saturday" | "holiday";
 function isJapaneseHoliday(date: Date): boolean {
   return holidayJp.isHoliday(date);
 }
-
-export const formatDateForHeader = (date: Date): string =>
-  format(date, "MM/dd(EEE)", { locale: ja });
 
 export const getOffsetDate = (
   offsetDays: number,

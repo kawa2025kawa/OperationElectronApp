@@ -2,8 +2,10 @@
 
 import {
   JOB_STATUS,
+  WORK_TYPE,
   type JobStatus,
   type OperationStatusState,
+  type OperationViewItem,
 } from "@shared/types/operation/operationTypes";
 import { useAppStore } from "@renderer/store";
 import { usePollingToastStore, type ToastType } from "./pollingToastStore";
@@ -21,7 +23,7 @@ function mapStatusToToastType(status: JobStatus): ToastType | null {
   }
 }
 
-function resolveWorkName(kanriNo: string): string {
+function findOperationRow(kanriNo: string): OperationViewItem | undefined {
   const state = useAppStore.getState();
 
   const allRows = [
@@ -31,8 +33,7 @@ function resolveWorkName(kanriNo: string): string {
     ...state.tableRowsByMode.today,
   ];
 
-  const matched = allRows.find((row) => row.kanriNo?.trim() === kanriNo);
-  return matched?.workName?.trim() ?? "";
+  return allRows.find((row) => row.kanriNo?.trim() === kanriNo);
 }
 
 export function handleStatusToastNotification(
@@ -45,8 +46,12 @@ export function handleStatusToastNotification(
   if (!useAppStore.getState().isPolling) return;
 
   const toastStore = usePollingToastStore.getState();
-  const prevStatus = toastStore.getPrevStatus(kanriNo);
+  if (toastStore.isManualExecuting(kanriNo)) return;
 
+  const row = findOperationRow(kanriNo);
+  if (row?.workType?.trim() !== WORK_TYPE.AUTO) return;
+
+  const prevStatus = toastStore.getPrevStatus(kanriNo);
   if (prevStatus === status) return;
 
   toastStore.setPrevStatus(kanriNo, status);
@@ -54,7 +59,7 @@ export function handleStatusToastNotification(
   const toastType = mapStatusToToastType(status);
   if (!toastType) return;
 
-  const workName = resolveWorkName(kanriNo);
+  const workName = row.workName?.trim() ?? "";
   const message = workName ? `${kanriNo} : ${workName}` : kanriNo;
 
   toastStore.addToast(message, toastType);

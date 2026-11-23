@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
 
+import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { operationService } from "@renderer/features/operation/service/operationService";
 import type { AppState } from "@renderer/store";
 import type { ViewMode } from "@renderer/registry/appRegistry";
@@ -18,6 +19,21 @@ type OperationStatusUpdate = Pick<
 >;
 
 const ALL_VIEW_MODES: readonly ViewMode[] = ["operation", "irregular", "today"];
+
+/** 表示モードに対応する最新の行配列を取得する共通セレクタ */
+export function selectRowsForMode(
+  state: Pick<
+    OperationStatusSlice,
+    "tableRows" | "tableRowsMode" | "tableRowsByMode"
+  >,
+  mode: ViewMode,
+): OperationViewItem[] {
+  if (state.tableRowsMode === mode) {
+    return state.tableRows;
+  }
+
+  return state.tableRowsByMode[mode] ?? [];
+}
 
 /** 行データに対してステータス通知の差分を適用する */
 function applyNotificationToRow(
@@ -194,6 +210,7 @@ export const createOperationStatusSlice: StateCreator<
       try {
         await operationService.resetStatuses();
         tableDataRequestId += 1;
+        usePollingToastStore.getState().resetToastState();
 
         set((state) => {
           state.isPolling = false;

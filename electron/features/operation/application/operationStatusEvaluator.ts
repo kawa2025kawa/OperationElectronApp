@@ -30,7 +30,7 @@ import {
 
 type OperationTarget = Extract<StatusTarget, { targetType: "operation" }>;
 
-function isAutoTrackerPollingTarget(t: StatusTarget): t is OperationTarget {
+function isTrackerPollingTarget(t: StatusTarget): t is OperationTarget {
   if (t.targetType !== "operation" || !normalizeKanriNo(t.kanriNo)) {
     return false;
   }
@@ -128,7 +128,7 @@ export async function fetchSingleTrackerStatus(
 export async function syncReadyTrackerStatus(
   target: StatusTarget,
 ): Promise<void> {
-  if (!isAutoTrackerPollingTarget(target)) return;
+  if (!isTrackerPollingTarget(target)) return;
 
   const kanriNo = normalizeKanriNo(target.kanriNo);
   if (getStatus(kanriNo)?.status !== JOB_STATUS.READY) return;
@@ -153,7 +153,7 @@ export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
       const kanriNo = normalizeKanriNo(target.kanriNo);
       if (!kanriNo) return;
 
-      if (!isAutoTrackerPollingTarget(target)) {
+      if (!isTrackerPollingTarget(target)) {
         recalculateTargetStatus(kanriNo, activeFlags);
         return;
       }

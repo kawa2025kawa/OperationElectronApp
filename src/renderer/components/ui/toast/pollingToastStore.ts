@@ -15,6 +15,7 @@ interface ToastMessage {
 interface PollingToastState {
   toasts: ToastMessage[];
   prevStatusMap: Map<string, JobStatus>;
+  manualExecutingKanriNos: Set<string>;
   pollingCycle: number;
 
   addToast: (message: string, type: ToastType) => void;
@@ -24,6 +25,10 @@ interface PollingToastState {
   getPrevStatus: (kanriNo: string) => JobStatus | undefined;
   setPrevStatus: (kanriNo: string, status: JobStatus) => void;
 
+  addManualExecuting: (kanriNo: string) => void;
+  removeManualExecuting: (kanriNo: string) => void;
+  isManualExecuting: (kanriNo: string) => boolean;
+
   markPollingCycleCompleted: () => void;
   resetToastState: () => void;
 }
@@ -31,6 +36,7 @@ interface PollingToastState {
 export const usePollingToastStore = create<PollingToastState>()((set, get) => ({
   toasts: [],
   prevStatusMap: new Map<string, JobStatus>(),
+  manualExecutingKanriNos: new Set<string>(),
   pollingCycle: 0,
 
   addToast: (message, type) => {
@@ -74,6 +80,26 @@ export const usePollingToastStore = create<PollingToastState>()((set, get) => ({
     });
   },
 
+  addManualExecuting: (kanriNo) => {
+    set((state) => {
+      const nextSet = new Set(state.manualExecutingKanriNos);
+      nextSet.add(kanriNo);
+      return { manualExecutingKanriNos: nextSet };
+    });
+  },
+
+  removeManualExecuting: (kanriNo) => {
+    set((state) => {
+      const nextSet = new Set(state.manualExecutingKanriNos);
+      nextSet.delete(kanriNo);
+      return { manualExecutingKanriNos: nextSet };
+    });
+  },
+
+  isManualExecuting: (kanriNo) => {
+    return get().manualExecutingKanriNos.has(kanriNo);
+  },
+
   markPollingCycleCompleted: () => {
     set((state) => ({
       pollingCycle: state.pollingCycle + 1,
@@ -84,6 +110,7 @@ export const usePollingToastStore = create<PollingToastState>()((set, get) => ({
     set({
       toasts: [],
       prevStatusMap: new Map<string, JobStatus>(),
+      manualExecutingKanriNos: new Set<string>(),
       pollingCycle: 0,
     });
   },

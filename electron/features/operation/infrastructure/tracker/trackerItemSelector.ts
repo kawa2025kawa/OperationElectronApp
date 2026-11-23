@@ -94,7 +94,7 @@ export function getPreviousDayRange(
   const time = parseHHMM(scheduledTime);
   const hours = time?.hours ?? jstNow.getHours();
   const minutes = time?.minutes ?? jstNow.getMinutes();
-  const dayOffset = isPreviousDayJob(kanriNo, scheduledTime) ? -1 : 0;
+  const dayOffset = isPreviousDayJob(kanriNo) ? -1 : 0;
 
   const fromDate = createJstDate(nowMs, dayOffset, hours, minutes);
   const toDate = new Date(fromDate.toISOString());
@@ -111,7 +111,7 @@ export function getPreviousDayRange(
 }
 
 /**
- * 実績として有効とみなす最も早い時刻（下限タイムスタンプ）を算出する。
+- 実績として有効とみなす最も早い時刻（下限タイムスタンプ）を算出する。
  */
 export function computeEarliestValidMs(
   kanriNo: string,
@@ -133,7 +133,7 @@ export function computeEarliestValidMs(
     return getJstDayStartMs(nowMs);
   }
 
-  const dayOffset = isPreviousDayJob(kanriNo, scheduledTime) ? -1 : 0;
+  const dayOffset = isPreviousDayJob(kanriNo) ? -1 : 0;
   const scheduledMs = createJstDate(
     nowMs,
     dayOffset,
@@ -188,7 +188,7 @@ function annotateItems(
 }
 
 /**
- * 解禁時刻（earliestValidMs）以降〜上限時刻の間で、最も新しい実行結果を選定する。
+- 解禁時刻（earliestValidMs）以降〜上限時刻の間で、最も新しい実行結果を選定する。
  */
 export function selectLatestTrackerItem(
   items: readonly TrackerApiResponseItem[],

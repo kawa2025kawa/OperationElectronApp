@@ -20,12 +20,20 @@ export interface OperationLink {
 }
 
 /* =========================
- * Operation Master Types
- * ========================= */
+- Operation Master Types
+- ========================= */
+
+export const WORK_TYPE = {
+  AUTO: "自動",
+  MANUAL: "手動",
+} as const;
+
+export type OperationWorkType = (typeof WORK_TYPE)[keyof typeof WORK_TYPE];
 
 interface BaseOperationMaster {
   kanriNo: string;
   workName: string;
+  workType?: OperationWorkType;
   scheduledTime?: string;
   jobId?: string;
   dependsOn?: string | string[] | null;
@@ -35,7 +43,6 @@ interface BaseOperationMaster {
 
   /** AutoManual ボタンの表示判定・起動先 */
   autoManualUrl?: string;
-  gmail?: boolean;
   ScriptKeys?: OperationScriptKey[];
   RdpKeys?: OperationRdpKey[];
   links?: OperationLink[];
@@ -54,6 +61,7 @@ interface BaseOperationMaster {
 export type OperationMaster = BaseOperationMaster;
 
 export interface IrregularMaster extends BaseOperationMaster {
+  gmail?: boolean;
   cycle?: string;
   cycle1?: string;
   cycle2?: string;
@@ -91,8 +99,8 @@ export interface ManualScriptExecutionInput {
 }
 
 /* =========================
- * Center
- * ========================= */
+- Center
+- ========================= */
 
 export const CenterId = {
   VALUES: ["1C", "2C", "3C"] as const,
@@ -109,8 +117,8 @@ export const DEFAULT_ACTIVE_FLAGS: ActiveFlags = {
 };
 
 /* =========================
- * Job Status
- * ========================= */
+- Job Status
+- ========================= */
 
 export const JOB_STATUS = {
   SCHEDULED: "scheduled",
@@ -148,8 +156,8 @@ export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
 };
 
 /* =========================
- * Common
- * ========================= */
+- Common
+- ========================= */
 
 export interface JobArtifact {
   name: string;
@@ -185,8 +193,8 @@ export interface LinkConfig {
 }
 
 /* =========================
- * Operation Status
- * ========================= */
+- Operation Status
+- ========================= */
 
 export interface OperationStatusState {
   kanriNo: string;
@@ -201,8 +209,8 @@ export interface OperationStatusState {
 }
 
 /* =========================
- * Operation View
- * ========================= */
+- Operation View
+- ========================= */
 
 export type OperationViewItem = (
   | OperationMaster
@@ -217,12 +225,13 @@ export type OperationViewItem = (
 };
 
 /* =========================
- * Field Labels (Table & Detail Info)
- * ========================= */
+- Field Labels (Table & Detail Info)
+- ========================= */
 
 export const OPERATION_FIELD_LABELS = {
   kanriNo: "管理No",
   workName: "業務名",
+  workType: "区分",
   scheduledTime: "予定時刻",
   jobId: "ジョブID",
   status: "状態",

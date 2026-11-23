@@ -1,7 +1,6 @@
 // electron/features/operation/application/dependencyPropagator.ts
 
 import {
-  hasCenterFlagDependency,
   isProtectedStatus,
   normalizeKanriNo,
 } from "@electron/features/operation/domain/operationRules";
@@ -164,23 +163,6 @@ export class DependencyPropagator {
 
     if (normalized && !this.pendingTargets.has(normalized)) {
       this.pendingTargets.set(normalized, false);
-    }
-  }
-
-  public enqueueCenterFlagDependents(
-    targets: Map<string, StatusTarget>,
-    masters?: DependencyMasters,
-  ): void {
-    for (const [kanriNo, target] of targets) {
-      const dependencies = normalizeDependencies(
-        target.dependsOn,
-        kanriNo,
-        masters,
-      );
-
-      if (hasCenterFlagDependency(dependencies)) {
-        this.pendingTargets.set(kanriNo, true);
-      }
     }
   }
 

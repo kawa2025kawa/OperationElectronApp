@@ -3,9 +3,9 @@
 import { useMemo } from "react";
 import { useAppStore, type AppState } from "@renderer/store";
 import type { Tantou } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { renderSpreadSheetDateHeader } from "../../components/table/spreadsheetTableConfig";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
 import {
-  formatDateForHeader,
   getOffsetDate,
   resolveScheduleBaseDate,
 } from "../../utils/spreadsheetDateUtils";
@@ -47,10 +47,10 @@ export function useTantouDetailContent(data: Tantou) {
   const tabs = useMemo(() => {
     const baseDate = resolveScheduleBaseDate(kokyuhyoUpdatedAt);
     return [
-      { id: 0, label: `本日 ${formatDateForHeader(baseDate)}` },
+      { id: 0, label: renderSpreadSheetDateHeader("本日", baseDate) },
       {
         id: 1,
-        label: `明日 ${formatDateForHeader(getOffsetDate(1, baseDate))}`,
+        label: renderSpreadSheetDateHeader("明日", getOffsetDate(1, baseDate)),
       },
     ];
   }, [kokyuhyoUpdatedAt]);

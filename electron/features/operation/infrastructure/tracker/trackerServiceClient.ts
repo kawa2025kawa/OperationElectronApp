@@ -113,7 +113,7 @@ async function findTrackerItem(
   );
 
   // 前日ジョブ（NMA8510, NMA8101 等）は、Tracker API に前日の from / to 範囲を指定して取得する
-  if (isPreviousDayJob(kanriNo, scheduledTime)) {
+  if (isPreviousDayJob(kanriNo)) {
     const { from, to, toMs } = getPreviousDayRange(
       kanriNo,
       scheduledTime,

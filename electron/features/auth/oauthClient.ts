@@ -1,9 +1,8 @@
 // electron/features/auth/oauthClient.ts
 
-import { app } from "electron";
 import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
 import { OAuth2Client } from "google-auth-library";
+import { resolveResourcePath } from "@electron/features/system/systemService";
 import type { GoogleUserInfo, OAuthToken } from "@shared/types/auth";
 
 const GOOGLE_AUTH_CONFIG = {
@@ -27,20 +26,9 @@ function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// 認証情報ファイルのパスを取得する
-function getCredentialsFilePath(): string {
-  return app.isPackaged
-    ? path.join(process.resourcesPath, GOOGLE_AUTH_CONFIG.credentialFileName)
-    : path.join(
-        process.cwd(),
-        "resources",
-        GOOGLE_AUTH_CONFIG.credentialFileName,
-      );
-}
-
 // Google OAuth の認証情報ファイルを読み込み、client ID と任意の client secret を返す
 function getGoogleCredentials(): GoogleCredentials {
-  const filePath = getCredentialsFilePath();
+  const filePath = resolveResourcePath(GOOGLE_AUTH_CONFIG.credentialFileName);
 
   if (!existsSync(filePath)) {
     throw new Error(`Google OAuth credentials not found: ${filePath}`);

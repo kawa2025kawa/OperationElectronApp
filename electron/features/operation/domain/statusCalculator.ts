@@ -1,4 +1,4 @@
-﻿// electron/features/operation/domain/statusCalculator.ts
+// electron/features/operation/domain/statusCalculator.ts
 
 import {
   isPreviousDayJob,
@@ -30,7 +30,7 @@ function isBeforeScheduledTime(
 
   const targetDate = new Date(now);
   targetDate.setHours(time.hours, time.minutes, 0, 0);
-  if (isPreviousDayJob(target.kanriNo, target.scheduledTime)) {
+  if (isPreviousDayJob(target.kanriNo)) {
     targetDate.setDate(targetDate.getDate() - 1);
   }
   return now < targetDate;

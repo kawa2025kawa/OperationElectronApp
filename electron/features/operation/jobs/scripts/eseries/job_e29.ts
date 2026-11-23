@@ -4,13 +4,17 @@ import path from "node:path";
 import * as ExcelJS from "exceljs";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { readParsedCsv } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 import {
   findFilesByKeywords,
   resolveInputPaths,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import { parseAmount, parseRealYosanAmount } from "../helpers/parseAmount";
+import {
+  aggregateCsvAmountByStore,
+  extractCellText,
+  formatYen,
+  parseRealYosanAmount,
+} from "../helpers/parseAmount";
 
 const CONFIG = {
   realYosanKeyword: "リアル予算",
@@ -26,11 +30,6 @@ const CONFIG = {
 
 type YosanMap = Map<string, number>;
 
-interface ExcelCellObject {
-  result?: unknown;
-  richText?: { text?: string }[];
-}
-
 type JobResultData = {
   realYosanPath: string;
   meis0120Path: string;
@@ -42,7 +41,7 @@ type JobResultData = {
 };
 
 /**
- * リアル予算（Excel）と MD予算（MEIS0120 CSV）を集計し、各予算合計および差分を算出・確認する。
+- リアル予算（Excel）と MD予算（MEIS0120 CSV）を集計し、各予算合計および差分を算出・確認する。
  */
 export async function runJobE29(
   inputFilePath?: string | string[],
@@ -66,7 +65,11 @@ async function aggregateBudgets(inputPaths: string[]): Promise<JobResultData> {
 
   const [realYosanMap, meisYosanMap] = await Promise.all([
     parseRealYosan(realYosanPath),
-    parseMeisYosan(meis0120Path),
+    aggregateCsvAmountByStore(
+      meis0120Path,
+      CONFIG.csvEncoding,
+      CONFIG.forbiddenKeys,
+    ),
   ]);
 
   const totalRealAmount = sumYosan(realYosanMap);
@@ -84,27 +87,8 @@ async function aggregateBudgets(inputPaths: string[]): Promise<JobResultData> {
   };
 }
 
-function parseCellString(value: unknown): string {
-  if (value == null) return "";
-
-  if (typeof value === "object") {
-    const cell = value as ExcelCellObject;
-
-    if (cell.result != null) return parseCellString(cell.result);
-
-    if (Array.isArray(cell.richText)) {
-      return cell.richText
-        .map((item) => item.text ?? "")
-        .join("")
-        .trim();
-    }
-  }
-
-  return String(value).trim();
-}
-
 function extractStoreCode(value: unknown): string | null {
-  const text = parseCellString(value);
+  const text = extractCellText(value);
 
   if (!text || CONFIG.existingStoreRegex.test(text)) return null;
 
@@ -112,31 +96,13 @@ function extractStoreCode(value: unknown): string | null {
 }
 
 function isTotalRow(value: unknown): boolean {
-  const text = parseCellString(value);
+  const text = extractCellText(value);
 
   return Boolean(
     text &&
       !CONFIG.existingStoreRegex.test(text) &&
       CONFIG.totalRowRegex.test(text),
   );
-}
-
-async function parseMeisYosan(filePath: string): Promise<YosanMap> {
-  const rows = (await readParsedCsv(filePath, CONFIG.csvEncoding)).slice(1);
-  const result = new Map<string, number>();
-
-  for (const row of rows) {
-    const storeCode = row[0]?.trim() ?? "";
-
-    if (!storeCode || CONFIG.forbiddenKeys.has(storeCode)) continue;
-
-    const amount = parseAmount(row[4]);
-    if (amount === null) continue;
-
-    result.set(storeCode, (result.get(storeCode) ?? 0) + amount);
-  }
-
-  return result;
 }
 
 async function parseRealYosan(filePath: string): Promise<YosanMap> {
@@ -171,10 +137,6 @@ async function parseRealYosan(filePath: string): Promise<YosanMap> {
 
 function sumYosan(map: YosanMap): number {
   return [...map.values()].reduce((sum, amount) => sum + amount, 0);
-}
-
-function formatYen(amount: number): string {
-  return `${amount.toLocaleString("ja-JP")}円`;
 }
 
 function writeResultLog(logger: JobLogger, result: JobResultData): string {

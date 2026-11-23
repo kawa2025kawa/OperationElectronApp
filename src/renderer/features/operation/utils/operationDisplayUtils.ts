@@ -15,6 +15,7 @@ import {
 
 type InfoRowField =
   | "kanriNo"
+  | "workType"
   | "workName"
   | "scheduleTime"
   | "status"
@@ -43,6 +44,7 @@ interface InfoRowValue {
 const OPERATION_INFO_ROW_DEFINITIONS = {
   operation: [
     { field: "kanriNo", label: OPERATION_FIELD_LABELS.kanriNo, type: "text" },
+    { field: "workType", label: OPERATION_FIELD_LABELS.workType, type: "text" },
     { field: "workName", label: OPERATION_FIELD_LABELS.workName, type: "text" },
     { field: "status", label: OPERATION_FIELD_LABELS.status, type: "status" },
     {
@@ -69,6 +71,7 @@ const OPERATION_INFO_ROW_DEFINITIONS = {
   ],
   today: [
     { field: "kanriNo", label: OPERATION_FIELD_LABELS.kanriNo, type: "text" },
+    { field: "workType", label: OPERATION_FIELD_LABELS.workType, type: "text" },
     { field: "workName", label: OPERATION_FIELD_LABELS.workName, type: "text" },
     { field: "status", label: OPERATION_FIELD_LABELS.status, type: "status" },
     {

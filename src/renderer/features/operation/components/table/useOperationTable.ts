@@ -14,6 +14,7 @@ import { usePersistentScroll } from "@renderer/hooks/usePersistentScroll";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { createRegistryGlobalFilter } from "@renderer/features/table/utils/tableSearchUtils";
 import { useAppStore } from "@renderer/store";
+import { selectRowsForMode } from "@renderer/store/slices/operationStatusSlice";
 import {
   JOB_STATUS,
   type OperationViewItem,
@@ -75,29 +76,24 @@ export function useOperationTable() {
     }
   }, [currentMode, summaryStatusFilter, setSummaryStatusFilter]);
 
-  // データ取得
+  // データ取得（キャッシュ有無の判定は slice 側の fetchTableData に委譲）
   useEffect(() => {
-    const hasCache = (tableRowsByMode[currentMode]?.length ?? 0) > 0;
-
     if (tableRowsMode !== currentMode) {
-      if (hasCache) {
-        void fetchTableData(currentMode, false);
-      } else {
-        void fetchTableData(currentMode).catch((error: unknown) => {
-          console.error("[OperationTable] Failed to load table data:", error);
-        });
-      }
+      void fetchTableData(currentMode).catch((error: unknown) => {
+        console.error("[OperationTable] Failed to load table data:", error);
+      });
     }
-  }, [currentMode, tableRowsMode, tableRowsByMode, fetchTableData]);
+  }, [currentMode, tableRowsMode, fetchTableData]);
 
   // 表示対象データ（切り替え直後の前モードデータ混入を防止）
-  const rows = useMemo(() => {
-    if (tableRowsMode === currentMode) {
-      return tableRows;
-    }
-
-    return tableRowsByMode[currentMode] ?? [];
-  }, [tableRowsMode, currentMode, tableRows, tableRowsByMode]);
+  const rows = useMemo(
+    () =>
+      selectRowsForMode(
+        { tableRows, tableRowsMode, tableRowsByMode },
+        currentMode,
+      ),
+    [tableRows, tableRowsMode, tableRowsByMode, currentMode],
+  );
 
   const activeStatusFilter =
     currentMode === "irregular" ? null : summaryStatusFilter;

@@ -1,6 +1,7 @@
 // src/renderer/features/operation/components/operationModeSwitcher/useOperationModeSwitcher.ts
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
+import { useOptimisticValue } from "@renderer/hooks/useOptimisticValue";
 import {
   VIEW_MODES,
   VIEW_MODE_LABELS,
@@ -16,34 +17,16 @@ export function useOperationModeSwitcher(
   currentMode: ViewMode,
   onModeChange: (mode: ViewMode) => void,
 ) {
-  const [optimisticState, setOptimisticState] = useState<{
-    source: ViewMode;
-    value: ViewMode;
-  }>(() => ({
-    source: currentMode,
-    value: currentMode,
-  }));
-
-  if (optimisticState.source !== currentMode) {
-    setOptimisticState({
-      source: currentMode,
-      value: currentMode,
-    });
-  }
-
-  const optimisticMode = optimisticState.value;
+  const [optimisticMode, setOptimisticMode] = useOptimisticValue(currentMode);
 
   const handleModeChange = useCallback(
     (mode: ViewMode): void => {
       if (mode === optimisticMode) return;
 
-      setOptimisticState({
-        source: currentMode,
-        value: mode,
-      });
+      setOptimisticMode(mode);
       onModeChange(mode);
     },
-    [optimisticMode, currentMode, onModeChange],
+    [optimisticMode, setOptimisticMode, onModeChange],
   );
 
   return {

@@ -11,8 +11,8 @@ import { directoryExists, formatDateTime } from "./timeUtils";
 import { createZipArchive } from "./zipHelper";
 
 /**
- * JobLogger の初期化と定型 try-catch エラー整形を共通化するラッパー。
- * すでに JobLogger.fail で整形済みの例外（"\n\n▶ " を含む）は二重ラップせずそのまま再送出する。
+- JobLogger の初期化と定型 try-catch エラー整形を共通化するラッパー。
+- すでに JobLogger.fail で整形済みの例外（"\n\n▶ " を含む）は二重ラップせずそのまま再送出する。
  */
 export async function runJobWithLogger<T>(
   defaultErrorPrefix: string,
@@ -33,7 +33,7 @@ export async function runJobWithLogger<T>(
 }
 
 /**
- * ScriptFilePath (string | string[] | undefined) を空文字除外済みの配列に正規化する。
+- ScriptFilePath (string | string[] | undefined) を空文字除外済みの配列に正規化する。
  */
 export function resolveInputPaths(inputFilePath?: ScriptFilePath): string[] {
   if (!inputFilePath) return [];
@@ -42,7 +42,7 @@ export function resolveInputPaths(inputFilePath?: ScriptFilePath): string[] {
 }
 
 /**
- * 単一入力ファイルの存在を検証してパスを返す。
+- 単一入力ファイルの存在を検証してパスを返す。
  */
 export async function resolveSingleInputFile(
   inputFilePath?: ScriptFilePath,
@@ -68,7 +68,7 @@ export async function resolveSingleInputFile(
 }
 
 /**
- * 入力パス一覧から各キーワードを含むファイルを特定し、不足があれば例外を送出する。
+- 入力パス一覧から各キーワードを含むファイルを特定し、不足があれば例外を送出する。
  */
 export function findFilesByKeywords<TKey extends string>(
   inputPaths: readonly string[],
@@ -96,7 +96,7 @@ export function findFilesByKeywords<TKey extends string>(
 }
 
 /**
- * 指定エンコーディング（既定: Shift_JIS）でファイル全文を読み込む。
+- 指定エンコーディング（既定: Shift_JIS）でファイル全文を読み込む。
  */
 export async function readEncodedText(
   filePath: string,
@@ -107,7 +107,7 @@ export async function readEncodedText(
 }
 
 /**
- * 指定エンコーディング（既定: Shift_JIS）でファイルを行配列として読み込む。
+- 指定エンコーディング（既定: Shift_JIS）でファイルを行配列として読み込む。
  */
 export async function readEncodedLines(
   filePath: string,
@@ -119,7 +119,7 @@ export async function readEncodedLines(
 }
 
 /**
- * 指定ディレクトリ内のファイル名一覧を取得する。
+- 指定ディレクトリ内のファイル名一覧を取得する。
  */
 export async function listFilesInDir(dirPath: string): Promise<string[]> {
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
@@ -127,7 +127,7 @@ export async function listFilesInDir(dirPath: string): Promise<string[]> {
 }
 
 /**
- * フォルダの存在を確認したうえでファイル名一覧を取得する。
+- フォルダの存在を確認したうえでファイル名一覧を取得する。
  */
 export async function listFilesInExistingDir(
   dirPath: string,
@@ -140,7 +140,7 @@ export async function listFilesInExistingDir(
 }
 
 /**
- * 指定パスが存在しないことを検証し、既に存在すれば指定メッセージで例外を送出する。
+- 指定パスが存在しないことを検証し、既に存在すれば指定メッセージで例外を送出する。
  */
 export async function assertPathNotExists(
   targetPath: string,
@@ -160,7 +160,7 @@ export interface CheckedFileStatus {
 }
 
 /**
- * 指定ファイルパスの存在と本日更新有無を確認する。
+- 指定ファイルパスの存在と本日更新有無を確認する。
  */
 export async function checkFileUpdatedToday(
   filePath: string,
@@ -204,7 +204,7 @@ export async function checkFileUpdatedToday(
 }
 
 /**
- * デスクトップに日付付きZIPを作成する。
+- デスクトップに日付付きZIPを作成する。
  */
 export async function createDesktopZip(
   filePaths: string[],
@@ -218,7 +218,40 @@ export async function createDesktopZip(
 }
 
 /**
- * 検出ファイル一覧（ファイル名 + 更新日時）をログに記録する。
+- 対象ファイル群の本日更新確認を行い、すべて正常であればデスクトップへZIPを作成する。
+ */
+export async function checkAndArchiveTodayFiles(
+  targetDir: string,
+  fileNames: readonly string[],
+  zipPrefix: string,
+  canArchive = true,
+  now: Date = new Date(),
+): Promise<{
+  matchedFiles: CheckedFileStatus[];
+  dateIssueFiles: CheckedFileStatus[];
+  zipFilePath?: string | null;
+}> {
+  const matchedFiles = await Promise.all(
+    fileNames.map((fileName) =>
+      checkFileUpdatedToday(path.join(targetDir, fileName), now),
+    ),
+  );
+  const dateIssueFiles = matchedFiles.filter((file) => !file.isToday);
+
+  if (!canArchive || dateIssueFiles.length > 0) {
+    return { matchedFiles, dateIssueFiles };
+  }
+
+  const zipFilePath = await createDesktopZip(
+    matchedFiles.map((file) => file.filePath),
+    zipPrefix,
+  );
+
+  return { matchedFiles, dateIssueFiles, zipFilePath };
+}
+
+/**
+- 検出ファイル一覧（ファイル名 + 更新日時）をログに記録する。
  */
 export function logCheckedFiles(
   logger: JobLogger,
@@ -235,7 +268,7 @@ export function logCheckedFiles(
 }
 
 /**
- * 更新日が本日ではないファイル一覧をログに記録し、要対応メッセージを返す。
+- 更新日が本日ではないファイル一覧をログに記録し、要対応メッセージを返す。
  */
 export function logDateIssuesAndNeedsAction(
   logger: JobLogger,

@@ -1,7 +1,7 @@
 // src/renderer/components/ui/modal/useGlobalModalManager.ts
 
 import { useCallback, useMemo } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useShallow } from "zustand/shallow";
 
 import { useAppStore } from "@renderer/store";
 import { MODAL_SIZES, type ModalAction } from "@shared/types/ui/modal";
@@ -31,10 +31,6 @@ export function useGlobalModalManager() {
     [handleCancel],
   );
 
-  const handleConfirm = useCallback(async () => {
-    await config?.onConfirm?.();
-  }, [config]);
-
   const modalRoot =
     typeof document !== "undefined"
       ? document.getElementById("modal-root")
@@ -45,36 +41,10 @@ export function useGlobalModalManager() {
   const popupStyle = useMemo(() => ({ width, height }), [width, height]);
 
   const rightActions = config?.rightActions;
-  const confirmText = config?.confirmText;
-  const cancelText = config?.cancelText;
-  const isConfirmDisabled = config?.isConfirmDisabled;
   const isProcessing = config?.isProcessing ?? false;
 
   const computedRightActions = useMemo<ModalAction[]>(() => {
     if (rightActions?.length) return rightActions;
-
-    if (confirmText || cancelText) {
-      const actions: ModalAction[] = [
-        {
-          id: "cancel",
-          label: cancelText ?? "キャンセル",
-          onClick: handleCancel,
-          variant: "default",
-        },
-      ];
-
-      if (confirmText) {
-        actions.push({
-          id: "confirm",
-          label: isProcessing ? "処理中..." : confirmText,
-          onClick: handleConfirm,
-          disabled: isConfirmDisabled || isProcessing,
-          variant: "default",
-        });
-      }
-
-      return actions;
-    }
 
     return [
       {
@@ -84,15 +54,7 @@ export function useGlobalModalManager() {
         variant: "default",
       },
     ];
-  }, [
-    rightActions,
-    confirmText,
-    cancelText,
-    isConfirmDisabled,
-    isProcessing,
-    handleCancel,
-    handleConfirm,
-  ]);
+  }, [rightActions, handleCancel]);
 
   const message = config?.message ?? null;
   const messageType = message?.type ?? "info";

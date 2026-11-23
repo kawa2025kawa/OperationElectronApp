@@ -1,11 +1,8 @@
 // electron/features/operation/jobs/scripts/eseries/job_e9.ts
 
-import path from "node:path";
-
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
-  checkFileUpdatedToday,
-  createDesktopZip,
+  checkAndArchiveTodayFiles,
   listFilesInDir,
   logCheckedFiles,
   logDateIssuesAndNeedsAction,
@@ -28,7 +25,7 @@ const CONFIG = {
 } as const;
 
 /**
- * POP関連ファイル（FPOPHAT*.TXT 16件）の存在と更新日を確認し、ZIPアーカイブを作成する。
+- POP関連ファイル（FPOPHAT*.TXT 16件）の存在と更新日を確認し、ZIPアーカイブを作成する。
  */
 export async function runJobE9(): Promise<string> {
   return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
@@ -38,7 +35,6 @@ export async function runJobE9(): Promise<string> {
 }
 
 async function checkAndArchiveFiles(): Promise<JobE9ResultData> {
-  const now = new Date();
   const fileNames = await listFilesInDir(CONFIG.targetDir);
 
   const matchedNames = fileNames.filter((name) => {
@@ -49,34 +45,12 @@ async function checkAndArchiveFiles(): Promise<JobE9ResultData> {
     );
   });
 
-  const matchedFiles = await Promise.all(
-    matchedNames.map((fileName) =>
-      checkFileUpdatedToday(path.join(CONFIG.targetDir, fileName), now),
-    ),
-  );
-
-  const dateIssueFiles = matchedFiles.filter((file) => !file.isToday);
-
-  if (
-    matchedFiles.length !== CONFIG.expectedFileCount ||
-    dateIssueFiles.length > 0
-  ) {
-    return {
-      matchedFiles,
-      dateIssueFiles,
-    };
-  }
-
-  const zipFilePath = await createDesktopZip(
-    matchedFiles.map((file) => file.filePath),
+  return checkAndArchiveTodayFiles(
+    CONFIG.targetDir,
+    matchedNames,
     CONFIG.zipPrefix,
+    matchedNames.length === CONFIG.expectedFileCount,
   );
-
-  return {
-    matchedFiles,
-    dateIssueFiles,
-    zipFilePath,
-  };
 }
 
 function writeResultLog(logger: JobLogger, result: JobE9ResultData): string {

@@ -10,7 +10,6 @@ import { createTemplateE88 } from "./templateE88";
 interface TemplateParams {
   familyName?: string;
   links?: Record<string, string> | null;
-  ym?: string;
 }
 
 type TemplateFactory = (params: TemplateParams) => GmailDraft;

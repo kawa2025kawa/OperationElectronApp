@@ -40,7 +40,7 @@ const CONFIG = {
 } as const;
 
 /**
- * e5 仕入原価リストデータ作成完了後の整合性チェックを行う（対象: 12.すねおり店）
+- e5 仕入原価リストデータ作成完了後の整合性チェックを行う（対象: 12.すねおり店）
  */
 export async function runJobE55(): Promise<JobResult> {
   return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
@@ -112,6 +112,8 @@ function writeResultLog(
 
   if (result.status === "NOT_UPDATED_TODAY") {
     return {
+      success: true,
+      kind: "needsAction",
       message: logger.needsAction(
         `ファイルが存在しないか、更新日が本日ではありません: ${result.invalidFilePath}`,
       ),
@@ -120,6 +122,8 @@ function writeResultLog(
 
   if (result.status === "LINE_NOT_FOUND") {
     return {
+      success: true,
+      kind: "needsAction",
       message: logger.needsAction(
         `PC0140.datに部門01・店番号012のデータがありません。`,
       ),
@@ -139,6 +143,8 @@ function writeResultLog(
 
   if (result.status === "LINE_MISMATCH") {
     return {
+      success: true,
+      kind: "needsAction",
       message: logger.needsAction(
         "PC0140.datとTENF0140.datの対象行が一致しません。",
       ),
@@ -146,6 +152,8 @@ function writeResultLog(
   }
 
   return {
+    success: true,
+    kind: "success",
     message: logger.complete(),
   };
 }

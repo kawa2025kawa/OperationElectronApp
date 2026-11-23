@@ -2,12 +2,12 @@
 
 import path from "node:path";
 import fs from "fs-extra";
-import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   listFilesInDir,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 const CONFIG = {
   normalErrorPath: "\\\\192.88.1.3\\syn_tran",
@@ -40,7 +40,7 @@ function selectDirectoryByTime(now: Date): string {
 
 async function findTargetFile(): Promise<JobResultData> {
   const now = new Date();
-  const today = format(now, "yyyyMMdd");
+  const today = getDateKey(now);
   const searchPattern = `${CONFIG.targetPrefix}${today}`;
   const targetDir = selectDirectoryByTime(now);
 

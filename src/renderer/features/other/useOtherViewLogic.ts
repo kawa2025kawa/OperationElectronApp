@@ -1,7 +1,6 @@
 // src/renderer/features/other/useOtherViewLogic.ts
 
 import { useCallback } from "react";
-import { toast } from "sonner";
 
 import {
   openGiftMdModal,
@@ -12,7 +11,6 @@ import {
 } from "@renderer/components/ui/modal/modalLaunchers";
 import { systemIpcService } from "@renderer/services/systemIpcService";
 import { useAppStore } from "@renderer/store";
-import { toErrorMessage } from "@renderer/utils/errorUtils";
 
 const OKI_URL = "https://oki-corefido-connect.accel-mart.com/imart/login";
 
@@ -45,9 +43,10 @@ export function useOtherViewLogic() {
   );
 
   const handleOpenOKIURL = useCallback(() => {
-    void systemIpcService.openExternal(OKI_URL).catch((error: unknown) => {
-      toast.error(`URLを開けませんでした: ${toErrorMessage(error)}`);
-    });
+    void systemIpcService.openExternalWithToast(
+      OKI_URL,
+      "URLを開けませんでした",
+    );
   }, []);
 
   return {

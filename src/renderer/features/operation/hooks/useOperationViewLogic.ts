@@ -4,6 +4,7 @@ import { useCallback, useMemo, useTransition } from "react";
 import { useShallow } from "zustand/shallow";
 
 import { useAppStore } from "@renderer/store";
+import { selectRowsForMode } from "@renderer/store/slices/operationStatusSlice";
 import {
   JOB_STATUS,
   type OperationViewItem,
@@ -32,17 +33,15 @@ export function useOperationViewLogic(rowsInput?: OperationViewItem[]) {
 
   const [, startTransition] = useTransition();
 
-  const rows = useMemo(() => {
-    if (rowsInput) {
-      return rowsInput;
-    }
-
-    if (tableRowsMode === currentMode) {
-      return tableRows;
-    }
-
-    return tableRowsByMode[currentMode] ?? [];
-  }, [rowsInput, tableRowsMode, currentMode, tableRows, tableRowsByMode]);
+  const rows = useMemo(
+    () =>
+      rowsInput ??
+      selectRowsForMode(
+        { tableRows, tableRowsMode, tableRowsByMode },
+        currentMode,
+      ),
+    [rowsInput, tableRows, tableRowsMode, tableRowsByMode, currentMode],
+  );
 
   const selectedItem = useMemo(() => {
     const targetId = selectedId.trim();

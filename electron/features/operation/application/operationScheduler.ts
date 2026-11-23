@@ -1,6 +1,9 @@
 // electron/features/operation/application/operationScheduler.ts
 
-import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
+import {
+  isAutoWorkType,
+  normalizeKanriNo,
+} from "@electron/features/operation/domain/operationRules";
 import { getScriptKeysForOperation } from "@electron/features/operation/runners/operationScriptRegistry";
 import {
   getRegisteredTargets,
@@ -64,9 +67,13 @@ async function executeScript(
 
 async function executeReadyJob(item: OperationViewItem): Promise<void> {
   const { kanriNo } = item;
-  if (!isReadyOrRunning(kanriNo)) return;
+  if (!isReadyOrRunning(kanriNo) || !isAutoWorkType(item.workType)) return;
 
-  const scriptKeys = getScriptKeysForOperation(kanriNo, item.ScriptKeys)
+  const scriptKeys = getScriptKeysForOperation(
+    kanriNo,
+    item.ScriptKeys,
+    item.workType,
+  )
     .filter((e) => e.executionTypes?.includes("auto"))
     .map((e) => e.key.trim())
     .filter(Boolean);
@@ -127,6 +134,8 @@ async function processReadyQueue(): Promise<void> {
 }
 
 function enqueueReadyTarget(target: StatusTarget): void {
+  if (!isAutoWorkType(target.workType)) return;
+
   const kanriNo = normalizeKanriNo(target.kanriNo);
   if (!kanriNo || !isReadyOrRunning(kanriNo) || queuedKanriNos.has(kanriNo)) {
     return;

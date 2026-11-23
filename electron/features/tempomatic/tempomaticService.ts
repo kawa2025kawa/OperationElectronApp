@@ -3,15 +3,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { net } from "electron";
+import type { TempomaticUploadTargetFile } from "@shared/types/electron/ipcTypes";
 
 // ============================================================
 // Types
 // ============================================================
 
-export interface TempomaticTargetFile {
-  path: string;
-  name?: string;
-}
+export type TempomaticTargetFile = TempomaticUploadTargetFile;
 
 const TEMPOMATIC_DEFAULT_CATEGORIES = [
   "990",

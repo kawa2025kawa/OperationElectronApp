@@ -7,7 +7,7 @@ import * as styles from "./animatedTabs.css";
 
 interface AnimatedTabItem {
   readonly id: number;
-  readonly label: string;
+  readonly label: ReactNode;
 }
 
 export interface AnimatedTabsProps {

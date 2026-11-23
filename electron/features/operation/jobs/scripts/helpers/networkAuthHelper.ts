@@ -1,10 +1,9 @@
 ﻿// electron/features/operation/jobs/scripts/helpers/networkAuthHelper.ts
 
-import { app } from "electron";
 import { execFile } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
 import { promisify } from "node:util";
+import { resolveResourcePath } from "@electron/features/system/systemService";
 
 const execFileAsync = promisify(execFile);
 
@@ -21,19 +20,8 @@ interface NetworkCredential {
 
 type NetworkCredentialMap = Record<string, NetworkCredential>;
 
-function getNetworkCredentialsFilePath(): string {
-  const isPackaged = app?.isPackaged ?? false;
-  return isPackaged
-    ? path.join(process.resourcesPath, NETWORK_CREDENTIALS_CONFIG.fileName)
-    : path.join(
-        process.cwd(),
-        "resources",
-        NETWORK_CREDENTIALS_CONFIG.fileName,
-      );
-}
-
 function loadNetworkCredentials(): NetworkCredentialMap {
-  const filePath = getNetworkCredentialsFilePath();
+  const filePath = resolveResourcePath(NETWORK_CREDENTIALS_CONFIG.fileName);
 
   if (!existsSync(filePath)) {
     return {};
@@ -85,8 +73,8 @@ function loadNetworkCredentials(): NetworkCredentialMap {
 }
 
 /**
- * UNCパス（例: \\192.161.2.1\d$\BELC\ftp\ORDERBOOK.pdf）から
- * ホスト名（192.161.2.1）と共有ルート（\\192.161.2.1\d$）を抽出する。
+- UNCパス（例: \\192.161.2.1\d$\BELC\ftp\ORDERBOOK.pdf）から
+- ホスト名（192.161.2.1）と共有ルート（\\192.161.2.1\d$）を抽出する。
  */
 function parseUncTarget(
   targetPath: string,
@@ -114,9 +102,9 @@ function isAccessDeniedError(error: unknown): boolean {
 }
 
 /**
- * 対象UNCパスに対応する認証情報が network-credentials.json に定義されている場合、
- * net use コマンドで共有ルートへ接続する。
- * @returns 認証接続を試行して成功した場合は true、定義なし・失敗時は false
+- 対象UNCパスに対応する認証情報が network-credentials.json に定義されている場合、
+- net use コマンドで共有ルートへ接続する。
+- @returns 認証接続を試行して成功した場合は true、定義なし・失敗時は false
  */
 async function ensureNetworkShareConnected(
   targetPath: string,
@@ -191,8 +179,8 @@ async function ensureNetworkShareConnected(
 }
 
 /**
- * 共有フォルダ操作を実行し、EPERM / EACCES が発生した場合のみ
- * network-credentials.json の認証情報を使って接続後に1回リトライする。
+- 共有フォルダ操作を実行し、EPERM / EACCES が発生した場合のみ
+- network-credentials.json の認証情報を使って接続後に1回リトライする。
  */
 export async function withNetworkAuthRetry<T>(
   targetPath: string,

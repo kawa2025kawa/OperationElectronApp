@@ -1,6 +1,6 @@
 // src/renderer/components/ui/tabs/animatedTabs.css.ts
 
-import { style } from "@vanilla-extract/css";
+import { globalStyle, style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import {
   brandGradientTextRule,
@@ -85,6 +85,11 @@ export const buttonText = style({
   selectors: {
     [`${tabButton}[data-active] &`]: brandGradientTextRule,
   },
+});
+
+globalStyle(`${tabButton}[data-active] ${buttonText} *`, {
+  color: "transparent",
+  WebkitTextFillColor: "transparent",
 });
 
 export const panel = style({

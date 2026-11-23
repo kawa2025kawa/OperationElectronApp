@@ -1,9 +1,11 @@
 // electron/features/operation/jobs/scripts/numeric/job_39.ts
 
-import { format } from "date-fns";
 import path from "node:path";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import {
+  directoryExists,
+  getDateKey,
+} from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 import {
   checkFileUpdatedToday,
   listFilesInDir,
@@ -34,7 +36,7 @@ type JobResultData = {
 };
 
 /**
- * 時間帯（午前・午後）に応じたフォルダの対象ファイル存在・更新日を確認する。
+- 時間帯（午前・午後）に応じたフォルダの対象ファイル存在・更新日を確認する。
  */
 export async function runJob39(): Promise<JobResult> {
   return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
@@ -46,7 +48,7 @@ export async function runJob39(): Promise<JobResult> {
 async function checkTargetFiles(): Promise<JobResultData> {
   const now = new Date();
   const isBeforeNoon = now.getHours() < 12;
-  const today = format(now, "yyyyMMdd");
+  const today = getDateKey(now);
   const targetDir = isBeforeNoon ? CONFIG.beforeNoonDir : CONFIG.afterNoonDir;
 
   if (!(await directoryExists(targetDir))) {

@@ -39,7 +39,7 @@ export function getSpreadSheetCellText(value: unknown): string {
   return value == null || value === "" ? "-" : String(value);
 }
 
-function renderSpreadSheetDateHeader(prefix: string, date: Date) {
+export function renderSpreadSheetDateHeader(prefix: string, date: Date) {
   const { text, dayText, tone } = formatDateWithDay(date);
   const dayClass = tone === "weekday" ? undefined : tableStyles.dayTone[tone];
 
@@ -47,7 +47,11 @@ function renderSpreadSheetDateHeader(prefix: string, date: Date) {
     "span",
     null,
     `${prefix} ${text}`,
-    createElement("span", { className: dayClass }, dayText),
+    createElement(
+      "span",
+      dayClass ? { className: dayClass } : null,
+      dayText,
+    ),
   );
 }
 

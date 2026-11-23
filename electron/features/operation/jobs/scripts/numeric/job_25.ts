@@ -1,11 +1,11 @@
 // electron/features/operation/jobs/scripts/numeric/job_25.ts
 
-import { format } from "date-fns";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   listFilesInDir,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
@@ -28,7 +28,7 @@ type Job25CheckResult = {
 };
 
 /**
- * 当日分の対象ファイルを確認する。
+- 当日分の対象ファイルを確認する。
  */
 export async function runJob25(): Promise<JobResult> {
   return runJobWithLogger(
@@ -41,7 +41,7 @@ export async function runJob25(): Promise<JobResult> {
 }
 
 async function findTargetFiles(): Promise<Job25CheckResult> {
-  const today = format(new Date(), "yyyyMMdd");
+  const today = getDateKey();
   const fileNames = await listFilesInDir(CONFIG.targetDir);
 
   const todayFiles = fileNames

@@ -1,12 +1,13 @@
-﻿// src/renderer/features/other/components/modal/contents/statusSync/useStatusSyncModalContent.ts
+// src/renderer/features/other/components/modal/contents/statusSync/useStatusSyncModalContent.ts
 
 import { useCallback, useEffect, useState } from "react";
-import { format } from "date-fns";
+import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { operationService } from "@renderer/features/operation/service/operationService";
 import { useModalFooterSync } from "@renderer/hooks/useModalFooterSync";
 import { useAppStore } from "@renderer/store";
 import { toErrorMessage } from "@renderer/utils/errorUtils";
 import type { StatusSyncPreviewResult } from "@shared/types/electron/ipcTypes";
+import { formatJapanDateTime } from "@shared/utils/dateTimeUtils";
 
 export type StatusSyncMode = "save" | "load";
 
@@ -15,7 +16,7 @@ interface StatusSyncInfoMessage {
   type: "info" | "success" | "error";
 }
 
-const formatNow = () => format(new Date(), "yyyy/MM/dd HH:mm:ss");
+const formatNow = () => formatJapanDateTime(new Date());
 
 function useSyncRunner(params: {
   initialText: string;
@@ -121,6 +122,7 @@ export function useStatusSyncLoad() {
     action: async () => {
       const res = await operationService.loadStatusesFromSheet();
       const store = useAppStore.getState();
+      usePollingToastStore.getState().resetToastState();
       useAppStore.setState({ isPolling: false });
       if (res.metadata?.activeFlags) {
         store.applyCenterFlags(res.metadata.activeFlags);

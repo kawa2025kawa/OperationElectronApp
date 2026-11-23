@@ -1,4 +1,4 @@
-﻿// src/renderer/features/operation/components/table/useOperationTableContextMenu.ts
+// src/renderer/features/operation/components/table/useOperationTableContextMenu.ts
 
 import {
   useCallback,
@@ -10,6 +10,7 @@ import {
   useSyncExternalStore,
   type MouseEvent,
 } from "react";
+import { getOperationWorkName } from "@renderer/features/operation/utils/operationDisplayUtils";
 import type {
   JobStatus,
   OperationViewItem,
@@ -78,8 +79,8 @@ function buildLaserCoordinates(
 }
 
 /**
- * コンテキストメニューの開閉状態を OperationTable の state から分離し、
- * 右クリック開閉・レーザー計測時にテーブル本体や行が再レンダリングされないようにする。
+- コンテキストメニューの開閉状態を OperationTable の state から分離し、
+- 右クリック開閉・レーザー計測時にテーブル本体や行が再レンダリングされないようにする。
  */
 export function useOperationTableContextMenuStore(): OperationTableContextMenuStore {
   const targetRef = useRef<ContextMenuTarget | null>(null);
@@ -132,7 +133,7 @@ export function useOperationTableContextMenuStore(): OperationTableContextMenuSt
 
       targetRef.current = {
         kanriNo,
-        workName: item.workName?.trim() || `No.${kanriNo}`,
+        workName: getOperationWorkName(item.workName?.trim(), kanriNo),
         status: item.status,
         pointerAnchor: DOMRect.fromRect({
           x: infoRowBounds?.left ?? event.clientX + 56,

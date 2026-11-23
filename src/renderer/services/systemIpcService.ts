@@ -1,10 +1,12 @@
 // src/renderer/services/systemIpcService.ts
 
+import { toast } from "sonner";
 import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
+import { toErrorMessage } from "@renderer/utils/errorUtils";
 import type { UpdateInfo } from "@shared/types/system";
 
 /**
- * システム操作（外部起動・マニュアル・更新確認・ファイル操作等）の IPC 通信を集約するサービス
+- システム操作（外部起動・マニュアル・更新確認・ファイル操作等）の IPC 通信を集約するサービス
  */
 export const systemIpcService = {
   /** アプリのバージョン番号を取得する */
@@ -29,6 +31,21 @@ export const systemIpcService = {
   /** 外部URLまたはローカルパスを既定のアプリケーションで開く */
   openExternal: (urlOrPath: string): Promise<null> =>
     window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, { urlOrPath }),
+
+  /** 外部URLまたはローカルパスを開き、失敗時はトーストでエラー通知する */
+  openExternalWithToast: async (
+    urlOrPath: string,
+    errorPrefix = "外部リンク起動エラー",
+  ): Promise<void> => {
+    const cleanTarget = urlOrPath.trim();
+    if (!cleanTarget) return;
+
+    try {
+      await systemIpcService.openExternal(cleanTarget);
+    } catch (error) {
+      toast.error(`${errorPrefix}: ${toErrorMessage(error)}`);
+    }
+  },
 
   /** ファイル/フォルダ選択ダイアログを表示する */
   showOpenDialog: (

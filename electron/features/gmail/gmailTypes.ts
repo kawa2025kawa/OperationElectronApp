@@ -20,7 +20,6 @@ export interface GenerateDraftTemplateParams {
   templateKey: EmailTemplateKey;
   familyName?: string;
   links?: Record<string, string> | null;
-  ym?: string;
 }
 
 export interface BuildRawMessageParams {

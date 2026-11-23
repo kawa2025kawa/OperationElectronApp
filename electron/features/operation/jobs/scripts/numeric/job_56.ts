@@ -1,6 +1,5 @@
 // electron/features/operation/jobs/scripts/numeric/job_56.ts
 
-import { format } from "date-fns";
 import fs from "fs-extra";
 import path from "node:path";
 import iconv from "iconv-lite";
@@ -9,6 +8,10 @@ import {
   readEncodedLines,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import {
+  formatDateTime,
+  getDateKey,
+} from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 const CONFIG = {
   targetDir: "\\\\172.25.101.51\\if\\WEB-SV\\RCV\\SV",
@@ -79,7 +82,7 @@ async function validateFile(filePath: string): Promise<ValidationResult> {
 
 export async function runJob56(): Promise<string> {
   return runJobWithLogger("システムエラーが発生しました", async (logger) => {
-    const today = format(new Date(), "yyyyMMdd");
+    const today = getDateKey();
     const filePrefix = `SEIKYUDT_${today}`;
 
     logger.log(`対象フォルダ : ${CONFIG.targetDir}`);
@@ -101,9 +104,7 @@ export async function runJob56(): Promise<string> {
 
     for (const result of results) {
       logger.log(`${result.fileName}`);
-      logger.log(
-        `    更新日時 : ${format(result.mtime, "yyyy/MM/dd HH:mm:ss")}`,
-      );
+      logger.log(`    更新日時 : ${formatDateTime(result.mtime)}`);
 
       result.errors.forEach((error) => {
         allErrors.push(error);

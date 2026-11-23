@@ -1,7 +1,6 @@
 // electron/features/operation/jobs/scripts/numeric/job_80.ts
 
 import path from "node:path";
-import { format } from "date-fns";
 import fs from "fs-extra";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
@@ -9,6 +8,10 @@ import {
   listFilesInExistingDir,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import {
+  formatDateTime,
+  getDateKey,
+} from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 const CONFIG = {
   targetDir: "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV",
@@ -28,21 +31,13 @@ type JobResultData = {
 };
 
 /**
- * 事前連携ファイル（Okurikomi_toMD_JIZEN, htsf0060_JIZEN）の存在を確認する。
+- 事前連携ファイル（Okurikomi_toMD_JIZEN, htsf0060_JIZEN）の存在を確認する。
  */
 export async function runJob80(): Promise<JobResult> {
   return runJobWithLogger("ファイル確認に失敗しました", async (logger) => {
     const result = await checkRequiredFiles();
     return writeResultLog(logger, result);
   });
-}
-
-function getDateKey(date = new Date()): string {
-  return format(date, "yyyyMMdd");
-}
-
-function formatModifiedTime(date: Date): string {
-  return format(date, "yyyy/MM/dd HH:mm:ss");
 }
 
 async function findMatchedFile(
@@ -112,7 +107,7 @@ function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {
 
     if (file) {
       logger.log(`  ${file.fileName}`);
-      logger.log(`    更新日時 : ${formatModifiedTime(file.mtime)}`);
+      logger.log(`    更新日時 : ${formatDateTime(file.mtime)}`);
     } else {
       logger.log(
         `  [${CONFIG.requiredFiles[index]}] ファイルが見つかりません（配置待ち）`,

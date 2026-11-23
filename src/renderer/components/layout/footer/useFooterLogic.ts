@@ -5,17 +5,15 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   useTransition,
 } from "react";
 import type { ChangeEvent } from "react";
 import { useShallow } from "zustand/shallow";
 
+import { useOptimisticValue } from "@renderer/hooks/useOptimisticValue";
+import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { useAppStore } from "@renderer/store";
 import type { CenterId } from "@shared/types/operation/operationTypes";
-
-import { getAppViewConfig } from "@renderer/registry/appRegistry";
-import { APP_VIEW_IDS } from "@shared/types/registry/viewDefinition";
 
 export const useFooterLogic = () => {
   const {
@@ -38,18 +36,7 @@ export const useFooterLogic = () => {
     })),
   );
 
-  const [searchInput, setSearchInput] = useState(() => ({
-    source: searchTerm,
-    value: searchTerm,
-  }));
-
-  if (searchTerm !== searchInput.source) {
-    setSearchInput({
-      source: searchTerm,
-      value: searchTerm,
-    });
-  }
-
+  const [localSearchTerm, setLocalSearchTerm] = useOptimisticValue(searchTerm);
   const [, startTransition] = useTransition();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -65,10 +52,7 @@ export const useFooterLogic = () => {
     (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
 
-      setSearchInput({
-        source: searchTerm,
-        value,
-      });
+      setLocalSearchTerm(value);
 
       if (timerRef.current !== null) {
         clearTimeout(timerRef.current);
@@ -80,7 +64,7 @@ export const useFooterLogic = () => {
         });
       }, 200);
     },
-    [searchTerm, setSearchTerm],
+    [setLocalSearchTerm, setSearchTerm],
   );
 
   const handleToggleCenter = useCallback(
@@ -103,8 +87,7 @@ export const useFooterLogic = () => {
 
   return {
     centers,
-    isOperationView: currentView === APP_VIEW_IDS.OPERATION,
-    searchTerm: searchInput.value,
+    searchTerm: localSearchTerm,
     searchPlaceholder: currentViewDef?.search?.placeholder ?? null,
     handleSearchChange,
     handleToggleCenter,

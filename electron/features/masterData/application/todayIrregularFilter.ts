@@ -51,18 +51,12 @@ function matchesCycle(cycleValue: string, today: JstDateParts): boolean {
   });
 }
 
-// 予定時刻を並べ替え用の数値に変換し、AM・PMや不正値も区別する。
+// 予定時刻（"hh:mm" もしくは "-"）を並べ替え用の数値に変換する。
 function getScheduledTimeRank(value: unknown): number {
-  const time = String(value ?? "")
-    .trim()
-    .toUpperCase();
+  const time = String(value ?? "").trim();
 
-  if (time === "AM") {
-    return 1440;
-  }
-
-  if (time === "PM") {
-    return 2880;
+  if (!time || time === "-") {
+    return 9999;
   }
 
   const match = time.match(/^(\d{1,2}):(\d{2})$/);

@@ -1,4 +1,4 @@
-﻿// src/renderer/features/operation/utils/operationActionUtils.ts
+// src/renderer/features/operation/utils/operationActionUtils.ts
 
 import { toast } from "sonner";
 
@@ -7,7 +7,7 @@ import {
   openLinkModal,
   openPdfUploadModal,
   openScriptModal,
-} from "@renderer/features/operation/components/modal/operationModal";
+} from "@renderer/components/ui/modal/modalLaunchers";
 import { operationService } from "@renderer/features/operation/service/operationService";
 import type { AppState } from "@renderer/store";
 import { isRunningStatus, normalizeKanriNo } from "@shared/utils/statusUtils";
@@ -84,7 +84,7 @@ function getLinkConfigs(item: OperationViewItem): LinkConfig[] {
 }
 
 /**
- * 選択中アイテムの状態に基づき、メニューに表示するアクションボタン一覧を生成する
+- 選択中アイテムの状態に基づき、メニューに表示するアクションボタン一覧を生成する
  */
 export function buildOperationMenuActions(
   item: OperationViewItem,
@@ -103,7 +103,7 @@ export function buildOperationMenuActions(
     ),
   );
 
-  // 1. Gmail: bool値がtrueなら表示
+  // 1. Gmail: bool値がtrueなら表示（IrregularMasterData 等）
   const isGmailEnabled =
     isTruthyFlag(rawItem.isGmail) || isTruthyFlag(rawItem.gmail);
 
@@ -124,7 +124,11 @@ export function buildOperationMenuActions(
       label: "JC",
       execute: () => {
         void operationService
-          .executeJcJob(kanriNo, { jobId, onSuccess: onRefreshTable })
+          .executeJcJob(kanriNo, {
+            jobId,
+            workType: item.workType,
+            onSuccess: onRefreshTable,
+          })
           .catch(() => undefined);
       },
     });

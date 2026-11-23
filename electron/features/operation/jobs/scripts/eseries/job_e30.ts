@@ -9,7 +9,11 @@ import {
   resolveInputPaths,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import { parseAmount } from "../helpers/parseAmount";
+import {
+  aggregateCsvAmountByStore,
+  formatYen,
+  parseAmount,
+} from "../helpers/parseAmount";
 
 const CONFIG = {
   meis0120Keyword: "MEIS0120",
@@ -44,7 +48,7 @@ type JobResultData = {
 };
 
 /**
- * 売上予算確認ファイルと MEIS0120 ファイルを突き合わせ、店舗別および合計の予算差異を検証する。
+- 売上予算確認ファイルと MEIS0120 ファイルを突き合わせ、店舗別および合計の予算差異を検証する。
  */
 export async function runJobE30(
   inputFilePath?: string | string[],
@@ -54,23 +58,6 @@ export async function runJobE30(
     const result = await compareBudgets(inputPaths);
     return writeResultLog(logger, result);
   });
-}
-
-async function parseMeisYosan(filePath: string): Promise<YosanMap> {
-  const rows = (await readParsedCsv(filePath, CONFIG.csvEncoding)).slice(1);
-  const result = new Map<string, number>();
-
-  for (const row of rows) {
-    const storeCode = row[0];
-    if (!storeCode) continue;
-
-    const amount = parseAmount(row[4]);
-    if (amount === null) continue;
-
-    result.set(storeCode, (result.get(storeCode) ?? 0) + amount);
-  }
-
-  return result;
 }
 
 async function parseUriYosan(filePath: string): Promise<YosanMap> {
@@ -118,7 +105,7 @@ async function compareBudgets(inputPaths: string[]): Promise<JobResultData> {
   });
 
   const [meisMap, uriMap] = await Promise.all([
-    parseMeisYosan(meis0120Path),
+    aggregateCsvAmountByStore(meis0120Path, CONFIG.csvEncoding),
     parseUriYosan(uriYosanPath),
   ]);
 
@@ -177,12 +164,8 @@ async function compareBudgets(inputPaths: string[]): Promise<JobResultData> {
   };
 }
 
-function formatAmount(amount: number): string {
-  return `${amount.toLocaleString("ja-JP")}円`;
-}
-
 function formatSignedAmount(amount: number): string {
-  const formatted = formatAmount(amount);
+  const formatted = formatYen(amount);
   return amount > 0 ? `+${formatted}` : formatted;
 }
 
@@ -199,14 +182,14 @@ function writeResultLog(logger: JobLogger, result: JobResultData): string {
   );
 
   logger.section("合計結果");
-  logger.log(`売上予算計 : ${formatAmount(result.totalUriAmount)}`);
-  logger.log(`MEIS予算計 : ${formatAmount(result.totalMeisAmount)}`);
+  logger.log(`売上予算計 : ${formatYen(result.totalUriAmount)}`);
+  logger.log(`MEIS予算計 : ${formatYen(result.totalMeisAmount)}`);
   logger.log(`差額合計   : ${formatSignedAmount(result.totalDiff)}`);
 
   logger.section("店舗別明細");
   for (const item of result.comparisons) {
     logger.log(
-      `店舗[${item.storeCode}] 予算:${formatAmount(item.uriAmount)} | MEIS:${formatAmount(item.meisAmount)} | 差:${formatSignedAmount(item.diff)}`,
+      `店舗[${item.storeCode}] 予算:${formatYen(item.uriAmount)} | MEIS:${formatYen(item.meisAmount)} | 差:${formatSignedAmount(item.diff)}`,
     );
   }
 

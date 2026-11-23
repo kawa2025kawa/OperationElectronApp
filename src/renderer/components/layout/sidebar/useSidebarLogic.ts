@@ -47,8 +47,6 @@ export const useSidebarLogic = () => {
     currentView,
     isSidebarOpen,
     toggleSidebar,
-    setSidebarOpen,
     handleItemClick,
-    menuItems: ORDERED_MENU_ITEMS,
   };
 };

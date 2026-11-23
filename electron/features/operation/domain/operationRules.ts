@@ -2,8 +2,10 @@
 
 import {
   JOB_STATUS,
+  WORK_TYPE,
   type CenterId,
   type OperationStatusState,
+  type OperationWorkType,
 } from "@shared/types/operation/operationTypes";
 import {
   isProtectedStatus,
@@ -22,8 +24,8 @@ const PREVIOUS_DAY_KANRI_NO_LIST = ["2", "3", "4", "5", "6", "7"] as const;
 const PREVIOUS_DAY_SET = new Set<string>(PREVIOUS_DAY_KANRI_NO_LIST);
 
 /**
- * 自動API問い合わせを行わず手動JCのみ許可し、
- * Status の確定はユーザーの手動操作のみで行う Job ID 一覧
+- 自動API問い合わせを行わず手動JCのみ許可し、
+- Status の確定はユーザーの手動操作のみで行う Job ID 一覧
  */
 const MANUAL_STATUS_DECISION_JOB_IDS = new Set<string>(["ZCM8010"]);
 
@@ -32,20 +34,30 @@ export interface ParsedTime {
   minutes: number;
 }
 
+/**
+- scheduledTime（"hh:mm" もしくは "-"）から時刻を抽出する。
+- "-" や不正フォーマットの場合は null を返す。
+ */
 export function parseHHMM(value?: string | null): ParsedTime | null {
-  const m = value?.match(/(\d{1,2}):(\d{1,2})/);
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === "-") return null;
+
+  const m = trimmed.match(/^(\d{1,2}):(\d{2})$/);
   if (!m) return null;
+
   const hours = Number(m[1]);
   const minutes = Number(m[2]);
   return hours <= 23 && minutes <= 59 ? { hours, minutes } : null;
 }
 
-export const isPreviousDayJob = (
-  kanriNo: string | number,
-  scheduledTime?: string | null,
-): boolean =>
-  PREVIOUS_DAY_SET.has(normalizeKanriNo(kanriNo)) ||
-  Boolean(scheduledTime?.includes("前日"));
+export const isAutoWorkType = (workType?: OperationWorkType | string | null): boolean =>
+  workType?.trim() === WORK_TYPE.AUTO;
+
+export const isManualWorkType = (workType?: OperationWorkType | string | null): boolean =>
+  workType?.trim() === WORK_TYPE.MANUAL;
+
+export const isPreviousDayJob = (kanriNo: string | number): boolean =>
+  PREVIOUS_DAY_SET.has(normalizeKanriNo(kanriNo));
 
 export const hasCenterFlagDependency = (deps: readonly string[]): boolean =>
   deps.some((dep) => CENTER_FLAGS.has(dep));

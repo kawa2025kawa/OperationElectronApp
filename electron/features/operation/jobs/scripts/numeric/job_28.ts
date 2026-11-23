@@ -2,16 +2,15 @@
 
 import fs from "fs-extra";
 import path from "node:path";
-import { format } from "date-fns";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import {
   readCsv,
-  filterCsvRows,
   groupCsvRowsBy,
   writeCsvRows,
   type CsvRow,
   type ParsedCsv,
 } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
@@ -59,8 +58,6 @@ type SourceFile = {
   filePath: string;
   hasProblemRows: boolean;
 };
-
-const getDateKey = (): string => format(new Date(), "yyyyMMdd");
 
 function getDepartmentName(row: CsvRow): string {
   const rawCode = row.columns[1]?.trim() ?? "";
@@ -225,9 +222,7 @@ export async function runJob28(): Promise<JobResult> {
           !path.isAbsolute(relative));
 
       const csv = await readCsv(filePath, CONFIG.encoding);
-      const problemRows = filterCsvRows(csv.rows, (row) =>
-        isProblemRow(row, today),
-      );
+      const problemRows = csv.rows.filter((row) => isProblemRow(row, today));
 
       if (!isRequestFile) {
         sourceFiles.push({ filePath, hasProblemRows: problemRows.length > 0 });

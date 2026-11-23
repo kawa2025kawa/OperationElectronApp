@@ -23,6 +23,14 @@ const SYSTEM_CONFIG: SystemServiceConfig = {
   manualBaseUrl: "https://sites.google.com/belc.co.jp",
 } as const;
 
+// パッケージ状態に応じて resources ディレクトリ配下のファイルパスを解決する。
+export function resolveResourcePath(fileName: string): string {
+  const isPackaged = app?.isPackaged ?? false;
+  return isPackaged
+    ? path.join(process.resourcesPath, fileName)
+    : path.join(process.cwd(), "resources", fileName);
+}
+
 function getUpdateInfoPath(): string {
   const baseDirectory = app.isPackaged
     ? SYSTEM_CONFIG.updateDirectory

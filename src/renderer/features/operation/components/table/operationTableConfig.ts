@@ -39,6 +39,11 @@ const OPERATION_COLUMN_CONFIG = {
     width: "90px",
     align: "left",
   },
+  workType: {
+    label: OPERATION_FIELD_LABELS.workType,
+    width: "90px",
+    align: "center",
+  },
   scheduledTime: {
     label: OPERATION_FIELD_LABELS.scheduledTime,
     width: "120px",
@@ -76,12 +81,19 @@ const OPERATION_COLUMN_CONFIG = {
   },
 } as const satisfies Record<string, OperationColumnMeta>;
 
-type OperationColumn = keyof typeof OPERATION_COLUMN_CONFIG;
+export type OperationColumn = keyof typeof OPERATION_COLUMN_CONFIG;
 
 const VISIBLE_OPERATION_COLUMNS = {
-  operation: ["kanriNo", "scheduledTime", "workName", "jobId", "status"],
+  operation: [
+    "kanriNo",
+    "workType",
+    "scheduledTime",
+    "workName",
+    "jobId",
+    "status",
+  ],
   irregular: ["kanriNo", "scheduledTime", "cycle1", "cycle2", "workName"],
-  today: ["kanriNo", "scheduledTime", "workName", "status"],
+  today: ["kanriNo", "workType", "scheduledTime", "workName", "status"],
 } as const satisfies Record<ViewMode, readonly OperationColumn[]>;
 
 export const EMPTY_OPERATION_ROWS: OperationViewItem[] = [];
@@ -114,7 +126,7 @@ function buildOperationColumns(
         }
       : {}),
     size:
-      id === "kanriNo"
+      id === "kanriNo" || id === "workType"
         ? 90
         : id === "scheduledTime"
           ? 120

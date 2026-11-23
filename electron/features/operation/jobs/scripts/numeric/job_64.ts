@@ -2,10 +2,12 @@
 
 import fs from "fs-extra";
 import path from "node:path";
-import { format } from "date-fns";
 import iconv from "iconv-lite";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import {
+  directoryExists,
+  getDateKey,
+} from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 import {
   listFilesInDir,
   readEncodedLines,
@@ -60,9 +62,10 @@ interface ProcessedFileResult {
 }
 
 function createJobContext(now: Date): JobContext {
+  const date = getDateKey(now);
   return {
-    targetDir: path.join(CONFIG.baseDir, format(now, "yyyyMMdd")),
-    date: format(now, "yyyyMMdd"),
+    targetDir: path.join(CONFIG.baseDir, date),
+    date,
     result: {
       pluNg: false,
       skuNg: false,

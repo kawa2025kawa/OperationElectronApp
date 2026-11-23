@@ -22,7 +22,7 @@ type CsvOptions = {
 };
 
 /**
- * 1行のCSV文字列をパースして各カラムの配列（各要素トリム済）を返します。
+- 1行のCSV文字列をパースして各カラムの配列（各要素トリム済）を返します。
  */
 function parseCsvLine(line: string): string[] {
   const { data } = Papa.parse<string[]>(line, {
@@ -37,7 +37,7 @@ function parseCsvLine(line: string): string[] {
 }
 
 /**
- * 複数行のCSVテキストを一括でパースします（セル内改行にも対応）。
+- 複数行のCSVテキストを一括でパースします（セル内改行にも対応）。
  */
 function parseCsv(csv: string): string[][] {
   const { data } = Papa.parse<string[]>(csv, {
@@ -51,7 +51,7 @@ function parseCsv(csv: string): string[][] {
 }
 
 /**
- * 指定エンコーディングのCSVファイルを一括パースして2次元配列で返します。
+- 指定エンコーディングのCSVファイルを一括パースして2次元配列で返します。
  */
 export async function readParsedCsv(
   filePath: string,
@@ -61,7 +61,7 @@ export async function readParsedCsv(
 }
 
 /**
- * CSVファイルを読み込んでパース結果を返します。
+- CSVファイルを読み込んでパース結果を返します。
  */
 export async function readCsv(
   filePath: string,
@@ -79,13 +79,6 @@ export async function readCsv(
         columns: parseCsvLine(line),
       })),
   };
-}
-
-export function filterCsvRows(
-  rows: CsvRow[],
-  predicate: (row: CsvRow) => boolean,
-): CsvRow[] {
-  return rows.filter(predicate);
 }
 
 export function groupCsvRowsBy(

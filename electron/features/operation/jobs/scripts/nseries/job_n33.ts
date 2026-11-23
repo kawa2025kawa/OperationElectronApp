@@ -2,12 +2,12 @@
 
 import { Client } from "basic-ftp";
 import iconv from "iconv-lite";
-import { format } from "date-fns";
 import { PassThrough, type Readable } from "node:stream";
 import readline from "node:readline";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 const TARGET_CODES = ["S330", "S332"] as const;
 
@@ -51,7 +51,7 @@ const CONFIG = {
 } as const;
 
 /**
- * FEP FTPサーバー上の当日CSV（S330, S332）をストリーム走査し、未格納データの有無を検証する。
+- FEP FTPサーバー上の当日CSV（S330, S332）をストリーム走査し、未格納データの有無を検証する。
  */
 export async function runJobN33(): Promise<string> {
   return runJobWithLogger("FTPチェック処理に失敗しました", async (logger) => {
@@ -124,7 +124,7 @@ async function processCsvStream(stream: Readable): Promise<UnassignedDetail[]> {
 
 async function checkFtpCsvFiles(): Promise<JobN33ResultData> {
   const client = new Client();
-  const today = format(new Date(), "yyyyMMdd");
+  const today = getDateKey();
 
   try {
     await client.access(CONFIG.ftp);

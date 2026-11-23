@@ -1,7 +1,6 @@
 // electron/features/operation/jobs/scripts/numeric/job_114.ts
 
 import path from "node:path";
-import { format } from "date-fns";
 import fs from "fs-extra";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
@@ -9,6 +8,10 @@ import {
   readEncodedText,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import {
+  formatDateTime,
+  getDateKey,
+} from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
 
 const CONFIG = {
   logDir: "\\\\192.88.100.1\\diskD\\execute\\log",
@@ -42,17 +45,9 @@ export async function runJob114(): Promise<string> {
   });
 }
 
-function getDatePrefix(date = new Date()): string {
-  return format(date, "yyMMdd");
-}
-
-function formatModifiedTime(date: Date): string {
-  return format(date, "yyyy/MM/dd HH:mm:ss");
-}
-
 async function processLogFile(): Promise<JobResultData> {
   const entries = await listFilesInExistingDir(CONFIG.logDir);
-  const datePrefix = getDatePrefix();
+  const datePrefix = getDateKey(new Date(), "yyMMdd");
 
   const targetFileName = entries.find(
     (fileName) =>
@@ -117,7 +112,7 @@ function writeResultLog(logger: JobLogger, result: JobResultData): string {
     logger.log(result.fileInfo.fileName);
 
     logger.section("ファイル更新日時");
-    logger.log(formatModifiedTime(result.fileInfo.modifiedAt));
+    logger.log(formatDateTime(result.fileInfo.modifiedAt));
 
     logger.section("READ件数");
     logger.log(result.countResult.formattedCount);

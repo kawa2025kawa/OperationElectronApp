@@ -3,15 +3,18 @@
 import { toast } from "sonner";
 import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
-import type {
-  ActiveFlags,
-  JobResult,
-  JobStatus,
-  OperationStatusState,
-  OperationViewItem,
+import {
+  WORK_TYPE,
+  type ActiveFlags,
+  type JobResult,
+  type JobStatus,
+  type OperationStatusState,
+  type OperationViewItem,
+  type OperationWorkType,
 } from "@shared/types/operation/operationTypes";
 import type { StatusSummary } from "@shared/types/statusSummary/statusSummaryTypes";
 import { normalizeKanriNo } from "@shared/utils/statusUtils";
+import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { rdpIpcService } from "@renderer/services/rdpIpcService";
 import { systemIpcService } from "@renderer/services/systemIpcService";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
@@ -28,6 +31,7 @@ export interface ExecuteScriptParams {
 
 export interface ExecuteJcJobOptions {
   jobId?: string;
+  workType?: OperationWorkType;
   onSuccess?: () => void | Promise<void>;
 }
 
@@ -53,7 +57,7 @@ async function withJobErrorToast<T>(
 }
 
 /**
- * Operation 関連の IPC 通信およびジョブ実行オーケストレーションを集約するサービス
+- Operation 関連の IPC 通信およびジョブ実行オーケストレーションを集約するサービス
  */
 export const operationService = {
   // ==========================================================================
@@ -136,6 +140,9 @@ export const operationService = {
     const kanriNo = normalizeKanriNo(kanriNoInput);
     const normalizedJobId = options?.jobId?.trim().toUpperCase();
     const targetLabel = options?.jobId?.trim() || kanriNo;
+    const isManualDecision =
+      options?.workType === WORK_TYPE.MANUAL ||
+      Boolean(normalizedJobId && MANUAL_DECISION_JOB_IDS.has(normalizedJobId));
 
     await runJobWithGlobalProcessing("JC 実行中...", targetLabel, () =>
       withJobErrorToast("JC 実行エラー", async () => {
@@ -150,7 +157,7 @@ export const operationService = {
 
         await options?.onSuccess?.();
 
-        if (normalizedJobId && MANUAL_DECISION_JOB_IDS.has(normalizedJobId)) {
+        if (isManualDecision) {
           toast.info(
             `No.${kanriNo} 実行時刻を取得しました（ステータスは手動で更新してください）`,
           );
@@ -166,24 +173,34 @@ export const operationService = {
     const kanriNo = normalizeKanriNo(params.kanriNo);
     const scriptKey = params.scriptKey?.trim() || kanriNo;
     const targetLabel = params.targetName?.trim() || scriptKey;
+    const toastStore = usePollingToastStore.getState();
 
-    return runJobWithGlobalProcessing("処理実行中...", targetLabel, () =>
-      withJobErrorToast("実行エラー", async () => {
-        const result = await window.electronAPI.invoke(
-          IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT,
-          {
-            kanriNo,
-            scriptKey,
-            filePath: params.filePath,
-            ignoreDependencies: params.ignoreDependencies,
-          },
-        );
+    toastStore.addManualExecuting(kanriNo);
 
-        await params.onSuccess?.();
+    try {
+      return await runJobWithGlobalProcessing(
+        "処理実行中...",
+        targetLabel,
+        () =>
+          withJobErrorToast("実行エラー", async () => {
+            const result = await window.electronAPI.invoke(
+              IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT,
+              {
+                kanriNo,
+                scriptKey,
+                filePath: params.filePath,
+                ignoreDependencies: params.ignoreDependencies,
+              },
+            );
 
-        return result;
-      }),
-    );
+            await params.onSuccess?.();
+
+            return result;
+          }),
+      );
+    } finally {
+      toastStore.removeManualExecuting(kanriNo);
+    }
   },
 
   /** 指定キーの RDP セッションを開始する */
@@ -201,15 +218,9 @@ export const operationService = {
   },
 
   /** 外部 URL またはローカルパスを既定アプリケーションで開く */
-  openExternal: async (
+  openExternal: (
     urlOrPath: string,
     errorPrefix = "外部リンク起動エラー",
-  ): Promise<void> => {
-    const cleanTarget = urlOrPath.trim();
-    if (!cleanTarget) return;
-
-    await withJobErrorToast(errorPrefix, async () => {
-      await systemIpcService.openExternal(cleanTarget);
-    });
-  },
+  ): Promise<void> =>
+    systemIpcService.openExternalWithToast(urlOrPath, errorPrefix),
 };

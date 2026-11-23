@@ -61,6 +61,7 @@ function enrichItem(
   const rawScriptKeys = getScriptKeysForOperation(
     target.kanriNo,
     target.ScriptKeys,
+    target.workType,
   );
 
   const scriptKeys: OperationScriptKey[] = rawScriptKeys.map((scriptKey) => ({

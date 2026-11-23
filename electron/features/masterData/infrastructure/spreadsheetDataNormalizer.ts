@@ -2,13 +2,45 @@
 
 import { randomUUID } from "node:crypto";
 import type { SpreadsheetMasterData } from "../types/internalSpreadsheetMasterDataTypes";
-import type {
-  IrregularMaster,
-  OperationLink,
-  OperationMaster,
+import {
+  WORK_TYPE,
+  type IrregularMaster,
+  type OperationLink,
+  type OperationMaster,
+  type OperationWorkType,
 } from "@shared/types/operation/operationTypes";
 
 const DEFAULT_LINK_LABELS = ["リンク1", "リンク2", "リンク3"] as const;
+
+function normalizeWorkType(value: unknown): OperationWorkType {
+  if (typeof value === "string" && value.trim() === WORK_TYPE.AUTO) {
+    return WORK_TYPE.AUTO;
+  }
+
+  return WORK_TYPE.MANUAL;
+}
+
+function normalizeScheduledTime(value: unknown): string {
+  if (typeof value !== "string") {
+    return "-";
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed || /^[-‐‑–—―−ー]$/.test(trimmed)) {
+    return "-";
+  }
+
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+  if (match) {
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (hours <= 23 && minutes <= 59) {
+      return `${String(hours).padStart(2, "0")}:${match[2]}`;
+    }
+  }
+
+  return "-";
+}
 
 // レコードのキーと文字列値を正規化する。
 function normalizeRow<T extends object>(row: T): T {
@@ -58,7 +90,7 @@ export function normalizeSpreadsheetRows<T extends object>(rows: T[]): T[] {
 // アプリ内部で使用する行IDを付与する。
 function normalizeRowsWithId<T extends { id: string }>(rows: T[]): T[] {
   const seenIds = new Set<string>();
-  return normalizeSpreadsheetRows(rows).map((row, index) => {
+  return rows.map((row, index) => {
     let id = typeof row.id === "string" && row.id.trim() ? row.id.trim() : "";
     if (!id || seenIds.has(id)) {
       id = id ? `${id}_${index}` : randomUUID();
@@ -100,13 +132,15 @@ function normalizeLinks<T extends OperationMaster | IrregularMaster>(
 
   return {
     ...item,
+    workType: normalizeWorkType(item.workType),
+    scheduledTime: normalizeScheduledTime(item.scheduledTime),
     links: links.length > 0 ? links : item.links,
   };
 }
 
 // 不定期運用データの周期指定を統合する。
 function normalizeIrregulars(rows: IrregularMaster[]): IrregularMaster[] {
-  return normalizeSpreadsheetRows(rows).map((item) =>
+  return rows.map((item) =>
     normalizeLinks({
       ...item,
       cycle: [item.cycle1, item.cycle2, item.cycle]
@@ -118,23 +152,19 @@ function normalizeIrregulars(rows: IrregularMaster[]): IrregularMaster[] {
   );
 }
 
-// スプレッドシートのマスターデータを正規化する。
+// スプレッドシートのマスターデータを正規化する（行ごとの文字列正規化は fetchSheet 側で実施済み）。
 export function normalizeSpreadsheetMasterData(
   data: SpreadsheetMasterData,
 ): SpreadsheetMasterData {
   return {
-    stores: normalizeSpreadsheetRows(data.stores ?? []),
+    stores: data.stores ?? [],
     kokyuhyos: normalizeRowsWithId(data.kokyuhyos ?? []),
     jugyoin: normalizeRowsWithId(data.jugyoin ?? []),
-    kokyuhyoTantous: normalizeSpreadsheetRows(data.kokyuhyoTantous ?? []),
-    operations: normalizeSpreadsheetRows(data.operations ?? []).map(
-      normalizeLinks,
-    ),
+    kokyuhyoTantous: data.kokyuhyoTantous ?? [],
+    operations: (data.operations ?? []).map(normalizeLinks),
     irregulars: normalizeIrregulars(data.irregulars ?? []),
-    todayIrregulars: normalizeSpreadsheetRows(data.todayIrregulars ?? []).map(
-      normalizeLinks,
-    ),
-    rdps: normalizeSpreadsheetRows(data.rdps ?? []),
+    todayIrregulars: (data.todayIrregulars ?? []).map(normalizeLinks),
+    rdps: data.rdps ?? [],
     dailyUpdateStatus: data.dailyUpdateStatus,
     errors: { ...data.errors },
   };
