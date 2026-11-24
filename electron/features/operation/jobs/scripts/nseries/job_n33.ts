@@ -8,6 +8,7 @@ import readline from "node:readline";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import { getServiceCredentials } from "@electron/features/system/serviceCredentialsLoader";
 
 const TARGET_CODES = ["S330", "S332"] as const;
 
@@ -23,6 +24,8 @@ interface TargetCodeResult {
 }
 
 interface JobN33ResultData {
+  host: string;
+  port: number;
   today: string;
   results: TargetCodeResult[];
   missingCodes: string[];
@@ -30,12 +33,6 @@ interface JobN33ResultData {
 }
 
 const CONFIG = {
-  ftp: {
-    host: "172.31.1.4",
-    port: 21,
-    user: "fep",
-    password: "fe-Ftp",
-  },
   ftpDir: "/fep/chkcount/",
   targetCodes: TARGET_CODES,
   excludeStoreCodes: [
@@ -123,11 +120,12 @@ async function processCsvStream(stream: Readable): Promise<UnassignedDetail[]> {
 }
 
 async function checkFtpCsvFiles(): Promise<JobN33ResultData> {
+  const ftpConfig = getServiceCredentials().fepFtp;
   const client = new Client();
   const today = getDateKey();
 
   try {
-    await client.access(CONFIG.ftp);
+    await client.access(ftpConfig);
     await client.cd(CONFIG.ftpDir);
 
     const files = await client.list();
@@ -168,6 +166,8 @@ async function checkFtpCsvFiles(): Promise<JobN33ResultData> {
     }
 
     return {
+      host: ftpConfig.host,
+      port: ftpConfig.port,
       today,
       results,
       missingCodes,
@@ -180,7 +180,7 @@ async function checkFtpCsvFiles(): Promise<JobN33ResultData> {
 
 function writeResultLog(logger: JobLogger, result: JobN33ResultData): string {
   logger.section("FTP接続情報");
-  logger.log(`接続先        : ${CONFIG.ftp.host}:${CONFIG.ftp.port}`);
+  logger.log(`接続先        : ${result.host}:${result.port}`);
   logger.log(`フォルダ  : ${CONFIG.ftpDir}`);
   logger.log(`対象日付      : ${result.today}`);
 

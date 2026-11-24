@@ -27,64 +27,73 @@ export interface BuildOperationMenuActionsOptions {
   readonly onRefreshTable?: () => void | Promise<void>;
 }
 
+const FALSY_OR_EMPTY_TOKENS = new Set([
+  "",
+  "-",
+  "true",
+  "false",
+  "1",
+  "0",
+]);
+
 /** 値が真偽値 true（または文字列 "true" / "1"）であるかを判定 */
 function isTruthyFlag(value: unknown): boolean {
-  if (typeof value === "boolean") {
-    return value;
-  }
-
+  if (typeof value === "boolean") return value;
   if (typeof value === "string") {
     const normalized = value.trim().toLowerCase();
     return normalized === "true" || normalized === "1";
   }
-
   return false;
 }
 
 /** 値が空文字・ハイフン "-" 以外かを判定 */
 function isValidValue(value: unknown): boolean {
-  if (value === undefined || value === null) {
-    return false;
-  }
-
+  if (value === undefined || value === null) return false;
   const str = String(value).trim();
   return str !== "" && str !== "-";
 }
 
 /** 値が単なるフラグ（true / false）ではなく、固有のターゲット指定文字列かを判定 */
 function isSpecificTarget(value: unknown): value is string {
-  if (typeof value !== "string") {
-    return false;
-  }
-
-  const normalized = value.trim().toLowerCase();
-
-  return (
-    normalized !== "" &&
-    normalized !== "-" &&
-    normalized !== "true" &&
-    normalized !== "false" &&
-    normalized !== "1" &&
-    normalized !== "0"
-  );
+  if (typeof value !== "string") return false;
+  return !FALSY_OR_EMPTY_TOKENS.has(value.trim().toLowerCase());
 }
 
 /** 有効なリンク一覧を取得 */
 function getLinkConfigs(item: OperationViewItem): LinkConfig[] {
-  if (!Array.isArray(item.links)) {
-    return [];
-  }
+  if (!Array.isArray(item.links)) return [];
 
   return item.links.flatMap((entry) => {
     const label = entry?.label?.trim();
     const path = entry?.path?.trim();
-
     return label && path && path !== "-" ? [{ key: label, url: path }] : [];
   });
 }
 
+/** Manual / AutoManual 共通アクション生成 */
+function createManualAction(
+  key: "manual" | "autoManual",
+  label: string,
+  source: unknown,
+  kanriNo: string,
+  isAuto: boolean,
+): OperationActionItem | null {
+  if (!isTruthyFlag(source) && !isSpecificTarget(source)) {
+    return null;
+  }
+
+  const target = isSpecificTarget(source) ? source : kanriNo;
+  return {
+    key,
+    label,
+    execute: () => {
+      void operationService.openManual(target, isAuto).catch(() => undefined);
+    },
+  };
+}
+
 /**
-- 選択中アイテムの状態に基づき、メニューに表示するアクションボタン一覧を生成する
+ * 選択中アイテムの状態に基づき、メニューに表示するアクションボタン一覧を生成する
  */
 export function buildOperationMenuActions(
   item: OperationViewItem,
@@ -96,18 +105,14 @@ export function buildOperationMenuActions(
   const kanriNo = normalizeKanriNo(item.kanriNo);
   const isRunning = isRunningStatus(item.status);
 
-  // RDPに登録されているキーを取得
   const rdpKeys = new Set(
     (Array.isArray(item.RdpKeys) ? item.RdpKeys : []).map((rdp) =>
       rdp?.key?.trim(),
     ),
   );
 
-  // 1. Gmail: bool値がtrueなら表示（IrregularMasterData 等）
-  const isGmailEnabled =
-    isTruthyFlag(rawItem.isGmail) || isTruthyFlag(rawItem.gmail);
-
-  if (isGmailEnabled) {
+  // 1. Gmail
+  if (isTruthyFlag(rawItem.isGmail) || isTruthyFlag(rawItem.gmail)) {
     actions.push({
       key: "gmail",
       label: "Gmail",
@@ -115,10 +120,9 @@ export function buildOperationMenuActions(
     });
   }
 
-  // 2. JC: 値が空もしくは-以外は表示
+  // 2. JC
   if (isValidValue(item.jobId)) {
     const jobId = String(item.jobId).trim();
-
     actions.push({
       key: "jc",
       label: "JC",
@@ -134,12 +138,10 @@ export function buildOperationMenuActions(
     });
   }
 
-  // 3. Script / PDF: RDPと重複するキーは表示しない
+  // 3. Script / PDF（RDPと重複するキーは除外）
   if (Array.isArray(item.ScriptKeys)) {
     item.ScriptKeys.forEach((script, index) => {
       const key = script?.key?.trim();
-      const label = script.label?.trim() || key;
-
       if (
         !key ||
         rdpKeys.has(key) ||
@@ -148,6 +150,7 @@ export function buildOperationMenuActions(
         return;
       }
 
+      const label = script.label?.trim() || key;
       const isPdfAction = Boolean(item.isPdfUpload);
 
       actions.push({
@@ -158,7 +161,6 @@ export function buildOperationMenuActions(
             toast.info("バックグラウンド処理中のため実行できません");
             return;
           }
-
           if (isPdfAction) {
             openPdfUploadModal(openGlobalModal);
           } else {
@@ -169,19 +171,15 @@ export function buildOperationMenuActions(
     });
   }
 
-  // 4. RDP: executionTypes に manual が含まれる場合のみ表示
+  // 4. RDP
   if (Array.isArray(item.RdpKeys)) {
     item.RdpKeys.forEach((rdp, index) => {
       const key = rdp?.key?.trim();
-      const label = rdp.label?.trim() || key;
-
-      if (!key || !rdp.executionTypes?.includes("manual")) {
-        return;
-      }
+      if (!key || !rdp.executionTypes?.includes("manual")) return;
 
       actions.push({
         key: `rdp:${index}:${key}`,
-        label,
+        label: rdp.label?.trim() || key,
         execute: () => {
           void operationService.startRdpSession(key).catch(() => undefined);
         },
@@ -189,9 +187,8 @@ export function buildOperationMenuActions(
     });
   }
 
-  // 5. Link: 値が空もしくは-以外は表示
+  // 5. Link
   const links = getLinkConfigs(item);
-
   if (links.length > 0) {
     actions.push({
       key: "link",
@@ -200,44 +197,27 @@ export function buildOperationMenuActions(
     });
   }
 
-  // 6. Manual: bool値がtrue、または固有ターゲット指定があれば表示 (isAuto: false)
-  const manualSource =
-    item.manualUrl ?? rawItem.ManualUrl ?? rawItem.isManual ?? rawItem.manual;
-  const isManualEnabled =
-    isTruthyFlag(manualSource) || isSpecificTarget(manualSource);
+  // 6. Manual / 7. AutoManual
+  const manualAction = createManualAction(
+    "manual",
+    "Manual",
+    item.manualUrl ?? rawItem.ManualUrl ?? rawItem.isManual ?? rawItem.manual,
+    kanriNo,
+    false,
+  );
+  if (manualAction) actions.push(manualAction);
 
-  if (isManualEnabled) {
-    actions.push({
-      key: "manual",
-      label: "Manual",
-      execute: () => {
-        const target = isSpecificTarget(manualSource) ? manualSource : kanriNo;
-        void operationService.openManual(target, false).catch(() => undefined);
-      },
-    });
-  }
-
-  // 7. AutoManual: bool値がtrue、または固有ターゲット指定があれば表示 (isAuto: true)
-  const autoManualSource =
+  const autoManualAction = createManualAction(
+    "autoManual",
+    "Auto Manual",
     item.autoManualUrl ??
-    rawItem.AutoManualUrl ??
-    rawItem.isAutoManual ??
-    rawItem.autoManual;
-  const isAutoManualEnabled =
-    isTruthyFlag(autoManualSource) || isSpecificTarget(autoManualSource);
-
-  if (isAutoManualEnabled) {
-    actions.push({
-      key: "autoManual",
-      label: "Auto Manual",
-      execute: () => {
-        const target = isSpecificTarget(autoManualSource)
-          ? autoManualSource
-          : kanriNo;
-        void operationService.openManual(target, true).catch(() => undefined);
-      },
-    });
-  }
+      rawItem.AutoManualUrl ??
+      rawItem.isAutoManual ??
+      rawItem.autoManual,
+    kanriNo,
+    true,
+  );
+  if (autoManualAction) actions.push(autoManualAction);
 
   return actions;
 }

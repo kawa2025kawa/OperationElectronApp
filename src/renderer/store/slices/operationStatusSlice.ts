@@ -28,11 +28,9 @@ export function selectRowsForMode(
   >,
   mode: ViewMode,
 ): OperationViewItem[] {
-  if (state.tableRowsMode === mode) {
-    return state.tableRows;
-  }
-
-  return state.tableRowsByMode[mode] ?? [];
+  return state.tableRowsMode === mode
+    ? state.tableRows
+    : (state.tableRowsByMode[mode] ?? []);
 }
 
 /** 行データに対してステータス通知の差分を適用する */
@@ -54,24 +52,24 @@ function applyNotificationToRow(
   }
 }
 
-/** tableRows と全モードキャッシュの該当行に対して一括で更新処理を適用する */
+/** tableRows と全モードキャッシュの該当行に対して重複なく一括更新を適用する */
 function forEachCachedRow(
   state: AppState,
   updater: (row: OperationViewItem, kanriNo: string) => void,
 ): void {
-  const applyToList = (rows: OperationViewItem[] | undefined) => {
-    if (!rows) return;
+  const uniqueLists = new Set<OperationViewItem[]>([state.tableRows]);
+  for (const mode of ALL_VIEW_MODES) {
+    const modeRows = state.tableRowsByMode[mode];
+    if (modeRows) uniqueLists.add(modeRows);
+  }
+
+  for (const rows of uniqueLists) {
     for (const row of rows) {
       const kanriNo = row.kanriNo?.trim();
       if (kanriNo) {
         updater(row, kanriNo);
       }
     }
-  };
-
-  applyToList(state.tableRows);
-  for (const mode of ALL_VIEW_MODES) {
-    applyToList(state.tableRowsByMode[mode]);
   }
 }
 
@@ -107,11 +105,10 @@ export const createOperationStatusSlice: StateCreator<
     isTableLoading: false,
 
     fetchTableData: async (mode, force = false) => {
-      // キャッシュが存在し強制再取得でない場合は即座にキャッシュを反映して完了
       const currentCache = get().tableRowsByMode[mode];
       if (!force && currentCache && currentCache.length > 0) {
         set((state) => {
-          state.tableRows = currentCache;
+          state.tableRows = state.tableRowsByMode[mode];
           state.tableRowsMode = mode;
           state.isTableLoading = false;
         });
@@ -119,22 +116,20 @@ export const createOperationStatusSlice: StateCreator<
       }
 
       const requestId = ++tableDataRequestId;
-
       set((state) => {
         state.isTableLoading = true;
       });
 
       try {
         const data = await operationService.getTableData(mode);
-
         if (requestId !== tableDataRequestId || get().currentMode !== mode) {
           return;
         }
 
         set((state) => {
-          state.tableRows = data;
-          state.tableRowsMode = mode;
           state.tableRowsByMode[mode] = data;
+          state.tableRows = state.tableRowsByMode[mode];
+          state.tableRowsMode = mode;
         });
       } catch (error) {
         if (requestId === tableDataRequestId) {
@@ -214,6 +209,7 @@ export const createOperationStatusSlice: StateCreator<
 
         set((state) => {
           state.isPolling = false;
+          state.tableRows = [];
           state.tableRowsByMode = {
             operation: [],
             irregular: [],
@@ -221,8 +217,10 @@ export const createOperationStatusSlice: StateCreator<
           };
         });
 
-        await get().fetchTableData(get().currentMode, true);
-        await get().fetchStatusSummary();
+        await Promise.all([
+          get().fetchTableData(get().currentMode, true),
+          get().fetchStatusSummary(),
+        ]);
 
         toast.success("ステータスを初期化しました");
       } catch (error) {

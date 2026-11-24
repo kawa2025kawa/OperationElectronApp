@@ -22,14 +22,23 @@ export interface GoogleUserProfile {
 
 type JsonObject = Record<string, unknown>;
 
+let cachedCredentials: GoogleCredentials | null = null;
+
 function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// Google OAuth の認証情報ファイルを読み込み、client ID と任意の client secret を返す
-function getGoogleCredentials(): GoogleCredentials {
-  const filePath = resolveResourcePath(GOOGLE_AUTH_CONFIG.credentialFileName);
+export function formatErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
+// Google OAuth の認証情報ファイルを読み込み、client ID と任意の client secret を返す（初回読み込み後にキャッシュ）
+function getGoogleCredentials(): GoogleCredentials {
+  if (cachedCredentials) {
+    return cachedCredentials;
+  }
+
+  const filePath = resolveResourcePath(GOOGLE_AUTH_CONFIG.credentialFileName);
   if (!existsSync(filePath)) {
     throw new Error(`Google OAuth credentials not found: ${filePath}`);
   }
@@ -43,14 +52,12 @@ function getGoogleCredentials(): GoogleCredentials {
     }
 
     const config = parsed.installed ?? parsed.web;
-
     if (!isJsonObject(config)) {
       throw new Error('Credentials must contain "installed" or "web" config');
     }
 
     const clientId =
       typeof config.client_id === "string" ? config.client_id.trim() : "";
-
     if (!clientId) {
       throw new Error("Google OAuth client_id not found");
     }
@@ -60,15 +67,11 @@ function getGoogleCredentials(): GoogleCredentials {
         ? config.client_secret.trim() || undefined
         : undefined;
 
-    return {
-      clientId,
-      clientSecret,
-    };
+    cachedCredentials = { clientId, clientSecret };
+    return cachedCredentials;
   } catch (error) {
     throw new Error(
-      `Failed to load Google OAuth credentials: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      `Failed to load Google OAuth credentials: ${formatErrorMessage(error)}`,
       { cause: error },
     );
   }
@@ -162,7 +165,6 @@ export async function fetchGoogleUserInfo(
       console.warn(
         `[AuthService] UserInfo API failed with status: ${response.status}`,
       );
-
       return { email: null, familyName: null };
     }
 
@@ -174,7 +176,6 @@ export async function fetchGoogleUserInfo(
     };
   } catch (error) {
     console.error("[AuthService] Failed to fetch user info:", error);
-
     return { email: null, familyName: null };
   }
 }

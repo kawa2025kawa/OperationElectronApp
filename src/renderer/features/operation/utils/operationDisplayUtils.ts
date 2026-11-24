@@ -1,12 +1,12 @@
 // src/renderer/features/operation/utils/operationDisplayUtils.ts
 
+import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
 import {
   JOB_STATUS_VALUES,
+  OPERATION_FIELD_LABELS,
   type JobStatus,
   type OperationViewItem,
 } from "@shared/types/operation/operationTypes";
-import { OPERATION_FIELD_LABELS } from "@shared/types/operation/operationTypes";
-import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
 import {
   formatJapanDateTime,
@@ -36,10 +36,7 @@ export interface InfoRowData extends InfoRowDefinition {
   readonly value: string;
 }
 
-interface InfoRowValue {
-  readonly exists: boolean;
-  readonly value: unknown;
-}
+const JOB_STATUS_SET = new Set<string>(JOB_STATUS_VALUES);
 
 const OPERATION_INFO_ROW_DEFINITIONS = {
   operation: [
@@ -83,10 +80,7 @@ const OPERATION_INFO_ROW_DEFINITIONS = {
 } as const satisfies Record<ViewMode, readonly InfoRowDefinition[]>;
 
 export function isJobStatus(value: unknown): value is JobStatus {
-  return (
-    typeof value === "string" &&
-    (JOB_STATUS_VALUES as readonly string[]).includes(value)
-  );
+  return typeof value === "string" && JOB_STATUS_SET.has(value);
 }
 
 // 作業名が未設定の場合の代替表示値を返す。
@@ -119,35 +113,6 @@ export function toDisplayValue(value: unknown): string {
   return String(value);
 }
 
-// アイテムオブジェクトから指定キーのプロパティ値を取り出す。
-function getOwnPropertyValue(
-  item: OperationViewItem,
-  key: string,
-): InfoRowValue {
-  if (!Object.prototype.hasOwnProperty.call(item, key)) {
-    return { exists: false, value: undefined };
-  }
-
-  return {
-    exists: true,
-    value: (item as unknown as Record<string, unknown>)[key],
-  };
-}
-
-// フィールド定義に応じた値を取得する。
-function getInfoRowValue(
-  field: InfoRowField,
-  item: OperationViewItem,
-  status: JobStatus | undefined,
-): InfoRowValue {
-  if (field === "status" && status !== undefined) {
-    return { exists: true, value: status };
-  }
-
-  const key = field === "scheduleTime" ? "scheduledTime" : field;
-  return getOwnPropertyValue(item, key);
-}
-
 // 表示モードと対象アイテムに応じた詳細情報ペインの各行データを生成する。
 export function createInfoRows(
   mode: ViewMode,
@@ -159,23 +124,23 @@ export function createInfoRows(
       return { ...definition, value: "" };
     }
 
-    const fieldValue = getInfoRowValue(definition.field, item, status);
-
-    if (!fieldValue.exists) {
-      return {
-        ...definition,
-        value: toMissingPropertyDisplayValue(),
-      };
+    if (definition.field === "status" && status !== undefined) {
+      return { ...definition, value: toDisplayValue(status) };
     }
 
+    const key =
+      definition.field === "scheduleTime" ? "scheduledTime" : definition.field;
+
+    if (!Object.hasOwn(item, key)) {
+      return { ...definition, value: EMPTY_VALUE_FALLBACK };
+    }
+
+    const rawValue = (item as unknown as Record<string, unknown>)[key];
     const displayValue =
       definition.field === "workName"
-        ? getOperationWorkName(fieldValue.value, item.kanriNo)
-        : toDisplayValue(fieldValue.value);
+        ? getOperationWorkName(rawValue, item.kanriNo)
+        : toDisplayValue(rawValue);
 
-    return {
-      ...definition,
-      value: displayValue,
-    };
+    return { ...definition, value: displayValue };
   });
 }

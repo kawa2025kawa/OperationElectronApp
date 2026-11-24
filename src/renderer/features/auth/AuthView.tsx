@@ -8,6 +8,8 @@ import * as styles from "./authView.css";
 export const AuthView = memo(() => {
   const {
     isAuthenticated,
+    userEmail,
+    familyName,
     isButtonDisabled,
     buttonText,
     handleAuthToggle,
@@ -44,6 +46,32 @@ export const AuthView = memo(() => {
           >
             {isAuthenticated ? "Logged In" : "Not Logged In"}
           </strong>
+        </div>
+
+        <div className={styles.accountSection}>
+          <div className={styles.accountInfoRow}>
+            <span className={styles.accountInfoLabel}>Email</span>
+            <span
+              className={clsx(
+                styles.accountInfoValue,
+                !userEmail && styles.accountInfoEmpty,
+              )}
+            >
+              {userEmail ?? "未ログイン"}
+            </span>
+          </div>
+
+          <div className={styles.accountInfoRow}>
+            <span className={styles.accountInfoLabel}>姓</span>
+            <span
+              className={clsx(
+                styles.accountInfoValue,
+                !familyName && styles.accountInfoEmpty,
+              )}
+            >
+              {familyName ?? "未取得"}
+            </span>
+          </div>
         </div>
 
         <div className={styles.buttonWrapper}>

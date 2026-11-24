@@ -14,7 +14,7 @@ export const OAUTH_LISTENER_CONFIG = {
 
 let activeListener: ((error: Error) => void) | null = null;
 
-const createHtml = (title: string, message: string) =>
+const createHtml = (title: string, message: string): string =>
   `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>${title}</title></head><body><h1>${title}</h1><p>${message}</p></body></html>`;
 
 const HTML_SUCCESS = createHtml(
@@ -40,7 +40,7 @@ export function startListener(
     let timer: NodeJS.Timeout | null = null;
 
     const server = http.createServer((req, res) => {
-      void handleRequest(req, res);
+      handleRequest(req, res);
     });
 
     const cleanup = (): void => {
@@ -82,10 +82,20 @@ export function startListener(
       res.end(body);
     };
 
-    async function handleRequest(
+    const rejectRequest = (
+      res: http.ServerResponse,
+      status: number,
+      body: string,
+      reason: string,
+    ): void => {
+      respond(res, status, body);
+      fail(new Error(reason));
+    };
+
+    function handleRequest(
       req: http.IncomingMessage,
       res: http.ServerResponse,
-    ): Promise<void> {
+    ): void {
       if (settled) {
         res.writeHead(410, { "Cache-Control": "no-store" });
         res.end();
@@ -93,8 +103,7 @@ export function startListener(
       }
 
       if (req.method !== "GET") {
-        respond(res, 405, HTML_INVALID);
-        fail(new Error("OAuth callback must use GET"));
+        rejectRequest(res, 405, HTML_INVALID, "OAuth callback must use GET");
         return;
       }
 
@@ -103,18 +112,20 @@ export function startListener(
         `http://${OAUTH_LISTENER_CONFIG.host}:${port}`,
       );
       const error = url.searchParams.get("error");
-      const code = url.searchParams.get("code");
-      const state = url.searchParams.get("state");
-
       if (error) {
-        respond(res, 400, HTML_ERROR);
-        fail(new Error(`Google OAuth error: ${error}`));
+        rejectRequest(res, 400, HTML_ERROR, `Google OAuth error: ${error}`);
         return;
       }
 
+      const code = url.searchParams.get("code");
+      const state = url.searchParams.get("state");
       if (!code || !state || state !== expectedState) {
-        respond(res, 400, HTML_INVALID);
-        fail(new Error("Invalid OAuth callback parameters or state mismatch"));
+        rejectRequest(
+          res,
+          400,
+          HTML_INVALID,
+          "Invalid OAuth callback parameters or state mismatch",
+        );
         return;
       }
 

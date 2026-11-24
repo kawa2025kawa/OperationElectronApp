@@ -72,7 +72,9 @@ function useSyncRunner(params: {
 }
 
 export function useStatusSyncSave() {
-  const operatorName = "ログイン担当者";
+  const operatorName = useAppStore(
+    (s) => s.familyName?.trim() || s.userEmail?.trim() || "担当者",
+  );
   const [currentTimeText, setCurrentTimeText] = useState(formatNow);
   const [handoverNote, setHandoverNote] = useState("");
 
@@ -84,6 +86,7 @@ export function useStatusSyncSave() {
     errorFallback: "引き継ぎ情報の保存に失敗しました。",
     action: async () => {
       const res = await operationService.saveStatusesToSheet({
+        operatorName,
         handoverNote,
       });
       setCurrentTimeText(res.savedAt);
@@ -124,8 +127,10 @@ export function useStatusSyncLoad() {
       if (res.metadata?.activeFlags) {
         store.applyCenterFlags(res.metadata.activeFlags);
       }
-      await store.fetchTableData(store.currentMode, true);
-      await store.fetchStatusSummary();
+      await Promise.all([
+        store.fetchTableData(store.currentMode, true),
+        store.fetchStatusSummary(),
+      ]);
       return `復元完了（Statusを反映 / 復元日時: ${res.loadedAt}）`;
     },
   });

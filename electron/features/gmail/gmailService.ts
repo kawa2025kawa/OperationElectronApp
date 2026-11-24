@@ -1,6 +1,7 @@
 // electron/features/gmail/gmailService.ts
 
 import { authService } from "@electron/features/auth/authService";
+import { googleApiGetJson } from "@electron/features/auth/googleApiClient";
 import type {
   GenerateDraftTemplateParams,
   GmailSendAsResponse,
@@ -18,12 +19,12 @@ const GMAIL_SIGNATURE_URL =
 const GMAIL_DRAFT_URL = "https://gmail.googleapis.com/gmail/v1/users/me/drafts";
 
 /**
-- Gmail のプライマリ署名を取得する
+ * Gmail のプライマリ署名を取得する
  */
 export async function fetchPrimarySignature(): Promise<string> {
   try {
     const data =
-      await authService.getJson<GmailSendAsResponse>(GMAIL_SIGNATURE_URL);
+      await googleApiGetJson<GmailSendAsResponse>(GMAIL_SIGNATURE_URL);
     const primary = data.sendAs?.find((item) => item.isPrimary);
 
     return primary?.signature ?? "";
@@ -34,7 +35,7 @@ export async function fetchPrimarySignature(): Promise<string> {
 }
 
 /**
-- メールテンプレートから下書きデータを生成する（担当者姓はMain側セッションから解決）
+ * メールテンプレートから下書きデータを生成する（担当者姓はMain側セッションから解決）
  */
 export async function generateDraftTemplate(
   params: GenerateDraftTemplateParams,
@@ -63,7 +64,7 @@ export async function generateDraftTemplate(
 }
 
 /**
-- Gmail に下書きを登録する
+ * Gmail に下書きを登録する
  */
 export async function createGmailDraft(params: {
   to?: string;
@@ -96,7 +97,7 @@ export async function createGmailDraft(params: {
     });
   }
 
-  return authService.getJson<unknown>(GMAIL_DRAFT_URL, {
+  return googleApiGetJson<unknown>(GMAIL_DRAFT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

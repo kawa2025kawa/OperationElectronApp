@@ -10,11 +10,15 @@ import type { AuthProfile, AuthSlice } from "@shared/types/auth/authTypes";
 function clearAuthState(state: AppState): void {
   state.isAuthenticated = false;
   state.isChecking = false;
+  state.userEmail = null;
+  state.familyName = null;
 }
 
-// 認証状態を反映する。
+// 認証プロフィールを状態に反映する。
 function applyAuthState(state: AppState, profile: AuthProfile): void {
-  state.isAuthenticated = Boolean(profile.isAuthenticated);
+  state.isAuthenticated = true;
+  state.userEmail = profile.email;
+  state.familyName = profile.familyName;
 }
 
 export type { AuthSlice } from "@shared/types/auth/authTypes";
@@ -28,6 +32,8 @@ export const createAuthSlice: StateCreator<
 > = (set, get) => ({
   isAuthenticated: false,
   isChecking: false,
+  userEmail: null,
+  familyName: null,
 
   login: async (): Promise<boolean> => {
     try {
@@ -37,7 +43,10 @@ export const createAuthSlice: StateCreator<
         applyAuthState(state, profile);
       });
 
-      return profile.isAuthenticated;
+      get().setInitStatus({ auth: "OK" });
+      await get().fetchMasterData();
+
+      return true;
     } catch (error) {
       console.error("[Auth] Login failed:", error);
 
@@ -57,7 +66,7 @@ export const createAuthSlice: StateCreator<
     try {
       const profile = await authIpcService.loadSession(forceRefresh);
 
-      if (!profile || !profile.isAuthenticated) {
+      if (!profile) {
         set((state) => {
           clearAuthState(state);
         });
@@ -96,6 +105,7 @@ export const createAuthSlice: StateCreator<
         clearAuthState(state);
       });
 
+      get().clearMasterData();
       get().setCurrentView(APP_VIEW_IDS.AUTH);
     }
   },

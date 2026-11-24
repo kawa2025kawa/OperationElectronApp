@@ -7,6 +7,7 @@ import type { AuthSession, OAuthToken } from "@shared/types/auth";
 
 const TOKEN_STORAGE_CONFIG = {
   fileName: "google-oauth-session.dat",
+  expiryBufferMs: 60_000,
 } as const;
 
 let cachedSession: AuthSession | null = null;
@@ -96,8 +97,6 @@ export async function updateTokenProfile(
   ) {
     return null;
   }
-
-  assertGeneration(expectedGeneration);
 
   const updatedSession: AuthSession = {
     ...session,
@@ -192,5 +191,8 @@ export async function clearToken(expectedGeneration?: number): Promise<void> {
 }
 
 export function isTokenExpired(session: AuthSession): boolean {
-  return session.expiresAt !== null && Date.now() >= session.expiresAt;
+  return (
+    session.expiresAt !== null &&
+    Date.now() + TOKEN_STORAGE_CONFIG.expiryBufferMs >= session.expiresAt
+  );
 }

@@ -4,8 +4,10 @@ import { chromium, type Page } from "playwright";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import { getServiceCredentials } from "@electron/features/system/serviceCredentialsLoader";
 
 interface JobN31ResultData {
+  url: string;
   orderDate: string;
   departmentCode: string;
   supplierCode: string;
@@ -38,9 +40,6 @@ const SELECTORS: JobN31Selectors = {
 } as const;
 
 const CONFIG = {
-  url: "https://www2.belc.co.jp:8002/webedi/belcwebedi.html",
-  userId: "09803",
-  password: "09803",
   supplierCode: "029560:",
   departmentCode: "3",
   selectors: SELECTORS,
@@ -79,6 +78,7 @@ async function selectSupplier(page: Page): Promise<void> {
 }
 
 async function executeWebEdiOrder(): Promise<JobN31ResultData> {
+  const { url, userId, password } = getServiceCredentials().webedi;
   const orderDate = getDateKey(new Date(), "yyyy/MM/dd");
   const browser = await chromium.launch({
     headless: false,
@@ -88,10 +88,10 @@ async function executeWebEdiOrder(): Promise<JobN31ResultData> {
   const page = await browser.newPage();
   const { selectors } = CONFIG;
 
-  await page.goto(CONFIG.url);
+  await page.goto(url);
   await page.locator(selectors.entry).click();
-  await page.locator(selectors.userId).fill(CONFIG.userId);
-  await page.locator(selectors.password).fill(CONFIG.password);
+  await page.locator(selectors.userId).fill(userId);
+  await page.locator(selectors.password).fill(password);
   await page.locator(selectors.login).click();
   await page.waitForLoadState("networkidle");
 
@@ -106,6 +106,7 @@ async function executeWebEdiOrder(): Promise<JobN31ResultData> {
   await page.waitForLoadState("networkidle");
 
   return {
+    url,
     orderDate,
     departmentCode: CONFIG.departmentCode,
     supplierCode: CONFIG.supplierCode,
@@ -114,7 +115,7 @@ async function executeWebEdiOrder(): Promise<JobN31ResultData> {
 
 function writeResultLog(logger: JobLogger, result: JobN31ResultData): string {
   logger.section("WEB-EDI 操作情報");
-  logger.log(`接続先URL      : ${CONFIG.url}`);
+  logger.log(`接続先URL      : ${result.url}`);
   logger.log(`発注日        : ${result.orderDate}`);
   logger.log(`部門コード    : ${result.departmentCode}`);
   logger.log(`仕入先コード : ${result.supplierCode}`);

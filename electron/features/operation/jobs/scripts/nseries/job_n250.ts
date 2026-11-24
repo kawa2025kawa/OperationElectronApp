@@ -5,18 +5,17 @@ import { addDays, format } from "date-fns";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { getServiceCredentials } from "@electron/features/system/serviceCredentialsLoader";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 interface JobN250ResultData {
+  loginUrl: string;
   expectedDate: string;
   actualDate: string | null;
   isMatched: boolean;
 }
 
 const CONFIG = {
-  loginUrl: "http://192.88.1.192/belcta/login.php",
-  userId: "98810028",
-  password: "1560",
   timeout: 30_000,
   selectors: {
     userId: 'input[name="user_id"], #user_id, input[type="text"]',
@@ -36,14 +35,15 @@ export async function runJobN250(): Promise<JobResult> {
   return runJobWithLogger(
     "業務日付の取得・検証に失敗しました",
     async (logger) => {
-      if (!CONFIG.userId || !CONFIG.password) {
-        throw logger.fail(
-          "ログイン認証情報が設定されていません。BELCTA_USER_ID / BELCTA_PASSWORD を設定してください。",
-        );
-      }
+      const { loginUrl, userId, password } = getServiceCredentials().belcta;
 
       const expectedDate = format(addDays(new Date(), 1), "yyyy/MM/dd");
-      const result = await fetchAndValidateBusinessDate(expectedDate);
+      const result = await fetchAndValidateBusinessDate(
+        loginUrl,
+        userId,
+        password,
+        expectedDate,
+      );
 
       console.info("[N250][Runner] 業務日付取得結果:", {
         取得日時: new Date().toISOString(),
@@ -58,6 +58,9 @@ export async function runJobN250(): Promise<JobResult> {
 }
 
 async function fetchAndValidateBusinessDate(
+  loginUrl: string,
+  userId: string,
+  password: string,
   expectedDate: string,
 ): Promise<JobN250ResultData> {
   let browser: Browser | undefined;
@@ -69,13 +72,13 @@ async function fetchAndValidateBusinessDate(
 
     const page = await browser.newPage();
 
-    await page.goto(CONFIG.loginUrl, {
+    await page.goto(loginUrl, {
       waitUntil: "domcontentloaded",
       timeout: CONFIG.timeout,
     });
 
-    await page.locator(CONFIG.selectors.userId).first().fill(CONFIG.userId);
-    await page.locator(CONFIG.selectors.password).first().fill(CONFIG.password);
+    await page.locator(CONFIG.selectors.userId).first().fill(userId);
+    await page.locator(CONFIG.selectors.password).first().fill(password);
     await page.locator(CONFIG.selectors.submit).click({
       timeout: CONFIG.timeout,
     });
@@ -102,6 +105,7 @@ async function fetchAndValidateBusinessDate(
     const actualDate = match[0];
 
     return {
+      loginUrl,
       expectedDate,
       actualDate,
       isMatched: actualDate === expectedDate,
@@ -118,7 +122,7 @@ function writeResultLog(
   result: JobN250ResultData,
 ): JobResult {
   logger.section("接続先URL");
-  logger.log(CONFIG.loginUrl);
+  logger.log(result.loginUrl);
 
   logger.section("業務日付確認");
   logger.log(`期待業務日付 (翌日) : ${result.expectedDate}`);

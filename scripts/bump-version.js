@@ -1,4 +1,4 @@
-﻿// scripts/bump-version.js
+// scripts/bump-version.js
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,8 +16,13 @@ const versionParts = String(packageJson.version || "0.0.0")
   .map((num) => parseInt(num, 10) || 0);
 
 const major = versionParts[0] ?? 0;
-const minor = versionParts[1] ?? 0;
-const patch = (versionParts[2] ?? 0) + 1;
+let minor = versionParts[1] ?? 0;
+let patch = (versionParts[2] ?? 0) + 1;
+
+if (patch >= 100) {
+  minor += 1;
+  patch = 0;
+}
 
 const newVersion = `${major}.${minor}.${patch}`;
 

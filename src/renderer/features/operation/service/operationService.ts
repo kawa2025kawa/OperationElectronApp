@@ -1,18 +1,19 @@
 // src/renderer/features/operation/service/operationService.ts
 
 import { toast } from "sonner";
-import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
+import {
+  IPC_CHANNELS,
+  type IpcChannelMap,
+} from "@shared/types/electron/ipcTypes";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
 import {
   WORK_TYPE,
   type ActiveFlags,
   type JobResult,
   type JobStatus,
-  type OperationStatusState,
   type OperationViewItem,
   type OperationWorkType,
 } from "@shared/types/operation/operationTypes";
-import type { StatusSummary } from "@shared/types/statusSummary/statusSummaryTypes";
 import { normalizeKanriNo } from "@shared/utils/statusUtils";
 import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { rdpIpcService } from "@renderer/services/rdpIpcService";
@@ -43,6 +44,13 @@ export interface UpdateJobStatusParams {
 
 const MANUAL_DECISION_JOB_IDS = new Set<string>(["ZCM8010"]);
 
+function invokeOperation<K extends keyof IpcChannelMap>(
+  channel: K,
+  ...args: IpcChannelMap[K]["args"]
+): Promise<IpcChannelMap[K]["return"]> {
+  return window.electronAPI.invoke(channel, ...args);
+}
+
 /** ジョブ実行時のエラーをトースト通知し、エラーを再送出する */
 async function withJobErrorToast<T>(
   errorPrefix: string,
@@ -57,76 +65,55 @@ async function withJobErrorToast<T>(
 }
 
 /**
-- Operation 関連の IPC 通信およびジョブ実行オーケストレーションを集約するサービス
+ * Operation 関連の IPC 通信およびジョブ実行オーケストレーションを集約するサービス
  */
 export const operationService = {
   // ==========================================================================
   // 通信 API
   // ==========================================================================
 
-  /** 指定モードに応じた運用テーブル行データを取得する */
   getTableData: (mode: ViewMode): Promise<OperationViewItem[]> =>
-    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.GET_TABLE_DATA, { mode }),
+    invokeOperation(IPC_CHANNELS.OPERATION.GET_TABLE_DATA, { mode }),
 
-  /** ジョブのステータス更新を要求する */
   updateJobStatus: (params: UpdateJobStatusParams): Promise<void> =>
-    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS, {
+    invokeOperation(IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS, {
       kanriNo: normalizeKanriNo(params.kanriNo),
       status: params.status,
       comment: params.comment ?? "",
     }),
 
-  /** 全ステータスを初期化しマスターを再読み込みする */
-  resetStatuses: (): Promise<Record<string, OperationStatusState>> =>
-    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.RESET_STATUSES),
+  resetStatuses: () => invokeOperation(IPC_CHANNELS.OPERATION.RESET_STATUSES),
 
-  /** 保存済みセンターフラグを取得する */
-  getActiveFlags: (): Promise<ActiveFlags> =>
-    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS),
+  getActiveFlags: () =>
+    invokeOperation(IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS),
 
-  /** センターフラグを設定する */
-  setActiveFlags: (flags: Partial<ActiveFlags>): Promise<void> =>
-    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS, flags),
+  setActiveFlags: (flags: Partial<ActiveFlags>) =>
+    invokeOperation(IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS, flags),
 
-  /** 定期ポーリングを開始する */
-  startPolling: (): Promise<void> =>
-    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.START_POLLING),
+  startPolling: () => invokeOperation(IPC_CHANNELS.OPERATION.START_POLLING),
 
-  /** 定期ポーリングを停止する */
-  stopPolling: (): Promise<void> =>
-    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.STOP_POLLING),
+  stopPolling: () => invokeOperation(IPC_CHANNELS.OPERATION.STOP_POLLING),
 
-  /** ステータス集計サマリーを取得する */
-  getStatusSummary: (): Promise<StatusSummary> =>
-    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY),
+  getStatusSummary: () =>
+    invokeOperation(IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY),
 
-  /** JSONマスターから作業ターゲットを登録する */
-  registerTargets: (): Promise<void> =>
-    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.REGISTER_TARGETS),
+  registerTargets: () =>
+    invokeOperation(IPC_CHANNELS.OPERATION.REGISTER_TARGETS),
 
-  /** 保存済みステータスを復元する */
-  initializeStatus: (): Promise<Record<string, OperationStatusState>> =>
-    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.INITIALIZE_STATUS),
+  initializeStatus: () =>
+    invokeOperation(IPC_CHANNELS.OPERATION.INITIALIZE_STATUS),
 
-  /** スプレッドシートに保存されている引き継ぎ情報のプレビューを取得する */
   previewStatusSyncFromSheet: () =>
-    window.electronAPI.invoke(
-      IPC_CHANNELS.OPERATION.PREVIEW_STATUS_SYNC_FROM_SHEET,
-    ),
+    invokeOperation(IPC_CHANNELS.OPERATION.PREVIEW_STATUS_SYNC_FROM_SHEET),
 
-  /** 現在のステータスおよび有効フラグをスプレッドシートへ保存する */
   saveStatusesToSheet: (params: {
     operatorName?: string;
     handoverNote: string;
   }) =>
-    window.electronAPI.invoke(
-      IPC_CHANNELS.OPERATION.SAVE_STATUSES_TO_SHEET,
-      params,
-    ),
+    invokeOperation(IPC_CHANNELS.OPERATION.SAVE_STATUSES_TO_SHEET, params),
 
-  /** スプレッドシートから前回のステータスおよび有効フラグを復元する */
   loadStatusesFromSheet: () =>
-    window.electronAPI.invoke(IPC_CHANNELS.OPERATION.LOAD_STATUSES_FROM_SHEET),
+    invokeOperation(IPC_CHANNELS.OPERATION.LOAD_STATUSES_FROM_SHEET),
 
   // ==========================================================================
   // ジョブ実行・外部連携オーケストレーション
@@ -146,7 +133,7 @@ export const operationService = {
 
     await runJobWithGlobalProcessing("JC 実行中...", targetLabel, () =>
       withJobErrorToast("JC 実行エラー", async () => {
-        const result = await window.electronAPI.invoke(
+        const result = await invokeOperation(
           IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS,
           { kanriNo },
         );
@@ -157,13 +144,11 @@ export const operationService = {
 
         await options?.onSuccess?.();
 
-        if (isManualDecision) {
-          toast.info(
-            `No.${kanriNo} 実行時刻を取得しました（ステータスは手動で更新してください）`,
-          );
-        } else {
-          toast.info(`No.${kanriNo} JCステータスを更新しました`);
-        }
+        toast.info(
+          isManualDecision
+            ? `No.${kanriNo} 実行時刻を取得しました（ステータスは手動で更新してください）`
+            : `No.${kanriNo} JCステータスを更新しました`,
+        );
       }),
     );
   },
@@ -183,7 +168,7 @@ export const operationService = {
         targetLabel,
         () =>
           withJobErrorToast("実行エラー", async () => {
-            const result = await window.electronAPI.invoke(
+            const result = await invokeOperation(
               IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT,
               {
                 kanriNo,
@@ -194,7 +179,6 @@ export const operationService = {
             );
 
             await params.onSuccess?.();
-
             return result;
           }),
       );
@@ -204,18 +188,16 @@ export const operationService = {
   },
 
   /** 指定キーの RDP セッションを開始する */
-  startRdpSession: async (sessionKey: string): Promise<void> => {
-    await withJobErrorToast("RDP起動エラー", async () => {
+  startRdpSession: (sessionKey: string): Promise<void> =>
+    withJobErrorToast("RDP起動エラー", async () => {
       await rdpIpcService.startSession(sessionKey);
-    });
-  },
+    }),
 
   /** 指定ターゲットのマニュアルを開く */
-  openManual: async (target: string, isAuto = false): Promise<void> => {
-    await withJobErrorToast("マニュアル起動エラー", async () => {
+  openManual: (target: string, isAuto = false): Promise<void> =>
+    withJobErrorToast("マニュアル起動エラー", async () => {
       await systemIpcService.openManual(target, isAuto);
-    });
-  },
+    }),
 
   /** 外部 URL またはローカルパスを既定アプリケーションで開く */
   openExternal: (

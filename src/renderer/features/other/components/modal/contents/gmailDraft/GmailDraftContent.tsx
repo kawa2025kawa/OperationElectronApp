@@ -12,6 +12,7 @@ import { useGmailModalLogic } from "./useGmailModalLogic";
 export const GmailDraftContent: GlobalModalComponent = memo(() => {
   const {
     isAuthenticated,
+    userEmail,
     templateKey,
     templateItems,
     formValues,
@@ -73,7 +74,7 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
           id="gmail-from"
           type="text"
           className={styles.input}
-          value="me"
+          value={userEmail || "me"}
           disabled
         />
       </div>

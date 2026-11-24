@@ -2,14 +2,22 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
+import { addDays, format } from "date-fns";
 import { net } from "electron";
-import type { TempomaticUploadTargetFile } from "@shared/types/electron/ipcTypes";
+import { getServiceCredentials } from "@electron/features/system/serviceCredentialsLoader";
+import {
+  IPC_CHANNELS,
+  type IpcChannelMap,
+  type TempomaticUploadTargetFile,
+} from "@shared/types/electron/ipcTypes";
 
 // ============================================================
 // Types
 // ============================================================
 
 export type TempomaticTargetFile = TempomaticUploadTargetFile;
+type TempomaticUploadInput =
+  IpcChannelMap[typeof IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT]["args"][0];
 
 const TEMPOMATIC_DEFAULT_CATEGORIES = [
   "990",
@@ -42,8 +50,8 @@ const TEMPOMATIC_DEFAULT_CATEGORIES = [
 // ============================================================
 
 const TEMPOMATIC_CONFIG = {
-  baseUrl: "https://belc.tempomatic.jp/h2",
   uploadIntervalMs: 1000,
+  defaultExpireOffsetDays: 7,
   defaultPubGroupId: "a4c0532b-6dc0-446d-bd3f-bb6cbb60aab9",
   defaultCategories: TEMPOMATIC_DEFAULT_CATEGORIES,
 } as const;
@@ -149,20 +157,53 @@ class NativeTempomaticClient {
 const sleep = (milliseconds: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
+function calculateDefaultExpireDate(
+  offsetDays: number = TEMPOMATIC_CONFIG.defaultExpireOffsetDays,
+): string {
+  return format(addDays(new Date(), offsetDays), "yyyy/MM/dd");
+}
+
+function normalizeTargetFiles(
+  params: TempomaticUploadInput,
+): TempomaticTargetFile[] {
+  const rawList: TempomaticTargetFile[] =
+    params.files ?? params.filePaths?.map((p: string) => ({ path: p })) ?? [];
+  const visited = new Set<string>();
+  const targets: TempomaticTargetFile[] = [];
+
+  for (const item of rawList) {
+    const filePath = item.path?.trim();
+    if (!filePath || visited.has(filePath)) continue;
+    visited.add(filePath);
+
+    if (filePath.toLowerCase().endsWith(".pdf")) {
+      targets.push({
+        path: filePath,
+        name: item.name?.trim(),
+      });
+    }
+  }
+
+  return targets;
+}
+
 // ============================================================
 // Login
 // ============================================================
 
 const loginToTempomatic = async (
   client: NativeTempomaticClient,
+  baseUrl: string,
+  loginId: string,
+  password: string,
 ): Promise<void> => {
   const loginParams = new URLSearchParams();
-  loginParams.append("loginId", "98810028");
-  loginParams.append("password", "Bog2606!");
+  loginParams.append("loginId", loginId);
+  loginParams.append("password", password);
   loginParams.append("identity", "");
 
   const responseText = await client.postForm(
-    `${TEMPOMATIC_CONFIG.baseUrl}/Login.do`,
+    `${baseUrl}/Login.do`,
     loginParams,
   );
 
@@ -181,9 +222,10 @@ const loginToTempomatic = async (
 
 const getCsrfToken = async (
   client: NativeTempomaticClient,
+  baseUrl: string,
 ): Promise<string> => {
   const responseText = await client.get(
-    `${TEMPOMATIC_CONFIG.baseUrl}/STRLibDocument.do?func=edit&ctx=iframe&adding=1`,
+    `${baseUrl}/STRLibDocument.do?func=edit&ctx=iframe&adding=1`,
   );
 
   const match = responseText.match(/name="__CSRF"\s+value="([^"]+)"/);
@@ -205,7 +247,6 @@ const createUploadForm = (
   expireDate: string,
   fileBuffer: Buffer,
 ): FormData => {
-  // 指定されたリネーム名があれば優先、なければ元のファイル名を使用
   const resolvedFileName = target.name?.trim() || path.basename(target.path);
   const documentName = path.basename(
     resolvedFileName,
@@ -248,16 +289,17 @@ const createUploadForm = (
 
 const uploadSingleDocument = async (
   client: NativeTempomaticClient,
+  baseUrl: string,
   target: TempomaticTargetFile,
   expireDate: string,
 ): Promise<void> => {
   const displayName = target.name || path.basename(target.path);
-  const csrf = await getCsrfToken(client);
+  const csrf = await getCsrfToken(client, baseUrl);
   const fileBuffer = await fs.readFile(target.path);
   const form = createUploadForm(csrf, target, expireDate, fileBuffer);
 
   const body = await client.postMultipart(
-    `${TEMPOMATIC_CONFIG.baseUrl}/STRLibDocument.do`,
+    `${baseUrl}/STRLibDocument.do`,
     form,
   );
 
@@ -278,6 +320,7 @@ const uploadSingleDocument = async (
 
 const uploadDocumentsSequentially = async (
   client: NativeTempomaticClient,
+  baseUrl: string,
   targets: readonly TempomaticTargetFile[],
   expireDate: string,
 ): Promise<void> => {
@@ -285,7 +328,7 @@ const uploadDocumentsSequentially = async (
     const target = targets[index];
     if (!target) continue;
 
-    await uploadSingleDocument(client, target, expireDate);
+    await uploadSingleDocument(client, baseUrl, target, expireDate);
 
     if (index < targets.length - 1) {
       await sleep(TEMPOMATIC_CONFIG.uploadIntervalMs);
@@ -315,11 +358,13 @@ export async function uploadPdfDocuments(
         await fs.access(t.path);
       } catch {
         throw new Error(
-          `指定されたファイルがローカルに存在しません: ${t.path}`,
+          `指定されたファイルが存在しません: ${path.basename(t.path)}`,
         );
       }
     }),
   );
+
+  const { baseUrl, loginId, password } = getServiceCredentials().tempomatic;
 
   console.info("[Tempomatic] Upload started", {
     fileCount: targets.length,
@@ -328,9 +373,24 @@ export async function uploadPdfDocuments(
 
   const client = new NativeTempomaticClient();
 
-  await loginToTempomatic(client);
-  await uploadDocumentsSequentially(client, targets, expireDate);
+  await loginToTempomatic(client, baseUrl, loginId, password);
+  await uploadDocumentsSequentially(client, baseUrl, targets, expireDate);
 
   console.info("[Tempomatic] Upload completed");
   return "正常終了";
+}
+
+export async function uploadTempomaticDocuments(
+  params: TempomaticUploadInput,
+): Promise<string> {
+  const targets = normalizeTargetFiles(params);
+  if (targets.length === 0) {
+    throw new Error(
+      "アップロード対象に有効なPDFファイル (.pdf) が含まれていません",
+    );
+  }
+
+  const expireDate =
+    params.expireDate?.trim() || calculateDefaultExpireDate();
+  return uploadPdfDocuments(targets, expireDate);
 }

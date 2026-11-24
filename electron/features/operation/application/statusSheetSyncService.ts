@@ -1,10 +1,11 @@
 // electron/features/operation/application/statusSheetSyncService.ts
 
 import { format } from "date-fns";
+import { authService } from "@electron/features/auth/authService";
 import {
-  authService,
   GoogleAuthError,
-} from "@electron/features/auth/authService";
+  googleApiRequest,
+} from "@electron/features/auth/googleApiClient";
 import {
   buildSheetValuesUrl,
   quoteSheetName,
@@ -73,7 +74,7 @@ async function requestSheetValues(
   init: RequestInit | undefined,
   errorLabel: string,
 ): Promise<string> {
-  const response = await authService.request(url, init);
+  const response = await googleApiRequest(url, init);
   const responseText = await response.text();
 
   if (!response.ok) {

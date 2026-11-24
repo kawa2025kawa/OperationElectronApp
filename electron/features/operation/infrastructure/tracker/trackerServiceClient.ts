@@ -1,6 +1,7 @@
 // electron/features/operation/infrastructure/tracker/trackerServiceClient.ts
 
 import { isPreviousDayJob } from "@electron/features/operation/domain/operationRules";
+import { getServiceCredentials } from "@electron/features/system/serviceCredentialsLoader";
 import {
   JOB_STATUS,
   type OperationMaster,
@@ -19,11 +20,7 @@ interface TrackerApiResponse {
   data: TrackerApiResponseItem[];
 }
 
-const TRACKER_CONFIG = {
-  apiKey: "71e7f0bcc0f995c1d2d322cbdde23543a5be8f91",
-  apiBaseUrl: "http://192.88.1.152/api/v2/trackers",
-  fetchTimeoutMs: 30_000,
-} as const;
+const TRACKER_FETCH_TIMEOUT_MS = 30_000;
 
 let requestSequence = 0;
 const inFlightRequests = new Map<string, Promise<TrackerApiResponseItem[]>>();
@@ -44,13 +41,14 @@ function buildTrackerUrl(jobId: string, from?: string, to?: string): string {
   if (!isValidTrackerJobId(jobId)) {
     throw new Error("Tracker API の Job ID が未設定または不正です。");
   }
+  const { apiKey, apiBaseUrl } = getServiceCredentials().tracker;
   const params = new URLSearchParams({
-    api_key: TRACKER_CONFIG.apiKey,
+    api_key: apiKey,
     jobnetwork_name: jobId.trim(),
   });
   if (from) params.set("from", from);
   if (to) params.set("to", to);
-  return `${TRACKER_CONFIG.apiBaseUrl}?${params.toString()}`;
+  return `${apiBaseUrl}?${params.toString()}`;
 }
 
 async function fetchTrackerData(
@@ -64,13 +62,13 @@ async function fetchTrackerData(
     const start = Date.now();
     console.log(
       `[${new Date().toISOString()}] [TrackerClient] #${reqId} START`,
-      { url },
+      { url: url.replace(/api_key=[^&]+/, "api_key=***") },
     );
 
     const controller = new AbortController();
     const timer = setTimeout(
       () => controller.abort(),
-      TRACKER_CONFIG.fetchTimeoutMs,
+      TRACKER_FETCH_TIMEOUT_MS,
     );
 
     try {
@@ -78,7 +76,7 @@ async function fetchTrackerData(
       if (!res.ok) {
         console.error(
           `[${new Date().toISOString()}] [TrackerClient] #${reqId} HTTP ${res.status}`,
-          { url, ms: Date.now() - start },
+          { ms: Date.now() - start },
         );
         return [];
       }
@@ -87,7 +85,7 @@ async function fetchTrackerData(
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] [TrackerClient] #${reqId} ERROR`,
-        { url, error },
+        { error },
       );
       return [];
     } finally {

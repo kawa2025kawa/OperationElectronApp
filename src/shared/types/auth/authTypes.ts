@@ -10,7 +10,7 @@ export interface OAuthToken {
 /**
 - Main process内部でのみ使用するGoogle認証セッション。
  *
-- accessToken / refreshToken / 個人情報はRendererへ返さない。
+- accessToken / refreshTokenはRendererへ返さない。
  */
 export interface AuthSession {
   accessToken: string;
@@ -26,10 +26,11 @@ export interface GoogleUserInfo {
 }
 
 /**
-- Rendererへ公開する認証状態（個人情報は含めない）。
+- Rendererへ公開する認証プロフィール。
  */
 export interface AuthProfile {
-  isAuthenticated: boolean;
+  email: string | null;
+  familyName: string | null;
 }
 
 export type AuthState = "loading" | "loggedIn" | "loggedOut";
@@ -37,6 +38,8 @@ export type AuthState = "loading" | "loggedIn" | "loggedOut";
 interface AuthSliceState {
   isAuthenticated: boolean;
   isChecking: boolean;
+  userEmail: string | null;
+  familyName: string | null;
 }
 
 interface AuthSliceActions {

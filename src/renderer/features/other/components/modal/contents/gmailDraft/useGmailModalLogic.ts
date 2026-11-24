@@ -1,6 +1,7 @@
 // src/renderer/features/other/components/modal/contents/gmailDraft/useGmailModalLogic.ts
 
 import { useCallback, useState, type ChangeEvent } from "react";
+import { useShallow } from "zustand/shallow";
 
 import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftUiTypes";
 import type {
@@ -38,7 +39,12 @@ const createInitialFormValues = (): GmailDraftFormValues => ({
 });
 
 export function useGmailModalLogic() {
-  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
+  const { isAuthenticated, userEmail } = useAppStore(
+    useShallow((state) => ({
+      isAuthenticated: state.isAuthenticated,
+      userEmail: state.userEmail,
+    })),
+  );
 
   const [templateKey, setTemplateKey] = useState<EmailTemplateKey | null>(null);
   const [formValues, setFormValues] = useState<GmailDraftFormValues>(
@@ -138,6 +144,7 @@ export function useGmailModalLogic() {
 
   return {
     isAuthenticated,
+    userEmail,
     templateKey,
     templateItems: TEMPLATE_SELECT_ITEMS,
     formValues,

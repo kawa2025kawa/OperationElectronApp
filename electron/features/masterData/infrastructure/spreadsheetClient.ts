@@ -1,9 +1,9 @@
 // electron/features/masterData/infrastructure/spreadsheetClient.ts
 
 import {
-  authService,
   GoogleAuthError,
-} from "@electron/features/auth/authService";
+  googleApiRequest,
+} from "@electron/features/auth/googleApiClient";
 import {
   SHEETS,
   type SheetData,
@@ -95,7 +95,7 @@ export async function fetchSheet<
   const url = buildSheetValuesUrl(sheet.spreadsheetId, sheet.sheetName);
 
   try {
-    const response = await authService.request(url);
+    const response = await googleApiRequest(url);
     const responseText = await response.text();
 
     if (response.status === 401) {

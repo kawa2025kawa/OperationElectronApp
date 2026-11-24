@@ -20,6 +20,41 @@ interface OperationContextMenuLayerProps {
   readonly store: OperationTableContextMenuStore;
 }
 
+interface TableColGroupProps {
+  readonly columnWidths: ReadonlyArray<{ readonly id: string; readonly width: string }>;
+}
+
+const TableColGroup = memo(function TableColGroup({
+  columnWidths,
+}: TableColGroupProps) {
+  return (
+    <colgroup>
+      {columnWidths.map((col) => (
+        <col key={col.id} style={{ width: col.width }} />
+      ))}
+    </colgroup>
+  );
+});
+
+const VirtualSpacerRow = memo(function VirtualSpacerRow({
+  colSpan,
+  height,
+}: {
+  readonly colSpan: number;
+  readonly height: number;
+}) {
+  if (height <= 0) return null;
+
+  return (
+    <tr aria-hidden="true">
+      <td
+        colSpan={colSpan}
+        style={{ height: `${height}px`, padding: 0, border: 0 }}
+      />
+    </tr>
+  );
+});
+
 const OperationContextMenuLayer = memo(function OperationContextMenuLayer({
   store,
 }: OperationContextMenuLayerProps) {
@@ -55,14 +90,8 @@ const OperationContextMenuLayer = memo(function OperationContextMenuLayer({
         typeof document !== "undefined" &&
         createPortal(
           <svg className={styles.laserOverlay} aria-hidden="true">
-            <path
-              d={laserCoords.pathD}
-              className={styles.laserGlowPath}
-            />
-            <path
-              d={laserCoords.pathD}
-              className={styles.laserCorePath}
-            />
+            <path d={laserCoords.pathD} className={styles.laserGlowPath} />
+            <path d={laserCoords.pathD} className={styles.laserCorePath} />
             <path
               d={laserCoords.pathD}
               className={styles.laserHighlightPath}
@@ -106,19 +135,11 @@ export const OperationTable = memo(function OperationTable() {
     handleMarkSuccess,
   } = useOperationTable();
 
-  const renderColGroup = () => (
-    <colgroup>
-      {columnWidths.map((col) => (
-        <col key={col.id} style={{ width: col.width }} />
-      ))}
-    </colgroup>
-  );
-
   return (
     <div className={styles.container}>
       <div ref={headerContainerRef} className={styles.headerContainer}>
         <table className={styles.headerTable}>
-          {renderColGroup()}
+          <TableColGroup columnWidths={columnWidths} />
           <thead className={styles.thead}>
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id} className={styles.headerRow}>
@@ -153,7 +174,7 @@ export const OperationTable = memo(function OperationTable() {
         onScroll={handleTableScroll}
       >
         <table className={styles.table}>
-          {renderColGroup()}
+          <TableColGroup columnWidths={columnWidths} />
           <tbody>
             {isLoading || tableRows.length === 0 ? (
               <tr>
@@ -172,18 +193,7 @@ export const OperationTable = memo(function OperationTable() {
               </tr>
             ) : (
               <>
-                {paddingTop > 0 && (
-                  <tr aria-hidden="true">
-                    <td
-                      colSpan={colSpanCount}
-                      style={{
-                        height: `${paddingTop}px`,
-                        padding: 0,
-                        border: 0,
-                      }}
-                    />
-                  </tr>
-                )}
+                <VirtualSpacerRow colSpan={colSpanCount} height={paddingTop} />
 
                 {virtualItems.map((virtualRow) => {
                   const row = tableRows[virtualRow.index];
@@ -202,18 +212,10 @@ export const OperationTable = memo(function OperationTable() {
                   );
                 })}
 
-                {paddingBottom > 0 && (
-                  <tr aria-hidden="true">
-                    <td
-                      colSpan={colSpanCount}
-                      style={{
-                        height: `${paddingBottom}px`,
-                        padding: 0,
-                        border: 0,
-                      }}
-                    />
-                  </tr>
-                )}
+                <VirtualSpacerRow
+                  colSpan={colSpanCount}
+                  height={paddingBottom}
+                />
               </>
             )}
           </tbody>

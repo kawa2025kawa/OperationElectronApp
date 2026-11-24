@@ -1,7 +1,7 @@
 // electron/features/operation/infrastructure/tracker/trackerItemSelector.ts
 
 import { TZDate } from "@date-fns/tz";
-import { addDays, startOfDay } from "date-fns";
+import { addDays, addHours, addMinutes, startOfDay } from "date-fns";
 import {
   isPreviousDayJob,
   parseHHMM,
@@ -97,10 +97,9 @@ export function getPreviousDayRange(
   const dayOffset = isPreviousDayJob(kanriNo) ? -1 : 0;
 
   const fromDate = createJstDate(nowMs, dayOffset, hours, minutes);
-  const toDate = new Date(fromDate.toISOString());
-  toDate.setUTCHours(
-    toDate.getUTCHours() + DEFAULT_KANSHI_TIME.hours,
-    toDate.getUTCMinutes() + DEFAULT_KANSHI_TIME.minutes,
+  const toDate = addMinutes(
+    addHours(fromDate, DEFAULT_KANSHI_TIME.hours),
+    DEFAULT_KANSHI_TIME.minutes,
   );
 
   return {
@@ -111,7 +110,7 @@ export function getPreviousDayRange(
 }
 
 /**
-- 実績として有効とみなす最も早い時刻（下限タイムスタンプ）を算出する。
+ * 実績として有効とみなす最も早い時刻（下限タイムスタンプ）を算出する。
  */
 export function computeEarliestValidMs(
   kanriNo: string,
@@ -154,41 +153,68 @@ export function resolveTrackerItemStatus(
   statuses: string[],
 ): JobStatus | undefined {
   if (statuses.length === 0) return undefined;
-  const list = statuses.map((s) =>
-    s
+
+  let firstStatus: JobStatus | undefined;
+  for (let i = 0; i < statuses.length; i++) {
+    const normalized = statuses[i]
       .trim()
       .toLowerCase()
-      .replace(/[\s_-]/g, ""),
-  );
-  if (list.some((s) => STATUS_ALIAS_MAP[s] === JOB_STATUS.ERROR)) {
-    return JOB_STATUS.ERROR;
+      .replace(/[\s_-]/g, "");
+    const mapped = STATUS_ALIAS_MAP[normalized];
+    if (mapped === JOB_STATUS.ERROR) {
+      return JOB_STATUS.ERROR;
+    }
+    if (i === 0) {
+      firstStatus = mapped;
+    }
   }
-  return STATUS_ALIAS_MAP[list[0]];
+  return firstStatus;
 }
 
-function annotateItems(
-  items: readonly TrackerApiResponseItem[],
-): AnnotatedTrackerItem[] {
-  return items.map((item) => {
-    const startTs = parseTimestamp(item.start_time);
-    const endTs = parseTimestamp(item.end_time);
-    const expectedTs = parseTimestamp(item.expected_start_time);
-    const resolvedStatus = resolveTrackerItemStatus(item.status);
-    return {
-      item,
-      resolvedStatus,
-      startTs,
-      endTs,
-      baseTs: !Number.isNaN(startTs) ? startTs : expectedTs,
-      isRunning:
-        resolvedStatus === JOB_STATUS.RUNNING ||
-        resolvedStatus === JOB_STATUS.SCRIPT_RUNNING,
-    };
-  });
+function annotateItem(item: TrackerApiResponseItem): AnnotatedTrackerItem {
+  const startTs = parseTimestamp(item.start_time);
+  const endTs = parseTimestamp(item.end_time);
+  const expectedTs = parseTimestamp(item.expected_start_time);
+  const resolvedStatus = resolveTrackerItemStatus(item.status);
+
+  return {
+    item,
+    resolvedStatus,
+    startTs,
+    endTs,
+    baseTs: !Number.isNaN(startTs) ? startTs : expectedTs,
+    isRunning:
+      resolvedStatus === JOB_STATUS.RUNNING ||
+      resolvedStatus === JOB_STATUS.SCRIPT_RUNNING,
+  };
+}
+
+/** 条件を満たす要素のうち、スコアが最大（または最小）の1件を線形走査で取得する */
+function pickBestItem(
+  items: readonly AnnotatedTrackerItem[],
+  scoreFn: (entry: AnnotatedTrackerItem) => number | null,
+  mode: "max" | "min",
+): TrackerApiResponseItem | undefined {
+  let bestItem: TrackerApiResponseItem | undefined;
+  let bestScore =
+    mode === "max" ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
+
+  for (const entry of items) {
+    const score = scoreFn(entry);
+    if (score === null || Number.isNaN(score)) continue;
+
+    const isBetter = mode === "max" ? score > bestScore : score < bestScore;
+    if (isBetter) {
+      bestScore = score;
+      bestItem = entry.item;
+    }
+  }
+
+  return bestItem;
 }
 
 /**
-- 解禁時刻（earliestValidMs）以降〜上限時刻の間で、最も新しい実行結果を選定する。
+ * 解禁時刻（earliestValidMs）以降〜上限時刻の間で、最も新しい実行結果を選定する。
  */
 export function selectLatestTrackerItem(
   items: readonly TrackerApiResponseItem[],
@@ -198,57 +224,56 @@ export function selectLatestTrackerItem(
 ): TrackerApiResponseItem | undefined {
   if (items.length === 0) return undefined;
 
-  const annotated = annotateItems(items);
+  const annotated = items.map(annotateItem);
 
   // 1. 解禁時刻以降で現在実行中のレコードがあれば最優先
-  const running = annotated
-    .filter(
-      ({ isRunning, baseTs }) =>
-        isRunning && !Number.isNaN(baseTs) && baseTs >= earliestValidMs,
-    )
-    .sort((a, b) => b.baseTs - a.baseTs);
-
-  if (running.length > 0) return running[0].item;
+  const runningItem = pickBestItem(
+    annotated,
+    ({ isRunning, baseTs }) =>
+      isRunning && !Number.isNaN(baseTs) && baseTs >= earliestValidMs
+        ? baseTs
+        : null,
+    "max",
+  );
+  if (runningItem) return runningItem;
 
   // 2. 解禁時刻以降〜現在時刻までに完了（SUCCESS）になった一番最新のレコード
-  const completed = annotated
-    .filter(({ resolvedStatus }) => resolvedStatus === JOB_STATUS.SUCCESS)
-    .map((entry) => ({
-      ...entry,
-      completedTs: !Number.isNaN(entry.endTs) ? entry.endTs : entry.baseTs,
-    }))
-    .filter(
-      ({ startTs, completedTs }) =>
-        !Number.isNaN(completedTs) &&
+  const completedItem = pickBestItem(
+    annotated,
+    ({ resolvedStatus, startTs, endTs, baseTs }) => {
+      if (resolvedStatus !== JOB_STATUS.SUCCESS) return null;
+      const completedTs = !Number.isNaN(endTs) ? endTs : baseTs;
+      return !Number.isNaN(completedTs) &&
         completedTs >= earliestValidMs &&
         completedTs <= nowMs &&
-        (Number.isNaN(startTs) || startTs >= earliestValidMs),
-    )
-    .sort((a, b) => b.completedTs - a.completedTs);
-
-  if (completed.length > 0) return completed[0].item;
+        (Number.isNaN(startTs) || startTs >= earliestValidMs)
+        ? completedTs
+        : null;
+    },
+    "max",
+  );
+  if (completedItem) return completedItem;
 
   // 3. 解禁時刻以降〜現在時刻までに実開始された最新レコード（エラーや待機含む）
-  const started = annotated
-    .filter(
-      ({ startTs }) =>
-        !Number.isNaN(startTs) &&
-        startTs >= earliestValidMs &&
-        startTs <= nowMs,
-    )
-    .sort((a, b) => b.startTs - a.startTs);
-
-  if (started.length > 0) return started[0].item;
+  const startedItem = pickBestItem(
+    annotated,
+    ({ startTs }) =>
+      !Number.isNaN(startTs) && startTs >= earliestValidMs && startTs <= nowMs
+        ? startTs
+        : null,
+    "max",
+  );
+  if (startedItem) return startedItem;
 
   // 4. まだ1件も開始されていない場合は、解禁時刻以降の予定レコードから最も近いものを返す
-  const upcoming = annotated
-    .filter(
-      ({ baseTs }) =>
-        !Number.isNaN(baseTs) &&
-        baseTs >= earliestValidMs &&
-        baseTs <= upcomingUpperBoundMs,
-    )
-    .sort((a, b) => a.baseTs - b.baseTs);
-
-  return upcoming[0]?.item;
+  return pickBestItem(
+    annotated,
+    ({ baseTs }) =>
+      !Number.isNaN(baseTs) &&
+      baseTs >= earliestValidMs &&
+      baseTs <= upcomingUpperBoundMs
+        ? baseTs
+        : null,
+    "min",
+  );
 }

@@ -9,6 +9,7 @@ import {
   createOAuthClient,
   exchangeAuthorizationCode,
   fetchGoogleUserInfo,
+  formatErrorMessage,
   isInvalidGrantError,
   refreshAccessToken,
 } from "./oauthClient";
@@ -20,18 +21,6 @@ import {
   saveToken,
   updateTokenProfile,
 } from "./token";
-
-// Google認証に関するエラーを表す
-export class GoogleAuthError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "GoogleAuthError";
-  }
-}
-
-interface GoogleApiRequestOptions extends RequestInit {
-  retryOnUnauthorized?: boolean;
-}
 
 const AUTH_SERVICE_CONFIG = {
   defaultPort: 8888,
@@ -68,7 +57,6 @@ class AuthService {
 
     const { codeVerifier, codeChallenge } =
       await client.generateCodeVerifierAsync();
-
     const state = randomBytes(32).toString("hex");
 
     const authUrl = client.generateAuthUrl({
@@ -89,9 +77,7 @@ class AuthService {
       token = await exchangeAuthorizationCode(client, code, codeVerifier);
     } catch (error) {
       throw new Error(
-        `Google token exchange failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Google token exchange failed: ${formatErrorMessage(error)}`,
         { cause: error },
       );
     }
@@ -102,24 +88,21 @@ class AuthService {
 
   // 保存済みセッションを取得し、必要に応じてリフレッシュやプロフィール補完を行う
   async loadSession(forceRefresh = false): Promise<AuthSession | null> {
-    const session = await loadToken();
-    if (!session) {
+    const stored = await loadToken();
+    if (!stored) {
       return null;
     }
 
-    if (!forceRefresh && !isTokenExpired(session)) {
-      if (session.email && session.familyName) {
-        return session;
-      }
-      return this.restoreProfile(session);
+    const session =
+      forceRefresh || isTokenExpired(stored)
+        ? await this.refreshSessionFor(stored)
+        : stored;
+
+    if (!session || (session.email && session.familyName)) {
+      return session;
     }
 
-    const refreshed = await this.refreshSessionFor(session);
-    if (!refreshed || (refreshed.email && refreshed.familyName)) {
-      return refreshed;
-    }
-
-    return this.restoreProfile(refreshed);
+    return this.restoreProfile(session);
   }
 
   // セッションを破棄する
@@ -132,46 +115,39 @@ class AuthService {
   // 401応答時や期限切れ時にトークンを更新する
   async refreshSessionFor(session: AuthSession): Promise<AuthSession | null> {
     const generation = getTokenGeneration();
-    const currentSession = await loadToken();
+    const current = await loadToken();
 
-    if (generation !== getTokenGeneration()) {
+    if (!current || generation !== getTokenGeneration()) {
       return loadToken();
     }
 
-    if (!currentSession) {
-      return null;
+    if (current.accessToken !== session.accessToken) {
+      return current;
     }
 
-    if (currentSession.accessToken !== session.accessToken) {
-      return currentSession;
-    }
-
-    if (!currentSession.refreshToken) {
+    if (!current.refreshToken) {
       await clearToken(generation);
       return null;
     }
 
-    return this.coalesceSessionRequest(
-      "refreshRequest",
-      currentSession,
-      generation,
-      () => this.executeRefresh(currentSession, generation),
+    return this.runCoalesced("refreshRequest", current, generation, () =>
+      this.executeRefresh(current, generation),
     );
   }
 
   // 同一セッション・世代に対する並行リクエストを1つに集約する
-  private async coalesceSessionRequest(
+  private async runCoalesced(
     slot: InFlightSlot,
     session: AuthSession,
     generation: number,
     runner: () => Promise<AuthSession | null>,
   ): Promise<AuthSession | null> {
-    const existing = this[slot];
+    const current = this[slot];
     if (
-      existing?.generation === generation &&
-      existing.accessToken === session.accessToken
+      current?.generation === generation &&
+      current.accessToken === session.accessToken
     ) {
-      return existing.promise;
+      return current.promise;
     }
 
     const request: InFlightRequest = {
@@ -179,7 +155,6 @@ class AuthService {
       accessToken: session.accessToken,
       promise: runner(),
     };
-
     this[slot] = request;
 
     try {
@@ -212,9 +187,7 @@ class AuthService {
       }
 
       throw new Error(
-        `Google token refresh failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Google token refresh failed: ${formatErrorMessage(error)}`,
         { cause: error },
       );
     }
@@ -227,10 +200,7 @@ class AuthService {
 
     return saveToken(
       token,
-      {
-        email: session.email,
-        familyName: session.familyName,
-      },
+      { email: session.email, familyName: session.familyName },
       generation,
     );
   }
@@ -241,101 +211,24 @@ class AuthService {
   ): Promise<AuthSession | null> {
     const generation = getTokenGeneration();
 
-    return this.coalesceSessionRequest(
-      "profileRequest",
-      session,
-      generation,
-      async () => {
-        const profile = await fetchGoogleUserInfo(session.accessToken);
-        if (generation !== getTokenGeneration()) {
-          return loadToken();
-        }
+    return this.runCoalesced("profileRequest", session, generation, async () => {
+      const profile = await fetchGoogleUserInfo(session.accessToken);
+      if (generation !== getTokenGeneration()) {
+        return loadToken();
+      }
 
-        if (!profile.email && !profile.familyName) {
-          const currentSession = await loadToken();
-          if (
-            generation !== getTokenGeneration() ||
-            !currentSession ||
-            currentSession.accessToken !== session.accessToken
-          ) {
-            return loadToken();
-          }
-          return currentSession;
-        }
+      if (!profile.email && !profile.familyName) {
+        return loadToken();
+      }
 
-        return (
-          (await updateTokenProfile(
-            profile,
-            session.accessToken,
-            generation,
-          )) ?? loadToken()
-        );
-      },
-    );
-  }
-
-  // 認証トークンを付与してGoogle APIへ送信する
-  private async fetchWithToken(
-    url: string,
-    init: RequestInit,
-    accessToken: string,
-  ): Promise<Response> {
-    const headers = new Headers(init.headers);
-    headers.set("Authorization", `Bearer ${accessToken}`);
-    headers.set("Accept", "application/json");
-
-    return fetch(url, { ...init, headers });
-  }
-
-  // Google APIへ認証済みリクエストを送信する
-  async request(
-    url: string,
-    init: GoogleApiRequestOptions = {},
-  ): Promise<Response> {
-    const { retryOnUnauthorized = true, ...requestInit } = init;
-    let session = await this.loadSession();
-
-    if (!session) {
-      throw new GoogleAuthError("Google認証セッションが存在しません");
-    }
-
-    const response = await this.fetchWithToken(
-      url,
-      requestInit,
-      session.accessToken,
-    );
-
-    if (response.status !== 401 || !retryOnUnauthorized) {
-      return response;
-    }
-
-    session = await this.refreshSessionFor(session);
-    if (!session) {
-      throw new GoogleAuthError("Google認証セッションの更新に失敗しました");
-    }
-
-    return this.fetchWithToken(url, requestInit, session.accessToken);
-  }
-
-  // Google APIのレスポンスをJSONとして取得する
-  async getJson<T>(
-    url: string,
-    init: GoogleApiRequestOptions = {},
-  ): Promise<T> {
-    const response = await this.request(url, init);
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      throw new Error(`Google API Error (${response.status}): ${responseText}`);
-    }
-
-    try {
-      return JSON.parse(responseText) as T;
-    } catch (error) {
-      throw new Error("Google API response is not valid JSON", {
-        cause: error,
-      });
-    }
+      return (
+        (await updateTokenProfile(
+          profile,
+          session.accessToken,
+          generation,
+        )) ?? loadToken()
+      );
+    });
   }
 }
 
