@@ -4,7 +4,10 @@ import { useCallback, useMemo, useTransition } from "react";
 import { useShallow } from "zustand/shallow";
 
 import { useAppStore } from "@renderer/store";
-import { selectRowsForMode } from "@renderer/store/slices/operationStatusSlice";
+import {
+  selectMergedOperationAndTodayRows,
+  selectRowsForMode,
+} from "@renderer/store/slices/operationStatusSlice";
 import {
   JOB_STATUS,
   type OperationViewItem,
@@ -17,6 +20,7 @@ export function useOperationViewLogic(rowsInput?: OperationViewItem[]) {
     currentMode,
     setMode,
     selectedId,
+    summaryStatusFilter,
     tableRows,
     tableRowsMode,
     tableRowsByMode,
@@ -25,6 +29,7 @@ export function useOperationViewLogic(rowsInput?: OperationViewItem[]) {
       currentMode: state.currentMode,
       setMode: state.setMode,
       selectedId: state.selectedIds[state.currentMode] ?? "",
+      summaryStatusFilter: state.summaryStatusFilter,
       tableRows: state.tableRows,
       tableRowsMode: state.tableRowsMode,
       tableRowsByMode: state.tableRowsByMode,
@@ -33,14 +38,30 @@ export function useOperationViewLogic(rowsInput?: OperationViewItem[]) {
 
   const [, startTransition] = useTransition();
 
+  const isSummaryFilterActive =
+    currentMode !== "irregular" && summaryStatusFilter !== null;
+
   const rows = useMemo(
     () =>
       rowsInput ??
-      selectRowsForMode(
-        { tableRows, tableRowsMode, tableRowsByMode },
-        currentMode,
-      ),
-    [rowsInput, tableRows, tableRowsMode, tableRowsByMode, currentMode],
+      (isSummaryFilterActive
+        ? selectMergedOperationAndTodayRows({
+            tableRows,
+            tableRowsMode,
+            tableRowsByMode,
+          })
+        : selectRowsForMode(
+            { tableRows, tableRowsMode, tableRowsByMode },
+            currentMode,
+          )),
+    [
+      rowsInput,
+      isSummaryFilterActive,
+      tableRows,
+      tableRowsMode,
+      tableRowsByMode,
+      currentMode,
+    ],
   );
 
   const selectedItem = useMemo(() => {
@@ -55,8 +76,13 @@ export function useOperationViewLogic(rowsInput?: OperationViewItem[]) {
   const status = selectedItem?.status ?? JOB_STATUS.SCHEDULED;
 
   const infoRows = useMemo(
-    () => createInfoRows(currentMode, selectedItem, status),
-    [currentMode, selectedItem, status],
+    () =>
+      createInfoRows(
+        isSummaryFilterActive ? "today" : currentMode,
+        selectedItem,
+        status,
+      ),
+    [isSummaryFilterActive, currentMode, selectedItem, status],
   );
 
   const handleModeChange = useCallback(

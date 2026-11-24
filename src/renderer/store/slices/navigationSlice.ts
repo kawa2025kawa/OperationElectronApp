@@ -50,11 +50,17 @@ export const createNavigationSlice: StateCreator<
     set((state: AppState) => {
       state.currentView = view;
       state.searchTerm = state.searchTerms[view] ?? "";
+      if (view !== "operation") {
+        state.summaryStatusFilter = null;
+        state.summaryReturnMode = null;
+      }
     }),
 
   setMode: (mode) =>
     set((state: AppState) => {
       state.currentMode = mode;
+      state.summaryStatusFilter = null;
+      state.summaryReturnMode = null;
     }),
 
   setSearchTerm: (term) =>

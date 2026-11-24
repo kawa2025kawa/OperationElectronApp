@@ -28,9 +28,7 @@ function isAllowedAppNavigation(targetUrl: string): boolean {
     if (parsed.protocol !== "file:") {
       return false;
     }
-    const distRootUrl = pathToFileURL(
-      path.resolve(__dirname, "../dist"),
-    ).href;
+    const distRootUrl = pathToFileURL(path.resolve(__dirname, "../dist")).href;
     return parsed.href.startsWith(distRootUrl);
   } catch {
     return false;
@@ -97,8 +95,8 @@ function createWindow(): void {
   }
 
   const mainWindowState = windowStateKeeper({
-    defaultWidth: 1400,
-    defaultHeight: 800,
+    defaultWidth: 1000,
+    defaultHeight: 600,
   });
 
   mainWindow = new BrowserWindow({

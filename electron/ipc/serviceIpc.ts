@@ -4,7 +4,7 @@ import fs from "fs-extra";
 import path from "node:path";
 
 import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
-import type { AuthProfile, AuthSession } from "@shared/types/auth";
+import type { AuthProfile, AuthSession } from "@shared/types/auth/authTypes";
 
 import { authService } from "@electron/features/auth/authService";
 import {

@@ -83,6 +83,15 @@ const OPERATION_COLUMN_CONFIG = {
 
 export type OperationColumn = keyof typeof OPERATION_COLUMN_CONFIG;
 
+/** Operation と TODAY で共通するカラム一覧（サマリーテーブル共通ヘッダー） */
+export const COMMON_OPERATION_TODAY_COLUMNS = [
+  "kanriNo",
+  "workType",
+  "scheduledTime",
+  "workName",
+  "status",
+] as const satisfies readonly OperationColumn[];
+
 const VISIBLE_OPERATION_COLUMNS = {
   operation: [
     "kanriNo",
@@ -93,7 +102,7 @@ const VISIBLE_OPERATION_COLUMNS = {
     "status",
   ],
   irregular: ["kanriNo", "scheduledTime", "cycle1", "cycle2", "workName"],
-  today: ["kanriNo", "workType", "scheduledTime", "workName", "status"],
+  today: COMMON_OPERATION_TODAY_COLUMNS,
 } as const satisfies Record<ViewMode, readonly OperationColumn[]>;
 
 export const EMPTY_OPERATION_ROWS: OperationViewItem[] = [];
@@ -110,10 +119,10 @@ function getCellValue(row: OperationViewItem, column: OperationColumn): string {
   return toDisplayValue((row as unknown as Record<string, unknown>)[column]);
 }
 
-function buildOperationColumns(
-  mode: ViewMode,
+function buildColumnsFromIds(
+  columnIds: readonly OperationColumn[],
 ): ColumnDef<TableFeaturesType, OperationViewItem>[] {
-  return VISIBLE_OPERATION_COLUMNS[mode].map((id) => ({
+  return columnIds.map((id) => ({
     id,
     header: getOperationColumnMeta(id).label,
     accessorFn: (row) => getCellValue(row, id),
@@ -141,13 +150,21 @@ const CACHED_OPERATION_COLUMNS: Record<
   ViewMode,
   ColumnDef<TableFeaturesType, OperationViewItem>[]
 > = {
-  operation: buildOperationColumns("operation"),
-  irregular: buildOperationColumns("irregular"),
-  today: buildOperationColumns("today"),
+  operation: buildColumnsFromIds(VISIBLE_OPERATION_COLUMNS.operation),
+  irregular: buildColumnsFromIds(VISIBLE_OPERATION_COLUMNS.irregular),
+  today: buildColumnsFromIds(VISIBLE_OPERATION_COLUMNS.today),
 };
+
+const CACHED_SUMMARY_TABLE_COLUMNS: ColumnDef<
+  TableFeaturesType,
+  OperationViewItem
+>[] = buildColumnsFromIds(COMMON_OPERATION_TODAY_COLUMNS);
 
 export function getOperationColumns(
   mode: ViewMode,
+  isSummaryFiltered = false,
 ): ColumnDef<TableFeaturesType, OperationViewItem>[] {
-  return CACHED_OPERATION_COLUMNS[mode];
+  return isSummaryFiltered
+    ? CACHED_SUMMARY_TABLE_COLUMNS
+    : CACHED_OPERATION_COLUMNS[mode];
 }

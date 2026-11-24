@@ -5,7 +5,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { UpdateInfo } from "@shared/types/system";
+import type { UpdateInfo } from "@shared/types/system/update";
 
 const SYSTEM_CONFIG = {
   updateDirectory:

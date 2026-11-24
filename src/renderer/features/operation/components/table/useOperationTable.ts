@@ -14,7 +14,10 @@ import { usePersistentScroll } from "@renderer/hooks/usePersistentScroll";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { createRegistryGlobalFilter } from "@renderer/features/table/utils/tableSearchUtils";
 import { useAppStore } from "@renderer/store";
-import { selectRowsForMode } from "@renderer/store/slices/operationStatusSlice";
+import {
+  selectMergedOperationAndTodayRows,
+  selectRowsForMode,
+} from "@renderer/store/slices/operationStatusSlice";
 import {
   JOB_STATUS,
   type OperationViewItem,
@@ -50,7 +53,9 @@ export function useOperationTable() {
     tableRowsMode,
     tableRowsByMode,
     isLoading,
+    isMergedSummaryLoading,
     fetchTableData,
+    ensureOperationAndTodayData,
     updateOperationStatus,
   } = useAppStore(
     useShallow((state) => ({
@@ -64,7 +69,9 @@ export function useOperationTable() {
       tableRowsMode: state.tableRowsMode,
       tableRowsByMode: state.tableRowsByMode,
       isLoading: state.isTableLoading,
+      isMergedSummaryLoading: state.isMergedSummaryLoading,
       fetchTableData: state.fetchTableData,
+      ensureOperationAndTodayData: state.ensureOperationAndTodayData,
       updateOperationStatus: state.updateOperationStatus,
     })),
   );
@@ -85,14 +92,41 @@ export function useOperationTable() {
     }
   }, [currentMode, tableRowsMode, fetchTableData]);
 
-  // 表示対象データ（切り替え直後の前モードデータ混入を防止）
+  // サマリーフィルタ有効時は Operation と TODAY の両データを確保して合算表示に備える
+  const isSummaryFilterActive =
+    currentMode !== "irregular" && summaryStatusFilter !== null;
+
+  useEffect(() => {
+    if (!isSummaryFilterActive) return;
+
+    void ensureOperationAndTodayData().catch((error: unknown) => {
+      console.error(
+        "[OperationTable] Failed to load merged summary table data:",
+        error,
+      );
+    });
+  }, [isSummaryFilterActive, ensureOperationAndTodayData]);
+
+  // 表示対象データ（サマリーフィルタ時は Operation + TODAY 合算、通常時は現在モード）
   const rows = useMemo(
     () =>
-      selectRowsForMode(
-        { tableRows, tableRowsMode, tableRowsByMode },
-        currentMode,
-      ),
-    [tableRows, tableRowsMode, tableRowsByMode, currentMode],
+      isSummaryFilterActive
+        ? selectMergedOperationAndTodayRows({
+            tableRows,
+            tableRowsMode,
+            tableRowsByMode,
+          })
+        : selectRowsForMode(
+            { tableRows, tableRowsMode, tableRowsByMode },
+            currentMode,
+          ),
+    [
+      isSummaryFilterActive,
+      tableRows,
+      tableRowsMode,
+      tableRowsByMode,
+      currentMode,
+    ],
   );
 
   const activeStatusFilter =
@@ -101,7 +135,9 @@ export function useOperationTable() {
   const isFiltered = Boolean(searchTerm) || activeStatusFilter !== null;
 
   const isSwitchingMode =
-    isLoading || (tableRowsMode !== currentMode && rows.length === 0);
+    isLoading ||
+    (isSummaryFilterActive && isMergedSummaryLoading) ||
+    (tableRowsMode !== currentMode && rows.length === 0);
 
   const canRestoreScroll =
     !isSwitchingMode && tableRowsMode === currentMode && rows.length > 0;
@@ -121,7 +157,9 @@ export function useOperationTable() {
 
   const { containerRef, handleScroll: handlePersistentScroll } =
     usePersistentScroll<HTMLDivElement>({
-      scrollKey: `${currentView}:${currentMode}`,
+      scrollKey: isSummaryFilterActive
+        ? `${currentView}:summary`
+        : `${currentView}:${currentMode}`,
       canRestore: canRestoreScroll,
       isFiltered,
       restoreTrigger: rows,
@@ -140,12 +178,12 @@ export function useOperationTable() {
     const header = headerContainerRef.current;
     const body = containerRef.current;
     if (header && body) header.scrollLeft = body.scrollLeft;
-  }, [containerRef, currentMode]);
+  }, [containerRef, currentMode, isSummaryFilterActive]);
 
-  // テーブルインスタンス構築
+  // テーブルインスタンス構築（サマリーフィルタ時は共通ヘッダー5列を使用）
   const columns = useMemo(
-    () => getOperationColumns(currentMode),
-    [currentMode],
+    () => getOperationColumns(currentMode, isSummaryFilterActive),
+    [currentMode, isSummaryFilterActive],
   );
   const searchConfig = getAppViewConfig(currentView).search;
 
@@ -192,10 +230,23 @@ export function useOperationTable() {
       virtualizerRef,
     });
 
-  // 行操作ハンドラ
+  // 行操作ハンドラ（サマリー合算時は該当行の所属モードにも選択状態を同期する）
   const handleRowClick = useCallback(
-    (kanriNo: string) => setSelectedId(currentMode, kanriNo),
-    [currentMode, setSelectedId],
+    (kanriNo: string) => {
+      setSelectedId(currentMode, kanriNo);
+      if (isSummaryFilterActive) {
+        const trimmed = kanriNo.trim();
+        const isInOperation = tableRowsByMode.operation.some(
+          (item) => item.kanriNo.trim() === trimmed,
+        );
+        const isInToday = tableRowsByMode.today.some(
+          (item) => item.kanriNo.trim() === trimmed,
+        );
+        if (isInOperation) setSelectedId("operation", kanriNo);
+        if (isInToday) setSelectedId("today", kanriNo);
+      }
+    },
+    [currentMode, isSummaryFilterActive, setSelectedId, tableRowsByMode],
   );
 
   const handleMarkSuccess = useCallback(

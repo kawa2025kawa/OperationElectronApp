@@ -1,4 +1,4 @@
-﻿// electron/features/operation/application/statusLifecycleService.ts
+// electron/features/operation/application/statusLifecycleService.ts
 
 import {
   assertSpreadsheetSheetsLoaded,
@@ -21,6 +21,7 @@ import {
 import type { OperationStatusState } from "@shared/types/operation/operationTypes";
 import type { DependencyMasters } from "@electron/features/operation/domain/dependencyUtils";
 import { DependencyPropagator } from "./dependencyPropagator";
+import { stopPolling } from "./operationScheduler";
 import { notifyStatusCleared } from "./statusNotifier";
 import { statusState } from "./statusState";
 import { recalculateAllStatuses } from "./statusUpdater";
@@ -170,6 +171,8 @@ export async function registerOperationTargets(): Promise<void> {
 export async function resetOperationStatuses(): Promise<
   Record<string, OperationStatusState>
 > {
+  stopPolling();
+
   await clearSpreadsheetMasterDataCache();
 
   const masterData = await getSpreadsheetMasterData();

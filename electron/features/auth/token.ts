@@ -3,7 +3,7 @@
 import { app, safeStorage } from "electron";
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { AuthSession, OAuthToken } from "@shared/types/auth";
+import type { AuthSession, OAuthToken } from "@shared/types/auth/authTypes";
 
 const TOKEN_STORAGE_CONFIG = {
   fileName: "google-oauth-session.dat",

@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { OAuth2Client } from "google-auth-library";
 import { resolveResourcePath } from "@electron/features/system/systemService";
-import type { GoogleUserInfo, OAuthToken } from "@shared/types/auth";
+import type { AuthProfile, GoogleUserInfo, OAuthToken } from "@shared/types/auth/authTypes";
 
 const GOOGLE_AUTH_CONFIG = {
   credentialFileName: "google-oauth-credentials.json",
@@ -15,10 +15,6 @@ interface GoogleCredentials {
   clientSecret?: string;
 }
 
-export interface GoogleUserProfile {
-  email: string | null;
-  familyName: string | null;
-}
 
 type JsonObject = Record<string, unknown>;
 
@@ -152,7 +148,7 @@ export function isInvalidGrantError(error: unknown): boolean {
 // Google UserInfo APIからプロフィールを取得する
 export async function fetchGoogleUserInfo(
   accessToken: string,
-): Promise<GoogleUserProfile> {
+): Promise<AuthProfile> {
   try {
     const response = await fetch(GOOGLE_AUTH_CONFIG.userInfoUrl, {
       headers: {

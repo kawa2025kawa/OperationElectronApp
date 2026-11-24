@@ -26,6 +26,23 @@ import {
 export type { ManualScriptExecutionInput };
 export { getScriptExecutionRequirement };
 
+/** 同一管理Noに対する手動・自動スクリプトの二重起動を防ぐ排他ロック */
+const inFlightScripts = new Set<string>();
+
+function acquireScriptLock(kanriNo: string): void {
+  const normalized = normalizeKanriNo(kanriNo);
+  if (inFlightScripts.has(normalized)) {
+    throw new Error(
+      `No.${normalized} のスクリプトはすでに実行中のため重複起動できません。`,
+    );
+  }
+  inFlightScripts.add(normalized);
+}
+
+function releaseScriptLock(kanriNo: string): void {
+  inFlightScripts.delete(normalizeKanriNo(kanriNo));
+}
+
 function extractZipPath(error: unknown): string | null {
   const msg = error instanceof Error ? error.message : String(error);
   const m = msg.match(
@@ -136,6 +153,7 @@ export async function executeScriptAndApplyStatus(
   kanriNo: string,
   execute: () => Promise<JobResult>,
 ): Promise<JobResult> {
+  acquireScriptLock(kanriNo);
   try {
     let result = await execute();
     if (result.success === false || result.kind === "error") {
@@ -150,6 +168,8 @@ export async function executeScriptAndApplyStatus(
     const msg = err instanceof Error ? err.message : String(err);
     finalizeStatus(kanriNo, JOB_STATUS.ERROR, `実行エラー: ${msg}`);
     throw err;
+  } finally {
+    releaseScriptLock(kanriNo);
   }
 }
 
@@ -158,6 +178,12 @@ export async function executeManualScript(
 ): Promise<JobResult> {
   const kanriNo = normalizeKanriNo(input.kanriNo);
   const scriptKey = input.scriptKey?.trim() || kanriNo;
+
+  if (inFlightScripts.has(kanriNo)) {
+    throw new Error(
+      `No.${kanriNo} のスクリプトはすでに実行中のため重複起動できません。`,
+    );
+  }
 
   if (!input.ignoreDependencies) validateJobDependencies(kanriNo);
   validateScriptExecutionInput(scriptKey, input.filePath);

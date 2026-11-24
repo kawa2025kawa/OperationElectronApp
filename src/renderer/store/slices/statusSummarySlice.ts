@@ -1,8 +1,9 @@
-﻿// src/renderer/store/slices/statusSummarySlice.ts
+// src/renderer/store/slices/statusSummarySlice.ts
 
 import type { StateCreator } from "zustand";
 
 import { operationService } from "@renderer/features/operation/service/operationService";
+import type { ViewMode } from "@renderer/registry/appRegistry";
 import type { AppState } from "@renderer/store";
 import type { JobStatus } from "@shared/types/operation/operationTypes";
 import {
@@ -13,6 +14,7 @@ import {
 export interface StatusSummarySlice {
   summary: StatusSummary;
   summaryStatusFilter: JobStatus | null;
+  summaryReturnMode: ViewMode | null;
   fetchStatusSummary: () => Promise<void>;
   setStatusSummary: (summary: StatusSummary) => void;
   setSummaryStatusFilter: (status: JobStatus | null) => void;
@@ -24,12 +26,22 @@ export const createStatusSummarySlice: StateCreator<
   [],
   [],
   StatusSummarySlice
-> = (set) => {
+> = (set, get) => {
   let requestId = 0;
+
+  const clearFilterAndRestoreMode = (): void => {
+    const { summaryReturnMode } = get();
+    set({
+      summaryStatusFilter: null,
+      summaryReturnMode: null,
+      ...(summaryReturnMode ? { currentMode: summaryReturnMode } : {}),
+    });
+  };
 
   return {
     summary: { ...EMPTY_STATUS_SUMMARY },
     summaryStatusFilter: null,
+    summaryReturnMode: null,
 
     fetchStatusSummary: async () => {
       const currentRequestId = ++requestId;
@@ -60,14 +72,42 @@ export const createStatusSummarySlice: StateCreator<
     },
 
     setSummaryStatusFilter: (status) => {
+      if (status === null) {
+        clearFilterAndRestoreMode();
+        return;
+      }
+
+      const { currentMode, summaryReturnMode } = get();
+      if (currentMode === "irregular") {
+        set({
+          summaryStatusFilter: status,
+          summaryReturnMode: summaryReturnMode ?? "irregular",
+          currentMode: "operation",
+        });
+        return;
+      }
+
       set({ summaryStatusFilter: status });
     },
 
     toggleSummaryStatusFilter: (status) => {
-      set((state) => ({
-        summaryStatusFilter:
-          state.summaryStatusFilter === status ? null : status,
-      }));
+      const { summaryStatusFilter, currentMode, summaryReturnMode } = get();
+
+      if (summaryStatusFilter === status) {
+        clearFilterAndRestoreMode();
+        return;
+      }
+
+      if (currentMode === "irregular") {
+        set({
+          summaryStatusFilter: status,
+          summaryReturnMode: summaryReturnMode ?? "irregular",
+          currentMode: "operation",
+        });
+        return;
+      }
+
+      set({ summaryStatusFilter: status });
     },
   };
 };

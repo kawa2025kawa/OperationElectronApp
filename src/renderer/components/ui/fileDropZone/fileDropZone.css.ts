@@ -5,23 +5,6 @@ import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 import { focusRing } from "@renderer/styles/global/surfaces.css";
 
-const glassSurfaceBefore = {
-  position: "relative",
-  zIndex: 0,
-  backgroundColor: "transparent",
-  "::before": {
-    content: '""',
-    position: "absolute",
-    inset: 0,
-    zIndex: -1,
-    borderRadius: "inherit",
-    backgroundColor: tokens.glass.surface,
-    backdropFilter: "blur(12px) saturate(180%)",
-    WebkitBackdropFilter: "blur(12px) saturate(180%)",
-    pointerEvents: "none",
-  },
-} as const;
-
 export const hiddenInput = style({
   display: "none",
 });
@@ -201,7 +184,7 @@ export const dropdownTrigger = style([
     height: "36px",
     padding: `0 ${tokens.space.md}`,
     borderRadius: tokens.radius.sm,
-    ...glassSurfaceBefore,
+    backgroundColor: tokens.color.bg.base,
     border: `1px solid ${tokens.color.border.subtle}`,
     boxShadow: tokens.shadow.raised.low,
     color: tokens.color.text.base,
@@ -232,23 +215,24 @@ export const dropdownPositioner = style({
   zIndex: `calc(${tokens.zIndex.modal} + 10)`,
 });
 
-export const dropdownMenu = style([
-  {
-    display: "flex",
-    flexDirection: "column",
-    gap: "2px",
-    width: "100%",
-    maxHeight: "220px",
-    padding: tokens.space.xs,
-    overflowY: "auto",
-    scrollbarGutter: "stable",
-    borderRadius: tokens.radius.md,
-    ...glassSurfaceBefore,
-    border: `2px solid ${tokens.color.border.subtle}`,
-    boxShadow: tokens.shadow.raised.high,
-    outline: "none",
-  },
-]);
+export const dropdownMenu = style({
+  position: "relative",
+  zIndex: tokens.zIndex.base,
+  display: "flex",
+  flexDirection: "column",
+  gap: "2px",
+  width: "100%",
+  maxHeight: "220px",
+  padding: tokens.space.xs,
+  overflowY: "auto",
+  scrollbarGutter: "stable",
+  borderRadius: tokens.radius.md,
+  border: `1px solid ${tokens.glass.contextMenu.border}`,
+  backgroundColor: tokens.glass.contextMenu.surface,
+  backdropFilter: `blur(${tokens.glass.contextMenu.blur}) saturate(${tokens.glass.contextMenu.saturation})`,
+  boxShadow: tokens.shadow.contextMenu,
+  outline: "none",
+});
 
 export const dropdownItem = style({
   appearance: "none",

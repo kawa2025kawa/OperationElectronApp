@@ -3,7 +3,7 @@
 import { shell } from "electron";
 import { randomBytes } from "node:crypto";
 import { CodeChallengeMethod } from "google-auth-library";
-import type { AuthSession, OAuthToken } from "@shared/types/auth";
+import type { AuthSession, OAuthToken } from "@shared/types/auth/authTypes";
 import { OAUTH_LISTENER_CONFIG, startListener } from "./listener";
 import {
   createOAuthClient,

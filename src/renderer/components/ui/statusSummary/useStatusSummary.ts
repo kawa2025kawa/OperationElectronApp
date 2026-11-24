@@ -1,4 +1,4 @@
-﻿// src/renderer/components/ui/statusSummary/useStatusSummary.ts
+// src/renderer/components/ui/statusSummary/useStatusSummary.ts
 
 import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
@@ -67,11 +67,6 @@ export const useStatusSummary = () => {
       if (key === "total") {
         setSummaryStatusFilter(null);
         return;
-      }
-
-      const state = useAppStore.getState();
-      if (state.currentMode === "irregular") {
-        state.setMode("operation");
       }
 
       toggleSummaryStatusFilter(key);

@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 import { toErrorMessage } from "@renderer/utils/errorUtils";
-import type { UpdateInfo } from "@shared/types/system";
+import type { UpdateInfo } from "@shared/types/system/update";
 
 /**
 - システム操作（外部起動・マニュアル・更新確認・ファイル操作等）の IPC 通信を集約するサービス

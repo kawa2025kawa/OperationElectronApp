@@ -33,6 +33,28 @@ export function selectRowsForMode(
     : (state.tableRowsByMode[mode] ?? []);
 }
 
+/** Operation と TODAY の行データを重複排除して合算する共通セレクタ */
+export function selectMergedOperationAndTodayRows(
+  state: Pick<
+    OperationStatusSlice,
+    "tableRows" | "tableRowsMode" | "tableRowsByMode"
+  >,
+): OperationViewItem[] {
+  const operationRows = selectRowsForMode(state, "operation");
+  const todayRows = selectRowsForMode(state, "today");
+  const seenKanriNos = new Set<string>();
+  const merged: OperationViewItem[] = [];
+
+  for (const row of [...operationRows, ...todayRows]) {
+    const key = row.kanriNo.trim();
+    if (!key || seenKanriNos.has(key)) continue;
+    seenKanriNos.add(key);
+    merged.push(row);
+  }
+
+  return merged;
+}
+
 /** 行データに対してステータス通知の差分を適用する */
 function applyNotificationToRow(
   row: OperationViewItem,
@@ -78,7 +100,9 @@ export interface OperationStatusSlice {
   tableRowsMode: ViewMode | null;
   tableRowsByMode: Record<ViewMode, OperationViewItem[]>;
   isTableLoading: boolean;
+  isMergedSummaryLoading: boolean;
   fetchTableData: (mode: ViewMode, force?: boolean) => Promise<void>;
+  ensureOperationAndTodayData: () => Promise<void>;
   applyOperationStatusUpdates: (
     notifications: OperationStatusNotification[],
   ) => void;
@@ -103,6 +127,7 @@ export const createOperationStatusSlice: StateCreator<
       today: [],
     },
     isTableLoading: false,
+    isMergedSummaryLoading: false,
 
     fetchTableData: async (mode, force = false) => {
       const currentCache = get().tableRowsByMode[mode];
@@ -142,6 +167,42 @@ export const createOperationStatusSlice: StateCreator<
             state.isTableLoading = false;
           });
         }
+      }
+    },
+
+    ensureOperationAndTodayData: async () => {
+      const targetModes: readonly ViewMode[] = ["operation", "today"];
+      const missingModes = targetModes.filter(
+        (mode) => get().tableRowsByMode[mode].length === 0,
+      );
+
+      if (missingModes.length === 0) return;
+
+      set((state) => {
+        state.isMergedSummaryLoading = true;
+      });
+
+      try {
+        const results = await Promise.all(
+          missingModes.map(async (mode) => ({
+            mode,
+            data: await operationService.getTableData(mode),
+          })),
+        );
+
+        set((state) => {
+          for (const { mode, data } of results) {
+            state.tableRowsByMode[mode] = data;
+            if (state.currentMode === mode) {
+              state.tableRows = data;
+              state.tableRowsMode = mode;
+            }
+          }
+        });
+      } finally {
+        set((state) => {
+          state.isMergedSummaryLoading = false;
+        });
       }
     },
 

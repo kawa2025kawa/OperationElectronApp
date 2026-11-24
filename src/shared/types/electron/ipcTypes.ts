@@ -1,6 +1,6 @@
 // src/shared/types/electron/ipcTypes.ts
 
-import type { AuthProfile } from "@shared/types/auth";
+import type { AuthProfile } from "@shared/types/auth/authTypes";
 import type {
   EmailTemplateKey,
   GmailDraftFormValues,
@@ -23,7 +23,7 @@ import type {
   ShopResourceKey,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { StatusSummary } from "@shared/types/statusSummary/statusSummaryTypes";
-import type { UpdateInfo } from "@shared/types/system";
+import type { UpdateInfo } from "@shared/types/system/update";
 
 /**
 - Electron IPC チャンネル名定数
