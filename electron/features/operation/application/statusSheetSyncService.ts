@@ -126,8 +126,15 @@ export async function saveStatusesToSpreadsheet(
   input: SaveStatusSyncInput,
 ): Promise<SaveStatusSyncResult> {
   return withGoogleAuthErrorHandling(async () => {
+    const session = await authService.loadSession();
+    const operatorName =
+      input.operatorName?.trim() ||
+      session?.familyName?.trim() ||
+      session?.email?.trim() ||
+      "担当者";
+
     const metadata: StatusSyncMetadata = {
-      operatorName: input.operatorName.trim() || "不明",
+      operatorName,
       savedAt: formatDateTime(),
       handoverNote: input.handoverNote.trim(),
       revision: 0,

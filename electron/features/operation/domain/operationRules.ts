@@ -56,6 +56,17 @@ export const isAutoWorkType = (workType?: OperationWorkType | string | null): bo
 export const isManualWorkType = (workType?: OperationWorkType | string | null): boolean =>
   workType?.trim() === WORK_TYPE.MANUAL;
 
+export const isImmediateWorkType = (
+  workType?: OperationWorkType | string | null,
+  jobId?: string | null,
+): boolean => {
+  const trimmedJobId = jobId?.trim();
+  return (
+    workType?.trim() === WORK_TYPE.IMMEDIATE &&
+    Boolean(trimmedJobId && trimmedJobId !== "-")
+  );
+};
+
 export const isPreviousDayJob = (kanriNo: string | number): boolean =>
   PREVIOUS_DAY_SET.has(normalizeKanriNo(kanriNo));
 
@@ -92,17 +103,25 @@ export function mergeStatus(
   current: OperationStatusState | undefined,
   update: OperationStatusState,
 ): OperationStatusState {
+  const nextStatus = update.status ?? current?.status;
+  const nextErrorSource =
+    nextStatus === JOB_STATUS.ERROR
+      ? (update.errorSource ?? current?.errorSource ?? null)
+      : null;
+
   return {
     ...current,
     ...update,
     kanriNo: normalizeKanriNo(update.kanriNo),
-    status: update.status ?? current?.status,
+    status: nextStatus,
+    errorSource: nextErrorSource,
     comment: update.comment ?? current?.comment ?? "",
   };
 }
 
 const CHANGE_KEYS = [
   "status",
+  "errorSource",
   "comment",
   "startTime",
   "endTime",
@@ -125,6 +144,7 @@ export const createScheduledStatus = (
 ): OperationStatusState => ({
   kanriNo: normalizeKanriNo(kanriNo),
   status: JOB_STATUS.SCHEDULED,
+  errorSource: null,
   comment: "予定時刻待ち",
   startTime: null,
   endTime: null,

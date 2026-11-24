@@ -17,8 +17,6 @@ export function useAuthView() {
     isAuthenticated,
     isChecking,
     isGlobalProcessing,
-    userEmail,
-    familyName,
     login,
     logout,
     setGlobalProcessing,
@@ -27,8 +25,6 @@ export function useAuthView() {
       isAuthenticated: state.isAuthenticated,
       isChecking: state.isChecking,
       isGlobalProcessing: state.globalProcessing !== null,
-      userEmail: state.userEmail,
-      familyName: state.familyName,
       login: state.login,
       logout: state.logout,
       setGlobalProcessing: state.setGlobalProcessing,
@@ -77,8 +73,6 @@ export function useAuthView() {
 
   return {
     isAuthenticated,
-    userEmail,
-    familyName,
     isButtonDisabled: authState === "loading",
     buttonText: AUTH_BUTTON_TEXT[authState],
     handleAuthToggle,

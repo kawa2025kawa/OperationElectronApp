@@ -1,9 +1,10 @@
 // electron/features/operation/infrastructure/tracker/trackerServiceClient.ts
 
 import { isPreviousDayJob } from "@electron/features/operation/domain/operationRules";
-import type {
-  OperationMaster,
-  OperationStatusState,
+import {
+  JOB_STATUS,
+  type OperationMaster,
+  type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
 import {
   computeEarliestValidMs,
@@ -148,9 +149,11 @@ export async function fetchTrackerStatusByJobId(
   const item = await findTrackerItem(jobId, scheduledTime, kanriNo);
   if (!item) return undefined;
 
+  const status = resolveTrackerItemStatus(item.status);
   return {
     kanriNo,
-    status: resolveTrackerItemStatus(item.status),
+    status,
+    errorSource: status === JOB_STATUS.ERROR ? "tracker" : null,
     startTime: item.start_time,
     endTime: item.end_time,
   };

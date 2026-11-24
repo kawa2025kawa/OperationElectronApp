@@ -3,8 +3,11 @@
 import type { SpreadsheetDailyUpdateStatus } from "@shared/types/masterData/spreadsheetMasterDataTypes";
 import {
   SHEETS,
+  type Jugyoin,
+  type Kokyuhyo,
   type SheetData,
   type SheetId,
+  type Shop,
   type UpdateMeta,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { isSameJstDay } from "../application/jstDate";
@@ -177,9 +180,13 @@ export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData
     rdps,
     updateMeta,
   ] = await Promise.all([
-    loadSheetData(SHEETS.STORE.sheetName),
-    loadSheetData(SHEETS.KOKYUHYO.sheetName),
-    loadSheetData(SHEETS.JUGYOIN.sheetName),
+    loadSheetData<typeof SHEETS.STORE.sheetName, Shop>(SHEETS.STORE.sheetName),
+    loadSheetData<typeof SHEETS.KOKYUHYO.sheetName, Kokyuhyo>(
+      SHEETS.KOKYUHYO.sheetName,
+    ),
+    loadSheetData<typeof SHEETS.JUGYOIN.sheetName, Jugyoin>(
+      SHEETS.JUGYOIN.sheetName,
+    ),
     loadSheetData(SHEETS.KOKYUHYO_TANTOU.sheetName),
     loadSheetData(SHEETS.OPERATION.sheetName),
     loadSheetData(SHEETS.IRREGULAR.sheetName),

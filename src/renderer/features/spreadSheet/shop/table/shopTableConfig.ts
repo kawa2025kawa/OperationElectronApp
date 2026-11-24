@@ -1,12 +1,12 @@
 // src/renderer/features/spreadSheet/shop/table/shopTableConfig.ts
 
 import { createColumnHelper } from "@tanstack/react-table";
-import type { Shop } from "@shared/types/spreadsheet/spreadsheetTypes";
+import type { PublicShop } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { SpreadSheetTableFeatures } from "@renderer/features/spreadSheet/components/table/spreadsheetTableConfig";
 
-const columnHelper = createColumnHelper<SpreadSheetTableFeatures, Shop>();
+const columnHelper = createColumnHelper<SpreadSheetTableFeatures, PublicShop>();
 
-export function getShopRowId(row: Shop, index: number): string {
+export function getShopRowId(row: PublicShop, index: number): string {
   return row.shopCode
     ? `${String(row.shopCode).trim()}_${index}`
     : `shop_${index}`;

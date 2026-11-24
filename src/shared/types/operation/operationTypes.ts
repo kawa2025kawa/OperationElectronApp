@@ -26,6 +26,7 @@ export interface OperationLink {
 export const WORK_TYPE = {
   AUTO: "自動",
   MANUAL: "手動",
+  IMMEDIATE: "即時",
 } as const;
 
 export type OperationWorkType = (typeof WORK_TYPE)[keyof typeof WORK_TYPE];
@@ -196,9 +197,12 @@ export interface LinkConfig {
 - Operation Status
 - ========================= */
 
+export type OperationErrorSource = "script" | "tracker";
+
 export interface OperationStatusState {
   kanriNo: string;
   status?: JobStatus;
+  errorSource?: OperationErrorSource | null;
   comment?: string | null;
   startTime?: string | null;
   endTime?: string | null;

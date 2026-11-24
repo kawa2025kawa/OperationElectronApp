@@ -1,7 +1,6 @@
 // src/renderer/features/other/components/modal/contents/gmailDraft/useGmailModalLogic.ts
 
 import { useCallback, useState, type ChangeEvent } from "react";
-import { useShallow } from "zustand/shallow";
 
 import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftUiTypes";
 import type {
@@ -39,13 +38,7 @@ const createInitialFormValues = (): GmailDraftFormValues => ({
 });
 
 export function useGmailModalLogic() {
-  const { isAuthenticated, familyName, userEmail } = useAppStore(
-    useShallow((state) => ({
-      isAuthenticated: state.isAuthenticated,
-      familyName: state.familyName,
-      userEmail: state.userEmail,
-    })),
-  );
+  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
 
   const [templateKey, setTemplateKey] = useState<EmailTemplateKey | null>(null);
   const [formValues, setFormValues] = useState<GmailDraftFormValues>(
@@ -67,46 +60,40 @@ export function useGmailModalLogic() {
     [],
   );
 
-  const handleTemplateChange = useCallback(
-    async (value: unknown) => {
-      const nextKey = (value as EmailTemplateKey | null) ?? null;
+  const handleTemplateChange = useCallback(async (value: unknown) => {
+    const nextKey = (value as EmailTemplateKey | null) ?? null;
 
-      if (!nextKey) {
-        setTemplateKey(null);
-        setFormValues(createInitialFormValues());
-        setInfoMessage(DEFAULT_GMAIL_MESSAGE);
-        return;
-      }
+    if (!nextKey) {
+      setTemplateKey(null);
+      setFormValues(createInitialFormValues());
+      setInfoMessage(DEFAULT_GMAIL_MESSAGE);
+      return;
+    }
 
-      const option = EMAIL_TEMPLATE_OPTIONS.find(
-        (item) => item.key === nextKey,
-      );
-      if (!option) return;
+    const option = EMAIL_TEMPLATE_OPTIONS.find((item) => item.key === nextKey);
+    if (!option) return;
 
-      const key: EmailTemplateKey = option.key;
+    const key: EmailTemplateKey = option.key;
 
-      try {
-        const draft = await otherIpcService.generateDraftTemplate({
-          templateKey: key,
-          familyName: familyName ?? "",
-        });
+    try {
+      const draft = await otherIpcService.generateDraftTemplate({
+        templateKey: key,
+      });
 
-        setTemplateKey(key);
-        setFormValues(draft);
-        setInfoMessage({
-          text: `テンプレート (${option.label}) を読み込みました。`,
-          type: "info",
-        });
-      } catch (error) {
-        console.error("[useGmailModalLogic] Failed to create template:", error);
-        setInfoMessage({
-          text: toErrorMessage(error, "テンプレートの生成に失敗しました。"),
-          type: "error",
-        });
-      }
-    },
-    [familyName],
-  );
+      setTemplateKey(key);
+      setFormValues(draft);
+      setInfoMessage({
+        text: `テンプレート (${option.label}) を読み込みました。`,
+        type: "info",
+      });
+    } catch (error) {
+      console.error("[useGmailModalLogic] Failed to create template:", error);
+      setInfoMessage({
+        text: toErrorMessage(error, "テンプレートの生成に失敗しました。"),
+        type: "error",
+      });
+    }
+  }, []);
 
   const handleExecute = useCallback(async () => {
     if (!formValues.to.trim()) {
@@ -151,7 +138,6 @@ export function useGmailModalLogic() {
 
   return {
     isAuthenticated,
-    userEmail,
     templateKey,
     templateItems: TEMPLATE_SELECT_ITEMS,
     formValues,

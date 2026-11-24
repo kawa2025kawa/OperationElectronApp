@@ -11,6 +11,8 @@ import {
   type StatusTarget,
 } from "@electron/features/operation/application/statusManager";
 import {
+  isAutoWorkType,
+  isImmediateWorkType,
   isManualStatusDecisionJobId,
   normalizeKanriNo,
 } from "@electron/features/operation/domain/operationRules";
@@ -20,7 +22,6 @@ import {
 } from "@electron/features/operation/infrastructure/tracker/trackerServiceClient";
 import {
   JOB_STATUS,
-  type JobStatus,
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
 import {
@@ -40,11 +41,20 @@ function isTrackerPollingTarget(t: StatusTarget): t is OperationTarget {
     return false;
   }
 
+  if (
+    !isAutoWorkType(t.workType) &&
+    !isImmediateWorkType(t.workType, t.jobId)
+  ) {
+    return false;
+  }
+
   return !isManualStatusDecisionJobId(jobId);
 }
 
-const canSyncTrackerStatus = (s?: JobStatus): boolean =>
-  s === JOB_STATUS.READY || s === JOB_STATUS.RUNNING;
+const canSyncTrackerStatus = (state?: OperationStatusState): boolean =>
+  state?.status === JOB_STATUS.READY ||
+  state?.status === JOB_STATUS.RUNNING ||
+  (state?.status === JOB_STATUS.ERROR && state?.errorSource === "tracker");
 
 function evaluateTrackerStatus(
   trackerStatus: OperationStatusState,
@@ -103,6 +113,7 @@ export async function fetchSingleTrackerStatus(
     return {
       kanriNo,
       status: JOB_STATUS.ERROR,
+      errorSource: "tracker",
       comment: "Trackerステータス取得失敗",
     };
   }
@@ -158,7 +169,7 @@ export async function syncStatuses(targets: StatusTarget[]): Promise<void> {
         return;
       }
 
-      if (!canSyncTrackerStatus(getStatus(kanriNo)?.status)) return;
+      if (!canSyncTrackerStatus(getStatus(kanriNo))) return;
 
       try {
         const trackerStatus = await fetchTrackerStatus(target);

@@ -67,7 +67,7 @@ const OPERATION_SCRIPT_REGISTRY: Readonly<
 
   // Nシリーズ
   N12: [defineScript("N12", "Script", jobs.runJobN12)],
-  N25: [defineScript("N25", "N25", jobs.runJobN25)],
+  N250: [defineScript("N250", "N250", jobs.runJobN250)],
   N31: [defineScript("N31", "Script", jobs.runJobN31)],
   N33: [defineScript("N33", "Script", jobs.runJobN33)],
 

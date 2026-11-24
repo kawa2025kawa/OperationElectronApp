@@ -12,9 +12,29 @@ import {
 
 const DEFAULT_LINK_LABELS = ["リンク1", "リンク2", "リンク3"] as const;
 
-function normalizeWorkType(value: unknown): OperationWorkType {
-  if (typeof value === "string" && value.trim() === WORK_TYPE.AUTO) {
-    return WORK_TYPE.AUTO;
+function hasValidJobId(jobId: unknown): boolean {
+  if (typeof jobId !== "string") {
+    return false;
+  }
+
+  const trimmed = jobId.trim();
+  return Boolean(trimmed && trimmed !== "-");
+}
+
+function normalizeWorkType(
+  value: unknown,
+  jobId?: unknown,
+): OperationWorkType {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    if (trimmed === WORK_TYPE.AUTO) {
+      return WORK_TYPE.AUTO;
+    }
+
+    if (trimmed === WORK_TYPE.IMMEDIATE) {
+      return hasValidJobId(jobId) ? WORK_TYPE.IMMEDIATE : WORK_TYPE.MANUAL;
+    }
   }
 
   return WORK_TYPE.MANUAL;
@@ -132,7 +152,7 @@ function normalizeLinks<T extends OperationMaster | IrregularMaster>(
 
   return {
     ...item,
-    workType: normalizeWorkType(item.workType),
+    workType: normalizeWorkType(item.workType, item.jobId),
     scheduledTime: normalizeScheduledTime(item.scheduledTime),
     links: links.length > 0 ? links : item.links,
   };

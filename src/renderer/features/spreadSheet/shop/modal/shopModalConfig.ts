@@ -1,6 +1,9 @@
 // src/renderer/features/spreadSheet/shop/modal/shopModalConfig.ts
 
-import type { Shop } from "@shared/types/spreadsheet/spreadsheetTypes";
+import type {
+  PublicShop,
+  ShopResourceKey,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 import { SHOP_FIELD_LABELS } from "./shopFieldLabels";
 import type { TabGroupConfig } from "../../hooks/useSpreadSheetTabData";
 
@@ -31,7 +34,7 @@ export const TERMINAL_FIELDS = [
 ] as const;
 
 export const TIME_RECORDER_IMAGE_ITEMS: readonly {
-  key: keyof Shop;
+  key: ShopResourceKey;
   label: string;
 }[] = [
   { key: "tr1ImageUrl", label: SHOP_FIELD_LABELS.tr1ImageUrl },
@@ -50,7 +53,9 @@ const PRINTER_FIELD_LABELS = {
   CONTRACT_ID: "土日祝契約ID",
 } as const;
 
-export const SHOP_MODAL_GROUPS: readonly TabGroupConfig<keyof Shop>[] = [
+export const SHOP_MODAL_GROUPS: readonly TabGroupConfig<
+  Exclude<keyof PublicShop, "availableResources">
+>[] = [
   {
     title: SHOP_MODAL_CONSTANTS.TAB_TITLES.BASIC,
     items: [

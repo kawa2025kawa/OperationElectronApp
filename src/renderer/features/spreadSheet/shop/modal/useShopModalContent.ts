@@ -2,13 +2,13 @@
 
 import { useMemo, useCallback } from "react";
 import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
-import type { Shop } from "@shared/types/spreadsheet/spreadsheetTypes";
+import type {
+  PublicShop,
+  ShopResourceKey,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { ModalAction } from "@shared/types/ui/modal";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
-import {
-  normalizeExternalTarget,
-  spreadSheetService,
-} from "../../service/spreadSheetService";
+import { spreadSheetService } from "../../service/spreadSheetService";
 import {
   SHOP_MODAL_GROUPS,
   TIME_RECORDER_IMAGE_ITEMS,
@@ -18,13 +18,10 @@ import {
 } from "./shopModalConfig";
 
 interface UseShopModalContentParams {
-  data: Shop;
+  data: PublicShop;
 }
 
 export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
-  const excelPath = normalizeExternalTarget(data.excelFilePath);
-  const pdfPath = normalizeExternalTarget(data.pdfFilePath);
-
   const { selectedIndex, setSelectedIndex, groups, displayItems } =
     useSpreadSheetTabData(data, SHOP_MODAL_GROUPS);
 
@@ -43,7 +40,10 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
         type,
         badge: type.toUpperCase(),
         cells: TERMINAL_FIELDS.map(({ suffix }) => {
-          const fieldKey = `${type}${suffix}` as keyof Shop;
+          const fieldKey = `${type}${suffix}` as Exclude<
+            keyof PublicShop,
+            "availableResources"
+          >;
           return {
             key: suffix,
             value: data[fieldKey] || EMPTY_VALUE_FALLBACK,
@@ -57,50 +57,51 @@ export const useShopModalContent = ({ data }: UseShopModalContentParams) => {
     SHOP_MODAL_GROUPS[selectedIndex]?.title ===
     SHOP_MODAL_CONSTANTS.TAB_TITLES.TIME_RECORDER;
 
-  const handleOpenPath = useCallback((path: unknown) => {
-    void spreadSheetService.openExternal(path, "ファイルを開けませんでした");
-  }, []);
+  const handleOpenResource = useCallback(
+    (resourceKey: ShopResourceKey) => {
+      if (!data.shopCode) return;
+      void spreadSheetService.openShopResource(data.shopCode, resourceKey);
+    },
+    [data.shopCode],
+  );
 
   const timeRecorderActions = useMemo<ModalAction[]>(() => {
     if (!isTimeRecorderTab) return [];
 
-    const imageActions: ModalAction[] = TIME_RECORDER_IMAGE_ITEMS.map(
-      ({ key, label }) => {
-        const rawValue = data[key];
-        const hasUrl = Boolean(normalizeExternalTarget(rawValue));
+    const resources = data.availableResources ?? {};
 
-        return {
-          id: `image-${key}`,
-          label,
-          onClick: () => handleOpenPath(rawValue),
-          disabled: !hasUrl,
-          variant: "default",
-        };
-      },
+    const imageActions: ModalAction[] = TIME_RECORDER_IMAGE_ITEMS.map(
+      ({ key, label }) => ({
+        id: `image-${key}`,
+        label,
+        onClick: () => handleOpenResource(key),
+        disabled: !resources[key],
+        variant: "default",
+      }),
     );
 
     const fileActions: ModalAction[] = [];
 
-    if (excelPath) {
+    if (resources.excelFilePath) {
       fileActions.push({
         id: "excel",
         label: SHOP_MODAL_CONSTANTS.FILES.EXCEL_LABEL,
-        onClick: () => handleOpenPath(excelPath),
+        onClick: () => handleOpenResource("excelFilePath"),
         variant: "default",
       });
     }
 
-    if (pdfPath) {
+    if (resources.pdfFilePath) {
       fileActions.push({
         id: "pdf",
         label: SHOP_MODAL_CONSTANTS.FILES.PDF_LABEL,
-        onClick: () => handleOpenPath(pdfPath),
+        onClick: () => handleOpenResource("pdfFilePath"),
         variant: "default",
       });
     }
 
     return [...imageActions, ...fileActions];
-  }, [isTimeRecorderTab, data, excelPath, pdfPath, handleOpenPath]);
+  }, [isTimeRecorderTab, data.availableResources, handleOpenResource]);
 
   return {
     selectedIndex,

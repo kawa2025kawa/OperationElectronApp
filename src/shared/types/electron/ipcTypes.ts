@@ -18,6 +18,10 @@ import type {
 } from "@shared/types/operation/operationTypes";
 import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
+import type {
+  SHEETS,
+  ShopResourceKey,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { StatusSummary } from "@shared/types/statusSummary/statusSummaryTypes";
 import type { UpdateInfo } from "@shared/types/system";
 
@@ -54,6 +58,8 @@ export const IPC_CHANNELS = {
   SPREADSHEET: {
     GET_MASTER_DATA: "spreadsheet:master",
     GET_FILTERED_DATA: "spreadsheet:getFilteredData",
+    OPEN_STAFF_SCHEDULE: "spreadsheet:openStaffSchedule",
+    OPEN_SHOP_RESOURCE: "spreadsheet:openShopResource",
   },
   TEMPOMATIC: {
     UPLOAD_DOCUMENT: "tempomatic:uploadDocument",
@@ -115,7 +121,7 @@ export interface StatusSyncMetadata {
 }
 
 export interface SaveStatusSyncInput {
-  operatorName: string;
+  operatorName?: string;
   handoverNote: string;
 }
 
@@ -133,6 +139,10 @@ export interface LoadStatusSyncResult {
   metadata: StatusSyncMetadata | null;
   loadedAt: string;
 }
+
+export type StaffScheduleSheetId =
+  | typeof SHEETS.KOKYUHYO.sheetName
+  | typeof SHEETS.JUGYOIN.sheetName;
 
 /**
 - IPC チャンネルごとの引数・戻り値定義
@@ -178,7 +188,6 @@ interface IpcChannelDefinitions {
   [IPC_CHANNELS.GMAIL.GENERATE_DRAFT_TEMPLATE]: (input: {
     templateKey: EmailTemplateKey;
     targetData?: Record<string, unknown>;
-    familyName?: string;
     links?: Record<string, string> | null;
   }) => GmailDraftFormValues;
   [IPC_CHANNELS.GMAIL.CREATE_DRAFT]: (input: GmailDraftFormValues) => void;
@@ -190,6 +199,14 @@ interface IpcChannelDefinitions {
     sheetName: string;
     query?: string;
   }) => Record<string, unknown>[];
+  [IPC_CHANNELS.SPREADSHEET.OPEN_STAFF_SCHEDULE]: (input: {
+    sheetId: StaffScheduleSheetId;
+    staffId: string;
+  }) => null;
+  [IPC_CHANNELS.SPREADSHEET.OPEN_SHOP_RESOURCE]: (input: {
+    shopCode: string;
+    resourceKey: ShopResourceKey;
+  }) => null;
 
   // Tempomatic
   [IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT]: (input: {

@@ -1,4 +1,4 @@
-﻿// electron/features/operation/application/scriptExecutionService.ts
+// electron/features/operation/application/scriptExecutionService.ts
 
 import fs from "node:fs/promises";
 import { dialog } from "electron";
@@ -99,7 +99,13 @@ function finalizeStatus(
     return;
   }
 
-  updateStatus({ kanriNo, status, endTime: new Date().toISOString(), comment });
+  updateStatus({
+    kanriNo,
+    status,
+    errorSource: status === JOB_STATUS.ERROR ? "script" : null,
+    endTime: new Date().toISOString(),
+    comment,
+  });
 }
 
 function applyScriptExecutionResult(kanriNo: string, result: JobResult): void {

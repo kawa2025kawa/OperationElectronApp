@@ -7,11 +7,11 @@ import { useAppStore, type AppState } from "@renderer/store";
 import { MODAL_SIZES } from "@shared/types/ui/modal";
 import {
   SHEETS,
-  type Jugyoin,
-  type Kokyuhyo,
+  type PublicJugyoin,
+  type PublicKokyuhyo,
+  type PublicShop,
   type SheetData,
   type SheetId,
-  type Shop,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { ScheduleModalContent } from "../components/modal/ScheduleModalContent";
 import { isSpreadSheetHolidayText } from "../components/table/spreadsheetTableConfig";
@@ -69,7 +69,7 @@ export function useJugyoinView() {
   const columns = useMemo(() => getJugyoinColumns(baseDate), [baseDate]);
 
   const handleOpenModal = useCallback(
-    (row: Jugyoin, openModal: OpenSpreadsheetModal) => {
+    (row: PublicJugyoin, openModal: OpenSpreadsheetModal) => {
       openModal(createElement(ScheduleModalContent, { data: row }), {
         title: row.name || "",
         ...MODAL_SIZES.ULTRA_WIDE_21_9,
@@ -98,7 +98,7 @@ export function useKokyuhyoView() {
   const columns = useMemo(() => getKokyuhyoColumns(baseDate), [baseDate]);
 
   const handleOpenModal = useCallback(
-    (row: Kokyuhyo, openModal: OpenSpreadsheetModal) => {
+    (row: PublicKokyuhyo, openModal: OpenSpreadsheetModal) => {
       openModal(createElement(ScheduleModalContent, { data: row }), {
         title: row.name || "",
         ...MODAL_SIZES.KOKYUHYO,
@@ -118,7 +118,7 @@ export function useKokyuhyoView() {
 
 export function useShopView() {
   const handleOpenModal = useCallback(
-    (row: Shop, openModal: OpenSpreadsheetModal) => {
+    (row: PublicShop, openModal: OpenSpreadsheetModal) => {
       openModal(createElement(ShopModalContent, { data: row }), {
         title: row.shopName || "",
         ...MODAL_SIZES.SHOP,

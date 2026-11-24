@@ -55,6 +55,20 @@ type ShopKey = ShopBaseKeys | ShopPrinterKeys | ShopTrKeys;
 
 export type Shop = Record<ShopKey, string>;
 
+export type ShopResourceKey =
+  | "tr1ImageUrl"
+  | "tr2ImageUrl"
+  | "tr3ImageUrl"
+  | "tr4ImageUrl"
+  | "hubImageUrl"
+  | "outletImageUrl"
+  | "excelFilePath"
+  | "pdfFilePath";
+
+export type PublicShop = Omit<Shop, ShopResourceKey> & {
+  availableResources: Partial<Record<ShopResourceKey, boolean>>;
+};
+
 type StaffScheduleBaseKey =
   | "id"
   | "name"
@@ -74,12 +88,22 @@ type StaffScheduleBaseKey =
   | "position"
   | "email";
 
+export type StaffHiddenKey = "nameKana" | "scheduleLink";
+
 export type Kokyuhyo = Record<StaffScheduleBaseKey, string>;
+
+export type PublicKokyuhyo = Omit<Kokyuhyo, StaffHiddenKey> & {
+  hasScheduleLink: boolean;
+};
 
 export type Jugyoin = Record<
   StaffScheduleBaseKey | "bumon" | "bumonKana",
   string
 >;
+
+export type PublicJugyoin = Omit<Jugyoin, StaffHiddenKey | "bumonKana"> & {
+  hasScheduleLink: boolean;
+};
 
 export type Tantou = Record<
   | "id"
@@ -163,9 +187,9 @@ type SheetDefinition = (typeof SHEETS)[keyof typeof SHEETS];
 export type SheetId = SheetDefinition["sheetName"];
 
 type SheetRowMap = {
-  [SHEETS.STORE.sheetName]: Shop;
-  [SHEETS.KOKYUHYO.sheetName]: Kokyuhyo;
-  [SHEETS.JUGYOIN.sheetName]: Jugyoin;
+  [SHEETS.STORE.sheetName]: PublicShop;
+  [SHEETS.KOKYUHYO.sheetName]: PublicKokyuhyo;
+  [SHEETS.JUGYOIN.sheetName]: PublicJugyoin;
   [SHEETS.KOKYUHYO_TANTOU.sheetName]: Tantou;
   [SHEETS.OPERATION.sheetName]: OperationMaster;
   [SHEETS.IRREGULAR.sheetName]: IrregularMaster;

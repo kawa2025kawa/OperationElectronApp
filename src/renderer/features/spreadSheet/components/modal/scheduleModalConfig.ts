@@ -1,4 +1,4 @@
-﻿// src/renderer/features/spreadSheet/components/modal/scheduleModalConfig.ts
+// src/renderer/features/spreadSheet/components/modal/scheduleModalConfig.ts
 
 export const SCHEDULE_MODAL_LABELS = {
   PROFILE: {

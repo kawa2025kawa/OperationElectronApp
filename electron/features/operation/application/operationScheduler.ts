@@ -54,9 +54,9 @@ async function executeScript(
     startTime: new Date().toISOString(),
   });
 
-  if (normalizeKanriNo(kanriNo) === "N25") {
+  if (normalizeKanriNo(kanriNo) === "N250") {
     console.info(
-      `[N25][Scheduler] 自動実行開始: ${new Date().toLocaleString("ja-JP")}`,
+      `[N250][Scheduler] 自動実行開始: ${new Date().toLocaleString("ja-JP")}`,
     );
   }
 

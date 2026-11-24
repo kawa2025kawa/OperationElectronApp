@@ -1,4 +1,4 @@
-// electron/features/operation/jobs/scripts/nseries/job_n25.ts
+// electron/features/operation/jobs/scripts/nseries/job_n250.ts
 
 import { chromium, type Browser } from "playwright";
 import { addDays, format } from "date-fns";
@@ -7,7 +7,7 @@ import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/job
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
-interface JobN25ResultData {
+interface JobN250ResultData {
   expectedDate: string;
   actualDate: string | null;
   isMatched: boolean;
@@ -28,10 +28,10 @@ const CONFIG = {
 } as const;
 
 /**
- * ベルク勤怠管理システム（BELCTA）へログインし、業務日付を確認する。
+- ベルク勤怠管理システム（BELCTA）へログインし、業務日付を確認する。
  */
-export async function runJobN25(): Promise<JobResult> {
-  console.info(`[N25][Runner] runJobN25開始: ${new Date().toISOString()}`);
+export async function runJobN250(): Promise<JobResult> {
+  console.info(`[N250][Runner] runJobN250開始: ${new Date().toISOString()}`);
 
   return runJobWithLogger(
     "業務日付の取得・検証に失敗しました",
@@ -45,7 +45,7 @@ export async function runJobN25(): Promise<JobResult> {
       const expectedDate = format(addDays(new Date(), 1), "yyyy/MM/dd");
       const result = await fetchAndValidateBusinessDate(expectedDate);
 
-      console.info("[N25][Runner] 業務日付取得結果:", {
+      console.info("[N250][Runner] 業務日付取得結果:", {
         取得日時: new Date().toISOString(),
         期待する翌日: result.expectedDate,
         BELCTA取得日付: result.actualDate,
@@ -59,7 +59,7 @@ export async function runJobN25(): Promise<JobResult> {
 
 async function fetchAndValidateBusinessDate(
   expectedDate: string,
-): Promise<JobN25ResultData> {
+): Promise<JobN250ResultData> {
   let browser: Browser | undefined;
 
   try {
@@ -115,7 +115,7 @@ async function fetchAndValidateBusinessDate(
 
 function writeResultLog(
   logger: JobLogger,
-  result: JobN25ResultData,
+  result: JobN250ResultData,
 ): JobResult {
   logger.section("接続先URL");
   logger.log(CONFIG.loginUrl);

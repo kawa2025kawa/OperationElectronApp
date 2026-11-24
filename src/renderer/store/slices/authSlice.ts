@@ -1,4 +1,4 @@
-﻿// src/renderer/store/slices/authSlice.ts
+// src/renderer/store/slices/authSlice.ts
 
 import type { StateCreator } from "zustand";
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
@@ -10,15 +10,11 @@ import type { AuthProfile, AuthSlice } from "@shared/types/auth/authTypes";
 function clearAuthState(state: AppState): void {
   state.isAuthenticated = false;
   state.isChecking = false;
-  state.userEmail = null;
-  state.familyName = null;
 }
 
-// 認証プロフィールを状態に反映する。
+// 認証状態を反映する。
 function applyAuthState(state: AppState, profile: AuthProfile): void {
-  state.isAuthenticated = true;
-  state.userEmail = profile.email;
-  state.familyName = profile.familyName;
+  state.isAuthenticated = Boolean(profile.isAuthenticated);
 }
 
 export type { AuthSlice } from "@shared/types/auth/authTypes";
@@ -32,8 +28,6 @@ export const createAuthSlice: StateCreator<
 > = (set, get) => ({
   isAuthenticated: false,
   isChecking: false,
-  userEmail: null,
-  familyName: null,
 
   login: async (): Promise<boolean> => {
     try {
@@ -43,7 +37,7 @@ export const createAuthSlice: StateCreator<
         applyAuthState(state, profile);
       });
 
-      return true;
+      return profile.isAuthenticated;
     } catch (error) {
       console.error("[Auth] Login failed:", error);
 
@@ -63,7 +57,7 @@ export const createAuthSlice: StateCreator<
     try {
       const profile = await authIpcService.loadSession(forceRefresh);
 
-      if (!profile) {
+      if (!profile || !profile.isAuthenticated) {
         set((state) => {
           clearAuthState(state);
         });

@@ -116,7 +116,7 @@ export const operationService = {
 
   /** 現在のステータスおよび有効フラグをスプレッドシートへ保存する */
   saveStatusesToSheet: (params: {
-    operatorName: string;
+    operatorName?: string;
     handoverNote: string;
   }) =>
     window.electronAPI.invoke(

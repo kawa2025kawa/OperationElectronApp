@@ -1,4 +1,4 @@
-﻿// src/renderer/features/spreadSheet/shop/modal/shopFieldLabels.ts
+// src/renderer/features/spreadSheet/shop/modal/shopFieldLabels.ts
 
 const PRINTER_TYPES = ["B", "K", "O"] as const;
 type PrinterType = (typeof PRINTER_TYPES)[number];

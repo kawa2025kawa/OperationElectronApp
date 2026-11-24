@@ -1,4 +1,4 @@
-﻿// src/renderer/features/spreadSheet/components/modal/ScheduleModalContent.tsx
+// src/renderer/features/spreadSheet/components/modal/ScheduleModalContent.tsx
 
 import { memo } from "react";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";

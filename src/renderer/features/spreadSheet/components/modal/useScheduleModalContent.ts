@@ -1,31 +1,31 @@
-﻿// src/renderer/features/spreadSheet/components/modal/useScheduleModalContent.ts
+// src/renderer/features/spreadSheet/components/modal/useScheduleModalContent.ts
 
 import { useCallback, useMemo } from "react";
-import type { Jugyoin } from "@shared/types/spreadsheet/spreadsheetTypes";
-import type { Kokyuhyo } from "@shared/types/spreadsheet/spreadsheetTypes";
-import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
 import {
-  normalizeExternalTarget,
-  spreadSheetService,
-} from "../../service/spreadSheetService";
+  SHEETS,
+  type PublicJugyoin,
+  type PublicKokyuhyo,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
+import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
+import { spreadSheetService } from "../../service/spreadSheetService";
 import {
   formatDateWithDay,
   getOffsetDate,
 } from "../../utils/spreadsheetDateUtils";
 
-export type ScheduleModalTarget = Jugyoin | Kokyuhyo;
+export type ScheduleModalTarget = PublicJugyoin | PublicKokyuhyo;
 
 export function useScheduleModalContent(data: ScheduleModalTarget) {
-  const scheduleLink = normalizeExternalTarget(data?.scheduleLink);
+  const hasScheduleLink = Boolean(data?.hasScheduleLink && data?.id);
 
   const handleOpenSchedule = useCallback(() => {
-    if (scheduleLink) {
-      void spreadSheetService.openExternal(
-        scheduleLink,
-        "スケジュールリンクを開けませんでした",
-      );
-    }
-  }, [scheduleLink]);
+    if (!hasScheduleLink || !data?.id) return;
+
+    const sheetId =
+      "bumon" in data ? SHEETS.JUGYOIN.sheetName : SHEETS.KOKYUHYO.sheetName;
+
+    void spreadSheetService.openStaffSchedule(sheetId, data.id);
+  }, [hasScheduleLink, data]);
 
   const profile = useMemo(
     () => ({
@@ -80,7 +80,7 @@ export function useScheduleModalContent(data: ScheduleModalTarget) {
     state: {
       profile,
       schedules,
-      hasScheduleLink: Boolean(scheduleLink),
+      hasScheduleLink,
     },
     actions: {
       handleOpenSchedule,

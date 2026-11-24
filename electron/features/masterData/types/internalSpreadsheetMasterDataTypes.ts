@@ -7,16 +7,19 @@ import type {
   TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
 import type {
+  Jugyoin,
+  Kokyuhyo,
   SheetData,
   SheetId,
+  Shop,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type { RdpMaster } from "../../rdp/rdpMasterTypes";
 
 export interface SpreadsheetMasterData {
-  stores: SheetData<typeof SHEETS.STORE.sheetName>;
-  kokyuhyos: SheetData<typeof SHEETS.KOKYUHYO.sheetName>;
-  jugyoin: SheetData<typeof SHEETS.JUGYOIN.sheetName>;
+  stores: Shop[];
+  kokyuhyos: Kokyuhyo[];
+  jugyoin: Jugyoin[];
   kokyuhyoTantous: SheetData<typeof SHEETS.KOKYUHYO_TANTOU.sheetName>;
   operations: OperationMaster[];
   irregulars: IrregularMaster[];

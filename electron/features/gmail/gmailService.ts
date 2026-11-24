@@ -18,7 +18,7 @@ const GMAIL_SIGNATURE_URL =
 const GMAIL_DRAFT_URL = "https://gmail.googleapis.com/gmail/v1/users/me/drafts";
 
 /**
- * Gmail のプライマリ署名を取得する
+- Gmail のプライマリ署名を取得する
  */
 export async function fetchPrimarySignature(): Promise<string> {
   try {
@@ -34,12 +34,14 @@ export async function fetchPrimarySignature(): Promise<string> {
 }
 
 /**
- * メールテンプレートから下書きデータを生成する
+- メールテンプレートから下書きデータを生成する（担当者姓はMain側セッションから解決）
  */
 export async function generateDraftTemplate(
   params: GenerateDraftTemplateParams,
 ) {
-  const { templateKey, familyName = "", links } = params;
+  const { templateKey, links } = params;
+  const session = await authService.loadSession();
+  const familyName = params.familyName ?? session?.familyName ?? "";
 
   const draft = createEmailTemplate(templateKey, {
     familyName,
@@ -61,7 +63,7 @@ export async function generateDraftTemplate(
 }
 
 /**
- * Gmail に下書きを登録する
+- Gmail に下書きを登録する
  */
 export async function createGmailDraft(params: {
   to?: string;

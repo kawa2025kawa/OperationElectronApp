@@ -15,7 +15,7 @@ export * from "./eseries/job_e9";
 
 // Nシリーズ
 export * from "./nseries/job_n12";
-export * from "./nseries/job_n25";
+export * from "./nseries/job_n250";
 export * from "./nseries/job_n31";
 export * from "./nseries/job_n33";
 

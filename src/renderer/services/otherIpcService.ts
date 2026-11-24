@@ -9,7 +9,6 @@ import type { TempomaticUploadTargetFile } from "@shared/types/electron/ipcTypes
 
 export interface GenerateDraftTemplateParams {
   templateKey: EmailTemplateKey;
-  familyName?: string;
   links?: Record<string, string> | null;
 }
 
@@ -20,7 +19,7 @@ export interface UploadDocumentParams {
 }
 
 /**
- * その他機能（Gmail下書き・Tempomatic PDF・ギフトMD）の IPC 通信を集約するサービス
+- その他機能（Gmail下書き・Tempomatic PDF・ギフトMD）の IPC 通信を集約するサービス
  */
 export const otherIpcService = {
   // --- Gmail ---
