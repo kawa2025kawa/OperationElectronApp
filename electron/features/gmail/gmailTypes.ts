@@ -1,11 +1,11 @@
 // electron/features/gmail/gmailTypes.ts
 
-import type { EmailTemplateKey } from "@shared/types/gmail/gmailDraftTypes";
+import type { EmailTemplateKey } from "@shared/types/electron/ipcTypes";
 
 export type {
   EmailTemplateKey,
   GmailDraft,
-} from "@shared/types/gmail/gmailDraftTypes";
+} from "@shared/types/electron/ipcTypes";
 
 interface GmailSendAs {
   isPrimary?: boolean;

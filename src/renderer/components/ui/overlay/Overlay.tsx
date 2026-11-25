@@ -1,7 +1,10 @@
 // src/renderer/components/ui/overlay/Overlay.tsx
 
-import type { ReactNode } from "react";
-import { useAppStartupLoader, useProcessingLoader } from "./useOverlay";
+import { useMemo, type ReactNode } from "react";
+import { clsx } from "clsx";
+import { useShallow } from "zustand/react/shallow";
+import { useAppStore } from "@renderer/store";
+import type { InitStatus } from "@shared/types/initializationTypes";
 import * as styles from "./overlay.css";
 
 interface OverlayProps {
@@ -9,86 +12,114 @@ interface OverlayProps {
   onClick?: () => void;
 }
 
-export const Overlay = ({ isOpen, onClick }: OverlayProps) => {
-  const state = isOpen ? "open" : "closed";
-
-  return (
-    <div
-      className={`${styles.backdropBase} ${styles.backdropStates[state]}`}
-      onClick={onClick}
-    />
-  );
+const PANEL_LABELS: Record<keyof InitStatus, string> = {
+  update: "App Update Check",
+  operation: "Operation Data",
+  irregular: "Irregular Data",
+  operationMaster: "Operation Master",
+  irregularMaster: "Irregular Master",
+  rdp: "RDP Master",
+  auth: "Google Auth",
+  sheetSync: "Sheet Daily Sync",
+  store: "Store Master",
+  jugyoin: "jugyoin Master",
+  kokyuhyo: "kokyuhyo Data",
+  tantou: "tantou Data",
 };
-
-interface LoadingContentProps {
-  message?: string;
-  statusMessage?: string;
-}
 
 const DOT_DELAYS = [0, 0.2, 0.4];
 
-const LoadingContent = ({
-  message = "LOADING...",
-  statusMessage = "INITIALIZING SYSTEM CORE",
-}: LoadingContentProps) => (
-  <div className={styles.contentWrapper}>
-    <div className={styles.grid}>
-      <div className={styles.scanline} />
-      <div className={styles.content}>
-        <div className={styles.title}>{message}</div>
-        <div className={styles.dots}>
-          {DOT_DELAYS.map((delay) => (
-            <span
-              key={delay}
-              className={styles.dot}
-              style={{ animationDelay: `${delay}s` }}
-            />
-          ))}
-        </div>
-        <div className={styles.status}>{statusMessage}</div>
-      </div>
-    </div>
-  </div>
-);
-
-interface LoaderTargetProps {
-  value: string;
+function getStatusTone(value: string): string {
+  switch (value) {
+    case "OK":
+    case "CONNECTED":
+      return styles.tone.ok;
+    case "LOADING":
+      return styles.tone.info;
+    default:
+      return styles.tone.ng;
+  }
 }
 
-const LoaderTarget = ({ value }: LoaderTargetProps) => (
+export const Overlay = ({ isOpen, onClick }: OverlayProps) => (
+  <div
+    className={clsx(
+      styles.backdropBase,
+      styles.backdropStates[isOpen ? "open" : "closed"],
+    )}
+    onClick={onClick}
+  />
+);
+
+const LoaderTarget = ({ value }: { value: string }) => (
   <div className={styles.processingTargetPanel}>
     <span className={styles.processingTargetLabel}>PROCESSING TARGET</span>
     <span className={styles.processingTargetValue}>{value}</span>
   </div>
 );
 
-interface LoadingOverlayProps {
-  isOpen: boolean;
-  message?: string;
-  statusMessage?: string;
-  children?: ReactNode;
-}
-
 const LoadingOverlay = ({
   isOpen,
   message = "SYSTEM INITIALIZING",
   statusMessage = "INITIALIZING SYSTEM CORE",
   children,
-}: LoadingOverlayProps) => {
-  const state = isOpen ? "active" : "inactive";
-
-  return (
-    <div
-      className={`${styles.fullScreenLoaderBase} ${styles.fullScreenLoaderStates[state]}`}
-    >
-      <LoadingContent message={message} statusMessage={statusMessage} />
-      {children}
+}: {
+  isOpen: boolean;
+  message?: string;
+  statusMessage?: string;
+  children?: ReactNode;
+}) => (
+  <div
+    className={clsx(
+      styles.fullScreenLoaderBase,
+      styles.fullScreenLoaderStates[isOpen ? "active" : "inactive"],
+    )}
+  >
+    <div className={styles.contentWrapper}>
+      <div className={styles.grid}>
+        <div className={styles.scanline} />
+        <div className={styles.content}>
+          <div className={styles.title}>{message}</div>
+          <div className={styles.dots}>
+            {DOT_DELAYS.map((delay) => (
+              <span
+                key={delay}
+                className={styles.dot}
+                style={{ animationDelay: `${delay}s` }}
+              />
+            ))}
+          </div>
+          <div className={styles.status}>{statusMessage}</div>
+        </div>
+      </div>
     </div>
-  );
-};
+    {children}
+  </div>
+);
 
 export const AppStartupLoader = () => {
-  const { showAppLoader, currentTarget, statusRows } = useAppStartupLoader();
+  const { initStatus, showAppLoader } = useAppStore(
+    useShallow((state) => ({
+      initStatus: state.initStatus,
+      showAppLoader: state.showAppLoader ?? true,
+    })),
+  );
+
+  const statusRows = useMemo(
+    () =>
+      (Object.entries(initStatus) as Array<[keyof InitStatus, string]>).map(
+        ([key, value]) => ({
+          key: String(key),
+          label: PANEL_LABELS[key],
+          value,
+          toneClass: getStatusTone(value),
+        }),
+      ),
+    [initStatus],
+  );
+
+  const currentTarget =
+    statusRows.find((row) => row.value === "LOADING")?.label ?? null;
 
   return (
     <LoadingOverlay
@@ -111,7 +142,9 @@ export const AppStartupLoader = () => {
 };
 
 export const ProcessingLoader = () => {
-  const globalProcessing = useProcessingLoader();
+  const globalProcessing = useAppStore(
+    useShallow((state) => state.globalProcessing ?? null),
+  );
 
   if (!globalProcessing) {
     return null;

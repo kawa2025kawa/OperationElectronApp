@@ -1,6 +1,7 @@
 // src/renderer/components/ui/searchField/SearchField.tsx
 
 import { memo, type InputHTMLAttributes, type Ref } from "react";
+import { clsx } from "clsx";
 import * as styles from "./searchField.css";
 
 export interface SearchFieldProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -20,7 +21,7 @@ export const SearchField = memo(function SearchField({
         ref={ref}
         type="search"
         placeholder={placeholder}
-        className={`${styles.searchField} ${className ?? ""}`.trim()}
+        className={clsx(styles.searchField, className)}
       />
     </div>
   );

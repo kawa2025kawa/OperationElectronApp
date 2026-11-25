@@ -1,28 +1,43 @@
 // src/renderer/features/spreadSheet/SpreadSheetView.tsx
 
-import { memo, type ReactNode } from "react";
+import { createElement, memo, useCallback, useMemo, type ReactNode } from "react";
+import { useShallow } from "zustand/shallow";
 
-import type { AppState } from "@renderer/store";
 import { AuthView } from "@renderer/features/auth/AuthView";
-import type {
-  SheetData,
-  SheetId,
+import { useAppStore, type AppState } from "@renderer/store";
+import {
+  SHEETS,
+  type PublicJugyoin,
+  type PublicKokyuhyo,
+  type PublicShop,
+  type SheetData,
+  type SheetId,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { MODAL_SIZES } from "@shared/types/ui/modal";
 
+import { ScheduleModalContent } from "./components/modal/ScheduleModalContent";
 import {
   SpreadSheetTable,
   type SpreadSheetTableProps,
 } from "./components/table/SpreadSheetTable";
+import { isSpreadSheetHolidayText } from "./components/table/spreadsheetTableConfig";
 import {
-  useJugyoinView,
-  useKokyuhyoView,
-  useShopView,
-  useSpreadSheetSheetState,
-} from "./hooks/useSpreadSheetView";
+  getJugyoinColumns,
+  getJugyoinRowId,
+} from "./jugyoin/table/jugyoinTableConfig";
+import {
+  getKokyuhyoColumns,
+  getKokyuhyoRowId,
+} from "./kokyuhyo/table/kokyuhyoTableConfig";
+import { ShopModalContent } from "./shop/modal/ShopModalContent";
+import { getShopRowId, SHOP_COLUMNS } from "./shop/table/shopTableConfig";
+import { resolveScheduleBaseDate } from "./utils/spreadsheetDateUtils";
 import * as styles from "./spreadSheetView.css";
 
 type SheetRow<T extends SheetId> = SheetData<T>[number];
 type OpenSpreadsheetModal = AppState["openGlobalModal"];
+
+const EMPTY_SHEET_ROWS: readonly never[] = Object.freeze([]);
 
 interface BaseSpreadSheetViewProps<T extends SheetId> {
   sheetId: T;
@@ -45,8 +60,19 @@ function BaseSpreadSheetView<T extends SheetId>({
   placeholderContent,
   isHolidayCell,
 }: BaseSpreadSheetViewProps<T>) {
-  const { isAuthenticated, rows, sheetError, handleRowClick } =
-    useSpreadSheetSheetState(sheetId, onRowClick);
+  const { openGlobalModal, isAuthenticated, rows, sheetError } = useAppStore(
+    useShallow((state: AppState) => ({
+      openGlobalModal: state.openGlobalModal,
+      isAuthenticated: state.isAuthenticated,
+      rows: (state.sheetData[sheetId]?.data ?? EMPTY_SHEET_ROWS) as SheetData<T>,
+      sheetError: state.sheetErrors[sheetId],
+    })),
+  );
+
+  const handleRowClick = useCallback(
+    (row: SheetRow<T>) => onRowClick(row, openGlobalModal),
+    [onRowClick, openGlobalModal],
+  );
 
   if (!isAuthenticated) return <AuthView />;
 
@@ -78,19 +104,88 @@ function BaseSpreadSheetView<T extends SheetId>({
 }
 
 export const JugyoinView = memo(function JugyoinView() {
-  const viewProps = useJugyoinView();
-  return <BaseSpreadSheetView {...viewProps} />;
+  const jugyoinUpdatedAt = useAppStore(
+    (state: AppState) => state.dailyUpdateStatus?.jugyoinUpdatedAt,
+  );
+  const baseDate = useMemo(
+    () => resolveScheduleBaseDate(jugyoinUpdatedAt),
+    [jugyoinUpdatedAt],
+  );
+  const columns = useMemo(() => getJugyoinColumns(baseDate), [baseDate]);
+
+  const handleOpenModal = useCallback(
+    (row: PublicJugyoin, openModal: OpenSpreadsheetModal) => {
+      openModal(createElement(ScheduleModalContent, { data: row }), {
+        title: row.name || "",
+        ...MODAL_SIZES.ULTRA_WIDE_21_9,
+      });
+    },
+    [],
+  );
+
+  return (
+    <BaseSpreadSheetView
+      sheetId={SHEETS.JUGYOIN.sheetName}
+      columns={columns}
+      getRowId={getJugyoinRowId}
+      onRowClick={handleOpenModal}
+      isHolidayCell={isSpreadSheetHolidayText}
+    />
+  );
 });
 JugyoinView.displayName = "JugyoinView";
 
 export const KokyuhyoView = memo(function KokyuhyoView() {
-  const viewProps = useKokyuhyoView();
-  return <BaseSpreadSheetView {...viewProps} />;
+  const kokyuhyoUpdatedAt = useAppStore(
+    (state: AppState) => state.dailyUpdateStatus?.kokyuhyoUpdatedAt,
+  );
+  const baseDate = useMemo(
+    () => resolveScheduleBaseDate(kokyuhyoUpdatedAt),
+    [kokyuhyoUpdatedAt],
+  );
+  const columns = useMemo(() => getKokyuhyoColumns(baseDate), [baseDate]);
+
+  const handleOpenModal = useCallback(
+    (row: PublicKokyuhyo, openModal: OpenSpreadsheetModal) => {
+      openModal(createElement(ScheduleModalContent, { data: row }), {
+        title: row.name || "",
+        ...MODAL_SIZES.KOKYUHYO,
+      });
+    },
+    [],
+  );
+
+  return (
+    <BaseSpreadSheetView
+      sheetId={SHEETS.KOKYUHYO.sheetName}
+      columns={columns}
+      getRowId={getKokyuhyoRowId}
+      onRowClick={handleOpenModal}
+      isHolidayCell={isSpreadSheetHolidayText}
+    />
+  );
 });
 KokyuhyoView.displayName = "KokyuhyoView";
 
 export const ShopView = memo(function ShopView() {
-  const viewProps = useShopView();
-  return <BaseSpreadSheetView {...viewProps} />;
+  const handleOpenModal = useCallback(
+    (row: PublicShop, openModal: OpenSpreadsheetModal) => {
+      openModal(createElement(ShopModalContent, { data: row }), {
+        title: row.shopName || "",
+        ...MODAL_SIZES.SHOP,
+      });
+    },
+    [],
+  );
+
+  return (
+    <BaseSpreadSheetView
+      sheetId={SHEETS.STORE.sheetName}
+      columns={SHOP_COLUMNS}
+      getRowId={getShopRowId}
+      onRowClick={handleOpenModal}
+      headerVariant="standard"
+    />
+  );
 });
 ShopView.displayName = "ShopView";

@@ -5,18 +5,18 @@ import { operationService } from "@renderer/features/operation/service/operation
 import {
   getScriptExecutionState,
   getScriptInfoMessage,
+  SCRIPT_MODAL_LABELS,
   toScriptFileItems,
   type ScriptExecutionState,
   type ScriptFileItem,
 } from "@renderer/features/operation/utils/scriptModalUtils";
 import { useModalFooterSync } from "@renderer/hooks/useModalFooterSync";
 import { useAppStore } from "@renderer/store";
-import { toErrorMessage } from "@renderer/utils/errorUtils";
+import { toErrorMessage } from "@renderer/utils/rendererUtils";
 import type {
   JobResult,
   OperationViewItem,
 } from "@shared/types/operation/operationTypes";
-import { SCRIPT_MODAL_LABELS } from "./scriptModalConstants";
 
 export function useScriptModalContent(
   item: OperationViewItem | null | undefined,
@@ -56,10 +56,7 @@ export function useScriptModalContent(
 
   const handleFileSelect = useCallback((files: File[]) => {
     const items = toScriptFileItems(files);
-
-    if (items.length === 0) {
-      return;
-    }
+    if (items.length === 0) return;
 
     setSelectedFiles((current) => [...current, ...items]);
     setExecutionState("idle");
@@ -79,15 +76,10 @@ export function useScriptModalContent(
   }, []);
 
   const handleExecute = useCallback(async () => {
-    if (!kanriNo || !scriptKey || isExecuting) {
-      return;
-    }
+    if (!kanriNo || !scriptKey || isExecuting) return;
 
     const filePaths = selectedFiles.map(({ path }) => path).filter(Boolean);
-
-    if (isFileSelectionRequired && filePaths.length === 0) {
-      return;
-    }
+    if (isFileSelectionRequired && filePaths.length === 0) return;
 
     setIsExecuting(true);
 

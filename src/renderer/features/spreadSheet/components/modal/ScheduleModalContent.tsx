@@ -4,7 +4,6 @@ import { memo } from "react";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import { dayTone } from "../table/spreadSheetTable.css";
-import { SCHEDULE_MODAL_LABELS } from "./scheduleModalConfig";
 import {
   useScheduleModalContent,
   type ScheduleModalTarget,
@@ -15,7 +14,22 @@ export interface ScheduleModalContentProps {
   data: ScheduleModalTarget;
 }
 
-const { PROFILE, TABLE_HEADER } = SCHEDULE_MODAL_LABELS;
+const PROFILE_LABELS = {
+  POSITION: "役職",
+  EMAIL: "Email",
+  EXTENSION: "内線",
+  MOBILE_SHORT: "短縮",
+  MOBILE: "携帯",
+  SCHEDULE_LINK: "Schedulelink",
+} as const;
+
+const TABLE_HEADER_LABELS = {
+  CATEGORY: "区分",
+  LOCATION: "場所",
+  DETAIL: "詳細",
+  AM: "AM",
+  PM: "PM",
+} as const;
 
 export const ScheduleModalContent: GlobalModalComponent<ScheduleModalContentProps> =
   memo(({ data }) => {
@@ -26,24 +40,24 @@ export const ScheduleModalContent: GlobalModalComponent<ScheduleModalContentProp
         <div className={styles.profileCard}>
           <div className={styles.profileGrid}>
             <div className={styles.profileItem}>
-              {PROFILE.POSITION} : {state.profile.position}
+              {PROFILE_LABELS.POSITION} : {state.profile.position}
             </div>
             <div className={styles.profileItem}>
-              {PROFILE.EMAIL} : {state.profile.email}
+              {PROFILE_LABELS.EMAIL} : {state.profile.email}
             </div>
             <div className={styles.profileItem}>
-              {PROFILE.EXTENSION} : {state.profile.extension}
+              {PROFILE_LABELS.EXTENSION} : {state.profile.extension}
             </div>
             <div className={styles.profileItem}>
-              {PROFILE.MOBILE_SHORT} : {state.profile.mobileShort}
+              {PROFILE_LABELS.MOBILE_SHORT} : {state.profile.mobileShort}
             </div>
             <div className={styles.profileItem}>
-              {PROFILE.MOBILE} : {state.profile.mobile}
+              {PROFILE_LABELS.MOBILE} : {state.profile.mobile}
             </div>
           </div>
           {state.hasScheduleLink && (
             <ActionButton onClick={actions.handleOpenSchedule}>
-              {PROFILE.SCHEDULE_LINK}
+              {PROFILE_LABELS.SCHEDULE_LINK}
             </ActionButton>
           )}
         </div>
@@ -60,13 +74,19 @@ export const ScheduleModalContent: GlobalModalComponent<ScheduleModalContentProp
                   <span className={dayClass}>{item.date.dayText}</span>
                 </div>
               </div>
-              <div className={styles.cell.header}>{TABLE_HEADER.CATEGORY}</div>
-              <div className={styles.cell.header}>{TABLE_HEADER.LOCATION}</div>
-              <div className={styles.cell.header}>{TABLE_HEADER.DETAIL}</div>
-              <div className={styles.cell.section}>{TABLE_HEADER.AM}</div>
+              <div className={styles.cell.header}>
+                {TABLE_HEADER_LABELS.CATEGORY}
+              </div>
+              <div className={styles.cell.header}>
+                {TABLE_HEADER_LABELS.LOCATION}
+              </div>
+              <div className={styles.cell.header}>
+                {TABLE_HEADER_LABELS.DETAIL}
+              </div>
+              <div className={styles.cell.section}>{TABLE_HEADER_LABELS.AM}</div>
               <div className={styles.cell.data}>{item.amStatus}</div>
               <div className={styles.cell.data}>{item.amDetail}</div>
-              <div className={styles.cell.section}>{TABLE_HEADER.PM}</div>
+              <div className={styles.cell.section}>{TABLE_HEADER_LABELS.PM}</div>
               <div className={styles.cell.data}>{item.pmStatus}</div>
               <div className={styles.cell.data}>{item.pmDetail}</div>
             </div>

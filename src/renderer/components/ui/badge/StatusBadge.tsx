@@ -1,6 +1,7 @@
 // src/renderer/components/ui/badge/StatusBadge.tsx
 
 import { memo } from "react";
+import { clsx } from "clsx";
 
 import {
   JOB_STATUS,
@@ -17,9 +18,8 @@ interface StatusBadgeProps {
 export const StatusBadge = memo<StatusBadgeProps>(
   ({ status = JOB_STATUS.SCHEDULED }) => {
     const toneClass = styles.tone[status] ?? styles.tone.scheduled;
-
     const label = JOB_STATUS_LABEL[status] ?? status;
 
-    return <div className={`${styles.badge} ${toneClass}`}>{label}</div>;
+    return <div className={clsx(styles.badge, toneClass)}>{label}</div>;
   },
 );

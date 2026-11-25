@@ -1,11 +1,25 @@
 // src/renderer/features/operation/utils/scriptModalUtils.ts
 
-import { SCRIPT_MODAL_MESSAGES } from "@renderer/features/operation/components/modal/scriptModal/scriptModalConstants";
 import {
   toResolvedFileItem,
   type ResolvedFileItem,
-} from "@renderer/utils/filePathUtils";
+} from "@renderer/utils/rendererUtils";
 import type { JobResult } from "@shared/types/operation/operationTypes";
+
+const SCRIPT_MODAL_MESSAGES = {
+  CONFIRM_IDLE: "実行しますか？",
+  SUCCESS: "正常終了しました",
+  DIFFERENCE: "差分あり",
+  NEEDS_ACTION: "要対応",
+  ERROR: "エラーが発生しました",
+} as const;
+
+export const SCRIPT_MODAL_LABELS = {
+  CANCEL_BUTTON: "キャンセル",
+  EXECUTE_BUTTON: "実行",
+  EXECUTING_BUTTON: "実行中...",
+  DEFAULT_ARTIFACT_NAME: "成果物",
+} as const;
 
 export type ScriptFileItem = ResolvedFileItem;
 
@@ -47,34 +61,14 @@ export function getScriptInfoMessage(
 ): InfoBoxMessage {
   switch (executionState) {
     case "error":
-      return {
-        text: SCRIPT_MODAL_MESSAGES.ERROR,
-        type: "error",
-      };
-
+      return { text: SCRIPT_MODAL_MESSAGES.ERROR, type: "error" };
     case "needsAction":
-      return {
-        text: SCRIPT_MODAL_MESSAGES.NEEDS_ACTION,
-        type: "warning",
-      };
-
+      return { text: SCRIPT_MODAL_MESSAGES.NEEDS_ACTION, type: "warning" };
     case "completed":
-      if (executionResult?.kind === "difference") {
-        return {
-          text: SCRIPT_MODAL_MESSAGES.DIFFERENCE,
-          type: "error",
-        };
-      }
-
-      return {
-        text: SCRIPT_MODAL_MESSAGES.SUCCESS,
-        type: "success",
-      };
-
+      return executionResult?.kind === "difference"
+        ? { text: SCRIPT_MODAL_MESSAGES.DIFFERENCE, type: "error" }
+        : { text: SCRIPT_MODAL_MESSAGES.SUCCESS, type: "success" };
     case "idle":
-      return {
-        text: SCRIPT_MODAL_MESSAGES.CONFIRM_IDLE,
-        type: "info",
-      };
+      return { text: SCRIPT_MODAL_MESSAGES.CONFIRM_IDLE, type: "info" };
   }
 }

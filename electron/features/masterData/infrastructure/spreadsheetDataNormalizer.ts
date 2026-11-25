@@ -1,7 +1,6 @@
 // electron/features/masterData/infrastructure/spreadsheetDataNormalizer.ts
 
 import { randomUUID } from "node:crypto";
-import type { SpreadsheetMasterData } from "../types/internalSpreadsheetMasterDataTypes";
 import {
   WORK_TYPE,
   type IrregularMaster,
@@ -9,14 +8,12 @@ import {
   type OperationMaster,
   type OperationWorkType,
 } from "@shared/types/operation/operationTypes";
+import type { SpreadsheetMasterData } from "../application/spreadsheetMasterDataManager";
 
 const DEFAULT_LINK_LABELS = ["リンク1", "リンク2", "リンク3"] as const;
 
 function hasValidJobId(jobId: unknown): boolean {
-  if (typeof jobId !== "string") {
-    return false;
-  }
-
+  if (typeof jobId !== "string") return false;
   const trimmed = jobId.trim();
   return Boolean(trimmed && trimmed !== "-");
 }
@@ -27,11 +24,9 @@ function normalizeWorkType(
 ): OperationWorkType {
   if (typeof value === "string") {
     const trimmed = value.trim();
-
     if (trimmed === WORK_TYPE.AUTO) {
       return WORK_TYPE.AUTO;
     }
-
     if (trimmed === WORK_TYPE.IMMEDIATE) {
       return hasValidJobId(jobId) ? WORK_TYPE.IMMEDIATE : WORK_TYPE.MANUAL;
     }
@@ -41,9 +36,7 @@ function normalizeWorkType(
 }
 
 function normalizeScheduledTime(value: unknown): string {
-  if (typeof value !== "string") {
-    return "-";
-  }
+  if (typeof value !== "string") return "-";
 
   const trimmed = value.trim();
   if (!trimmed || /^[-‐‑–—―−ー]$/.test(trimmed)) {
@@ -62,12 +55,7 @@ function normalizeScheduledTime(value: unknown): string {
   return "-";
 }
 
-// レコードのキーと文字列値を正規化する。
 function normalizeRow<T extends object>(row: T): T {
-  if (row == null || typeof row !== "object") {
-    return {} as T;
-  }
-
   const normalized = Object.fromEntries(
     Object.entries(row).map(([rawKey, value]) => {
       const cleanKey = rawKey.replace(/^\uFEFF/, "").trim();
@@ -87,27 +75,17 @@ function normalizeRow<T extends object>(row: T): T {
 
   if (typeof normalized.gmail === "string") {
     const gmail = normalized.gmail.toUpperCase();
-
-    if (gmail === "TRUE") {
-      normalized.gmail = true;
-    } else if (gmail === "FALSE") {
-      normalized.gmail = false;
-    }
+    if (gmail === "TRUE") normalized.gmail = true;
+    else if (gmail === "FALSE") normalized.gmail = false;
   }
 
   return normalized as T;
 }
 
-// レコード一覧を正規化する。
 export function normalizeSpreadsheetRows<T extends object>(rows: T[]): T[] {
-  if (!Array.isArray(rows)) {
-    return [];
-  }
-
   return rows.map(normalizeRow);
 }
 
-// アプリ内部で使用する行IDを付与する。
 function normalizeRowsWithId<T extends { id: string }>(rows: T[]): T[] {
   const seenIds = new Set<string>();
   return rows.map((row, index) => {
@@ -116,15 +94,10 @@ function normalizeRowsWithId<T extends { id: string }>(rows: T[]): T[] {
       id = id ? `${id}_${index}` : randomUUID();
     }
     seenIds.add(id);
-
-    return {
-      ...row,
-      id,
-    };
+    return { ...row, id };
   });
 }
 
-// シートのリンク先パスとラベルをOperationLink形式に変換する。
 function normalizeLinks<T extends OperationMaster | IrregularMaster>(
   item: T,
 ): T {
@@ -136,7 +109,6 @@ function normalizeLinks<T extends OperationMaster | IrregularMaster>(
 
   const links: OperationLink[] = configs.flatMap((cfg, index) => {
     const trimmedPath = cfg.path?.trim();
-
     if (!trimmedPath || trimmedPath === "-") {
       return [];
     }
@@ -158,7 +130,6 @@ function normalizeLinks<T extends OperationMaster | IrregularMaster>(
   };
 }
 
-// 不定期運用データの周期指定を統合する。
 function normalizeIrregulars(rows: IrregularMaster[]): IrregularMaster[] {
   return rows.map((item) =>
     normalizeLinks({
@@ -177,15 +148,11 @@ export function normalizeSpreadsheetMasterData(
   data: SpreadsheetMasterData,
 ): SpreadsheetMasterData {
   return {
-    stores: data.stores ?? [],
-    kokyuhyos: normalizeRowsWithId(data.kokyuhyos ?? []),
-    jugyoin: normalizeRowsWithId(data.jugyoin ?? []),
-    kokyuhyoTantous: data.kokyuhyoTantous ?? [],
-    operations: (data.operations ?? []).map(normalizeLinks),
-    irregulars: normalizeIrregulars(data.irregulars ?? []),
-    todayIrregulars: (data.todayIrregulars ?? []).map(normalizeLinks),
-    rdps: data.rdps ?? [],
-    dailyUpdateStatus: data.dailyUpdateStatus,
+    ...data,
+    kokyuhyos: normalizeRowsWithId(data.kokyuhyos),
+    jugyoin: normalizeRowsWithId(data.jugyoin),
+    operations: data.operations.map(normalizeLinks),
+    irregulars: normalizeIrregulars(data.irregulars),
     errors: { ...data.errors },
   };
 }

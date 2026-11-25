@@ -6,7 +6,7 @@ import {
   type PublicJugyoin,
   type PublicKokyuhyo,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
-import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
+import { EMPTY_VALUE_FALLBACK } from "@shared/utils/sharedUtils";
 import { spreadSheetService } from "../../service/spreadSheetService";
 import {
   formatDateWithDay,

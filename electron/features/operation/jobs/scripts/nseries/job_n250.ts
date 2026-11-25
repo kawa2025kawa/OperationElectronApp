@@ -5,7 +5,7 @@ import { addDays, format } from "date-fns";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import { getServiceCredentials } from "@electron/features/system/serviceCredentialsLoader";
+import { getServiceCredentials } from "@electron/features/system/systemService";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 interface JobN250ResultData {

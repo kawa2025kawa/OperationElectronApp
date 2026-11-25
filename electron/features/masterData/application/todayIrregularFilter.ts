@@ -1,28 +1,55 @@
 // electron/features/masterData/application/todayIrregularFilter.ts
 
+import { TZDate } from "@date-fns/tz";
+import { format, getDaysInMonth, isValid } from "date-fns";
 import type {
   IrregularMaster,
   TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
-import { getJstDateParts } from "./jstDate";
 
-type JstDateParts = ReturnType<typeof getJstDateParts>;
+const JST_TIME_ZONE = "Asia/Tokyo" as const;
+const WEEKDAY_JA = ["日", "月", "火", "水", "木", "金", "土"] as const;
+
+interface JstDateParts {
+  year: number;
+  month: number;
+  day: number;
+  weekday: string;
+  lastDay: number;
+}
+
+function getJstDateParts(value: Date): JstDateParts {
+  const jst = new TZDate(value, JST_TIME_ZONE);
+  return {
+    year: jst.getFullYear(),
+    month: jst.getMonth() + 1,
+    day: jst.getDate(),
+    weekday: WEEKDAY_JA[jst.getDay()] ?? "",
+    lastDay: getDaysInMonth(jst),
+  };
+}
+
+function getJstDateKey(value: Date): string {
+  return format(new TZDate(value, JST_TIME_ZONE), "yyyy-MM-dd");
+}
+
+// 指定日時が現在の日本時間の日付と一致するか判定する
+export function isSameJstDay(value: string): boolean {
+  const date = new Date(value);
+  return isValid(date) && getJstDateKey(date) === getJstDateKey(new Date());
+}
 
 // 周期指定が月日・週・曜日などの条件に一致するか判定する。
 function matchesCycle(cycleValue: string, today: JstDateParts): boolean {
   return cycleValue.split(/[,，、]/).some((rawRule) => {
     const rule = rawRule.trim();
-
-    if (rule === "") {
-      return false;
-    }
+    if (!rule) return false;
 
     if (/^(月末|末日)$/.test(rule)) {
       return today.day === today.lastDay;
     }
 
     const monthDay = rule.match(/^(\d{1,2})\/(\d{1,2})$/);
-
     if (monthDay) {
       return (
         today.month === Number(monthDay[1]) && today.day === Number(monthDay[2])
@@ -30,19 +57,16 @@ function matchesCycle(cycleValue: string, today: JstDateParts): boolean {
     }
 
     const week = rule.match(/^第([1-5])週$/);
-
     if (week) {
       return Math.ceil(today.day / 7) === Number(week[1]);
     }
 
     const weekday = rule.match(/^([月火水木金土日])(?:曜日?)?$/);
-
     if (weekday) {
       return today.weekday === weekday[1];
     }
 
     const day = rule.match(/^(\d{1,2})日?$/);
-
     if (day) {
       return today.day === Number(day[1]);
     }
@@ -54,17 +78,12 @@ function matchesCycle(cycleValue: string, today: JstDateParts): boolean {
 // 予定時刻（"hh:mm" もしくは "-"）を並べ替え用の数値に変換する。
 function getScheduledTimeRank(value: unknown): number {
   const time = String(value ?? "").trim();
-
-  if (!time || time === "-") {
-    return 9999;
-  }
+  if (!time || time === "-") return 9999;
 
   const match = time.match(/^(\d{1,2}):(\d{2})$/);
-
   if (match) {
     const hours = Number(match[1]);
     const minutes = Number(match[2]);
-
     if (hours <= 23 && minutes <= 59) {
       return hours * 60 + minutes;
     }
@@ -87,7 +106,7 @@ export function buildTodayIrregulars(
       const cycle = String(item.cycle ?? "").trim();
       const cycle2 = String(item.cycle2 ?? "").trim();
 
-      if (kanriNo === "" || workName === "") {
+      if (!kanriNo || !workName) {
         return false;
       }
 
@@ -96,7 +115,7 @@ export function buildTodayIrregulars(
         return today.month % 3 === 0 && today.day === 1;
       }
 
-      return cycle !== "" && matchesCycle(cycle, today);
+      return Boolean(cycle) && matchesCycle(cycle, today);
     })
     .map((item) => ({
       item,

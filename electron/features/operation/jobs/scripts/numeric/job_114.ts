@@ -11,7 +11,7 @@ import {
 import {
   formatDateTime,
   getDateKey,
-} from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const CONFIG = {
   logDir: "\\\\192.88.100.1\\diskD\\execute\\log",

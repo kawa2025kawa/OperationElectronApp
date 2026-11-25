@@ -3,6 +3,7 @@
 import { memo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { ContextMenu } from "@base-ui/react/context-menu";
+import { clsx } from "clsx";
 
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { StatusContextMenu } from "@renderer/features/operation/components/contextMenu/StatusContextMenu";
@@ -152,7 +153,10 @@ export const OperationTable = memo(function OperationTable() {
                   return (
                     <th
                       key={header.id}
-                      className={`${styles.thBase} ${styles.alignVariants[align]}`}
+                      className={clsx(
+                        styles.thBase,
+                        styles.alignVariants[align],
+                      )}
                     >
                       {!header.isPlaceholder && (
                         <span className={styles.cellText}>

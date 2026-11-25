@@ -1,6 +1,9 @@
 // electron/features/auth/googleApiClient.ts
 
+import type { AuthProfile, GoogleUserInfo } from "@shared/types/auth/authTypes";
 import { authService } from "./authService";
+
+const USER_INFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 
 // Google認証に関するエラーを表す
 export class GoogleAuthError extends Error {
@@ -25,6 +28,30 @@ async function fetchWithToken(
   headers.set("Accept", "application/json");
 
   return fetch(url, { ...init, headers });
+}
+
+// アクセストークン指定でGoogle UserInfo APIからプロフィールを取得する
+export async function fetchGoogleUserInfo(
+  accessToken: string,
+): Promise<AuthProfile> {
+  try {
+    const response = await fetchWithToken(USER_INFO_URL, {}, accessToken);
+    if (!response.ok) {
+      console.warn(
+        `[AuthService] UserInfo API failed with status: ${response.status}`,
+      );
+      return { email: null, familyName: null };
+    }
+
+    const userInfo = (await response.json()) as GoogleUserInfo;
+    return {
+      email: userInfo.email?.trim() || null,
+      familyName: userInfo.family_name?.trim() || null,
+    };
+  } catch (error) {
+    console.error("[AuthService] Failed to fetch user info:", error);
+    return { email: null, familyName: null };
+  }
 }
 
 // Google APIへ認証済みリクエストを送信する（401時は1回だけトークン更新してリトライ）

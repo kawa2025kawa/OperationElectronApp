@@ -1,13 +1,21 @@
-// src/renderer/utils/filePathUtils.ts
+// src/renderer/utils/rendererUtils.ts
 
-import { getFileName } from "@shared/utils/fileUtils";
+import { getFileName } from "@shared/utils/sharedUtils";
 
 export interface ResolvedFileItem {
   name: string;
   path: string;
 }
 
-/** ブラウザの File オブジェクトからローカルファイルパスを取得する */
+/** unknown なエラー値から表示用メッセージ文字列を取り出す */
+export function toErrorMessage(error: unknown, fallback?: string): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  const text = String(error ?? "");
+  return text || fallback || "予期しないエラーが発生しました";
+}
+
 function resolveDroppedFilePath(file: File): string {
   const fromBridge = window.electronAPI.getFilePath(file);
   if (fromBridge) {

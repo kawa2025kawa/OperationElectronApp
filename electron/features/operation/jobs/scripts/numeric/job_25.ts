@@ -5,7 +5,7 @@ import {
   listFilesInDir,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {

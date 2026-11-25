@@ -9,10 +9,12 @@ import {
 import {
   buildSheetValuesUrl,
   quoteSheetName,
-} from "@electron/features/masterData/infrastructure/googleSheetsHelper";
+} from "@electron/features/masterData/infrastructure/spreadsheetClient";
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
-import { persistActiveFlags } from "@electron/features/operation/infrastructure/storage/activeFlagsStorage";
-import { persistStatusesImmediately } from "@electron/features/operation/infrastructure/storage/statusStorage";
+import {
+  persistActiveFlags,
+  persistStatusesImmediately,
+} from "@electron/features/operation/infrastructure/operationStorage";
 import type {
   LoadStatusSyncResult,
   SaveStatusSyncInput,
@@ -22,24 +24,148 @@ import type {
 } from "@shared/types/electron/ipcTypes";
 import {
   DEFAULT_ACTIVE_FLAGS,
+  JOB_STATUS_VALUES,
   type ActiveFlags,
+  type JobStatus,
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
-import { getActiveFlags } from "./statusFlagService";
-import { notifyStatusUpdated } from "./statusNotifier";
 import {
-  buildSavePayloadRows,
-  parseMetadataFromRows,
-  parseStatusFromRow,
-  STATUS_SYNC_COLUMN_LAYOUT,
-} from "./statusSheetSyncMapper";
-import { statusState } from "./statusState";
+  getActiveFlags,
+  notifyStatusUpdated,
+  statusState,
+} from "./statusState";
+import { recalculateAllStatuses } from "./statusUpdater";
 
 const STATUS_SYNC_SHEET_CONFIG = {
   spreadsheetId: "1VdlHfI2Z3eker8vvqTNEeO0rI5kqV-d_6UlRZOHNV2Q",
   sheetName: "OperationStatusSync",
   dateTimeFormat: "yyyy/MM/dd HH:mm:ss",
 } as const;
+
+const COLUMN_LAYOUT = {
+  dataStartRowIndex: 1,
+  updatedAtColIndex: 5, // F列: updatedAt
+  metaStartColIndex: 7, // H列 (0-based: A=0 ... G=6, H=7)
+} as const;
+
+const STATUS_HEADER_ROW = [
+  "kanriNo",
+  "status",
+  "comment",
+  "startTime",
+  "endTime",
+  "updatedAt",
+] as const;
+
+const META_HEADER_ROW = [
+  "operatorName",
+  "handoverNote",
+  "is1CActive",
+  "is2CActive",
+  "is3CActive",
+] as const;
+
+function isValidJobStatus(value: string): value is JobStatus {
+  return (JOB_STATUS_VALUES as readonly string[]).includes(value);
+}
+
+function parseBooleanCell(value?: string): boolean {
+  return value?.trim().toUpperCase() === "TRUE";
+}
+
+function parseMetadataFromRows(dataRows: string[][]): StatusSyncMetadata | null {
+  const firstRow = dataRows[0];
+  if (!firstRow) return null;
+
+  const metaCells = firstRow.slice(
+    COLUMN_LAYOUT.metaStartColIndex,
+    COLUMN_LAYOUT.metaStartColIndex + META_HEADER_ROW.length,
+  );
+
+  const savedAtFromColumnF =
+    dataRows
+      .map((row) => (row[COLUMN_LAYOUT.updatedAtColIndex] ?? "").trim())
+      .find((value) => Boolean(value)) ?? "";
+
+  if (metaCells.every((cell) => !cell?.trim()) && !savedAtFromColumnF) {
+    return null;
+  }
+
+  return {
+    operatorName: (metaCells[0] ?? "").trim(),
+    handoverNote: metaCells[1] ?? "",
+    activeFlags: {
+      is1CActive: parseBooleanCell(metaCells[2]),
+      is2CActive: parseBooleanCell(metaCells[3]),
+      is3CActive: parseBooleanCell(metaCells[4]),
+    },
+    savedAt: savedAtFromColumnF,
+    revision: 0,
+  };
+}
+
+function parseStatusFromRow(row: string[]): OperationStatusState | null {
+  const kanriNo = normalizeKanriNo(row[0] ?? "");
+  if (!kanriNo) return null;
+
+  const rawStatus = (row[1] ?? "").trim();
+  const status: JobStatus | undefined = isValidJobStatus(rawStatus)
+    ? rawStatus
+    : undefined;
+
+  return {
+    kanriNo,
+    status,
+    comment: row[2] ?? "",
+    startTime: row[3]?.trim() ? row[3].trim() : null,
+    endTime: row[4]?.trim() ? row[4].trim() : null,
+  };
+}
+
+function buildSavePayloadRows(
+  statuses: ReadonlyMap<string, OperationStatusState>,
+  metadata: StatusSyncMetadata,
+): string[][] {
+  const headerRow: string[] = [
+    ...STATUS_HEADER_ROW,
+    "",
+    ...META_HEADER_ROW,
+  ];
+
+  const metaValues: string[] = [
+    metadata.operatorName,
+    metadata.handoverNote,
+    metadata.activeFlags.is1CActive ? "TRUE" : "FALSE",
+    metadata.activeFlags.is2CActive ? "TRUE" : "FALSE",
+    metadata.activeFlags.is3CActive ? "TRUE" : "FALSE",
+  ];
+
+  const statusEntries = [...statuses.entries()];
+  const totalDataRows = Math.max(statusEntries.length, 1);
+  const rows: string[][] = [headerRow];
+
+  for (let i = 0; i < totalDataRows; i += 1) {
+    const entry = statusEntries[i];
+    const statusCells = entry
+      ? [
+          entry[0],
+          entry[1].status ?? "",
+          entry[1].comment ?? "",
+          entry[1].startTime ?? "",
+          entry[1].endTime ?? "",
+          metadata.savedAt,
+        ]
+      : ["", "", "", "", "", metadata.savedAt];
+
+    if (i === 0) {
+      rows.push([...statusCells, "", ...metaValues]);
+    } else {
+      rows.push(statusCells);
+    }
+  }
+
+  return rows;
+}
 
 function formatDateTime(date = new Date()): string {
   return format(date, STATUS_SYNC_SHEET_CONFIG.dateTimeFormat);
@@ -100,7 +226,7 @@ async function fetchRawSheetRows(): Promise<string[][]> {
 export async function previewStatusSyncFromSpreadsheet(): Promise<StatusSyncPreviewResult> {
   return withGoogleAuthErrorHandling(async () => {
     const values = await fetchRawSheetRows();
-    const dataRows = values.slice(STATUS_SYNC_COLUMN_LAYOUT.dataStartRowIndex);
+    const dataRows = values.slice(COLUMN_LAYOUT.dataStartRowIndex);
 
     if (dataRows.length === 0) {
       return { hasData: false, metadata: null };
@@ -115,10 +241,7 @@ export async function previewStatusSyncFromSpreadsheet(): Promise<StatusSyncPrev
       return { hasData: false, metadata: null };
     }
 
-    return {
-      hasData: true,
-      metadata,
-    };
+    return { hasData: true, metadata };
   });
 }
 
@@ -180,7 +303,7 @@ export async function loadStatusesFromSpreadsheet(): Promise<LoadStatusSyncResul
   return withGoogleAuthErrorHandling(async () => {
     const values = await fetchRawSheetRows();
     const loadedAt = formatDateTime();
-    const dataRows = values.slice(STATUS_SYNC_COLUMN_LAYOUT.dataStartRowIndex);
+    const dataRows = values.slice(COLUMN_LAYOUT.dataStartRowIndex);
     const metadata = parseMetadataFromRows(dataRows);
 
     const restoredFlags: ActiveFlags = metadata?.activeFlags ?? {
@@ -190,11 +313,7 @@ export async function loadStatusesFromSpreadsheet(): Promise<LoadStatusSyncResul
     await persistActiveFlags(restoredFlags);
 
     if (dataRows.length === 0) {
-      return {
-        loadedCount: 0,
-        metadata,
-        loadedAt,
-      };
+      return { loadedCount: 0, metadata, loadedAt };
     }
 
     const parsedStatuses = dataRows
@@ -209,6 +328,7 @@ export async function loadStatusesFromSpreadsheet(): Promise<LoadStatusSyncResul
       notifyStatusUpdated(nextState);
     }
 
+    recalculateAllStatuses(restoredFlags);
     await persistStatusesImmediately(statusState.statuses);
 
     return {

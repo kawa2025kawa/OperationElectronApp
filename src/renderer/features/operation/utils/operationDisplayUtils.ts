@@ -1,6 +1,6 @@
 // src/renderer/features/operation/utils/operationDisplayUtils.ts
 
-import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
+import { EMPTY_VALUE_FALLBACK } from "@shared/utils/sharedUtils";
 import {
   JOB_STATUS_VALUES,
   OPERATION_FIELD_LABELS,
@@ -11,7 +11,7 @@ import type { ViewMode } from "@shared/types/registry/viewDefinition";
 import {
   formatJapanDateTime,
   tryFormatIsoDateTime,
-} from "@shared/utils/dateTimeUtils";
+} from "@shared/utils/sharedUtils";
 
 type InfoRowField =
   | "kanriNo"
@@ -83,7 +83,6 @@ export function isJobStatus(value: unknown): value is JobStatus {
   return typeof value === "string" && JOB_STATUS_SET.has(value);
 }
 
-// 作業名が未設定の場合の代替表示値を返す。
 export function getOperationWorkName(
   workName: unknown,
   kanriNo: string,
@@ -91,12 +90,6 @@ export function getOperationWorkName(
   return typeof workName === "string" && workName ? workName : `No.${kanriNo}`;
 }
 
-// プロパティが存在しない場合の欠落プレースホルダー表示値を返す。
-export function toMissingPropertyDisplayValue(): string {
-  return EMPTY_VALUE_FALLBACK;
-}
-
-// 存在するプロパティの値を表示用文字列に変換する。
 export function toDisplayValue(value: unknown): string {
   if (value == null || value === "") {
     return EMPTY_VALUE_FALLBACK;
@@ -113,7 +106,6 @@ export function toDisplayValue(value: unknown): string {
   return String(value);
 }
 
-// 表示モードと対象アイテムに応じた詳細情報ペインの各行データを生成する。
 export function createInfoRows(
   mode: ViewMode,
   item: OperationViewItem | undefined,

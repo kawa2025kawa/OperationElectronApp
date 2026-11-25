@@ -28,7 +28,7 @@ import {
   saveStatusesToSpreadsheet,
 } from "@electron/features/operation/application/statusSheetSyncService";
 import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
-import { registerIpcHandler } from "./ipcHelper";
+import { registerIpcHandler } from "./index";
 
 export function registerOperationIpc(): void {
   // Query / Master
@@ -53,16 +53,15 @@ export function registerOperationIpc(): void {
   registerIpcHandler(IPC_CHANNELS.OPERATION.REGISTER_TARGETS, () =>
     registerOperationTargets(),
   );
-  registerIpcHandler(IPC_CHANNELS.OPERATION.RESET_STATUSES, async () => {
-    stopPolling();
-    return resetOperationStatuses();
-  });
+  registerIpcHandler(IPC_CHANNELS.OPERATION.RESET_STATUSES, () =>
+    resetOperationStatuses(),
+  );
   registerIpcHandler(IPC_CHANNELS.OPERATION.DELETE_ALL_STATUSES, () =>
     deleteAllStatuses(),
   );
-  registerIpcHandler(IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS, async (input) => {
+  registerIpcHandler(IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS, (input) => {
     const flags = "flags" in input ? input.flags : input;
-    await updateOperationActiveFlags(flags);
+    updateOperationActiveFlags(flags);
   });
   registerIpcHandler(IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS, (input) => {
     updateManualStatus(input.kanriNo, input.status, input.comment ?? "");

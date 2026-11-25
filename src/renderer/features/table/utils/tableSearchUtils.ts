@@ -1,7 +1,7 @@
-﻿// src/renderer/features/table/utils/tableSearchUtils.ts
+// src/renderer/features/table/utils/tableSearchUtils.ts
 
 import type { Row, RowData, TableFeatures } from "@tanstack/react-table";
-import { getRawValueByPath } from "@shared/utils/getValueByPath";
+import { getRawValueByPath } from "@shared/utils/sharedUtils";
 
 const EXCLUDED_GLOBAL_SEARCH_KEYS = new Set<string>(["status"]);
 

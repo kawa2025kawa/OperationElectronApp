@@ -14,7 +14,7 @@ import {
   extractCellText,
   formatYen,
   parseRealYosanAmount,
-} from "../helpers/parseAmount";
+} from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 
 const CONFIG = {
   realYosanKeyword: "リアル予算",

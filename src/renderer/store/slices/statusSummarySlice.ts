@@ -1,7 +1,6 @@
 // src/renderer/store/slices/statusSummarySlice.ts
 
 import type { StateCreator } from "zustand";
-
 import { operationService } from "@renderer/features/operation/service/operationService";
 import type { ViewMode } from "@renderer/registry/appRegistry";
 import type { AppState } from "@renderer/store";
@@ -9,7 +8,7 @@ import type { JobStatus } from "@shared/types/operation/operationTypes";
 import {
   EMPTY_STATUS_SUMMARY,
   type StatusSummary,
-} from "@shared/types/statusSummary/statusSummaryTypes";
+} from "@shared/types/operation/operationTypes";
 
 export interface StatusSummarySlice {
   summary: StatusSummary;
@@ -38,6 +37,20 @@ export const createStatusSummarySlice: StateCreator<
     });
   };
 
+  const applyFilterStatus = (status: JobStatus): void => {
+    const { currentMode, summaryReturnMode } = get();
+    if (currentMode === "irregular") {
+      set({
+        summaryStatusFilter: status,
+        summaryReturnMode: summaryReturnMode ?? "irregular",
+        currentMode: "operation",
+      });
+      return;
+    }
+
+    set({ summaryStatusFilter: status });
+  };
+
   return {
     summary: { ...EMPTY_STATUS_SUMMARY },
     summaryStatusFilter: null,
@@ -48,11 +61,7 @@ export const createStatusSummarySlice: StateCreator<
 
       try {
         const summary = await operationService.getStatusSummary();
-
-        if (currentRequestId !== requestId) {
-          return;
-        }
-
+        if (currentRequestId !== requestId) return;
         set({ summary });
       } catch (error) {
         if (currentRequestId === requestId) {
@@ -65,9 +74,7 @@ export const createStatusSummarySlice: StateCreator<
     },
 
     setStatusSummary: (summary) => {
-      // 進行中の取得結果が手動設定を上書きしないよう無効化する。
       requestId += 1;
-
       set({ summary });
     },
 
@@ -76,38 +83,15 @@ export const createStatusSummarySlice: StateCreator<
         clearFilterAndRestoreMode();
         return;
       }
-
-      const { currentMode, summaryReturnMode } = get();
-      if (currentMode === "irregular") {
-        set({
-          summaryStatusFilter: status,
-          summaryReturnMode: summaryReturnMode ?? "irregular",
-          currentMode: "operation",
-        });
-        return;
-      }
-
-      set({ summaryStatusFilter: status });
+      applyFilterStatus(status);
     },
 
     toggleSummaryStatusFilter: (status) => {
-      const { summaryStatusFilter, currentMode, summaryReturnMode } = get();
-
-      if (summaryStatusFilter === status) {
+      if (get().summaryStatusFilter === status) {
         clearFilterAndRestoreMode();
         return;
       }
-
-      if (currentMode === "irregular") {
-        set({
-          summaryStatusFilter: status,
-          summaryReturnMode: summaryReturnMode ?? "irregular",
-          currentMode: "operation",
-        });
-        return;
-      }
-
-      set({ summaryStatusFilter: status });
+      applyFilterStatus(status);
     },
   };
 };

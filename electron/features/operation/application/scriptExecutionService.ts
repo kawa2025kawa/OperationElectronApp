@@ -1,16 +1,22 @@
 // electron/features/operation/application/scriptExecutionService.ts
 
-import fs from "node:fs/promises";
 import { dialog } from "electron";
+import fs from "fs-extra";
 import {
   getActiveFlags,
   getDependencyMasters,
   getDependencyStatuses,
   updateStatus,
 } from "@electron/features/operation/application/statusManager";
+import {
+  checkJobDependencies,
+  formatMissingKanriNos,
+} from "@electron/features/operation/domain/dependencyUtils";
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
-import { getScriptExecutionRequirement } from "@electron/features/operation/runners/operationScriptRegistry";
-import { executeSingleScriptJob } from "@electron/features/operation/runners/scriptRunner";
+import {
+  executeSingleScriptJob,
+  getScriptExecutionRequirement,
+} from "@electron/features/operation/runners/scriptRunner";
 import {
   JOB_STATUS,
   type JobResult,
@@ -18,15 +24,9 @@ import {
   type ManualScriptExecutionInput,
   type ScriptFilePath,
 } from "@shared/types/operation/operationTypes";
-import {
-  checkJobDependencies,
-  formatMissingKanriNos,
-} from "@electron/features/operation/domain/dependencyUtils";
 
-export type { ManualScriptExecutionInput };
 export { getScriptExecutionRequirement };
 
-/** 同一管理Noに対する手動・自動スクリプトの二重起動を防ぐ排他ロック */
 const inFlightScripts = new Set<string>();
 
 function acquireScriptLock(kanriNo: string): void {
@@ -63,18 +63,8 @@ async function confirmAndRemoveZip(zipPath: string): Promise<boolean> {
   });
   if (res !== 0) return false;
 
-  try {
-    await fs.unlink(zipPath);
-    return true;
-  } catch (err: unknown) {
-    if (
-      typeof err === "object" &&
-      err !== null &&
-      (err as { code?: string }).code === "ENOENT"
-    )
-      return true;
-    throw err;
-  }
+  await fs.remove(zipPath);
+  return true;
 }
 
 function validateScriptExecutionInput(
@@ -179,21 +169,15 @@ export async function executeManualScript(
   const kanriNo = normalizeKanriNo(input.kanriNo);
   const scriptKey = input.scriptKey?.trim() || kanriNo;
 
-  if (inFlightScripts.has(kanriNo)) {
-    throw new Error(
-      `No.${kanriNo} のスクリプトはすでに実行中のため重複起動できません。`,
-    );
-  }
-
   if (!input.ignoreDependencies) validateJobDependencies(kanriNo);
   validateScriptExecutionInput(scriptKey, input.filePath);
 
-  updateStatus({
-    kanriNo,
-    status: JOB_STATUS.SCRIPT_RUNNING,
-    startTime: new Date().toISOString(),
+  return executeScriptAndApplyStatus(kanriNo, () => {
+    updateStatus({
+      kanriNo,
+      status: JOB_STATUS.SCRIPT_RUNNING,
+      startTime: new Date().toISOString(),
+    });
+    return executeSingleScriptJob(kanriNo, scriptKey, input.filePath);
   });
-  return executeScriptAndApplyStatus(kanriNo, () =>
-    executeSingleScriptJob(kanriNo, scriptKey, input.filePath),
-  );
 }

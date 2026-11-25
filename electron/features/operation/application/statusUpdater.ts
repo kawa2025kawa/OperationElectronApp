@@ -1,4 +1,4 @@
-﻿// electron/features/operation/application/statusUpdater.ts
+// electron/features/operation/application/statusUpdater.ts
 
 import {
   hasStatusChanged,
@@ -10,16 +10,20 @@ import { calculateOperationStatus } from "@electron/features/operation/domain/st
 import {
   persistStatusesDebounced,
   persistStatusesImmediately,
-} from "@electron/features/operation/infrastructure/storage/statusStorage";
+} from "@electron/features/operation/infrastructure/operationStorage";
 import {
   JOB_STATUS,
   type ActiveFlags,
   type JobStatus,
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
-import { statusState } from "./statusState";
-import { notifyReady, notifyStatusUpdated } from "./statusNotifier";
-import type { ApplyStatusOptions } from "./statusTypes";
+import {
+  notifyReady,
+  notifyStatusUpdated,
+  setActiveFlagsState,
+  statusState,
+  type ApplyStatusOptions,
+} from "./statusState";
 
 function processPropagation(flags = statusState.activeFlags): void {
   statusState.propagator.processPropagation((kanriNo) => {
@@ -56,7 +60,6 @@ function applyStatus(
     previous?.status !== JOB_STATUS.READY
   ) {
     const target = statusState.targets.get(kanriNo);
-
     if (target) {
       notifyReady(target);
     }
@@ -92,7 +95,6 @@ export function recalculateTargetStatus(
   );
 }
 
-// 全ターゲットのステータスを一括で再計算・判定する（依存関係順序で伝播）
 export function recalculateAllStatuses(
   flags: ActiveFlags = statusState.activeFlags,
 ): void {
@@ -102,6 +104,11 @@ export function recalculateAllStatuses(
   );
 
   processPropagation(flags);
+}
+
+export function updateOperationActiveFlags(flags: Partial<ActiveFlags>): void {
+  const nextFlags = setActiveFlagsState(flags);
+  recalculateAllStatuses(nextFlags);
 }
 
 export function updateStatus(

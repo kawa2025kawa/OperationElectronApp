@@ -9,10 +9,8 @@ import {
 import type { ColumnDef } from "@tanstack/react-table";
 
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
-import {
-  toDisplayValue,
-  toMissingPropertyDisplayValue,
-} from "@renderer/features/operation/utils/operationDisplayUtils";
+import { EMPTY_VALUE_FALLBACK } from "@shared/utils/sharedUtils";
+import { toDisplayValue } from "@renderer/features/operation/utils/operationDisplayUtils";
 import {
   OPERATION_FIELD_LABELS,
   type OperationViewItem,
@@ -83,8 +81,7 @@ const OPERATION_COLUMN_CONFIG = {
 
 export type OperationColumn = keyof typeof OPERATION_COLUMN_CONFIG;
 
-/** Operation と TODAY で共通するカラム一覧（サマリーテーブル共通ヘッダー） */
-export const COMMON_OPERATION_TODAY_COLUMNS = [
+const COMMON_OPERATION_TODAY_COLUMNS = [
   "kanriNo",
   "workType",
   "scheduledTime",
@@ -107,13 +104,9 @@ const VISIBLE_OPERATION_COLUMNS = {
 
 export const EMPTY_OPERATION_ROWS: OperationViewItem[] = [];
 
-function getOperationColumnMeta(column: OperationColumn): OperationColumnMeta {
-  return OPERATION_COLUMN_CONFIG[column];
-}
-
 function getCellValue(row: OperationViewItem, column: OperationColumn): string {
   if (!Object.prototype.hasOwnProperty.call(row, column)) {
-    return toMissingPropertyDisplayValue();
+    return EMPTY_VALUE_FALLBACK;
   }
 
   return toDisplayValue((row as unknown as Record<string, unknown>)[column]);
@@ -124,7 +117,7 @@ function buildColumnsFromIds(
 ): ColumnDef<TableFeaturesType, OperationViewItem>[] {
   return columnIds.map((id) => ({
     id,
-    header: getOperationColumnMeta(id).label,
+    header: OPERATION_COLUMN_CONFIG[id].label,
     accessorFn: (row) => getCellValue(row, id),
     ...(id === "status"
       ? {
@@ -142,7 +135,7 @@ function buildColumnsFromIds(
           : id === "status"
             ? 140
             : 0,
-    meta: getOperationColumnMeta(id),
+    meta: OPERATION_COLUMN_CONFIG[id],
   }));
 }
 

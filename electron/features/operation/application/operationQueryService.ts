@@ -1,11 +1,11 @@
 // electron/features/operation/application/operationQueryService.ts
 
 import {
+  getRdpKeysForOperation,
   getScriptExecutionRequirement,
   getScriptKeysForOperation,
   isPdfUploadOperation,
-} from "@electron/features/operation/runners/operationScriptRegistry";
-import { getRdpKeysForOperation } from "@electron/features/operation/runners/operationRdpRegistry";
+} from "@electron/features/operation/runners/scriptRunner";
 import {
   getDependencyMasters,
   getStatuses,
@@ -14,7 +14,7 @@ import {
 import {
   EMPTY_STATUS_SUMMARY,
   type StatusSummary,
-} from "@shared/types/statusSummary/statusSummaryTypes";
+} from "@shared/types/operation/operationTypes";
 import type {
   OperationScriptKey,
   OperationStatusState,
@@ -22,12 +22,10 @@ import type {
 } from "@shared/types/operation/operationTypes";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
 
-// 作業名が未設定の場合の代替表示値を取得する。
 function getWorkName(workName: string | undefined, kanriNo: string): string {
   return workName?.trim() || `No.${kanriNo}`;
 }
 
-// 全ターゲットのステータスを集計し、サマリーデータを算出する。
 export function getStatusSummary(): StatusSummary {
   const targets = getTargets();
   const statuses = getStatuses();
@@ -39,11 +37,7 @@ export function getStatusSummary(): StatusSummary {
 
   for (const [kanriNo] of targets) {
     const status = statuses.get(kanriNo)?.status;
-
-    if (!status || !(status in summary)) {
-      continue;
-    }
-
+    if (!status || !(status in summary)) continue;
     summary[status] += 1;
   }
 
@@ -53,7 +47,6 @@ export function getStatusSummary(): StatusSummary {
   return summary;
 }
 
-// ターゲット情報に最新ステータスと実行要件を付与してUI表示用に整形する。
 function enrichItem(
   target: OperationViewItem,
   statusState?: OperationStatusState,
@@ -86,43 +79,31 @@ function enrichItem(
   };
 }
 
-// 指定ターゲット種別のアイテム一覧を最新ステータスと結合して取得する。
 function getStatusTargetItems(
   targetType: "operation" | "today",
 ): OperationViewItem[] {
   const targets = getTargets();
   const statuses = getStatuses();
-
   const results: OperationViewItem[] = [];
 
   for (const [, target] of targets) {
-    if (target.targetType !== targetType) {
-      continue;
+    if (target.targetType === targetType) {
+      results.push(enrichItem(target, statuses.get(target.kanriNo)));
     }
-
-    results.push(enrichItem(target, statuses.get(target.kanriNo)));
   }
 
   return results;
 }
 
-// 不定期運用マスタ一覧をUI表示用に整形する。
-function getIrregularItems(): OperationViewItem[] {
-  return getDependencyMasters().irregularMasters.map((item) =>
-    enrichItem(item),
-  );
-}
-
-// 表示モードに応じた運用テーブル行データ一覧を取得する。
 export function getOperationTableData(mode: ViewMode): OperationViewItem[] {
   switch (mode) {
     case "operation":
       return getStatusTargetItems("operation");
-
     case "today":
       return getStatusTargetItems("today");
-
     case "irregular":
-      return getIrregularItems();
+      return getDependencyMasters().irregularMasters.map((item) =>
+        enrichItem(item),
+      );
   }
 }

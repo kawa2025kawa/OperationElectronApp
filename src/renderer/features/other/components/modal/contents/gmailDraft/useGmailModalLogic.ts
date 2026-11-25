@@ -9,9 +9,9 @@ import type {
   GmailDraftFormValues,
 } from "@renderer/features/other/types/gmailDraftUiTypes";
 import { useModalFooterSync } from "@renderer/hooks/useModalFooterSync";
-import { otherIpcService } from "@renderer/services/otherIpcService";
+import { otherIpcService } from "@renderer/services/ipcServices";
 import { useAppStore } from "@renderer/store";
-import { toErrorMessage } from "@renderer/utils/errorUtils";
+import { toErrorMessage } from "@renderer/utils/rendererUtils";
 
 export interface GmailMessage {
   text: string;

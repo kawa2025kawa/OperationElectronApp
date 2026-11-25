@@ -11,6 +11,10 @@ import { useTable, type ColumnFiltersState } from "@tanstack/react-table";
 import { useShallow } from "zustand/shallow";
 
 import { usePersistentScroll } from "@renderer/hooks/usePersistentScroll";
+import {
+  useTableVirtualizer,
+  type TableRowVirtualizer,
+} from "@renderer/hooks/useTableVirtualizer";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { createRegistryGlobalFilter } from "@renderer/features/table/utils/tableSearchUtils";
 import { useAppStore } from "@renderer/store";
@@ -31,16 +35,12 @@ import {
   type TableFeaturesType,
 } from "./operationTableConfig";
 import { useOperationTableContextMenuStore } from "./useOperationTableContextMenu";
-import {
-  useOperationTableVirtualizer,
-  type OperationRowVirtualizer,
-} from "./useOperationTableVirtualizer";
 
 export function useOperationTable() {
   "use no memo";
 
   const headerContainerRef = useRef<HTMLDivElement | null>(null);
-  const virtualizerRef = useRef<OperationRowVirtualizer | null>(null);
+  const virtualizerRef = useRef<TableRowVirtualizer | null>(null);
 
   const {
     currentView,
@@ -76,14 +76,12 @@ export function useOperationTable() {
     })),
   );
 
-  // irregular モードではステータス列が存在しないためフィルターを解除する
   useEffect(() => {
     if (currentMode === "irregular" && summaryStatusFilter !== null) {
       setSummaryStatusFilter(null);
     }
   }, [currentMode, summaryStatusFilter, setSummaryStatusFilter]);
 
-  // データ取得（キャッシュ有無の判定は slice 側の fetchTableData に委譲）
   useEffect(() => {
     if (tableRowsMode !== currentMode) {
       void fetchTableData(currentMode).catch((error: unknown) => {
@@ -92,7 +90,6 @@ export function useOperationTable() {
     }
   }, [currentMode, tableRowsMode, fetchTableData]);
 
-  // サマリーフィルタ有効時は Operation と TODAY の両データを確保して合算表示に備える
   const isSummaryFilterActive =
     currentMode !== "irregular" && summaryStatusFilter !== null;
 
@@ -107,7 +104,6 @@ export function useOperationTable() {
     });
   }, [isSummaryFilterActive, ensureOperationAndTodayData]);
 
-  // 表示対象データ（サマリーフィルタ時は Operation + TODAY 合算、通常時は現在モード）
   const rows = useMemo(
     () =>
       isSummaryFilterActive
@@ -180,7 +176,6 @@ export function useOperationTable() {
     if (header && body) header.scrollLeft = body.scrollLeft;
   }, [containerRef, currentMode, isSummaryFilterActive]);
 
-  // テーブルインスタンス構築（サマリーフィルタ時は共通ヘッダー5列を使用）
   const columns = useMemo(
     () => getOperationColumns(currentMode, isSummaryFilterActive),
     [currentMode, isSummaryFilterActive],
@@ -222,15 +217,13 @@ export function useOperationTable() {
   const tableRowsModel = table.getRowModel().rows;
   const colSpanCount = Math.max(leafColumns.length, 1);
 
-  // 仮想スクロール管理
-  const { virtualItems, paddingTop, paddingBottom } =
-    useOperationTableVirtualizer({
-      count: isSwitchingMode ? 0 : tableRowsModel.length,
-      containerRef,
-      virtualizerRef,
-    });
+  const { virtualItems, paddingTop, paddingBottom } = useTableVirtualizer({
+    count: isSwitchingMode ? 0 : tableRowsModel.length,
+    containerRef,
+    overscan: 4,
+    virtualizerRef,
+  });
 
-  // 行操作ハンドラ（サマリー合算時は該当行の所属モードにも選択状態を同期する）
   const handleRowClick = useCallback(
     (kanriNo: string) => {
       setSelectedId(currentMode, kanriNo);

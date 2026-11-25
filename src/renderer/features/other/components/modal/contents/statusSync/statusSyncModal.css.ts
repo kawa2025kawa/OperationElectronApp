@@ -89,7 +89,7 @@ export const infoGrid = style({
 });
 
 export const label = style({
-  fontSize: tokens.font.size.sm,
+  fontSize: tokens.font.size.lg,
   fontWeight: tokens.font.weight.medium,
   color: tokens.color.text.base,
   display: "flex",
@@ -98,7 +98,7 @@ export const label = style({
 });
 
 export const value = style({
-  fontSize: tokens.font.size.sm,
+  fontSize: tokens.font.size.lg,
   fontWeight: tokens.font.weight.bold,
   color: tokens.color.text.hover,
   fontFamily: tokens.font.mono,
@@ -127,7 +127,7 @@ export const textarea = style({
   boxShadow: tokens.shadow.pressed.low,
   color: tokens.color.text.hover,
   fontFamily: tokens.font.base,
-  fontSize: tokens.font.size.sm,
+  fontSize: tokens.font.size.md,
   lineHeight: 1.6,
   resize: "none",
   outline: "none",

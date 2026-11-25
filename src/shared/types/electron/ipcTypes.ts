@@ -2,11 +2,6 @@
 
 import type { AuthProfile } from "@shared/types/auth/authTypes";
 import type {
-  EmailTemplateKey,
-  GmailDraftFormValues,
-} from "@shared/types/gmail/gmailDraftTypes";
-import type { SpreadsheetMasterDataResponse } from "@shared/types/masterData/spreadsheetMasterDataTypes";
-import type {
   ActiveFlags,
   JobResult,
   JobStatus,
@@ -15,18 +10,53 @@ import type {
   OperationStatusState,
   OperationViewItem,
   ScriptExecutionRequirement,
+  StatusSummary,
 } from "@shared/types/operation/operationTypes";
-import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
 import type {
+  RdpTarget,
   SHEETS,
   ShopResourceKey,
+  SpreadsheetMasterDataResponse,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
-import type { StatusSummary } from "@shared/types/statusSummary/statusSummaryTypes";
-import type { UpdateInfo } from "@shared/types/system/update";
+
+export type { RdpTarget };
 
 /**
-- Electron IPC チャンネル名定数
+ * Gmail 下書き関連型定義
+ */
+export type EmailTemplateKey = "E8" | "E9" | "E10" | "E88";
+
+export interface GmailDraft {
+  to: string;
+  cc: string;
+  subject: string;
+  body: string;
+}
+
+export type GmailDraftFormValues = GmailDraft;
+
+export interface EmailTemplateOption {
+  key: EmailTemplateKey;
+  label: string;
+}
+
+/**
+ * アプリ更新情報型定義
+ */
+export interface UpdateInfo {
+  version: string;
+  notes?: string;
+  pub_date?: string;
+  platforms?: {
+    "windows-x86_64"?: {
+      url?: string;
+    };
+  };
+}
+
+/**
+ * Electron IPC チャンネル名定数
  */
 export const IPC_CHANNELS = {
   AUTH: {
@@ -42,10 +72,8 @@ export const IPC_CHANNELS = {
     OPEN_EXTERNAL: "openExternal",
     SHOW_OPEN_DIALOG: "showOpenDialog",
     READ_UPDATE_INFO: "readUpdateInfo",
-    THEME_CHANGED: "theme-changed",
     RENAME_FILE: "system:renameFile",
   },
-
   RDP: {
     GET_MASTERS: "rdp:getMasters",
     START_SESSION: "rdp:startSession",
@@ -57,7 +85,6 @@ export const IPC_CHANNELS = {
   },
   SPREADSHEET: {
     GET_MASTER_DATA: "spreadsheet:master",
-    GET_FILTERED_DATA: "spreadsheet:getFilteredData",
     OPEN_STAFF_SCHEDULE: "spreadsheet:openStaffSchedule",
     OPEN_SHOP_RESOURCE: "spreadsheet:openShopResource",
   },
@@ -90,28 +117,18 @@ export const IPC_CHANNELS = {
   },
 } as const;
 
-/**
-- Renderer が受信する IPC イベントの型定義
- */
 export interface IpcEventMap {
-  [IPC_CHANNELS.SYSTEM.THEME_CHANGED]: [theme: "light" | "dark" | "system"];
   [IPC_CHANNELS.OPERATION.STATUS_UPDATED]: [
     notification: OperationStatusNotification,
   ];
   [IPC_CHANNELS.OPERATION.POLLING_CYCLE_COMPLETE]: [];
 }
 
-/**
-- Tempomatic アップロード対象ファイル
- */
 export interface TempomaticUploadTargetFile {
   path: string;
   name?: string;
 }
 
-/**
-- スプレッドシート Status 引き継ぎ同期のメタデータ・入出力型
- */
 export interface StatusSyncMetadata {
   operatorName: string;
   savedAt: string;
@@ -144,12 +161,6 @@ export type StaffScheduleSheetId =
   | typeof SHEETS.KOKYUHYO.sheetName
   | typeof SHEETS.JUGYOIN.sheetName;
 
-/**
-- IPC チャンネルごとの引数・戻り値定義
- *
-- Renderer と Main の間で受け渡すデータ契約を一元管理する。
-- Main 専用の型や認証情報は公開しない。
- */
 interface IpcChannelDefinitions {
   // Auth
   [IPC_CHANNELS.AUTH.LOGIN]: () => AuthProfile;
@@ -195,10 +206,6 @@ interface IpcChannelDefinitions {
   // Spreadsheet
   [IPC_CHANNELS.SPREADSHEET
     .GET_MASTER_DATA]: () => SpreadsheetMasterDataResponse;
-  [IPC_CHANNELS.SPREADSHEET.GET_FILTERED_DATA]: (input: {
-    sheetName: string;
-    query?: string;
-  }) => Record<string, unknown>[];
   [IPC_CHANNELS.SPREADSHEET.OPEN_STAFF_SCHEDULE]: (input: {
     sheetId: StaffScheduleSheetId;
     staffId: string;
@@ -261,9 +268,6 @@ interface IpcChannelDefinitions {
   [IPC_CHANNELS.OPERATION.LOAD_STATUSES_FROM_SHEET]: () => LoadStatusSyncResult;
 }
 
-/**
-- invoke / ipcMain.handle 共通の引数・戻り値マッピング
- */
 export type IpcChannelMap = {
   [K in keyof IpcChannelDefinitions]: {
     args: Parameters<IpcChannelDefinitions[K]>;

@@ -3,7 +3,6 @@
 import {
   JOB_STATUS,
   WORK_TYPE,
-  type CenterId,
   type OperationStatusState,
   type OperationWorkType,
 } from "@shared/types/operation/operationTypes";
@@ -12,20 +11,16 @@ import {
   isRunningStatus,
   isSuccessStatus,
   normalizeKanriNo,
-} from "@shared/utils/statusUtils";
+} from "@shared/utils/sharedUtils";
 
 export { isProtectedStatus, isRunningStatus, normalizeKanriNo };
 
-const CENTER_FLAG_KEYS: readonly CenterId[] = ["1C", "2C", "3C"] as const;
-const CENTER_FLAGS = new Set<string>(CENTER_FLAG_KEYS);
-
 /** 前日日付基準で扱う管理No一覧 */
-const PREVIOUS_DAY_KANRI_NO_LIST = ["2", "3", "4", "5", "6", "7"] as const;
-const PREVIOUS_DAY_SET = new Set<string>(PREVIOUS_DAY_KANRI_NO_LIST);
+const PREVIOUS_DAY_SET = new Set<string>(["2", "3", "4", "5", "6", "7"]);
 
 /**
-- 自動API問い合わせを行わず手動JCのみ許可し、
-- Status の確定はユーザーの手動操作のみで行う Job ID 一覧
+ * 自動API問い合わせを行わず手動JCのみ許可し、
+ * Status の確定はユーザーの手動操作のみで行う Job ID 一覧
  */
 const MANUAL_STATUS_DECISION_JOB_IDS = new Set<string>(["ZCM8010"]);
 
@@ -34,10 +29,6 @@ export interface ParsedTime {
   minutes: number;
 }
 
-/**
-- scheduledTime（"hh:mm" もしくは "-"）から時刻を抽出する。
-- "-" や不正フォーマットの場合は null を返す。
- */
 export function parseHHMM(value?: string | null): ParsedTime | null {
   const trimmed = value?.trim();
   if (!trimmed || trimmed === "-") return null;
@@ -50,11 +41,9 @@ export function parseHHMM(value?: string | null): ParsedTime | null {
   return hours <= 23 && minutes <= 59 ? { hours, minutes } : null;
 }
 
-export const isAutoWorkType = (workType?: OperationWorkType | string | null): boolean =>
-  workType?.trim() === WORK_TYPE.AUTO;
-
-export const isManualWorkType = (workType?: OperationWorkType | string | null): boolean =>
-  workType?.trim() === WORK_TYPE.MANUAL;
+export const isAutoWorkType = (
+  workType?: OperationWorkType | string | null,
+): boolean => workType?.trim() === WORK_TYPE.AUTO;
 
 export const isImmediateWorkType = (
   workType?: OperationWorkType | string | null,
@@ -70,16 +59,11 @@ export const isImmediateWorkType = (
 export const isPreviousDayJob = (kanriNo: string | number): boolean =>
   PREVIOUS_DAY_SET.has(normalizeKanriNo(kanriNo));
 
-export const hasCenterFlagDependency = (deps: readonly string[]): boolean =>
-  deps.some((dep) => CENTER_FLAGS.has(dep));
-
-/** 手動JCで時刻のみ取得し、Status自体はユーザーの手動確定とする対象か */
 export function isManualStatusDecisionJobId(jobId?: string | null): boolean {
   const normalized = jobId?.trim().toUpperCase();
   return Boolean(normalized && MANUAL_STATUS_DECISION_JOB_IDS.has(normalized));
 }
 
-/** 個別管理No間の特例依存判定（デフォルトは完了済みのみ充足） */
 export function isSpecialDependencySatisfied(
   targetKanriNo: string,
   dependencyKanriNo: string,

@@ -6,10 +6,11 @@ import { toast } from "sonner";
 import type { FileDropZoneItem } from "@renderer/components/ui/fileDropZone/fileDropZoneTypes";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
 import { useModalFooterSync } from "@renderer/hooks/useModalFooterSync";
-import { otherIpcService } from "@renderer/services/otherIpcService";
-import { systemIpcService } from "@renderer/services/systemIpcService";
-import { toErrorMessage } from "@renderer/utils/errorUtils";
-import { toResolvedFileItem } from "@renderer/utils/filePathUtils";
+import { otherIpcService, systemIpcService } from "@renderer/services/ipcServices";
+import {
+  toErrorMessage,
+  toResolvedFileItem,
+} from "@renderer/utils/rendererUtils";
 import { MODAL_TITLES } from "@shared/types/ui/modal";
 
 interface PdfMessage {

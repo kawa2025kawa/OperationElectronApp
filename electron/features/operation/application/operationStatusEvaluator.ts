@@ -19,7 +19,7 @@ import {
 import {
   fetchTrackerStatusByJobId,
   getJobId,
-} from "@electron/features/operation/infrastructure/tracker/trackerServiceClient";
+} from "@electron/features/operation/infrastructure/trackerClient";
 import {
   JOB_STATUS,
   type OperationStatusState,
@@ -118,7 +118,6 @@ export async function fetchSingleTrackerStatus(
     };
   }
 
-  // ZCM8010 等: 手動JCで開始・終了時刻のみ反映し、Status自体はユーザーの手動操作でのみ決める
   if (isManualStatusDecisionJobId(jobId)) {
     const current = getStatus(kanriNo);
     const infoOnlyUpdate: OperationStatusState = {
@@ -131,7 +130,6 @@ export async function fetchSingleTrackerStatus(
     return infoOnlyUpdate;
   }
 
-  // 手動JC実行時は前提依存によるWAITING上書きを行わず、Tracker取得結果を直接反映する
   updateStatus(trackerStatus);
   return trackerStatus;
 }

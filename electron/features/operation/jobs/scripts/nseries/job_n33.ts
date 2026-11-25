@@ -7,8 +7,8 @@ import readline from "node:readline";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
-import { getServiceCredentials } from "@electron/features/system/serviceCredentialsLoader";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { getServiceCredentials } from "@electron/features/system/systemService";
 
 const TARGET_CODES = ["S330", "S332"] as const;
 

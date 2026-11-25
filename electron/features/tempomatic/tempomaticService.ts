@@ -1,21 +1,17 @@
 // electron/features/tempomatic/tempomaticService.ts
 
-import fs from "node:fs/promises";
 import path from "node:path";
 import { addDays, format } from "date-fns";
 import { net } from "electron";
-import { getServiceCredentials } from "@electron/features/system/serviceCredentialsLoader";
+import fs from "fs-extra";
+import { getServiceCredentials } from "@electron/features/system/systemService";
 import {
   IPC_CHANNELS,
   type IpcChannelMap,
   type TempomaticUploadTargetFile,
 } from "@shared/types/electron/ipcTypes";
 
-// ============================================================
-// Types
-// ============================================================
-
-export type TempomaticTargetFile = TempomaticUploadTargetFile;
+type TempomaticTargetFile = TempomaticUploadTargetFile;
 type TempomaticUploadInput =
   IpcChannelMap[typeof IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT]["args"][0];
 
@@ -45,20 +41,12 @@ const TEMPOMATIC_DEFAULT_CATEGORIES = [
   "998",
 ] as const;
 
-// ============================================================
-// Constants
-// ============================================================
-
 const TEMPOMATIC_CONFIG = {
   uploadIntervalMs: 1000,
   defaultExpireOffsetDays: 7,
   defaultPubGroupId: "a4c0532b-6dc0-446d-bd3f-bb6cbb60aab9",
   defaultCategories: TEMPOMATIC_DEFAULT_CATEGORIES,
 } as const;
-
-// ============================================================
-// Native Cookie Store Client (Electron net.fetch 使用)
-// ============================================================
 
 class NativeTempomaticClient {
   private cookies = new Map<string, string>();
@@ -150,10 +138,6 @@ class NativeTempomaticClient {
   }
 }
 
-// ============================================================
-// Helpers
-// ============================================================
-
 const sleep = (milliseconds: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -187,10 +171,6 @@ function normalizeTargetFiles(
   return targets;
 }
 
-// ============================================================
-// Login
-// ============================================================
-
 const loginToTempomatic = async (
   client: NativeTempomaticClient,
   baseUrl: string,
@@ -216,10 +196,6 @@ const loginToTempomatic = async (
   console.info("[Tempomatic] Login response received.");
 };
 
-// ============================================================
-// CSRF
-// ============================================================
-
 const getCsrfToken = async (
   client: NativeTempomaticClient,
   baseUrl: string,
@@ -236,10 +212,6 @@ const getCsrfToken = async (
 
   return match[1];
 };
-
-// ============================================================
-// Upload Form
-// ============================================================
 
 const createUploadForm = (
   csrf: string,
@@ -283,10 +255,6 @@ const createUploadForm = (
   return form;
 };
 
-// ============================================================
-// Upload Document
-// ============================================================
-
 const uploadSingleDocument = async (
   client: NativeTempomaticClient,
   baseUrl: string,
@@ -314,10 +282,6 @@ const uploadSingleDocument = async (
   console.info(`[Tempomatic] Upload succeeded: ${displayName}`);
 };
 
-// ============================================================
-// Sequential Upload
-// ============================================================
-
 const uploadDocumentsSequentially = async (
   client: NativeTempomaticClient,
   baseUrl: string,
@@ -336,11 +300,7 @@ const uploadDocumentsSequentially = async (
   }
 };
 
-// ============================================================
-// Main Upload API
-// ============================================================
-
-export async function uploadPdfDocuments(
+async function uploadPdfDocuments(
   targets: TempomaticTargetFile[],
   expireDate: string,
 ): Promise<string> {
@@ -354,9 +314,7 @@ export async function uploadPdfDocuments(
 
   await Promise.all(
     targets.map(async (t) => {
-      try {
-        await fs.access(t.path);
-      } catch {
+      if (!(await fs.pathExists(t.path))) {
         throw new Error(
           `指定されたファイルが存在しません: ${path.basename(t.path)}`,
         );

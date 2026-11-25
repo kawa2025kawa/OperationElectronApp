@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { createPortal } from "react-dom";
+import { clsx } from "clsx";
 import { useShallow } from "zustand/react/shallow";
 
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
@@ -38,7 +39,7 @@ export const PollingToast = memo(() => {
         {toasts.map((toast) => (
           <article
             key={toast.id}
-            className={`${styles.item} ${styles.tone[toast.type]}`}
+            className={clsx(styles.item, styles.tone[toast.type])}
           >
             <span className={styles.message} title={toast.message}>
               {toast.message}

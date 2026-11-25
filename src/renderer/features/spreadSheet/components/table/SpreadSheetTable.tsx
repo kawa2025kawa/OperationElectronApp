@@ -2,12 +2,15 @@
 
 import type { ReactNode } from "react";
 import type { RowData, TableOptions } from "@tanstack/react-table";
+import { clsx } from "clsx";
 
-import type { SpreadSheetTableFeatures } from "./spreadsheetTableConfig";
-import { useSpreadSheetTable } from "./useSpreadSheetTable";
-import { SpreadSheetTableHeader } from "./SpreadSheetTableHeader";
-import { getColumnAlign } from "./spreadSheetTableUtils";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
+import {
+  getColumnAlign,
+  type SpreadSheetTableFeatures,
+} from "./spreadsheetTableConfig";
+import { SpreadSheetTableHeader } from "./SpreadSheetTableHeader";
+import { useSpreadSheetTable } from "./useSpreadSheetTable";
 import * as styles from "./spreadSheetTable.css";
 
 export interface SpreadSheetTableProps<TData extends RowData> {
@@ -96,9 +99,10 @@ export function SpreadSheetTable<TData extends RowData>({
                 <tr
                   key={row.id}
                   data-index={virtualRow.index}
-                  className={`${styles.tableRowBase} ${
-                    styles.tableRowStates[onRowClick ? "clickable" : "idle"]
-                  }`}
+                  className={clsx(
+                    styles.tableRowBase,
+                    styles.tableRowStates[onRowClick ? "clickable" : "idle"],
+                  )}
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getAllCells().map((cell) => {
@@ -108,12 +112,16 @@ export function SpreadSheetTable<TData extends RowData>({
                     return (
                       <td
                         key={cell.id}
-                        className={`${styles.tdBase} ${styles.alignVariants[align]}`}
+                        className={clsx(
+                          styles.tdBase,
+                          styles.alignVariants[align],
+                        )}
                       >
                         <span
-                          className={`${styles.cellText} ${
-                            holiday ? styles.cellTextHoliday : ""
-                          }`}
+                          className={clsx(
+                            styles.cellText,
+                            holiday && styles.cellTextHoliday,
+                          )}
                         >
                           <table.FlexRender cell={cell} />
                         </span>

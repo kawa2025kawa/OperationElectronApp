@@ -1,6 +1,6 @@
-﻿// src/shared/types/registry/viewDefinition.ts
+// src/shared/types/registry/viewDefinition.ts
 
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType } from "react";
 
 import type { OperationViewItem } from "@shared/types/operation/operationTypes";
 import type {
@@ -8,7 +8,6 @@ import type {
   Kokyuhyo,
   Shop,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
-import type { ModalConfig } from "@shared/types/ui/modal";
 
 export const APP_VIEW_IDS = {
   OPERATION: "operation",
@@ -22,9 +21,6 @@ export const APP_VIEW_IDS = {
 
 export type AppViewId = (typeof APP_VIEW_IDS)[keyof typeof APP_VIEW_IDS];
 
-/**
- * 画面 ID ごとのメタデータ定義（タイトル・表示順・保護状態の一元管理）
- */
 export interface AppViewMetadata {
   readonly title: string;
   readonly sidebarOrder: number;
@@ -69,9 +65,6 @@ export const APP_VIEW_METADATA = {
   },
 } as const satisfies Record<AppViewId, AppViewMetadata>;
 
-/**
- * 画面 ID ごとのエンティティ型のマッピング（一元管理定義）
- */
 export type ViewEntityMap = {
   [APP_VIEW_IDS.OPERATION]: OperationViewItem;
   [APP_VIEW_IDS.KOKYUHYO]: Kokyuhyo;
@@ -90,30 +83,11 @@ export const VIEW_MODES = {
 
 export type ViewMode = (typeof VIEW_MODES)[keyof typeof VIEW_MODES];
 
-interface ActionStoreContext {
-  openGlobalModal: (content: ReactNode, config?: ModalConfig) => void;
-  closeGlobalModal: () => void;
-}
-
 export const VIEW_MODE_LABELS: Record<ViewMode, string> = {
   [VIEW_MODES.OPERATION]: "Operation",
   [VIEW_MODES.IRREGULAR]: "Irregular",
   [VIEW_MODES.TODAY]: "Today",
 } as const;
-
-type ViewActionType = "modal" | "external" | "custom";
-
-interface ViewActionDefinition<TItem = unknown> {
-  readonly key: string;
-  readonly label: string;
-  readonly type: ViewActionType;
-  readonly modalType?: string;
-  readonly isActive: (item: TItem) => boolean;
-  readonly execute: (
-    item: TItem,
-    store: ActionStoreContext,
-  ) => Promise<void> | void;
-}
 
 export interface AppViewDefinition<TItem = unknown> {
   readonly id: AppViewId;
@@ -130,5 +104,4 @@ export interface AppViewDefinition<TItem = unknown> {
     readonly searchKeys: readonly string[];
     readonly skipFilter?: boolean;
   };
-  readonly actions?: readonly ViewActionDefinition<TItem>[];
 }

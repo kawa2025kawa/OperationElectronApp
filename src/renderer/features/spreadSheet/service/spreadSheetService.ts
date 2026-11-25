@@ -6,12 +6,12 @@ import {
   type StaffScheduleSheetId,
 } from "@shared/types/electron/ipcTypes";
 import type { ShopResourceKey } from "@shared/types/spreadsheet/spreadsheetTypes";
-import { systemIpcService } from "@renderer/services/systemIpcService";
-import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
-import { toErrorMessage } from "@renderer/utils/errorUtils";
+import { systemIpcService } from "@renderer/services/ipcServices";
+import { EMPTY_VALUE_FALLBACK } from "@shared/utils/sharedUtils";
+import { toErrorMessage } from "@renderer/utils/rendererUtils";
 
 /** 有効なパス・URL 文字列かを正規化して返す */
-export function normalizeExternalTarget(value: unknown): string {
+function normalizeExternalTarget(value: unknown): string {
   if (typeof value !== "string") return "";
 
   const trimmed = value.trim();

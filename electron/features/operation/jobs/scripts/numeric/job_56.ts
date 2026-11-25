@@ -11,7 +11,7 @@ import {
 import {
   formatDateTime,
   getDateKey,
-} from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const CONFIG = {
   targetDir: "\\\\172.25.101.51\\if\\WEB-SV\\RCV\\SV",

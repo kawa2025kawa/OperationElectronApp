@@ -3,8 +3,8 @@
 import { chromium, type Page } from "playwright";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
-import { getServiceCredentials } from "@electron/features/system/serviceCredentialsLoader";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { getServiceCredentials } from "@electron/features/system/systemService";
 
 interface JobN31ResultData {
   url: string;

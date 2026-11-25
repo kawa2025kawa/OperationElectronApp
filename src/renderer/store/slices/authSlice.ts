@@ -2,7 +2,7 @@
 
 import type { StateCreator } from "zustand";
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
-import { authIpcService } from "@renderer/services/authIpcService";
+import { authIpcService } from "@renderer/services/ipcServices";
 import type { AppState } from "@renderer/store";
 import type { AuthProfile, AuthSlice } from "@shared/types/auth/authTypes";
 

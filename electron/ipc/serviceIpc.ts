@@ -1,11 +1,9 @@
 // electron/ipc/serviceIpc.ts
 
-import fs from "fs-extra";
 import path from "node:path";
-
+import fs from "fs-extra";
 import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 import type { AuthProfile, AuthSession } from "@shared/types/auth/authTypes";
-
 import { authService } from "@electron/features/auth/authService";
 import {
   getPublicSpreadsheetMasterData,
@@ -25,9 +23,8 @@ import {
 import { uploadTempomaticDocuments } from "@electron/features/tempomatic/tempomaticService";
 import { runJobE41 } from "@electron/features/operation/jobs/scripts/eseries/job_e41";
 import { openExternalOrPath } from "@electron/features/system/systemService";
-import { registerIpcHandler } from "./ipcHelper";
+import { registerIpcHandler } from "./index";
 
-// 認証セッションから公開プロフィールを生成する。
 function toPublicProfile(session: AuthSession): AuthProfile {
   return {
     email: session.email,
@@ -35,7 +32,6 @@ function toPublicProfile(session: AuthSession): AuthProfile {
   };
 }
 
-// 認証・スプレッドシート・RDP・Gmail・Tempomatic・その他業務サービスのIPCハンドラーを一括登録する。
 export function registerServiceIpc(): void {
   // Auth
   registerIpcHandler(IPC_CHANNELS.AUTH.LOGIN, async () =>
@@ -46,7 +42,7 @@ export function registerServiceIpc(): void {
     return session ? toPublicProfile(session) : null;
   });
   registerIpcHandler(IPC_CHANNELS.AUTH.LOGOUT, async () => {
-    await authService.clearSession();
+    authService.clearSession();
     await clearSpreadsheetMasterDataCache();
   });
 

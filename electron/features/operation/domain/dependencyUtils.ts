@@ -8,7 +8,7 @@ import {
   type IrregularMaster,
   type TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
-import { isSuccessStatus } from "@shared/utils/statusUtils";
+import { isSuccessStatus } from "@shared/utils/sharedUtils";
 import { isSpecialDependencySatisfied } from "./operationRules";
 
 type MasterItem = OperationMaster | IrregularMaster | TodayIrregularMaster;

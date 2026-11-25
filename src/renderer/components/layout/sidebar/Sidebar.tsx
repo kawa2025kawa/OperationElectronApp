@@ -1,16 +1,47 @@
 // src/renderer/components/layout/sidebar/Sidebar.tsx
 
-import { memo } from "react";
+import { memo, startTransition, useCallback } from "react";
 import { clsx } from "clsx";
+import { useShallow } from "zustand/shallow";
 
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-import { ORDERED_MENU_ITEMS, useSidebarLogic } from "./useSidebarLogic";
+import { APP_REGISTRY, type AppViewId } from "@renderer/registry/appRegistry";
+import { useAppStore } from "@renderer/store";
 
 import * as styles from "./sidebar.css";
 
+const ORDERED_MENU_ITEMS = Object.values(APP_REGISTRY)
+  .filter((item) => item.sidebarMenu?.show)
+  .sort((a, b) => (a.sidebarMenu?.order ?? 0) - (b.sidebarMenu?.order ?? 0));
+
 export const Sidebar = memo(function Sidebar() {
-  const { currentView, isSidebarOpen, toggleSidebar, handleItemClick } =
-    useSidebarLogic();
+  const {
+    currentView,
+    isSidebarOpen,
+    toggleSidebar,
+    setSidebarOpen,
+    setCurrentView,
+  } = useAppStore(
+    useShallow((s) => ({
+      currentView: s.currentView,
+      isSidebarOpen: s.isSidebarOpen,
+      toggleSidebar: s.toggleSidebar,
+      setSidebarOpen: s.setSidebarOpen,
+      setCurrentView: s.setCurrentView,
+    })),
+  );
+
+  const handleItemClick = useCallback(
+    (view: AppViewId) => {
+      setSidebarOpen(false);
+      if (view === currentView) return;
+
+      startTransition(() => {
+        setCurrentView(view);
+      });
+    },
+    [currentView, setSidebarOpen, setCurrentView],
+  );
 
   return (
     <aside
@@ -18,7 +49,6 @@ export const Sidebar = memo(function Sidebar() {
     >
       <div className={styles.header}>
         <span className={styles.headerTitle}>SideMenu</span>
-
         <CloseButton onClick={toggleSidebar} />
       </div>
 

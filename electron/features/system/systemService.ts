@@ -1,18 +1,27 @@
 // electron/features/system/systemService.ts
 
-import { app, BrowserWindow, shell } from "electron";
-import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { UpdateInfo } from "@shared/types/system/update";
+import { app, BrowserWindow, shell } from "electron";
+import fs from "fs-extra";
+import type { UpdateInfo } from "@shared/types/electron/ipcTypes";
 
 const SYSTEM_CONFIG = {
   updateDirectory:
     "\\\\192.88.1.210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp",
   updateInfoFileName: "OperationElectronApp_update.json",
   manualBaseUrl: "https://sites.google.com/belc.co.jp",
+  credentialsFileName: "service-credentials.json",
 } as const;
+
+export interface ServiceCredentialsConfig {
+  tracker: { apiKey: string; apiBaseUrl: string };
+  tempomatic: { baseUrl: string; loginId: string; password: string };
+  belcta: { loginUrl: string; userId: string; password: string };
+  webedi: { url: string; userId: string; password: string };
+  fepFtp: { host: string; port: number; user: string; password: string };
+}
 
 const ALLOWED_EXTERNAL_PROTOCOLS = new Set(["https:", "http:"]);
 
@@ -44,6 +53,94 @@ const ALLOWED_LOCAL_BASE_DIRS: readonly string[] = [
   "\\\\c0088150\\",
   "\\\\s0088003\\",
 ];
+
+let cachedCredentials: ServiceCredentialsConfig | null = null;
+
+function assertNonEmptyString(value: unknown, fieldPath: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(
+      `設定ファイル (${SYSTEM_CONFIG.credentialsFileName}) の "${fieldPath}" が未設定または不正です`,
+    );
+  }
+  return value.trim();
+}
+
+function readRequiredSection<K extends string>(
+  root: Record<string, Record<string, unknown> | undefined>,
+  section: K,
+  keys: readonly string[],
+): Record<string, string> {
+  const sec = root[section];
+  const result: Record<string, string> = {};
+  for (const key of keys) {
+    result[key] = assertNonEmptyString(sec?.[key], `${section}.${key}`);
+  }
+  return result;
+}
+
+export function getServiceCredentials(): ServiceCredentialsConfig {
+  if (cachedCredentials) {
+    return cachedCredentials;
+  }
+
+  const filePath = resolveResourcePath(SYSTEM_CONFIG.credentialsFileName);
+  if (!fs.pathExistsSync(filePath)) {
+    throw new Error(`サービス認証情報ファイルが見つかりません: ${filePath}`);
+  }
+
+  let raw: unknown;
+  try {
+    raw = fs.readJsonSync(filePath);
+  } catch (error) {
+    throw new Error(
+      `サービス認証情報ファイルのJSON解析に失敗しました: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      { cause: error },
+    );
+  }
+
+  if (typeof raw !== "object" || raw === null) {
+    throw new Error(`サービス認証情報ファイルの形式が不正です: ${filePath}`);
+  }
+
+  const obj = raw as Record<string, Record<string, unknown> | undefined>;
+  const portRaw = obj.fepFtp?.port;
+  const port =
+    typeof portRaw === "number" && Number.isFinite(portRaw) ? portRaw : 21;
+
+  cachedCredentials = {
+    tracker: readRequiredSection(obj, "tracker", [
+      "apiKey",
+      "apiBaseUrl",
+    ]) as ServiceCredentialsConfig["tracker"],
+    tempomatic: readRequiredSection(obj, "tempomatic", [
+      "baseUrl",
+      "loginId",
+      "password",
+    ]) as ServiceCredentialsConfig["tempomatic"],
+    belcta: readRequiredSection(obj, "belcta", [
+      "loginUrl",
+      "userId",
+      "password",
+    ]) as ServiceCredentialsConfig["belcta"],
+    webedi: readRequiredSection(obj, "webedi", [
+      "url",
+      "userId",
+      "password",
+    ]) as ServiceCredentialsConfig["webedi"],
+    fepFtp: {
+      ...(readRequiredSection(obj, "fepFtp", [
+        "host",
+        "user",
+        "password",
+      ]) as Omit<ServiceCredentialsConfig["fepFtp"], "port">),
+      port,
+    },
+  };
+
+  return cachedCredentials;
+}
 
 function normalizeWinPath(targetPath: string): string {
   return path.win32.normalize(targetPath.replace(/\//g, "\\"));
@@ -87,9 +184,7 @@ async function assertAllowedLocalPath(normalizedPath: string): Promise<void> {
 
   try {
     const stats = await fs.stat(normalizedPath);
-    if (stats.isDirectory()) {
-      return;
-    }
+    if (stats.isDirectory()) return;
   } catch {
     // stat に失敗した場合は拡張子判定へフォールバック
   }
@@ -116,7 +211,6 @@ function resolveLocalPathFromTarget(target: string): string {
   }
 }
 
-// パッケージ状態に応じて resources ディレクトリ配下のファイルパスを解決する。
 export function resolveResourcePath(fileName: string): string {
   return app?.isPackaged
     ? path.join(process.resourcesPath, fileName)
@@ -131,7 +225,6 @@ function getUpdateInfoPath(): string {
   return path.join(baseDirectory, SYSTEM_CONFIG.updateInfoFileName);
 }
 
-// 対象管理Noに対応するWebマニュアルのURLを生成して返す。
 export function getManualUrl(target: string, isAuto = false): string {
   const cleanTarget = target.trim();
   const basePrefix = isAuto ? "operation-auto-manual" : "operation-manual";
@@ -141,13 +234,11 @@ export function getManualUrl(target: string, isAuto = false): string {
     : `${SYSTEM_CONFIG.manualBaseUrl}/${basePrefix}-${cleanTarget}`;
 }
 
-// 破棄されていないアクティブなメインウィンドウインスタンスを取得する。
 export function getMainWindow(): BrowserWindow | null {
   const win = BrowserWindow.getAllWindows()[0];
   return win && !win.isDestroyed() ? win : null;
 }
 
-// URLまたはローカルパスを検証し、許可されたスキーム・パスのみ既定アプリまたはブラウザで開く。
 export async function openExternalOrPath(
   target: string,
   options?: { skipLocalWhitelist?: boolean },
@@ -190,11 +281,9 @@ export async function openExternalOrPath(
   }
 }
 
-// アップデート情報を読み込んで返す（本番は共有フォルダ、開発時はローカルプロジェクトルートを参照）。
 export async function readUpdateInfo(): Promise<UpdateInfo | null> {
   try {
-    const content = await fs.readFile(getUpdateInfoPath(), "utf-8");
-    const data: unknown = JSON.parse(content);
+    const data: unknown = await fs.readJson(getUpdateInfoPath());
     if (
       typeof data === "object" &&
       data !== null &&

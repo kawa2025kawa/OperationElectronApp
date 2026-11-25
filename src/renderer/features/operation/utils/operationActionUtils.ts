@@ -10,7 +10,7 @@ import {
 } from "@renderer/components/ui/modal/modalLaunchers";
 import { operationService } from "@renderer/features/operation/service/operationService";
 import type { AppState } from "@renderer/store";
-import { isRunningStatus, normalizeKanriNo } from "@shared/utils/statusUtils";
+import { isRunningStatus, normalizeKanriNo } from "@shared/utils/sharedUtils";
 import type {
   LinkConfig,
   OperationViewItem,

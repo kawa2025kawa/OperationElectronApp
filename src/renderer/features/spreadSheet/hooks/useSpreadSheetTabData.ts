@@ -1,7 +1,7 @@
 // src/renderer/features/spreadSheet/hooks/useSpreadSheetTabData.ts
 
 import { useMemo, useState } from "react";
-import { getValueByPath } from "@shared/utils/getValueByPath";
+import { getValueByPath } from "@shared/utils/sharedUtils";
 
 export interface TabGroupConfig<K extends string = string> {
   title: string;

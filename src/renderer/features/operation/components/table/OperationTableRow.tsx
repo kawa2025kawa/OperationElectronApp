@@ -2,6 +2,7 @@
 
 import { memo, useCallback, type KeyboardEvent, type MouseEvent } from "react";
 import { useTable, type Row } from "@tanstack/react-table";
+import { clsx } from "clsx";
 
 import { StatusBadge } from "@renderer/components/ui/badge/StatusBadge";
 import { useAppStore } from "@renderer/store";
@@ -68,11 +69,12 @@ export const OperationTableRow = memo(function OperationTableRow({
     <tr
       tabIndex={0}
       data-context-open={isContextOpen}
-      className={`${styles.tableRowBase} ${
+      className={clsx(
+        styles.tableRowBase,
         isSelected
           ? styles.tableRowStates.selected
-          : styles.tableRowStates.clickable
-      }`}
+          : styles.tableRowStates.clickable,
+      )}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
     >
@@ -86,7 +88,7 @@ export const OperationTableRow = memo(function OperationTableRow({
         return (
           <td
             key={cell.id}
-            className={`${styles.tdBase} ${styles.alignVariants[align]}`}
+            className={clsx(styles.tdBase, styles.alignVariants[align])}
           >
             {column === "status" ? (
               <div className={styles.statusCellWrapper}>

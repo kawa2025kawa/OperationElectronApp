@@ -1,7 +1,7 @@
 // src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
 
 import { useMemo, useCallback } from "react";
-import { EMPTY_VALUE_FALLBACK } from "@shared/constants/commonConstants";
+import { EMPTY_VALUE_FALLBACK } from "@shared/utils/sharedUtils";
 import type {
   PublicShop,
   ShopResourceKey,

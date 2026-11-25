@@ -1,6 +1,6 @@
 // electron/features/masterData/application/publicMasterDataMapper.ts
 
-import type { SpreadsheetMasterDataResponse } from "@shared/types/masterData/spreadsheetMasterDataTypes";
+import type { SpreadsheetMasterDataResponse } from "@shared/types/spreadsheet/spreadsheetTypes";
 import {
   SHEETS,
   type Jugyoin,
@@ -16,7 +16,7 @@ import {
 } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { getSpreadsheetMasterData } from "./spreadsheetMasterDataManager";
 
-export const SHOP_RESOURCE_KEYS = [
+const SHOP_RESOURCE_KEYS = [
   "tr1ImageUrl",
   "tr2ImageUrl",
   "tr3ImageUrl",
@@ -150,9 +150,7 @@ function isValidTarget(value: unknown): boolean {
 }
 
 function toPublicShop(shop: Shop): PublicShop {
-  const base = pickAllowedFields(shop, ALLOWED_SHOP_KEYS);
   const availableResources: Partial<Record<ShopResourceKey, boolean>> = {};
-
   for (const key of SHOP_RESOURCE_KEYS) {
     if (isValidTarget(shop[key])) {
       availableResources[key] = true;
@@ -160,7 +158,7 @@ function toPublicShop(shop: Shop): PublicShop {
   }
 
   return {
-    ...base,
+    ...pickAllowedFields(shop, ALLOWED_SHOP_KEYS),
     availableResources,
   };
 }
@@ -179,10 +177,6 @@ function toPublicJugyoin(row: Jugyoin): PublicJugyoin {
   };
 }
 
-function toPublicTantou(row: Tantou): Tantou {
-  return pickAllowedFields(row, ALLOWED_TANTOU_KEYS);
-}
-
 // レンダラー公開用に機密パス等を除外したマスタデータを返す
 export async function getPublicSpreadsheetMasterData(): Promise<SpreadsheetMasterDataResponse> {
   const masterData = await getSpreadsheetMasterData();
@@ -190,7 +184,9 @@ export async function getPublicSpreadsheetMasterData(): Promise<SpreadsheetMaste
     stores: masterData.stores.map(toPublicShop),
     kokyuhyos: masterData.kokyuhyos.map(toPublicKokyuhyo),
     jugyoin: masterData.jugyoin.map(toPublicJugyoin),
-    kokyuhyoTantous: masterData.kokyuhyoTantous.map(toPublicTantou),
+    kokyuhyoTantous: masterData.kokyuhyoTantous.map((row) =>
+      pickAllowedFields(row, ALLOWED_TANTOU_KEYS),
+    ),
     operations: masterData.operations,
     irregulars: masterData.irregulars,
     todayIrregulars: masterData.todayIrregulars,
@@ -214,8 +210,9 @@ export async function resolveStaffScheduleLink(
     sheetId === SHEETS.JUGYOIN.sheetName
       ? masterData.jugyoin
       : masterData.kokyuhyos;
-  const target = list.find((item) => item.id?.trim() === cleanId);
-  const link = target?.scheduleLink?.trim();
+  const link = list
+    .find((item) => item.id?.trim() === cleanId)
+    ?.scheduleLink?.trim();
 
   if (!link || link === "-") {
     throw new Error("スケジュールリンクが登録されていません");
@@ -235,10 +232,9 @@ export async function resolveShopResourcePath(
   }
 
   const masterData = await getSpreadsheetMasterData();
-  const target = masterData.stores.find(
-    (item) => item.shopCode?.trim() === cleanCode,
-  );
-  const resourcePath = target?.[resourceKey]?.trim();
+  const resourcePath = masterData.stores
+    .find((item) => item.shopCode?.trim() === cleanCode)
+    ?.[resourceKey]?.trim();
 
   if (!resourcePath || resourcePath === "-") {
     throw new Error("対象のファイルまたは画像が登録されていません");

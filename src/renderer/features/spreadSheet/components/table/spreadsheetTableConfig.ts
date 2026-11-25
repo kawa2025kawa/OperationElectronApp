@@ -10,11 +10,11 @@ import {
   type AccessorKeyColumnDef,
   type DeepKeys,
 } from "@tanstack/react-table";
-import * as tableStyles from "./spreadSheetTable.css";
 import {
   formatDateWithDay,
   getOffsetDate,
 } from "../../utils/spreadsheetDateUtils";
+import * as tableStyles from "./spreadSheetTable.css";
 
 export const SPREADSHEET_TABLE_FEATURES = tableFeatures({
   ...stockFeatures,
@@ -24,8 +24,15 @@ export const SPREADSHEET_TABLE_FEATURES = tableFeatures({
 
 export type SpreadSheetTableFeatures = typeof SPREADSHEET_TABLE_FEATURES;
 
-export interface SpreadSheetColumnMeta {
+interface SpreadSheetColumnMeta {
   readonly align?: "left" | "center" | "right";
+}
+
+type ColumnAlign = NonNullable<SpreadSheetColumnMeta["align"]>;
+
+export function getColumnAlign(meta: unknown): ColumnAlign {
+  const align = (meta as SpreadSheetColumnMeta | undefined)?.align;
+  return align === "center" || align === "right" ? align : "left";
 }
 
 const HOLIDAY_WORDS = ["公休", "有休", "〇連", "特休", "希休", "休"] as const;
@@ -47,11 +54,7 @@ export function renderSpreadSheetDateHeader(prefix: string, date: Date) {
     "span",
     null,
     `${prefix} ${text}`,
-    createElement(
-      "span",
-      dayClass ? { className: dayClass } : null,
-      dayText,
-    ),
+    createElement("span", dayClass ? { className: dayClass } : null, dayText),
   );
 }
 

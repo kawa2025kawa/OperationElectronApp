@@ -9,7 +9,7 @@ import {
   type DependencyMasters,
 } from "@electron/features/operation/domain/dependencyUtils";
 import type { OperationStatusState } from "@shared/types/operation/operationTypes";
-import type { StatusTarget } from "./statusTypes";
+import type { StatusTarget } from "./statusState";
 
 type EdgeMap = Map<string, Set<string>>;
 

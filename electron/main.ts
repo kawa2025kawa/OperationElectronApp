@@ -1,9 +1,9 @@
 // electron/main.ts
 
-import { app, BrowserWindow, Menu, session, shell } from "electron";
-import windowStateKeeper from "electron-window-state";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { app, BrowserWindow, Menu, session, shell } from "electron";
+import windowStateKeeper from "electron-window-state";
 import { stopPolling } from "@electron/features/operation/application/operationScheduler";
 import { initializeActiveFlags } from "@electron/features/operation/application/statusManager";
 import { registerIpcHandlers } from "./ipc";
@@ -25,9 +25,8 @@ function isAllowedAppNavigation(targetUrl: string): boolean {
 
   try {
     const parsed = new URL(targetUrl);
-    if (parsed.protocol !== "file:") {
-      return false;
-    }
+    if (parsed.protocol !== "file:") return false;
+
     const distRootUrl = pathToFileURL(path.resolve(__dirname, "../dist")).href;
     return parsed.href.startsWith(distRootUrl);
   } catch {
@@ -86,10 +85,7 @@ function enforceProductionDevToolsLock(win: BrowserWindow): void {
   });
 }
 
-// メインアプリケーションウィンドウを生成・設定し、ライフサイクルイベントを登録する。
 function createWindow(): void {
-  const preloadPath = path.join(__dirname, "preload.cjs");
-
   if (app.isPackaged) {
     Menu.setApplicationMenu(null);
   }
@@ -105,7 +101,7 @@ function createWindow(): void {
     width: mainWindowState.width,
     height: mainWindowState.height,
     webPreferences: {
-      preload: preloadPath,
+      preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -141,12 +137,10 @@ function createWindow(): void {
   });
 }
 
-// 開発環境または本番環境に応じてレンダラー画面を読み込む。
 async function loadRenderer(): Promise<void> {
   if (!mainWindow) return;
 
   const devUrl = process.env.VITE_DEV_SERVER_URL;
-
   if (devUrl) {
     await mainWindow.loadURL(devUrl);
     mainWindow.webContents.openDevTools({ mode: "detach" });
@@ -157,11 +151,9 @@ async function loadRenderer(): Promise<void> {
     mainWindow.webContents.openDevTools({ mode: "detach" });
   }
 
-  const rendererPath = path.join(__dirname, "../dist/index.html");
-  await mainWindow.loadFile(rendererPath);
+  await mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
 }
 
-// Electronの起動完了後にセンターフラグを復元し、CSP・IPC・メインウィンドウを初期化する。
 app
   .whenReady()
   .then(async () => {
@@ -182,12 +174,10 @@ app
     app.quit();
   });
 
-// アプリケーション終了前にバックグラウンドのポーリング処理を停止する。
 app.on("before-quit", () => {
   stopPolling();
 });
 
-// すべてのウィンドウが閉じられた際、macOS以外ではアプリケーションを終了する。
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();

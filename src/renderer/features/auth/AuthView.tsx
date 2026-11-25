@@ -1,19 +1,80 @@
 // src/renderer/features/auth/AuthView.tsx
 
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { clsx } from "clsx";
-import { useAuthView } from "./useAuthView";
+import { toast } from "sonner";
+import { useShallow } from "zustand/react/shallow";
+import { useAppStore } from "@renderer/store";
+import type { AuthState } from "@shared/types/auth/authTypes";
 import * as styles from "./authView.css";
+
+const AUTH_BUTTON_TEXT: Record<AuthState, string> = {
+  loading: "Processing...",
+  loggedIn: "Logout",
+  loggedOut: "Login with Google",
+};
 
 export const AuthView = memo(() => {
   const {
     isAuthenticated,
+    isChecking,
+    isGlobalProcessing,
     userEmail,
     familyName,
-    isButtonDisabled,
-    buttonText,
-    handleAuthToggle,
-  } = useAuthView();
+    login,
+    logout,
+    setGlobalProcessing,
+  } = useAppStore(
+    useShallow((state) => ({
+      isAuthenticated: state.isAuthenticated,
+      isChecking: state.isChecking,
+      isGlobalProcessing: state.globalProcessing !== null,
+      userEmail: state.userEmail,
+      familyName: state.familyName,
+      login: state.login,
+      logout: state.logout,
+      setGlobalProcessing: state.setGlobalProcessing,
+    })),
+  );
+
+  const isProcessing = isChecking || isGlobalProcessing;
+
+  const handleAuthToggle = useCallback(async (): Promise<void> => {
+    if (isProcessing) return;
+
+    const isLogin = !isAuthenticated;
+    const action = isLogin ? login : logout;
+
+    setGlobalProcessing({
+      message: isLogin ? "認証処理中..." : "ログアウト処理中...",
+      target: isLogin ? "Google OAuth Login" : "Google OAuth Logout",
+    });
+
+    try {
+      await action();
+      toast.success(isLogin ? "ログインしました" : "ログアウトしました");
+    } catch (error) {
+      console.error(
+        isLogin ? "[Auth] Login failed:" : "[Auth] Logout failed:",
+        error,
+      );
+      toast.error(
+        isLogin && error instanceof Error
+          ? error.message
+          : isLogin
+            ? "ログインに失敗しました"
+            : "ログアウトに失敗しました",
+      );
+    } finally {
+      setGlobalProcessing(null);
+    }
+  }, [isProcessing, isAuthenticated, login, logout, setGlobalProcessing]);
+
+  const authState: AuthState = isProcessing
+    ? "loading"
+    : isAuthenticated
+      ? "loggedIn"
+      : "loggedOut";
 
   return (
     <div className={styles.viewContainer}>
@@ -79,9 +140,9 @@ export const AuthView = memo(() => {
             type="button"
             className={styles.authButton}
             onClick={handleAuthToggle}
-            disabled={isButtonDisabled}
+            disabled={authState === "loading"}
           >
-            {buttonText}
+            {AUTH_BUTTON_TEXT[authState]}
           </button>
         </div>
       </div>

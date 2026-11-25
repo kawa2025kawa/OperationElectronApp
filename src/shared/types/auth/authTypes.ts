@@ -4,13 +4,12 @@ export interface OAuthToken {
   accessToken: string;
   refreshToken: string | null;
   expiresIn: number | null;
-  idToken: string | null;
 }
 
 /**
-- Main process内部でのみ使用するGoogle認証セッション。
+ * Main process内部でのみ使用するGoogle認証セッション。
  *
-- accessToken / refreshTokenはRendererへ返さない。
+ * accessToken / refreshTokenはRendererへ返さない。
  */
 export interface AuthSession {
   accessToken: string;
@@ -26,7 +25,7 @@ export interface GoogleUserInfo {
 }
 
 /**
-- Rendererへ公開する認証プロフィール。
+ * Rendererへ公開する認証プロフィール。
  */
 export interface AuthProfile {
   email: string | null;

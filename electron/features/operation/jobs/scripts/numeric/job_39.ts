@@ -5,7 +5,7 @@ import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/job
 import {
   directoryExists,
   getDateKey,
-} from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import {
   checkFileUpdatedToday,
   listFilesInDir,

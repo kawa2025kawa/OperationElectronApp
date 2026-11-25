@@ -2,11 +2,13 @@
 
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
+import { spreadsheetIpcService } from "@renderer/services/ipcServices";
 import type { AppState } from "@renderer/store";
+import { toErrorMessage } from "@renderer/utils/rendererUtils";
 import type {
   SpreadsheetDailyUpdateStatus,
   SpreadsheetMasterDataResponse,
-} from "@shared/types/masterData/spreadsheetMasterDataTypes";
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 import {
   SHEETS,
   type SheetData,
@@ -14,8 +16,6 @@ import {
   type SheetDataState,
   type SheetId,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
-import { spreadsheetIpcService } from "@renderer/services/spreadsheetIpcService";
-import { toErrorMessage } from "@renderer/utils/errorUtils";
 
 const SHEET_IDS = Object.values(SHEETS).map(
   ({ sheetName }) => sheetName,
@@ -40,11 +40,6 @@ export interface SpreadSheetSlice {
   sheetErrors: Partial<Record<SheetId, string>>;
   dailyUpdateStatus: SpreadsheetDailyUpdateStatus | null;
 
-  updateSheetData<TSheetId extends SheetId>(
-    sheetId: TSheetId,
-    data: SheetDataResponse<TSheetId>,
-  ): void;
-
   fetchMasterData(): Promise<SpreadsheetMasterDataResponse | null>;
   clearMasterData(): void;
 }
@@ -55,16 +50,6 @@ export const createSpreadSheetSlice: StateCreator<
   [],
   SpreadSheetSlice
 > = (set, get) => {
-  const updateSheetData = <TSheetId extends SheetId>(
-    sheetId: TSheetId,
-    data: SheetDataResponse<TSheetId>,
-  ): void => {
-    set((state) => {
-      state.sheetData[sheetId] = data as never;
-      delete state.sheetErrors[sheetId];
-    });
-  };
-
   const clearMasterData = (): void => {
     set((state) => {
       state.sheetData = createSheetState(null) as SheetDataState;
@@ -162,7 +147,6 @@ export const createSpreadSheetSlice: StateCreator<
     sheetData: createSheetState(null) as SheetDataState,
     sheetErrors: {},
     dailyUpdateStatus: null,
-    updateSheetData,
     fetchMasterData,
     clearMasterData,
   };

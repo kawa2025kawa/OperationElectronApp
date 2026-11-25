@@ -4,8 +4,8 @@ import {
   assertSpreadsheetSheetsLoaded,
   clearSpreadsheetMasterDataCache,
   getSpreadsheetMasterData,
+  type SpreadsheetMasterData,
 } from "@electron/features/masterData/application/spreadsheetMasterDataManager";
-import type { SpreadsheetMasterData } from "@electron/features/masterData/types/internalSpreadsheetMasterDataTypes";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 import {
   createScheduledStatus,
@@ -17,15 +17,16 @@ import {
   loadStatusesFromFile,
   persistStatusesDebounced,
   persistStatusesImmediately,
-} from "@electron/features/operation/infrastructure/storage/statusStorage";
+} from "@electron/features/operation/infrastructure/operationStorage";
 import type { OperationStatusState } from "@shared/types/operation/operationTypes";
 import type { DependencyMasters } from "@electron/features/operation/domain/dependencyUtils";
-import { DependencyPropagator } from "./dependencyPropagator";
 import { stopPolling } from "./operationScheduler";
-import { notifyStatusCleared } from "./statusNotifier";
-import { statusState } from "./statusState";
+import {
+  notifyStatusCleared,
+  statusState,
+  type StatusTarget,
+} from "./statusState";
 import { recalculateAllStatuses } from "./statusUpdater";
-import type { StatusTarget } from "./statusTypes";
 
 function createOperationTargetList(
   masterData: SpreadsheetMasterData,
@@ -42,33 +43,19 @@ function createOperationTargetList(
   ];
 }
 
-async function resetAllStatusesAndTargets(): Promise<void> {
-  await deleteStatusFile();
-
-  statusState.propagator.clearAll();
-  statusState.targets.clear();
-  statusState.statuses.clear();
-  statusState.dependencyMasters = {
-    operationMasters: [],
-    irregularMasters: [],
-    todayIrregularMasters: [],
-  };
-}
-
-function registerTargets(
+function buildValidatedTargets(
   targetList: StatusTarget[],
   masterData: SpreadsheetMasterData,
-): void {
+): {
+  nextTargets: Map<string, StatusTarget>;
+  nextDependencyMasters: DependencyMasters;
+} {
   const nextTargets = new Map<string, StatusTarget>();
-
   for (const target of targetList) {
     const kanriNo = normalizeKanriNo(target.kanriNo);
-    if (!kanriNo) continue;
-
-    nextTargets.set(kanriNo, {
-      ...target,
-      kanriNo,
-    });
+    if (kanriNo) {
+      nextTargets.set(kanriNo, { ...target, kanriNo });
+    }
   }
 
   const nextDependencyMasters: DependencyMasters = {
@@ -83,6 +70,13 @@ function registerTargets(
     nextDependencyMasters,
   );
 
+  return { nextTargets, nextDependencyMasters };
+}
+
+function applyTargets(
+  nextTargets: Map<string, StatusTarget>,
+  nextDependencyMasters: DependencyMasters,
+): void {
   for (const kanriNo of statusState.targets.keys()) {
     if (!nextTargets.has(kanriNo)) {
       statusState.statuses.delete(kanriNo);
@@ -93,7 +87,6 @@ function registerTargets(
 
   for (const [kanriNo, target] of nextTargets) {
     statusState.targets.set(kanriNo, target);
-
     if (!statusState.statuses.has(kanriNo)) {
       statusState.statuses.set(kanriNo, createScheduledStatus(kanriNo));
     }
@@ -152,10 +145,6 @@ export async function deleteAllStatuses(): Promise<void> {
   }
 }
 
-function saveStatusesImmediately(): void {
-  void persistStatusesImmediately(statusState.statuses);
-}
-
 export async function registerOperationTargets(): Promise<void> {
   const masterData = await getSpreadsheetMasterData();
 
@@ -164,8 +153,11 @@ export async function registerOperationTargets(): Promise<void> {
     SHEETS.IRREGULAR.sheetName,
   ]);
 
-  const targetList = createOperationTargetList(masterData);
-  registerTargets(targetList, masterData);
+  const { nextTargets, nextDependencyMasters } = buildValidatedTargets(
+    createOperationTargetList(masterData),
+    masterData,
+  );
+  applyTargets(nextTargets, nextDependencyMasters);
 }
 
 export async function resetOperationStatuses(): Promise<
@@ -182,20 +174,18 @@ export async function resetOperationStatuses(): Promise<
     SHEETS.IRREGULAR.sheetName,
   ]);
 
-  const targetList = createOperationTargetList(masterData);
-
   // 既存ステータスを削除する前に依存関係を検証する。
-  const validationPropagator = new DependencyPropagator();
+  const { nextTargets, nextDependencyMasters } = buildValidatedTargets(
+    createOperationTargetList(masterData),
+    masterData,
+  );
 
-  validationPropagator.rebuildDependencyIndex(targetList, {
-    operationMasters: masterData.operations,
-    irregularMasters: masterData.irregulars,
-    todayIrregularMasters: masterData.todayIrregulars,
-  });
+  await deleteStatusFile();
+  statusState.targets.clear();
+  statusState.statuses.clear();
 
-  await resetAllStatusesAndTargets();
-  registerTargets(targetList, masterData);
-  saveStatusesImmediately();
+  applyTargets(nextTargets, nextDependencyMasters);
+  void persistStatusesImmediately(statusState.statuses);
 
   return Object.fromEntries(statusState.statuses);
 }

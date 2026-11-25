@@ -10,7 +10,7 @@ import {
   type CsvRow,
   type ParsedCsv,
 } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {

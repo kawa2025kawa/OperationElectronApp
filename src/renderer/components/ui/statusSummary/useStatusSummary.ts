@@ -3,11 +3,31 @@
 import { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
 
-import type { SummaryDisplayKey } from "@shared/types/statusSummary/statusSummaryTypes";
 import { useAppStore } from "@renderer/store";
+import {
+  JOB_STATUS_LABEL,
+  JOB_STATUS_VALUES,
+} from "@shared/types/operation/operationTypes";
+import type { SummaryDisplayKey } from "@shared/types/operation/operationTypes";
 
 import * as styles from "./statusSummary.css";
-import { getSummaryLabel, SUMMARY_DISPLAY_ORDER } from "./statusSummaryConfig";
+
+const SUMMARY_DISPLAY_ORDER = [
+  "progress",
+  "total",
+  ...JOB_STATUS_VALUES,
+] as const satisfies readonly SummaryDisplayKey[];
+
+const SUMMARY_LABEL: Record<"total" | "progress", string> = {
+  total: "対象件数",
+  progress: "進捗率",
+};
+
+function getSummaryLabel(key: SummaryDisplayKey): string {
+  return key === "total" || key === "progress"
+    ? SUMMARY_LABEL[key]
+    : JOB_STATUS_LABEL[key];
+}
 
 export interface StatusSummaryItemData {
   key: SummaryDisplayKey;
@@ -19,10 +39,6 @@ export interface StatusSummaryItemData {
 }
 
 type StatusSummaryBadgeKey = keyof typeof styles.valueBadgeVariants;
-
-const getBadgeClass = (key: SummaryDisplayKey): string => {
-  return styles.valueBadgeVariants[key as StatusSummaryBadgeKey];
-};
 
 export const useStatusSummary = () => {
   const {
@@ -51,7 +67,7 @@ export const useStatusSummary = () => {
         key,
         label: getSummaryLabel(key),
         displayValue: key === "progress" ? `${value}%` : value,
-        badgeClass: getBadgeClass(key),
+        badgeClass: styles.valueBadgeVariants[key as StatusSummaryBadgeKey],
         isActive,
         isInteractive: key !== "progress",
       };
@@ -60,15 +76,11 @@ export const useStatusSummary = () => {
 
   const handleClick = useCallback(
     (key: SummaryDisplayKey) => {
-      if (key === "progress") {
-        return;
-      }
-
+      if (key === "progress") return;
       if (key === "total") {
         setSummaryStatusFilter(null);
         return;
       }
-
       toggleSummaryStatusFilter(key);
     },
     [setSummaryStatusFilter, toggleSummaryStatusFilter],

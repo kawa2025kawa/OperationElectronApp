@@ -1,18 +1,53 @@
 // src/renderer/features/other/OtherView.tsx
 
-import { memo } from "react";
-import { useOtherViewLogic } from "./useOtherViewLogic";
+import { memo, useCallback } from "react";
+import {
+  openGiftMdModal,
+  openGmailModal,
+  openPdfUploadModal,
+  openResetStatusModal,
+  openStatusSyncModal,
+} from "@renderer/components/ui/modal/modalLaunchers";
+import { systemIpcService } from "@renderer/services/ipcServices";
+import { useAppStore } from "@renderer/store";
 import * as styles from "./otherView.css";
 
+const OKI_URL = "https://oki-corefido-connect.accel-mart.com/imart/login";
+
 export const OtherView = memo(() => {
-  const {
-    handleOpenPdfModal,
-    handleOpenGmailModal,
-    handleOpenGiftMdModal,
-    handleResetStatuses,
-    handleOpenStatusSyncModal,
-    handleOpenOKIURL,
-  } = useOtherViewLogic();
+  const openGlobalModal = useAppStore((state) => state.openGlobalModal);
+
+  const handleOpenPdfModal = useCallback(
+    () => openPdfUploadModal(openGlobalModal),
+    [openGlobalModal],
+  );
+
+  const handleOpenGmailModal = useCallback(
+    () => openGmailModal(openGlobalModal),
+    [openGlobalModal],
+  );
+
+  const handleOpenGiftMdModal = useCallback(
+    () => openGiftMdModal(openGlobalModal),
+    [openGlobalModal],
+  );
+
+  const handleResetStatuses = useCallback(
+    () => openResetStatusModal(openGlobalModal),
+    [openGlobalModal],
+  );
+
+  const handleOpenStatusSyncModal = useCallback(
+    () => openStatusSyncModal(openGlobalModal),
+    [openGlobalModal],
+  );
+
+  const handleOpenOKIURL = useCallback(() => {
+    void systemIpcService.openExternalWithToast(
+      OKI_URL,
+      "URLを開けませんでした",
+    );
+  }, []);
 
   return (
     <div className={styles.container}>

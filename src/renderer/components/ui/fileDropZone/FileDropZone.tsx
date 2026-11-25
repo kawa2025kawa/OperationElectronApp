@@ -2,6 +2,7 @@
 
 import { memo, type SyntheticEvent } from "react";
 import { Menu } from "@base-ui/react/menu";
+import { clsx } from "clsx";
 
 import * as styles from "./fileDropZone.css";
 
@@ -78,9 +79,10 @@ export const FileDropZone = memo<FileDropZoneProps>(
             role="button"
             tabIndex={disabled ? -1 : 0}
             aria-disabled={disabled}
-            className={`${styles.unifiedEmptyDropArea}${
-              isDragOverMain ? " is-active" : ""
-            }`}
+            className={clsx(
+              styles.unifiedEmptyDropArea,
+              isDragOverMain && "is-active",
+            )}
             onDragOver={handleMainDragOver}
             onDragLeave={handleMainDragLeave}
             onDrop={handleMainDrop}
@@ -93,9 +95,10 @@ export const FileDropZone = memo<FileDropZoneProps>(
           </div>
         ) : (
           <div
-            className={`${styles.unifiedFilesList}${
-              isDragOverMain ? " is-active" : ""
-            }`}
+            className={clsx(
+              styles.unifiedFilesList,
+              isDragOverMain && "is-active",
+            )}
             onDragOver={handleMainDragOver}
             onDragLeave={handleMainDragLeave}
             onDrop={handleMainDrop}
@@ -107,19 +110,15 @@ export const FileDropZone = memo<FileDropZoneProps>(
               const isDragging = draggedFileIndex === index;
               const isDropTarget = dragOverFileIndex === index;
 
-              const rowClassName = [
-                styles.selectedFileRow,
-                isMenuOpen && "is-open",
-                isDragging && "is-dragging",
-                isDropTarget && "is-drop-target",
-              ]
-                .filter(Boolean)
-                .join(" ");
-
               return (
                 <div
                   key={file.path}
-                  className={rowClassName}
+                  className={clsx(
+                    styles.selectedFileRow,
+                    isMenuOpen && "is-open",
+                    isDragging && "is-dragging",
+                    isDropTarget && "is-drop-target",
+                  )}
                   draggable={!disabled && canReorder && !isMenuOpen}
                   onDragStart={(e) => handleFileDragStart(e, index)}
                   onDragOver={(e) => handleFileDragOver(e, index)}

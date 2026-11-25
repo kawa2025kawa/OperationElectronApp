@@ -1,7 +1,9 @@
 // src/renderer/store/listeners/initIpcListeners.ts
 
-import { handleStatusToastNotification } from "@renderer/components/ui/toast/statusToastHandler";
-import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
+import {
+  handleStatusToastNotification,
+  usePollingToastStore,
+} from "@renderer/components/ui/toast/pollingToastStore";
 import type { AppState } from "@renderer/store";
 import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 
@@ -9,7 +11,6 @@ type GetAppState = () => AppState;
 
 let cleanupIpcListeners: (() => void) | null = null;
 
-// アプリ全体で使用するIPCリスナーを登録する。
 export function setupInitIpcListeners(getState: GetAppState): void {
   if (cleanupIpcListeners !== null) return;
 

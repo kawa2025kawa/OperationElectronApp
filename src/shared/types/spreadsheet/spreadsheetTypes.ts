@@ -3,8 +3,8 @@
 import type {
   IrregularMaster,
   OperationMaster,
+  TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
-import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
 
 // ============================================================
 // Spreadsheet Entity Types
@@ -51,9 +51,7 @@ type ShopBaseKeys =
   | "hubImageUrl"
   | "outletImageUrl";
 
-type ShopKey = ShopBaseKeys | ShopPrinterKeys | ShopTrKeys;
-
-export type Shop = Record<ShopKey, string>;
+export type Shop = Record<ShopBaseKeys | ShopPrinterKeys | ShopTrKeys, string>;
 
 export type ShopResourceKey =
   | "tr1ImageUrl"
@@ -135,6 +133,11 @@ export type UpdateMeta = Record<
   string
 >;
 
+export interface RdpTarget {
+  name: string;
+  ipAddress: string;
+}
+
 // ============================================================
 // Spreadsheet Definitions
 // ============================================================
@@ -202,7 +205,7 @@ type SheetRow<TSheetId extends SheetId> = SheetRowMap[TSheetId];
 export type SheetData<TSheetId extends SheetId> = SheetRow<TSheetId>[];
 
 // ============================================================
-// Renderer Sheet State
+// Renderer Sheet & Master Data State
 // ============================================================
 
 export interface SheetDataResponse<TSheetId extends SheetId> {
@@ -213,3 +216,28 @@ export interface SheetDataResponse<TSheetId extends SheetId> {
 export type SheetDataState = {
   [TSheetId in SheetId]: SheetDataResponse<TSheetId> | null;
 };
+
+export interface SpreadsheetDailyUpdateStatus {
+  isUpdatedToday: boolean;
+  updatedAt: string | null;
+  kokyuhyoUpdatedAt: string | null;
+  jugyoinUpdatedAt: string | null;
+  status: string | null;
+  message: string | null;
+  warningMessage: string | null;
+}
+
+export interface SpreadsheetMasterDataResponse {
+  stores: SheetData<typeof SHEETS.STORE.sheetName>;
+  kokyuhyos: SheetData<typeof SHEETS.KOKYUHYO.sheetName>;
+  jugyoin: SheetData<typeof SHEETS.JUGYOIN.sheetName>;
+  kokyuhyoTantous: SheetData<typeof SHEETS.KOKYUHYO_TANTOU.sheetName>;
+
+  operations: OperationMaster[];
+  irregulars: IrregularMaster[];
+  todayIrregulars: TodayIrregularMaster[];
+
+  dailyUpdateStatus: SpreadsheetDailyUpdateStatus;
+
+  errors: Partial<Record<SheetId, string>>;
+}

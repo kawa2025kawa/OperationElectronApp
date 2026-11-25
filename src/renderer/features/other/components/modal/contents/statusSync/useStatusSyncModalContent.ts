@@ -5,9 +5,9 @@ import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToast
 import { operationService } from "@renderer/features/operation/service/operationService";
 import { useModalFooterSync } from "@renderer/hooks/useModalFooterSync";
 import { useAppStore } from "@renderer/store";
-import { toErrorMessage } from "@renderer/utils/errorUtils";
+import { toErrorMessage } from "@renderer/utils/rendererUtils";
 import type { StatusSyncPreviewResult } from "@shared/types/electron/ipcTypes";
-import { formatJapanDateTime } from "@shared/utils/dateTimeUtils";
+import { formatJapanDateTime } from "@shared/utils/sharedUtils";
 
 export type StatusSyncMode = "save" | "load";
 

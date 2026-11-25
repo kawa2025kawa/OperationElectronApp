@@ -14,12 +14,12 @@ import {
   type OperationViewItem,
   type OperationWorkType,
 } from "@shared/types/operation/operationTypes";
-import { normalizeKanriNo } from "@shared/utils/statusUtils";
+import { normalizeKanriNo } from "@shared/utils/sharedUtils";
 import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
-import { rdpIpcService } from "@renderer/services/rdpIpcService";
-import { systemIpcService } from "@renderer/services/systemIpcService";
+import { rdpIpcService } from "@renderer/services/ipcServices";
+import { systemIpcService } from "@renderer/services/ipcServices";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
-import { toErrorMessage } from "@renderer/utils/errorUtils";
+import { toErrorMessage } from "@renderer/utils/rendererUtils";
 
 export interface ExecuteScriptParams {
   kanriNo: string;

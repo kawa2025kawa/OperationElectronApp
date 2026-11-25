@@ -1,7 +1,5 @@
 // electron/features/operation/application/statusManager.ts
 
-export type { StatusTarget } from "./statusTypes";
-
 export {
   getDependencyMasters,
   getDependencyStatuses,
@@ -10,22 +8,19 @@ export {
   getStatus,
   getTargetByKanriNo,
   getRegisteredTargets,
+  onReadyStatus,
+  initializeActiveFlags,
+  getActiveFlags,
+  type StatusTarget,
 } from "./statusState";
-
-export { onReadyStatus } from "./statusNotifier";
 
 export {
   recalculateTargetStatus,
   recalculateAllStatuses,
+  updateOperationActiveFlags,
   updateStatus,
   updateManualStatus,
 } from "./statusUpdater";
-
-export {
-  initializeActiveFlags,
-  getActiveFlags,
-  updateOperationActiveFlags,
-} from "./statusFlagService";
 
 export {
   initializeStatuses,

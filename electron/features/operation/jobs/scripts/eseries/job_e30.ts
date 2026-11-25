@@ -13,7 +13,7 @@ import {
   aggregateCsvAmountByStore,
   formatYen,
   parseAmount,
-} from "../helpers/parseAmount";
+} from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 
 const CONFIG = {
   meis0120Keyword: "MEIS0120",

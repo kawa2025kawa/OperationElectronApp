@@ -2,18 +2,150 @@
 
 import os from "node:os";
 import path from "node:path";
+import archiver from "archiver";
+import { format, isSameDay } from "date-fns";
 import fs from "fs-extra";
 import iconv from "iconv-lite";
-import { isSameDay } from "date-fns";
 import type { ScriptFilePath } from "@shared/types/operation/operationTypes";
 import { JobLogger } from "./jobLogger";
-import { directoryExists, formatDateTime } from "./timeUtils";
-import { createZipArchive } from "./zipHelper";
 
-/**
-- JobLogger の初期化と定型 try-catch エラー整形を共通化するラッパー。
-- すでに JobLogger.fail で整形済みの例外（"\n\n▶ " を含む）は二重ラップせずそのまま再送出する。
- */
+export interface CreateZipOptions {
+  filePaths: string[];
+  outputDir: string;
+  zipPrefix: string;
+}
+
+export interface CheckedFileStatus {
+  fileName: string;
+  filePath: string;
+  exists: boolean;
+  mtime: Date | null;
+  isToday: boolean;
+}
+
+interface ZipSourceFile {
+  filePath: string;
+  fileName: string;
+  mtime: Date;
+}
+
+export async function directoryExists(dirPath: string): Promise<boolean> {
+  try {
+    const stats = await fs.stat(dirPath);
+    return stats.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+export function getDateKey(
+  date: Date = new Date(),
+  pattern = "yyyyMMdd",
+): string {
+  return format(date, pattern);
+}
+
+export function formatDateTime(
+  date: Date,
+  pattern = "yyyy/MM/dd HH:mm:ss",
+): string {
+  return format(date, pattern);
+}
+
+async function compressFiles(
+  files: ZipSourceFile[],
+  outputZipPath: string,
+): Promise<void> {
+  if (files.length === 0) {
+    throw new Error("ZIPに含めるファイルが指定されていません。");
+  }
+
+  const resolvedOutputPath = path.resolve(outputZipPath);
+  for (const file of files) {
+    const resolvedInputPath = path.resolve(file.filePath);
+    const isSamePath =
+      process.platform === "win32"
+        ? resolvedInputPath.toLowerCase() === resolvedOutputPath.toLowerCase()
+        : resolvedInputPath === resolvedOutputPath;
+
+    if (isSamePath) {
+      throw new Error(
+        `出力ZIPと圧縮対象ファイルのパスが重複しています: ${file.filePath}`,
+      );
+    }
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const output = fs.createWriteStream(outputZipPath);
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    let settled = false;
+
+    const fail = (error: Error): void => {
+      if (settled) return;
+      settled = true;
+      archive.destroy();
+      output.destroy();
+      reject(error);
+    };
+
+    output.on("close", () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    });
+
+    output.on("error", fail);
+    archive.on("error", fail);
+    archive.on("warning", fail);
+
+    archive.pipe(output);
+
+    try {
+      for (const file of files) {
+        archive.file(file.filePath, {
+          name: file.fileName,
+          date: file.mtime,
+        });
+      }
+
+      void archive.finalize().catch((error: unknown) => {
+        fail(error instanceof Error ? error : new Error(String(error)));
+      });
+    } catch (error) {
+      fail(error instanceof Error ? error : new Error(String(error)));
+    }
+  });
+}
+
+export async function createZipArchive(
+  options: CreateZipOptions,
+): Promise<string | null> {
+  const { filePaths, outputDir, zipPrefix } = options;
+  if (filePaths.length === 0) return null;
+
+  try {
+    if (!(await directoryExists(outputDir))) return null;
+
+    const files: ZipSourceFile[] = [];
+    for (const filePath of filePaths) {
+      const stat = await fs.stat(filePath);
+      if (!stat.isFile()) return null;
+
+      files.push({
+        filePath,
+        fileName: path.basename(filePath),
+        mtime: stat.mtime,
+      });
+    }
+
+    const outputZipPath = path.join(outputDir, `${zipPrefix}_${getDateKey()}.zip`);
+    await compressFiles(files, outputZipPath);
+    return outputZipPath;
+  } catch {
+    return null;
+  }
+}
+
 export async function runJobWithLogger<T>(
   defaultErrorPrefix: string,
   handler: (logger: JobLogger) => Promise<T>,
@@ -32,18 +164,12 @@ export async function runJobWithLogger<T>(
   }
 }
 
-/**
-- ScriptFilePath (string | string[] | undefined) を空文字除外済みの配列に正規化する。
- */
 export function resolveInputPaths(inputFilePath?: ScriptFilePath): string[] {
   if (!inputFilePath) return [];
   const list = Array.isArray(inputFilePath) ? inputFilePath : [inputFilePath];
   return list.map((p) => p.trim()).filter(Boolean);
 }
 
-/**
-- 単一入力ファイルの存在を検証してパスを返す。
- */
 export async function resolveSingleInputFile(
   inputFilePath?: ScriptFilePath,
 ): Promise<string> {
@@ -67,9 +193,6 @@ export async function resolveSingleInputFile(
   return targetPath;
 }
 
-/**
-- 入力パス一覧から各キーワードを含むファイルを特定し、不足があれば例外を送出する。
- */
 export function findFilesByKeywords<TKey extends string>(
   inputPaths: readonly string[],
   keywords: Record<TKey, string>,
@@ -95,9 +218,6 @@ export function findFilesByKeywords<TKey extends string>(
   return found;
 }
 
-/**
-- 指定エンコーディング（既定: Shift_JIS）でファイル全文を読み込む。
- */
 export async function readEncodedText(
   filePath: string,
   encoding = "Shift_JIS",
@@ -106,9 +226,6 @@ export async function readEncodedText(
   return iconv.decode(buffer, encoding);
 }
 
-/**
-- 指定エンコーディング（既定: Shift_JIS）でファイルを行配列として読み込む。
- */
 export async function readEncodedLines(
   filePath: string,
   encoding = "Shift_JIS",
@@ -118,17 +235,11 @@ export async function readEncodedLines(
   return skipEmpty ? lines.filter((line) => line.trim() !== "") : lines;
 }
 
-/**
-- 指定ディレクトリ内のファイル名一覧を取得する。
- */
 export async function listFilesInDir(dirPath: string): Promise<string[]> {
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
   return entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
 }
 
-/**
-- フォルダの存在を確認したうえでファイル名一覧を取得する。
- */
 export async function listFilesInExistingDir(
   dirPath: string,
   missingMessage = `フォルダが存在しないかアクセスできません: ${dirPath}`,
@@ -139,9 +250,6 @@ export async function listFilesInExistingDir(
   return listFilesInDir(dirPath);
 }
 
-/**
-- 指定パスが存在しないことを検証し、既に存在すれば指定メッセージで例外を送出する。
- */
 export async function assertPathNotExists(
   targetPath: string,
   errorMessage: string,
@@ -151,17 +259,6 @@ export async function assertPathNotExists(
   }
 }
 
-export interface CheckedFileStatus {
-  fileName: string;
-  filePath: string;
-  exists: boolean;
-  mtime: Date | null;
-  isToday: boolean;
-}
-
-/**
-- 指定ファイルパスの存在と本日更新有無を確認する。
- */
 export async function checkFileUpdatedToday(
   filePath: string,
   now: Date = new Date(),
@@ -203,10 +300,7 @@ export async function checkFileUpdatedToday(
   }
 }
 
-/**
-- デスクトップに日付付きZIPを作成する。
- */
-export async function createDesktopZip(
+async function createDesktopZip(
   filePaths: string[],
   zipPrefix: string,
 ): Promise<string | null> {
@@ -217,9 +311,6 @@ export async function createDesktopZip(
   });
 }
 
-/**
-- 対象ファイル群の本日更新確認を行い、すべて正常であればデスクトップへZIPを作成する。
- */
 export async function checkAndArchiveTodayFiles(
   targetDir: string,
   fileNames: readonly string[],
@@ -250,9 +341,6 @@ export async function checkAndArchiveTodayFiles(
   return { matchedFiles, dateIssueFiles, zipFilePath };
 }
 
-/**
-- 検出ファイル一覧（ファイル名 + 更新日時）をログに記録する。
- */
 export function logCheckedFiles(
   logger: JobLogger,
   files: readonly CheckedFileStatus[],
@@ -267,9 +355,6 @@ export function logCheckedFiles(
   }
 }
 
-/**
-- 更新日が本日ではないファイル一覧をログに記録し、要対応メッセージを返す。
- */
 export function logDateIssuesAndNeedsAction(
   logger: JobLogger,
   dateIssueFiles: readonly CheckedFileStatus[],

@@ -7,7 +7,7 @@ import {
   listFilesInDir,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 
 const CONFIG = {
   normalErrorPath: "\\\\192.88.1.3\\syn_tran",

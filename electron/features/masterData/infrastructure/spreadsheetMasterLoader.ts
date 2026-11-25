@@ -1,6 +1,6 @@
 // electron/features/masterData/infrastructure/spreadsheetMasterLoader.ts
 
-import type { SpreadsheetDailyUpdateStatus } from "@shared/types/masterData/spreadsheetMasterDataTypes";
+import type { SpreadsheetDailyUpdateStatus } from "@shared/types/spreadsheet/spreadsheetTypes";
 import {
   SHEETS,
   type Jugyoin,
@@ -10,9 +10,9 @@ import {
   type Shop,
   type UpdateMeta,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
-import { isSameJstDay } from "../application/jstDate";
+import { isSameJstDay } from "../application/todayIrregularFilter";
+import type { SpreadsheetMasterData } from "../application/spreadsheetMasterDataManager";
 import type { RdpMaster } from "../../rdp/rdpMasterTypes";
-import type { SpreadsheetMasterData } from "../types/internalSpreadsheetMasterDataTypes";
 import { fetchSheet } from "./spreadsheetClient";
 
 type DefaultSheetRow<TSheetId extends SheetId> = SheetData<TSheetId>[number];
@@ -33,7 +33,6 @@ async function loadSheetData<
   TRow extends object = DefaultSheetRow<TSheetId>,
 >(sheetId: TSheetId): Promise<SheetLoadResult<TRow>> {
   const result = await fetchSheet<TSheetId, TRow>(sheetId);
-
   if (result.success) {
     return { data: result.data };
   }
@@ -43,23 +42,27 @@ async function loadSheetData<
     : `${sheetId} の取得失敗: ${result.error ?? "不明なエラー"}`;
 
   console.error(`[SpreadsheetMasterLoader] ${error}`);
-
-  return {
-    data: [],
-    error,
-  };
+  return { data: [], error };
 }
 
-function collectSheetErrors(
-  entries: ReadonlyArray<readonly [SheetId, SheetLoadResult<unknown>]>,
-): SpreadsheetMasterData["errors"] {
-  const errors: SpreadsheetMasterData["errors"] = {};
-  for (const [sheetId, result] of entries) {
-    if (result.error) {
-      errors[sheetId] = result.error;
-    }
+function validateUpdateRecord(
+  label: string,
+  record: UpdateMeta | undefined,
+): string | null {
+  const updatedAt = record?.updatedAt?.trim() || "";
+  const status = record?.status?.trim().toUpperCase() || "";
+  const message = record?.message?.trim() || "";
+
+  if (!record || !updatedAt) {
+    return `${label}: 更新記録なし`;
   }
-  return errors;
+  if (status && status !== "OK") {
+    return `${label}: エラー(${status}${message ? ` - ${message}` : ""})`;
+  }
+  if (!isSameJstDay(updatedAt)) {
+    return `${label}: 本日未更新(最終: ${updatedAt})`;
+  }
+  return null;
 }
 
 function evaluateDailyUpdateStatus(
@@ -111,40 +114,14 @@ function evaluateDailyUpdateStatus(
   const status = orchestratorRow?.status?.trim() || null;
   const message = orchestratorRow?.message?.trim() || null;
 
-  const issues: string[] = [];
-
-  if (metaByTarget.size > 0) {
-    for (const { key, label } of REQUIRED_UPDATE_TARGETS) {
-      const record = metaByTarget.get(key);
-      const recordUpdatedAt = record?.updatedAt?.trim() || "";
-      const recordStatus = record?.status?.trim().toUpperCase() || "";
-      const recordMessage = record?.message?.trim() || "";
-
-      if (!record || !recordUpdatedAt) {
-        issues.push(`${label}: 更新記録なし`);
-        continue;
-      }
-
-      if (recordStatus && recordStatus !== "OK") {
-        issues.push(
-          `${label}: エラー(${recordStatus}${recordMessage ? ` - ${recordMessage}` : ""})`,
+  const issues =
+    metaByTarget.size > 0
+      ? REQUIRED_UPDATE_TARGETS.map(({ key, label }) =>
+          validateUpdateRecord(label, metaByTarget.get(key)),
+        ).filter((issue): issue is string => issue !== null)
+      : [validateUpdateRecord("GAS更新", orchestratorRow)].filter(
+          (issue): issue is string => issue !== null,
         );
-        continue;
-      }
-
-      if (!isSameJstDay(recordUpdatedAt)) {
-        issues.push(`${label}: 本日未更新(最終: ${recordUpdatedAt})`);
-      }
-    }
-  } else {
-    if (!updatedAt) {
-      issues.push("最終更新日時が記録されていません");
-    } else if (status && status.toUpperCase() !== "OK") {
-      issues.push(`GASエラー(${status}${message ? ` / ${message}` : ""})`);
-    } else if (!isSameJstDay(updatedAt)) {
-      issues.push(`本日未更新（最終更新: ${updatedAt}）`);
-    }
-  }
 
   if (issues.length > 0) {
     return {
@@ -194,7 +171,7 @@ export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData
     loadSheetData(SHEETS.UPDATE_META.sheetName),
   ]);
 
-  const errors = collectSheetErrors([
+  const entries: ReadonlyArray<readonly [SheetId, SheetLoadResult<unknown>]> = [
     [SHEETS.STORE.sheetName, stores],
     [SHEETS.KOKYUHYO.sheetName, kokyuhyos],
     [SHEETS.JUGYOIN.sheetName, jugyoin],
@@ -203,7 +180,14 @@ export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData
     [SHEETS.IRREGULAR.sheetName, irregulars],
     [SHEETS.RDP.sheetName, rdps],
     [SHEETS.UPDATE_META.sheetName, updateMeta],
-  ]);
+  ];
+
+  const errors: SpreadsheetMasterData["errors"] = {};
+  for (const [sheetId, result] of entries) {
+    if (result.error) {
+      errors[sheetId] = result.error;
+    }
+  }
 
   return {
     stores: stores.data,

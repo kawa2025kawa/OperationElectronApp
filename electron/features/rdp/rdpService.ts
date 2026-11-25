@@ -8,7 +8,7 @@ import {
   getSpreadsheetMasterData,
 } from "@electron/features/masterData/application/spreadsheetMasterDataManager";
 import type { RdpMaster } from "./rdpMasterTypes";
-import type { RdpTarget } from "@shared/types/rdp/rdpTypes";
+import type { RdpTarget } from "@shared/types/electron/ipcTypes";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 const execFilePromise = util.promisify(execFile);

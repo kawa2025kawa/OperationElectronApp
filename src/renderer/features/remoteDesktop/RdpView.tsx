@@ -1,10 +1,11 @@
 // src/renderer/features/remoteDesktop/RdpView.tsx
 
-import { memo, useCallback, useEffect } from "react";
-
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { UnknownView } from "@renderer/layout/UnknownView";
-
-import { useRdp } from "./useRdp";
+import { rdpIpcService } from "@renderer/services/ipcServices";
+import { toErrorMessage } from "@renderer/utils/rendererUtils";
+import type { RdpTarget } from "@shared/types/electron/ipcTypes";
 import * as styles from "./rdpView.css";
 
 interface RdpCardProps {
@@ -31,7 +32,33 @@ const RdpCard = memo(function RdpCard({
 });
 
 export const RdpView = memo(function RdpView() {
-  const { rdpTargets, isRdpLoading, fetchRdpTargets, runRdp } = useRdp();
+  const [rdpTargets, setRdpTargets] = useState<readonly RdpTarget[]>([]);
+  const [isRdpLoading, setIsRdpLoading] = useState(false);
+  const isFetchingRef = useRef(false);
+
+  const fetchRdpTargets = useCallback(async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    setIsRdpLoading(true);
+
+    try {
+      const targets = await rdpIpcService.getMasters();
+      setRdpTargets(targets);
+    } catch (error: unknown) {
+      toast.error(`RDP取得エラー: ${toErrorMessage(error)}`);
+    } finally {
+      isFetchingRef.current = false;
+      setIsRdpLoading(false);
+    }
+  }, []);
+
+  const runRdp = useCallback(async (name: string) => {
+    try {
+      await rdpIpcService.startSession(name);
+    } catch (error: unknown) {
+      toast.error(`RDP起動エラー: ${toErrorMessage(error)}`);
+    }
+  }, []);
 
   useEffect(() => {
     void fetchRdpTargets();

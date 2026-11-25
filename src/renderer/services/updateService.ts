@@ -3,7 +3,7 @@
 import semver from "semver";
 import { useAppStore } from "@renderer/store";
 import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
-import { systemIpcService } from "@renderer/services/systemIpcService";
+import { systemIpcService } from "@renderer/services/ipcServices";
 
 const DEFAULT_UPDATE_EXE_PATH =
   "\\\\192.88.1.210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp\\OperationElectronApp-setup.exe";

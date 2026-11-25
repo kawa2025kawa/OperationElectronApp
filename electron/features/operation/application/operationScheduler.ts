@@ -4,7 +4,10 @@ import {
   isAutoWorkType,
   normalizeKanriNo,
 } from "@electron/features/operation/domain/operationRules";
-import { getScriptKeysForOperation } from "@electron/features/operation/runners/operationScriptRegistry";
+import {
+  executeSingleScriptJob,
+  getScriptKeysForOperation,
+} from "@electron/features/operation/runners/scriptRunner";
 import {
   getRegisteredTargets,
   getStatus,
@@ -13,9 +16,8 @@ import {
   updateStatus,
   type StatusTarget,
 } from "@electron/features/operation/application/statusManager";
-import { notifyPollingCycleCompleted } from "@electron/features/operation/application/statusNotifier";
+import { notifyPollingCycleCompleted } from "@electron/features/operation/application/statusState";
 import { executeScriptAndApplyStatus } from "@electron/features/operation/application/scriptExecutionService";
-import { executeSingleScriptJob } from "@electron/features/operation/runners/scriptRunner";
 import {
   JOB_STATUS,
   type JobResult,

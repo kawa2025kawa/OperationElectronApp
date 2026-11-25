@@ -1,62 +1,113 @@
 // src/renderer/components/ui/modal/GlobalModalManager.tsx
 
-import { memo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Dialog } from "@base-ui/react/dialog";
+import { clsx } from "clsx";
+import { useShallow } from "zustand/shallow";
 
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
+import { useAppStore } from "@renderer/store";
+import { MODAL_SIZES, type ModalAction } from "@shared/types/ui/modal";
 
 import * as styles from "./globalModalManager.css";
-import { useGlobalModalManager } from "./useGlobalModalManager";
 
 export const GlobalModalManager = memo(function GlobalModalManager() {
-  const { state, actions } = useGlobalModalManager();
+  const { isOpen, content, config, closeModal } = useAppStore(
+    useShallow((state) => ({
+      isOpen: state.modal.isOpen,
+      content: state.modal.content,
+      config: state.modal.config,
+      closeModal: state.closeGlobalModal,
+    })),
+  );
 
-  if (!state.modalRoot) {
+  const handleCancel = useCallback(() => {
+    config?.onCancel?.();
+    closeModal();
+  }, [config, closeModal]);
+
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) handleCancel();
+    },
+    [handleCancel],
+  );
+
+  const modalRoot =
+    typeof document !== "undefined"
+      ? document.getElementById("modal-root")
+      : null;
+
+  const width = config?.width ?? MODAL_SIZES.DEFAULT.width;
+  const height = config?.height ?? MODAL_SIZES.DEFAULT.height;
+  const popupStyle = useMemo(() => ({ width, height }), [width, height]);
+
+  const rightActions = config?.rightActions;
+  const computedRightActions = useMemo<ModalAction[]>(() => {
+    if (rightActions?.length) return rightActions;
+
+    return [
+      {
+        id: "default-close",
+        label: "閉じる",
+        onClick: handleCancel,
+        variant: "default",
+      },
+    ];
+  }, [rightActions, handleCancel]);
+
+  if (!modalRoot) {
     return null;
   }
 
+  const isProcessing = config?.isProcessing ?? false;
+  const message = config?.message ?? null;
+  const messageType = message?.type ?? "info";
+  const messageClass =
+    styles.messageTypes[messageType] ?? styles.messageTypes.info;
+
   return (
-    <Dialog.Root open={state.isOpen} onOpenChange={actions.handleOpenChange}>
-      <Dialog.Portal container={state.modalRoot}>
+    <Dialog.Root
+      open={isOpen && Boolean(content)}
+      onOpenChange={handleOpenChange}
+    >
+      <Dialog.Portal container={modalRoot}>
         <Dialog.Backdrop className={styles.overlay} />
 
         <Dialog.Viewport className={styles.viewport}>
           <Dialog.Popup
             finalFocus={false}
             className={styles.modalWindow}
-            style={state.popupStyle}
+            style={popupStyle}
           >
             <header className={styles.header}>
               <Dialog.Title className={styles.title}>
-                {state.title}
+                {config?.title ?? ""}
               </Dialog.Title>
 
-              <CloseButton
-                onClick={actions.handleCancel}
-                disabled={state.isProcessing}
-              />
+              <CloseButton onClick={handleCancel} disabled={isProcessing} />
             </header>
 
-            {state.message && (
-              <div className={`${styles.messageBanner} ${state.messageClass}`}>
-                {state.message.text}
+            {message && (
+              <div className={clsx(styles.messageBanner, messageClass)}>
+                {message.text}
               </div>
             )}
 
-            <main className={styles.body}>{state.content}</main>
+            <main className={styles.body}>{content}</main>
 
-            {!state.hideFooter && (
+            {!config?.hideFooter && (
               <footer className={styles.footer}>
-                {state.footerContent ?? (
+                {config?.footerContent ?? (
                   <div className={styles.footerContainer}>
                     <div className={styles.footerRight}>
-                      {state.rightActions.map((action) => (
+                      {computedRightActions.map((action) => (
                         <ActionButton
                           key={action.id}
                           variant={action.variant ?? "default"}
                           onClick={action.onClick}
-                          disabled={action.disabled || state.isProcessing}
+                          disabled={action.disabled || isProcessing}
                         >
                           {action.label}
                         </ActionButton>

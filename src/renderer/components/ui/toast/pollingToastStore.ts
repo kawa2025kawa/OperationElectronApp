@@ -1,9 +1,16 @@
 // src/renderer/components/ui/toast/pollingToastStore.ts
 
 import { create } from "zustand";
-import type { JobStatus } from "@shared/types/operation/operationTypes";
+import { useAppStore } from "@renderer/store";
+import {
+  JOB_STATUS,
+  WORK_TYPE,
+  type JobStatus,
+  type OperationStatusState,
+  type OperationViewItem,
+} from "@shared/types/operation/operationTypes";
 
-export type ToastType = "error" | "warning";
+type ToastType = "error" | "warning";
 
 interface ToastMessage {
   id: string;
@@ -65,18 +72,13 @@ export const usePollingToastStore = create<PollingToastState>()((set, get) => ({
     set({ toasts: [] });
   },
 
-  getPrevStatus: (kanriNo) => {
-    return get().prevStatusMap.get(kanriNo);
-  },
+  getPrevStatus: (kanriNo) => get().prevStatusMap.get(kanriNo),
 
   setPrevStatus: (kanriNo, status) => {
     set((state) => {
       const nextMap = new Map(state.prevStatusMap);
       nextMap.set(kanriNo, status);
-
-      return {
-        prevStatusMap: nextMap,
-      };
+      return { prevStatusMap: nextMap };
     });
   },
 
@@ -96,9 +98,7 @@ export const usePollingToastStore = create<PollingToastState>()((set, get) => ({
     });
   },
 
-  isManualExecuting: (kanriNo) => {
-    return get().manualExecutingKanriNos.has(kanriNo);
-  },
+  isManualExecuting: (kanriNo) => get().manualExecutingKanriNos.has(kanriNo),
 
   markPollingCycleCompleted: () => {
     set((state) => ({
@@ -115,3 +115,54 @@ export const usePollingToastStore = create<PollingToastState>()((set, get) => ({
     });
   },
 }));
+
+function mapStatusToToastType(status: JobStatus): ToastType | null {
+  switch (status) {
+    case JOB_STATUS.ERROR:
+      return "error";
+    case JOB_STATUS.NEEDS_ACTION:
+      return "warning";
+    default:
+      return null;
+  }
+}
+
+function findOperationRow(kanriNo: string): OperationViewItem | undefined {
+  const state = useAppStore.getState();
+  const allRows = [
+    ...state.tableRows,
+    ...state.tableRowsByMode.operation,
+    ...state.tableRowsByMode.irregular,
+    ...state.tableRowsByMode.today,
+  ];
+  return allRows.find((row) => row.kanriNo?.trim() === kanriNo);
+}
+
+export function handleStatusToastNotification(
+  update: OperationStatusState,
+): void {
+  const kanriNo = update.kanriNo?.trim();
+  const { status } = update;
+  if (!kanriNo || !status) return;
+
+  if (!useAppStore.getState().isPolling) return;
+
+  const toastStore = usePollingToastStore.getState();
+  if (toastStore.isManualExecuting(kanriNo)) return;
+
+  const row = findOperationRow(kanriNo);
+  if (row?.workType?.trim() !== WORK_TYPE.AUTO) return;
+
+  const prevStatus = toastStore.getPrevStatus(kanriNo);
+  if (prevStatus === status) return;
+
+  toastStore.setPrevStatus(kanriNo, status);
+
+  const toastType = mapStatusToToastType(status);
+  if (!toastType) return;
+
+  const workName = row.workName?.trim() ?? "";
+  const message = workName ? `${kanriNo} : ${workName}` : kanriNo;
+
+  toastStore.addToast(message, toastType);
+}

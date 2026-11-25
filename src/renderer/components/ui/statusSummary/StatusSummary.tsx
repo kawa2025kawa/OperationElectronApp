@@ -3,7 +3,7 @@
 import { memo, useCallback } from "react";
 import { clsx } from "clsx";
 
-import type { SummaryDisplayKey } from "@shared/types/statusSummary/statusSummaryTypes";
+import type { SummaryDisplayKey } from "@shared/types/operation/operationTypes";
 
 import {
   useStatusSummary,
@@ -38,7 +38,7 @@ const StatusSummaryButton = memo(function StatusSummaryButton({
       aria-pressed={item.isInteractive ? isStatusFilterActive : undefined}
       onClick={handleButtonClick}
     >
-      <span className={`${styles.valueBadge} ${item.badgeClass}`}>
+      <span className={clsx(styles.valueBadge, item.badgeClass)}>
         {item.displayValue}
       </span>
       <span className={styles.label}>{item.label}</span>

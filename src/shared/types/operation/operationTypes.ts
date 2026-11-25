@@ -20,8 +20,8 @@ export interface OperationLink {
 }
 
 /* =========================
-- Operation Master Types
-- ========================= */
+ * Operation Master Types
+ * ========================= */
 
 export const WORK_TYPE = {
   AUTO: "自動",
@@ -39,21 +39,16 @@ interface BaseOperationMaster {
   jobId?: string;
   dependsOn?: string | string[] | null;
 
-  /** Manual ボタンの表示判定・起動先 */
   manualUrl?: string;
-
-  /** AutoManual ボタンの表示判定・起動先 */
   autoManualUrl?: string;
   ScriptKeys?: OperationScriptKey[];
   RdpKeys?: OperationRdpKey[];
   links?: OperationLink[];
 
-  /** スプレッドシートのリンク先パス */
   link1?: string;
   link2?: string;
   link3?: string;
 
-  /** スプレッドシートのリンクボタン用ラベル */
   link1Label?: string;
   link2Label?: string;
   link3Label?: string;
@@ -79,7 +74,6 @@ export interface OperationScriptKey {
   requiresFileSelection?: boolean;
 }
 
-/** RDP接続先キー */
 export interface OperationRdpKey {
   key: string;
   label?: string;
@@ -100,8 +94,8 @@ export interface ManualScriptExecutionInput {
 }
 
 /* =========================
-- Center
-- ========================= */
+ * Center
+ * ========================= */
 
 export const CenterId = {
   VALUES: ["1C", "2C", "3C"] as const,
@@ -118,8 +112,8 @@ export const DEFAULT_ACTIVE_FLAGS: ActiveFlags = {
 };
 
 /* =========================
-- Job Status
-- ========================= */
+ * Job Status
+ * ========================= */
 
 export const JOB_STATUS = {
   SCHEDULED: "scheduled",
@@ -157,8 +151,8 @@ export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
 };
 
 /* =========================
-- Common
-- ========================= */
+ * Common
+ * ========================= */
 
 export interface JobArtifact {
   name: string;
@@ -174,18 +168,12 @@ export type JobResultKind =
   | "retrying"
   | "running";
 
-interface JobRetryPolicy {
-  intervalMs: number;
-  timeoutMs: number;
-}
-
 export interface JobResult {
   message: string;
   success?: boolean;
   kind?: JobResultKind;
   data?: unknown;
   artifacts?: JobArtifact[];
-  retryPolicy?: JobRetryPolicy;
 }
 
 export interface LinkConfig {
@@ -194,10 +182,10 @@ export interface LinkConfig {
 }
 
 /* =========================
-- Operation Status
-- ========================= */
+ * Operation Status
+ * ========================= */
 
-export type OperationErrorSource = "script" | "tracker";
+type OperationErrorSource = "script" | "tracker";
 
 export interface OperationStatusState {
   kanriNo: string;
@@ -213,8 +201,8 @@ export interface OperationStatusState {
 }
 
 /* =========================
-- Operation View
-- ========================= */
+ * Operation View
+ * ========================= */
 
 export type OperationViewItem = (
   | OperationMaster
@@ -229,8 +217,8 @@ export type OperationViewItem = (
 };
 
 /* =========================
-- Field Labels (Table & Detail Info)
-- ========================= */
+ * Field Labels & Summary
+ * ========================= */
 
 export const OPERATION_FIELD_LABELS = {
   kanriNo: "管理No",
@@ -244,3 +232,23 @@ export const OPERATION_FIELD_LABELS = {
   endTime: "終了時刻",
   comment: "備考",
 } as const;
+
+export type SummaryDisplayKey =
+  | "total"
+  | "progress"
+  | (typeof JOB_STATUS_VALUES)[number];
+
+export type StatusSummary = Record<SummaryDisplayKey, number>;
+
+export const EMPTY_STATUS_SUMMARY: StatusSummary = {
+  total: 0,
+  progress: 0,
+  [JOB_STATUS.SCHEDULED]: 0,
+  [JOB_STATUS.RUNNING]: 0,
+  [JOB_STATUS.SCRIPT_RUNNING]: 0,
+  [JOB_STATUS.SUCCESS]: 0,
+  [JOB_STATUS.NEEDS_ACTION]: 0,
+  [JOB_STATUS.READY]: 0,
+  [JOB_STATUS.WAITING]: 0,
+  [JOB_STATUS.ERROR]: 0,
+};

@@ -6,7 +6,7 @@ import fs from "fs-extra";
 import { addDays, format } from "date-fns";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import { directoryExists } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import {
   resolveSingleInputFile,
   runJobWithLogger,

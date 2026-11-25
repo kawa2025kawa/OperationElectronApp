@@ -1,10 +1,10 @@
 // src/renderer/features/operation/components/modal/linkModal/LinkModalContent.tsx
 
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
-import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import { operationService } from "@renderer/features/operation/service/operationService";
 import type { LinkConfig } from "@shared/types/operation/operationTypes";
-import { useLinkModalContent } from "./useLinkModalContent";
+import type { GlobalModalComponent } from "@shared/types/ui/modal";
 import * as styles from "./linkModalContent.css";
 
 interface LinkModalContentProps {
@@ -13,14 +13,19 @@ interface LinkModalContentProps {
 
 export const LinkModalContent: GlobalModalComponent<LinkModalContentProps> =
   memo(({ link }) => {
-    const { linkItems, isEmpty, emptyMessage, handleOpenUrl } =
-      useLinkModalContent(link);
+    const linkItems = Array.isArray(link) ? link : [];
+
+    const handleOpenUrl = useCallback((url: string) => {
+      void operationService
+        .openExternal(url, "リンクを開けませんでした")
+        .catch(() => undefined);
+    }, []);
 
     return (
       <div className={styles.contentContainer}>
         <div className={styles.terminalSection}>
-          {isEmpty ? (
-            <EmptyState message={emptyMessage} />
+          {linkItems.length === 0 ? (
+            <EmptyState message="リンクがありません" />
           ) : (
             linkItems.map((item) => (
               <div key={item.key} className={styles.terminalRow}>

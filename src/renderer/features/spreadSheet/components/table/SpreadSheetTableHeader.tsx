@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { RowData } from "@tanstack/react-table";
+import { clsx } from "clsx";
 
 import type { SpreadSheetTableInstance } from "./useSpreadSheetTable";
 import { useSpreadSheetTableHeader } from "./useSpreadSheetTableHeader";
@@ -37,7 +38,10 @@ export function SpreadSheetTableHeader<TData extends RowData>({
               <th
                 key={header.id}
                 colSpan={header.colSpan}
-                className={`${styles.thCellStandard} ${styles.alignVariants[header.align]}`}
+                className={clsx(
+                  styles.thCellStandard,
+                  styles.alignVariants[header.align],
+                )}
               >
                 {!header.isPlaceholder && (
                   <table.FlexRender header={header.header} />
@@ -86,7 +90,10 @@ export function SpreadSheetTableHeader<TData extends RowData>({
                     {cell.leaves.map((leaf) => (
                       <div
                         key={leaf.id}
-                        className={`${styles.thCardSubCell} ${styles.alignVariants[leaf.align]}`}
+                        className={clsx(
+                          styles.thCardSubCell,
+                          styles.alignVariants[leaf.align],
+                        )}
                         style={{ flex: leaf.flex }}
                       >
                         <table.FlexRender header={leaf.header} />
@@ -105,7 +112,10 @@ export function SpreadSheetTableHeader<TData extends RowData>({
               className={styles.thCellBase}
             >
               <div
-                className={`${styles.thCardSingle} ${styles.alignVariants[cell.align]}`}
+                className={clsx(
+                  styles.thCardSingle,
+                  styles.alignVariants[cell.align],
+                )}
               >
                 <table.FlexRender header={cell.header} />
               </div>

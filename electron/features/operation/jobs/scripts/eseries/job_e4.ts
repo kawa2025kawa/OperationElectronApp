@@ -1,4 +1,4 @@
-﻿// electron/features/operation/jobs/scripts/eseries/job_e4.ts
+// electron/features/operation/jobs/scripts/eseries/job_e4.ts
 
 import path from "node:path";
 import fs from "fs-extra";
@@ -6,7 +6,7 @@ import { isSameDay } from "date-fns";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
-import { formatDateTime } from "@electron/features/operation/jobs/scripts/helpers/timeUtils";
+import { formatDateTime } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import {
   checkFileUpdatedToday,
   runJobWithLogger,

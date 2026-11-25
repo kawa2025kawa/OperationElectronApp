@@ -2,8 +2,10 @@
 
 import type { ReactNode } from "react";
 import type { Header, RowData } from "@tanstack/react-table";
-import type { SpreadSheetTableFeatures } from "./spreadsheetTableConfig";
-import { getColumnAlign } from "./spreadSheetTableUtils";
+import {
+  getColumnAlign,
+  type SpreadSheetTableFeatures,
+} from "./spreadsheetTableConfig";
 import type { SpreadSheetTableInstance } from "./useSpreadSheetTable";
 
 type TableHeader<TData extends RowData> = Header<
