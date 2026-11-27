@@ -43,13 +43,16 @@ export const slider = style({
   top: 0,
   bottom: 0,
   left: 0,
+  width: "var(--active-tab-width)",
+  transform: "translate3d(var(--active-tab-left), 0, 0)",
   borderRadius: tokens.radius.full,
   backgroundColor: tokens.color.bg.base,
   boxShadow: tokens.shadow.glowRaised.high,
   zIndex: 0,
   pointerEvents: "none",
-  willChange: "transform",
-  transition: "transform 0.24s cubic-bezier(0.22, 1, 0.36, 1)",
+  willChange: "transform, width",
+  transition:
+    "transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), width 0.24s cubic-bezier(0.22, 1, 0.36, 1)",
 });
 
 export const itemButtonBase = style([

@@ -5,9 +5,12 @@ import iconv from "iconv-lite";
 import { PassThrough, type Readable } from "node:stream";
 import readline from "node:readline";
 
+import { parseCsvLine } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import {
+  getDateKey,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import { getServiceCredentialAsync } from "@electron/features/system/systemService";
 
 const TARGET_CODES = ["S330", "S332"] as const;
@@ -99,10 +102,7 @@ async function processCsvStream(stream: Readable): Promise<UnassignedDetail[]> {
         continue;
       }
 
-      const [, status = "", rawCode = "", detail = ""] = line
-        .trim()
-        .split(",")
-        .map((column) => column.trim());
+      const [, status = "", rawCode = "", detail = ""] = parseCsvLine(line);
 
       const code = rawCode.replace(/^0+/, "");
 

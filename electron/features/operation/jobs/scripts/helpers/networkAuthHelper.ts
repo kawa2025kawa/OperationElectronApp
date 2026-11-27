@@ -3,13 +3,23 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "fs-extra";
-import { getNetworkCredential } from "@electron/features/system/credentialStore";
+import iconv from "iconv-lite";
+import {
+  ensureSpreadsheetCredentialsLoaded,
+  getNetworkCredential,
+} from "@electron/features/system/credentialStore";
 
 const execFileAsync = promisify(execFile);
 
 const NETWORK_AUTH_CONFIG = {
   commandTimeoutMs: 10_000,
+  windowsCliEncoding: "cp932",
 } as const;
+
+export interface NetworkAuthError extends Error {
+  code?: string;
+  authDetail?: string;
+}
 
 function parseUncTarget(
   targetPath: string,
@@ -36,72 +46,93 @@ function isAccessDeniedError(error: unknown): boolean {
   return code === "EPERM" || code === "EACCES";
 }
 
+function decodeCliOutput(value: unknown): string {
+  if (Buffer.isBuffer(value)) {
+    return iconv.decode(value, NETWORK_AUTH_CONFIG.windowsCliEncoding).trim();
+  }
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function formatExecError(error: unknown): string {
+  if (typeof error !== "object" || error === null) {
+    return String(error);
+  }
+  const errObj = error as { stderr?: unknown; stdout?: unknown; message?: unknown };
+  const stderr = decodeCliOutput(errObj.stderr);
+  const stdout = decodeCliOutput(errObj.stdout);
+  const message = typeof errObj.message === "string" ? errObj.message.trim() : "";
+  return [stderr, stdout, message].filter(Boolean).join(" / ");
+}
+
+function attachAuthDetail(error: unknown, authDetail: string): NetworkAuthError {
+  if (error instanceof Error) {
+    const netErr = error as NetworkAuthError;
+    netErr.authDetail = authDetail;
+    return netErr;
+  }
+  const wrapped = new Error(String(error)) as NetworkAuthError;
+  wrapped.authDetail = authDetail;
+  return wrapped;
+}
+
+async function runNetCommand(args: string[]): Promise<void> {
+  await execFileAsync("net", args, {
+    windowsHide: true,
+    timeout: NETWORK_AUTH_CONFIG.commandTimeoutMs,
+    encoding: "buffer",
+  });
+}
+
 async function ensureNetworkShareConnected(
   targetPath: string,
-): Promise<boolean> {
+): Promise<{ connected: boolean; detail?: string }> {
   if (process.platform !== "win32") {
-    return false;
+    return { connected: false, detail: "Windows環境以外のため自動認証対象外" };
   }
 
   const unc = parseUncTarget(targetPath);
   if (!unc) {
-    return false;
+    return { connected: false, detail: `UNCパス形式不正: ${targetPath}` };
   }
+
+  await ensureSpreadsheetCredentialsLoaded();
 
   const credential = getNetworkCredential(unc.host);
   if (!credential) {
-    return false;
+    const detail = `Credentialsシートにホスト [${unc.host}] の資格情報が未登録`;
+    console.warn(`[networkAuthHelper] ${detail}`);
+    return { connected: false, detail };
   }
 
-  try {
-    await execFileAsync(
-      "net",
-      [
-        "use",
-        unc.shareRoot,
-        `/user:${credential.username}`,
-        credential.password,
-        "/persistent:no",
-      ],
-      {
-        windowsHide: true,
-        timeout: NETWORK_AUTH_CONFIG.commandTimeoutMs,
-      },
-    );
-    return true;
-  } catch (error: unknown) {
-    const stderr =
-      typeof error === "object" && error !== null && "stderr" in error
-        ? String((error as { stderr?: unknown }).stderr ?? "")
-        : "";
+  const connectArgs = [
+    "use",
+    unc.shareRoot,
+    `/user:${credential.username}`,
+    credential.password,
+    "/persistent:no",
+  ];
 
-    if (stderr.includes("1219")) {
+  try {
+    await runNetCommand(connectArgs);
+    return { connected: true };
+  } catch (error: unknown) {
+    const execDetail = formatExecError(error);
+
+    if (execDetail.includes("1219")) {
       try {
-        await execFileAsync("net", ["use", unc.shareRoot, "/delete", "/y"], {
-          windowsHide: true,
-          timeout: NETWORK_AUTH_CONFIG.commandTimeoutMs,
-        });
-        await execFileAsync(
-          "net",
-          [
-            "use",
-            unc.shareRoot,
-            `/user:${credential.username}`,
-            credential.password,
-            "/persistent:no",
-          ],
-          {
-            windowsHide: true,
-            timeout: NETWORK_AUTH_CONFIG.commandTimeoutMs,
-          },
-        );
-        return true;
-      } catch {
-        return false;
+        await runNetCommand(["use", unc.shareRoot, "/delete", "/y"]);
+        await runNetCommand(connectArgs);
+        return { connected: true };
+      } catch (retryError: unknown) {
+        const detail = `net use 再接続失敗(1219後) [user=${credential.username}]: ${formatExecError(retryError)}`;
+        console.warn(`[networkAuthHelper] ${detail}`);
+        return { connected: false, detail };
       }
     }
 
-    return false;
+    const detail = `net use 失敗 [user=${credential.username}]: ${execDetail}`;
+    console.warn(`[networkAuthHelper] ${detail}`);
+    return { connected: false, detail };
   }
 }
 
@@ -116,9 +147,9 @@ export async function withNetworkAuthRetry<T>(
       throw error;
     }
 
-    const connected = await ensureNetworkShareConnected(targetPath);
-    if (!connected) {
-      throw error;
+    const authResult = await ensureNetworkShareConnected(targetPath);
+    if (!authResult.connected) {
+      throw authResult.detail ? attachAuthDetail(error, authResult.detail) : error;
     }
 
     return await operation();

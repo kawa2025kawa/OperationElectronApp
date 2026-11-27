@@ -1,4 +1,4 @@
-// src/renderer/styles/statusTheme.ts
+// src/renderer/styles/tokens/statusTheme.ts
 
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 import {
@@ -17,7 +17,7 @@ export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
   [JOB_STATUS.ERROR]: "エラー",
 };
 
-export interface StatusTheme {
+interface StatusTheme {
   color: string;
   glow: string;
 }
@@ -28,8 +28,8 @@ const createTheme = (color: string, glow: string): StatusTheme => ({
 });
 
 /**
-- ステータスごとの色・発光を一元管理する。
-- 各 UI はこの定義を参照し、独自の色を持たない。
+ * ステータスごとの色・発光を一元管理する。
+ * 各 UI はこの定義を参照し、独自の色を持たない。
  */
 const statusThemes: Record<JobStatus, StatusTheme> = {
   success: createTheme(tokens.color.status.success, tokens.shadow.glow.success),

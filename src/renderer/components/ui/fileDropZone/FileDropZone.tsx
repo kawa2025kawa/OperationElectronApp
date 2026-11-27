@@ -4,13 +4,13 @@ import { memo, type SyntheticEvent } from "react";
 import { Menu } from "@base-ui/react/menu";
 import { clsx } from "clsx";
 
-import * as styles from "./fileDropZone.css";
+import { Tooltip } from "@renderer/components/ui/tooltip/Tooltip";
 
+import * as styles from "./fileDropZone.css";
 import {
   ORDER_TIME_OPTIONS,
   type FileDropZoneItem,
 } from "./fileDropZoneTypes";
-
 import { useFileDropZone } from "./useFileDropZone";
 
 interface FileDropZoneProps {
@@ -139,13 +139,13 @@ export const FileDropZone = memo<FileDropZoneProps>(
                   <div className="file-info">
                     <div className="file-title">
                       <span className="index">{index + 1}.</span>
-                      <span className="name" title={file.name}>
-                        {file.name}
-                      </span>
+                      <Tooltip content={file.name} side="top" align="start">
+                        <span className="name">{file.name}</span>
+                      </Tooltip>
                     </div>
-                    <span className="path" title={file.path}>
-                      {file.path}
-                    </span>
+                    <Tooltip content={file.path} side="bottom" align="start">
+                      <span className="path">{file.path}</span>
+                    </Tooltip>
                   </div>
 
                   <div
@@ -162,15 +162,19 @@ export const FileDropZone = memo<FileDropZoneProps>(
                             handleMenuOpenChange(file.path, open)
                           }
                         >
-                          <Menu.Trigger
-                            type="button"
-                            className={styles.dropdownTrigger}
+                          <Tooltip
+                            content="発注エラーリスト名にリネーム"
                             disabled={disabled}
-                            title="発注エラーリスト名にリネーム"
                           >
-                            <span>ファイル名リネーム</span>
-                            <span className="arrow">▼</span>
-                          </Menu.Trigger>
+                            <Menu.Trigger
+                              type="button"
+                              className={styles.dropdownTrigger}
+                              disabled={disabled}
+                            >
+                              <span>ファイル名リネーム</span>
+                              <span className="arrow">▼</span>
+                            </Menu.Trigger>
+                          </Tooltip>
 
                           <Menu.Portal>
                             <Menu.Positioner
@@ -202,16 +206,17 @@ export const FileDropZone = memo<FileDropZoneProps>(
                     )}
 
                     {!disabled && canRemove && (
-                      <button
-                        type="button"
-                        className={styles.removeFileButton}
-                        onClick={() => {
-                          handleRemoveFileItem(index);
-                        }}
-                        title="削除"
-                      >
-                        ×
-                      </button>
+                      <Tooltip content="削除">
+                        <button
+                          type="button"
+                          className={styles.removeFileButton}
+                          onClick={() => {
+                            handleRemoveFileItem(index);
+                          }}
+                        >
+                          ×
+                        </button>
+                      </Tooltip>
                     )}
                   </div>
                 </div>

@@ -103,6 +103,27 @@ function parsePort(rawPort: string): number | null {
   return Number.isInteger(num) && num > 0 ? num : null;
 }
 
+/** "\\192.161.2.1\d$" や "192.161.2.1" から純粋なホスト名を取り出す */
+export function extractHostName(rawHost: string): string {
+  const stripped = rawHost.trim().replace(/^[\\/]+/, "");
+  const firstSegment = stripped.split(/[\\/]/)[0] ?? "";
+  return firstSegment.trim();
+}
+
+function addHostVariants(target: Set<string>, rawHost: string): void {
+  const host = extractHostName(rawHost).toLowerCase();
+  if (!host) return;
+
+  target.add(host);
+  // IPアドレスでなくFQDN (例: mdsyuhai01.belc01.belc.local) の場合はショートホスト名も許可
+  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host) && host.includes(".")) {
+    const shortName = host.split(".")[0];
+    if (shortName) {
+      target.add(shortName);
+    }
+  }
+}
+
 /**
 - スプレッドシートから取得した Credentials 行を Main プロセスのメモリキャッシュへ格納する。
  */
@@ -125,11 +146,13 @@ export function setSpreadsheetCredentials(
     const apiKey = cleanDashCell(row.apiKey);
 
     if (category === "network") {
-      const resolvedHost = hostOrUrl || key;
+      const resolvedHost = extractHostName(hostOrUrl || key);
+      if (!resolvedHost) continue;
+
       nextHostAliasMap.set(key.toLowerCase(), resolvedHost);
       nextHostAliasMap.set(resolvedHost.toLowerCase(), resolvedHost);
 
-      if (resolvedHost && username && password) {
+      if (username && password) {
         nextNetworkMap.set(resolvedHost.toLowerCase(), { username, password });
       }
       continue;
@@ -228,13 +251,15 @@ function loadFallbackNetworkCredentials(): Map<string, NetworkCredential> {
         const password =
           typeof record.password === "string" ? record.password.trim() : "";
 
+        const normalizedHost = extractHostName(host).toLowerCase();
         if (
+          normalizedHost &&
           username &&
           password &&
           username !== CREDENTIAL_FILES.placeholderValue &&
           password !== CREDENTIAL_FILES.placeholderValue
         ) {
-          result.set(host.trim().toLowerCase(), { username, password });
+          result.set(normalizedHost, { username, password });
         }
       }
     }
@@ -249,8 +274,38 @@ function loadFallbackNetworkCredentials(): Map<string, NetworkCredential> {
   return result;
 }
 
+/**
+- 登録済みの全ネットワークホスト名（定数 + Credentialsシート + フォールバック）を小文字Setで返す。
+ */
+export function getAllowedNetworkHosts(): Set<string> {
+  const hosts = new Set<string>();
+
+  for (const host of Object.values(NETWORK_HOSTS)) {
+    addHostVariants(hosts, host);
+  }
+  for (const host of sheetNetworkHostAliasMap.values()) {
+    addHostVariants(hosts, host);
+  }
+  for (const host of sheetNetworkMap.keys()) {
+    addHostVariants(hosts, host);
+  }
+  for (const host of loadFallbackNetworkCredentials().keys()) {
+    addHostVariants(hosts, host);
+  }
+
+  return hosts;
+}
+
+/**
+- Credentials シートの service カテゴリから任意キーの hostOrUrl を取得する（未設定時は fallback を返す）。
+ */
+export function getOptionalServiceUrl(key: string, fallback: string): string {
+  const fromSheet = sheetServiceMap.get(key)?.hostOrUrl;
+  return fromSheet || fallback;
+}
+
 export function getNetworkCredential(host: string): NetworkCredential | null {
-  const normalizedHost = host.trim().toLowerCase();
+  const normalizedHost = extractHostName(host).toLowerCase();
   if (!normalizedHost) return null;
 
   const resolvedHost =
@@ -271,7 +326,7 @@ export function getNetworkHostPath(
   hostOrAlias: string,
   ...subPaths: string[]
 ): string {
-  const raw = hostOrAlias.trim().replace(/^[\\/]+|[\\/]+$/g, "");
+  const raw = extractHostName(hostOrAlias);
   const resolvedHost =
     sheetNetworkHostAliasMap.get(raw.toLowerCase()) ?? raw;
   return path.win32.join(`\\\\${resolvedHost}`, ...subPaths);

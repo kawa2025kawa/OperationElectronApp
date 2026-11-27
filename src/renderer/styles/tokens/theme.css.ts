@@ -23,7 +23,6 @@ const commonValues = {
     fluid: {
       sm: "clamp(12px, 1.8vmin, 14px)",
       md: "clamp(16px, 2.2vmin, 20px)",
-      lg: "clamp(20px, 3.5vmin, 28px)",
     },
 
     weight: {
@@ -65,9 +64,7 @@ const commonValues = {
   zIndex: {
     base: "0",
     under: "1",
-    active: "2",
     content: "10",
-    sticky: "100",
     dropdown: "200",
     contextMenu: "500",
     overlay: "900",
@@ -130,7 +127,6 @@ export const darkThemeClass = createTheme(
     color: {
       bg: {
         base: "rgba(30, 34, 39, 1)",
-        header: "rgba(20, 20, 25, 0.8)",
         frostedGlass: "rgba(255, 255, 255, 0.1)",
       },
 
@@ -168,10 +164,7 @@ export const darkThemeClass = createTheme(
       surface: "rgba(20, 20, 25, 0.6)",
       surfaceSubtle: "rgba(0, 0, 0, 0.28)",
       border: "rgba(255, 255, 255, 0.08)",
-      borderStrong: "rgba(255, 255, 255, 0.14)",
       blur: "18px",
-      blurStrong: "28px",
-      saturation: "140%",
 
       contextMenu: {
         surface: "rgba(18, 20, 24, 0.1)",

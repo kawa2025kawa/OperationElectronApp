@@ -14,14 +14,18 @@ const resolvePath = (...paths: string[]): string =>
   path.resolve(rootDir, ...paths);
 
 const electronRuntimeModules = [
-  "axios",
-  "express",
+  "archiver",
+  "basic-ftp",
+  "electron-store",
+  "electron-window-state",
+  "exceljs",
   "fs-extra",
-  "keytar",
+  "google-auth-library",
+  "iconv-lite",
+  "papaparse",
   "playwright",
   "playwright-core",
   "chromium-bidi",
-  "puppeteer",
 ];
 
 const isElectronExternal = (id: string): boolean =>
@@ -38,7 +42,11 @@ export default defineConfig({
   },
 
   plugins: [
-    react(),
+    react({
+      babel: {
+        plugins: ["babel-plugin-react-compiler"],
+      },
+    }),
     vanillaExtractPlugin(),
 
     electron({

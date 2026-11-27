@@ -7,6 +7,7 @@ import {
   NETWORK_HOSTS,
   getNetworkHostPath,
 } from "@electron/features/system/credentialStore";
+import { parseCsvLine } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   directoryExists,
@@ -196,11 +197,11 @@ async function processTextFile(
   let lastOutputType: OutputType | null = null;
 
   for (const line of lines) {
-    const columns = line.split(",");
+    const columns = parseCsvLine(line);
     if (columns.length < 6) continue;
 
-    const type = columns[4]?.trim() ?? "";
-    const status = columns[5]?.trim() ?? "";
+    const type = columns[4] ?? "";
+    const status = columns[5] ?? "";
 
     if (CONFIG.excludedStatuses.has(status)) continue;
 

@@ -13,9 +13,6 @@ export const tokens = createGlobalThemeContract(
         /** アプリ全体のベース背景 */
         base: null,
 
-        /** Header / navigation 系 */
-        header: null,
-
         /** ハイライト・ホバー用のすりガラス調背景 */
         frostedGlass: null,
       },
@@ -95,10 +92,7 @@ export const tokens = createGlobalThemeContract(
       surface: null,
       surfaceSubtle: null,
       border: null,
-      borderStrong: null,
       blur: null,
-      blurStrong: null,
-      saturation: null,
 
       contextMenu: {
         surface: null,
@@ -177,7 +171,6 @@ export const tokens = createGlobalThemeContract(
       fluid: {
         sm: null,
         md: null,
-        lg: null,
       },
 
       weight: {
@@ -244,9 +237,7 @@ export const tokens = createGlobalThemeContract(
     zIndex: {
       base: null,
       under: null,
-      active: null,
       content: null,
-      sticky: null,
       dropdown: null,
       contextMenu: null,
       overlay: null,

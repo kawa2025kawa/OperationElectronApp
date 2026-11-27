@@ -9,16 +9,24 @@ import type { UpdateInfo } from "@shared/types/electron/ipcTypes";
 import { toErrorMessage } from "@shared/utils/sharedUtils";
 import {
   ensureSpreadsheetCredentialsLoaded,
+  extractHostName,
+  getAllowedNetworkHosts,
+  getOptionalServiceUrl,
   getServiceCredential,
   type ServiceCredentialKey,
   type ServiceCredentialsConfig,
 } from "./credentialStore";
 
-const SYSTEM_CONFIG = {
+const DEFAULT_SYSTEM_ENDPOINTS = {
   updateDirectory:
     "\\\\192.88.1.210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp",
   updateInfoFileName: "OperationElectronApp_update.json",
   manualBaseUrl: "https://sites.google.com/belc.co.jp",
+} as const;
+
+const CREDENTIAL_ENDPOINT_KEYS = {
+  appUpdate: "appUpdate",
+  manualBaseUrl: "manualBaseUrl",
 } as const;
 
 const ALLOWED_EXTERNAL_PROTOCOLS = new Set(["https:", "http:"]);
@@ -39,18 +47,19 @@ const ALLOWED_LOCAL_EXTENSIONS = new Set([
   ".bmp",
 ]);
 
-const ALLOWED_LOCAL_BASE_DIRS: readonly string[] = [
-  SYSTEM_CONFIG.updateDirectory,
-  path.join(os.homedir(), "Desktop"),
-  os.tmpdir(),
-  "\\\\192.88.",
-  "\\\\192.2.",
-  "\\\\192.161.",
-  "\\\\172.25.",
-  "\\\\mdsyuhai01.belc01.belc.local\\",
-  "\\\\c0088150\\",
-  "\\\\s0088003\\",
-];
+function getUpdateDirectory(): string {
+  return getOptionalServiceUrl(
+    CREDENTIAL_ENDPOINT_KEYS.appUpdate,
+    DEFAULT_SYSTEM_ENDPOINTS.updateDirectory,
+  );
+}
+
+function getManualBaseUrl(): string {
+  return getOptionalServiceUrl(
+    CREDENTIAL_ENDPOINT_KEYS.manualBaseUrl,
+    DEFAULT_SYSTEM_ENDPOINTS.manualBaseUrl,
+  ).replace(/\/+$/, "");
+}
 
 export async function getServiceCredentialAsync<K extends ServiceCredentialKey>(
   key: K,
@@ -69,17 +78,44 @@ function isSubPathOf(candidatePath: string, baseDir: string): boolean {
   return candidate === base || candidate.startsWith(`${base}\\`);
 }
 
-function isAllowedBaseLocation(
-  normalizedPath: string,
-  lowerPath: string,
-): boolean {
-  return ALLOWED_LOCAL_BASE_DIRS.some((base) => {
-    const isIpPrefix =
-      base.startsWith("\\\\") && !base.replace(/^\\\\/, "").includes("\\");
-    return isIpPrefix
-      ? lowerPath.startsWith(base.toLowerCase())
-      : isSubPathOf(normalizedPath, base);
-  });
+function isAllowedUncHost(normalizedPath: string): boolean {
+  if (!normalizedPath.startsWith("\\\\")) {
+    return false;
+  }
+
+  const host = extractHostName(normalizedPath).toLowerCase();
+  if (!host) {
+    return false;
+  }
+
+  const allowedHosts = getAllowedNetworkHosts();
+  if (allowedHosts.has(host)) {
+    return true;
+  }
+
+  // FQDN指定時はショートホスト名でも照合する
+  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host) && host.includes(".")) {
+    const shortName = host.split(".")[0];
+    if (shortName && allowedHosts.has(shortName)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function isAllowedBaseLocation(normalizedPath: string): boolean {
+  const localBaseDirs: readonly string[] = [
+    getUpdateDirectory(),
+    path.join(os.homedir(), "Desktop"),
+    os.tmpdir(),
+  ];
+
+  if (localBaseDirs.some((base) => isSubPathOf(normalizedPath, base))) {
+    return true;
+  }
+
+  return isAllowedUncHost(normalizedPath);
 }
 
 async function assertAllowedLocalPath(normalizedPath: string): Promise<void> {
@@ -87,15 +123,17 @@ async function assertAllowedLocalPath(normalizedPath: string): Promise<void> {
     throw new Error("不正な相対パス指定が含まれています");
   }
 
+  await ensureSpreadsheetCredentialsLoaded();
+
   const lower = normalizedPath.toLowerCase();
   if (
-    isSubPathOf(normalizedPath, SYSTEM_CONFIG.updateDirectory) &&
+    isSubPathOf(normalizedPath, getUpdateDirectory()) &&
     lower.endsWith(".exe")
   ) {
     return;
   }
 
-  if (!isAllowedBaseLocation(normalizedPath, lower)) {
+  if (!isAllowedBaseLocation(normalizedPath)) {
     throw new Error("許可されていないフォルダのパスは開けません");
   }
 
@@ -136,19 +174,20 @@ export function resolveResourcePath(fileName: string): string {
 
 function getUpdateInfoPath(): string {
   const baseDirectory = app.isPackaged
-    ? SYSTEM_CONFIG.updateDirectory
+    ? getUpdateDirectory()
     : app.getAppPath();
 
-  return path.join(baseDirectory, SYSTEM_CONFIG.updateInfoFileName);
+  return path.join(baseDirectory, DEFAULT_SYSTEM_ENDPOINTS.updateInfoFileName);
 }
 
 export function getManualUrl(target: string, isAuto = false): string {
   const cleanTarget = target.trim();
   const basePrefix = isAuto ? "operation-auto-manual" : "operation-manual";
+  const manualBaseUrl = getManualBaseUrl();
 
   return !cleanTarget || cleanTarget.toLowerCase() === "true"
-    ? `${SYSTEM_CONFIG.manualBaseUrl}/${basePrefix}`
-    : `${SYSTEM_CONFIG.manualBaseUrl}/${basePrefix}-${cleanTarget}`;
+    ? `${manualBaseUrl}/${basePrefix}`
+    : `${manualBaseUrl}/${basePrefix}-${cleanTarget}`;
 }
 
 export function getMainWindow(): BrowserWindow | null {
@@ -200,6 +239,7 @@ export async function openExternalOrPath(
 
 export async function readUpdateInfo(): Promise<UpdateInfo | null> {
   try {
+    await ensureSpreadsheetCredentialsLoaded();
     const data: unknown = await fs.readJson(getUpdateInfoPath());
     if (
       typeof data === "object" &&

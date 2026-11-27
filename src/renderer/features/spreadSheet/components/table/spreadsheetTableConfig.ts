@@ -35,7 +35,16 @@ export function getColumnAlign(meta: unknown): ColumnAlign {
   return align === "center" || align === "right" ? align : "left";
 }
 
-const HOLIDAY_WORDS = ["公休", "有休", "〇連", "特休", "希休", "休"] as const;
+const HOLIDAY_WORDS = [
+  "公休",
+  "有休",
+  "〇連",
+  "特休",
+  "希休",
+  "休",
+  "前×",
+  "後×",
+] as const;
 
 export function isSpreadSheetHolidayText(value: unknown): boolean {
   const text = value == null ? "" : String(value);

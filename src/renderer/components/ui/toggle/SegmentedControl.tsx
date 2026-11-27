@@ -1,8 +1,7 @@
 // src/renderer/components/ui/toggle/SegmentedControl.tsx
 
-import { memo, useMemo } from "react";
-import { Toggle } from "@base-ui/react/toggle";
-import { ToggleGroup } from "@base-ui/react/toggle-group";
+import { memo } from "react";
+import { Tabs } from "@base-ui/react/tabs";
 
 import * as styles from "./segmentedControl.css";
 
@@ -21,10 +20,6 @@ export interface SegmentedControlProps<T extends string | number> {
   readonly fullWidth?: boolean;
   readonly className?: string;
   readonly ariaLabel?: string;
-}
-
-function getItemValue<T extends string | number>(value: T): string {
-  return `${typeof value}:${String(value)}`;
 }
 
 function SegmentedControlInner<T extends string | number>({
@@ -50,67 +45,37 @@ function SegmentedControlInner<T extends string | number>({
     styles.itemButtonSize[size],
   ].join(" ");
 
-  const activeIndex = useMemo(
-    () => items.findIndex((item) => item.id === value),
-    [items, value],
-  );
-
-  const selectedItem = activeIndex >= 0 ? items[activeIndex] : undefined;
-
-  const sliderStyle = useMemo(() => {
-    const count = items.length;
-    if (count === 0 || activeIndex < 0) {
-      return { opacity: 0 };
-    }
-
-    return {
-      width: `${100 / count}%`,
-      transform: `translate3d(${activeIndex * 100}%, 0, 0)`,
-    };
-  }, [items.length, activeIndex]);
-
-  const handleValueChange = (groupValue: string[]) => {
-    const selectedValue = groupValue[0];
-
-    if (selectedValue === undefined) return;
-
-    const selected = items.find(
-      (item) => getItemValue(item.id) === selectedValue,
-    );
-
-    if (selected) {
-      onChange(selected.id);
-    }
+  const handleValueChange = (nextValue: T | null) => {
+    if (nextValue === null || nextValue === value) return;
+    onChange(nextValue);
   };
 
   return (
-    <ToggleGroup
+    <Tabs.Root
       className={containerClasses}
-      value={selectedItem ? [getItemValue(selectedItem.id)] : []}
+      value={value}
       onValueChange={handleValueChange}
-      aria-label={ariaLabel}
-      orientation="horizontal"
     >
-      <div className={styles.track}>
-        <div className={styles.slider} style={sliderStyle} aria-hidden="true" />
+      <Tabs.List className={styles.track} aria-label={ariaLabel}>
+        <Tabs.Indicator className={styles.slider} />
 
         {items.map((item) => {
           const isActive = value === item.id;
 
           return (
-            <Toggle
-              key={getItemValue(item.id)}
-              value={getItemValue(item.id)}
+            <Tabs.Tab
+              key={String(item.id)}
+              value={item.id}
               className={buttonClasses}
             >
               <span className={styles.itemText} data-active={isActive}>
                 {item.label}
               </span>
-            </Toggle>
+            </Tabs.Tab>
           );
         })}
-      </div>
-    </ToggleGroup>
+      </Tabs.List>
+    </Tabs.Root>
   );
 }
 

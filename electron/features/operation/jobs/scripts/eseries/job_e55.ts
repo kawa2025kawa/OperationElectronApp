@@ -5,6 +5,7 @@ import {
   getNetworkHostPath,
 } from "@electron/features/system/credentialStore";
 import type { JobResult } from "@shared/types/operation/operationTypes";
+import { parseCsvLine } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   checkFileUpdatedToday,
@@ -49,7 +50,7 @@ const CONFIG = {
 } as const;
 
 /**
- * e5 仕入原価リストデータ作成完了後の整合性チェックを行う（対象: 12.すねおり店）
+- e5 仕入原価リストデータ作成完了後の整合性チェックを行う（対象: 12.すねおり店）
  */
 export async function runJobE55(): Promise<JobResult> {
   return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
@@ -104,8 +105,15 @@ async function checkCostListData(): Promise<JobE55ResultData> {
     };
   }
 
-  const [dept, store, purchase, transfer, sales, startDate, endDate] =
-    targetLine.split(",");
+  const [
+    dept = "",
+    store = "",
+    purchase = "",
+    transfer = "",
+    sales = "",
+    startDate = "",
+    endDate = "",
+  ] = parseCsvLine(targetLine);
 
   const detail: TargetLineDetailE55 = {
     dept,

@@ -4,8 +4,9 @@ import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 
 // ローカルフォントの読み込み (起動時のチラつき防止)
-import "@fontsource/noto-sans-jp/400.css";
-import "@fontsource/noto-sans-jp/800.css";
+import "@fontsource/noto-sans-jp/500.css";
+import "@fontsource/noto-sans-jp/700.css";
+import "@fontsource/noto-sans-jp/900.css";
 
 import "@renderer/styles/global/global.css";
 import { App } from "./App";

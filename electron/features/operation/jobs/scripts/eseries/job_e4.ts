@@ -4,29 +4,39 @@ import path from "node:path";
 import fs from "fs-extra";
 import { isSameDay } from "date-fns";
 
+import { getSpreadsheetMasterData } from "@electron/features/masterData/application/spreadsheetMasterDataManager";
 import {
   NETWORK_HOSTS,
+  extractHostName,
   getNetworkHostPath,
 } from "@electron/features/system/credentialStore";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
-import { formatDateTime } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import {
+  withNetworkAuthRetry,
+  type NetworkAuthError,
+} from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 import {
   checkFileUpdatedToday,
   runJobWithLogger,
   type CheckedFileStatus,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
+import type { Shop } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 const CONFIG = {
   targetHosts: [NETWORK_HOSTS.FTP_192_2, NETWORK_HOSTS.FTP_192_161] as const,
   subPaths: ["d$", "BELC", "ftp", "ORDERBOOK.pdf"] as const,
+  targetFileName: "ORDERBOOK.pdf",
 } as const;
+
+type ShopByCodeMap = Map<string, Shop>;
 
 interface TargetFileCheckResult {
   filePath: string;
+  shopLabel: string;
   status: CheckedFileStatus | null;
   accessErrorCode?: string;
+  authDetail?: string;
   existsInDirOnly?: boolean;
 }
 
@@ -45,8 +55,57 @@ export async function runJobE4(): Promise<JobResult> {
   });
 }
 
+function normalizeShopCodeKey(rawCode: string): string {
+  const trimmed = rawCode.trim();
+  if (!trimmed) return "";
+  const num = Number(trimmed);
+  return Number.isInteger(num) && num >= 0 ? String(num) : trimmed;
+}
+
+function extractShopCodeFromHost(host: string): string {
+  const match = host.trim().match(/^\d{1,3}\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/);
+  return match ? normalizeShopCodeKey(match[1]) : "";
+}
+
+async function loadShopByNormalizedCodeMap(): Promise<ShopByCodeMap> {
+  const map: ShopByCodeMap = new Map();
+  try {
+    const masterData = await getSpreadsheetMasterData();
+    for (const shop of masterData.stores) {
+      const key = normalizeShopCodeKey(shop.shopCode);
+      if (key && !map.has(key)) {
+        map.set(key, shop);
+      }
+    }
+  } catch (error) {
+    console.warn("[job_e4] 店舗マスタの取得に失敗:", error);
+  }
+  return map;
+}
+
+function resolveShopLabel(
+  filePath: string,
+  shopMap: ReadonlyMap<string, Shop>,
+): string {
+  const host = extractHostName(filePath);
+  const shopCodeKey = extractShopCodeFromHost(host);
+  if (!shopCodeKey) {
+    return host;
+  }
+
+  const shop = shopMap.get(shopCodeKey);
+  if (shop) {
+    const code = shop.shopCode.trim() || shopCodeKey;
+    const name = shop.shopName.trim();
+    return name ? `${code}: ${name}` : `店舗コード: ${code}`;
+  }
+
+  return `店舗コード: ${shopCodeKey}`;
+}
+
 async function checkFileViaParentDir(
   filePath: string,
+  shopLabel: string,
   now: Date,
 ): Promise<TargetFileCheckResult | null> {
   const dirPath = path.dirname(filePath);
@@ -62,6 +121,7 @@ async function checkFileViaParentDir(
     if (!matched) {
       return {
         filePath,
+        shopLabel,
         status: {
           fileName: targetName,
           filePath,
@@ -76,6 +136,7 @@ async function checkFileViaParentDir(
       const stat = await fs.stat(path.join(dirPath, matched.name));
       return {
         filePath,
+        shopLabel,
         status: {
           fileName: matched.name,
           filePath,
@@ -87,6 +148,7 @@ async function checkFileViaParentDir(
     } catch {
       return {
         filePath,
+        shopLabel,
         status: null,
         existsInDirOnly: true,
         accessErrorCode: "EPERM",
@@ -99,6 +161,7 @@ async function checkFileViaParentDir(
 
 async function inspectTargetFile(
   filePath: string,
+  shopLabel: string,
   now: Date,
 ): Promise<TargetFileCheckResult> {
   try {
@@ -107,24 +170,36 @@ async function inspectTargetFile(
     );
     return {
       filePath,
+      shopLabel,
       status,
     };
   } catch (error: unknown) {
-    const code =
+    const netErr =
       typeof error === "object" && error !== null
-        ? (error as { code?: string }).code
+        ? (error as NetworkAuthError)
         : undefined;
+    const code = netErr?.code;
+    const authDetail = netErr?.authDetail;
 
     if (code === "EPERM" || code === "EACCES") {
-      const fallbackResult = await checkFileViaParentDir(filePath, now);
+      const fallbackResult = await checkFileViaParentDir(
+        filePath,
+        shopLabel,
+        now,
+      );
       if (fallbackResult) {
-        return fallbackResult;
+        return {
+          ...fallbackResult,
+          authDetail,
+        };
       }
 
       return {
         filePath,
+        shopLabel,
         status: null,
         accessErrorCode: code,
+        authDetail,
       };
     }
 
@@ -134,11 +209,14 @@ async function inspectTargetFile(
 
 async function checkTargetFiles(): Promise<JobE4ResultData> {
   const now = new Date();
+  const shopMap = await loadShopByNormalizedCodeMap();
   const targetFiles = CONFIG.targetHosts.map((host) =>
     getNetworkHostPath(host, ...CONFIG.subPaths),
   );
   const checkedFiles = await Promise.all(
-    targetFiles.map((filePath) => inspectTargetFile(filePath, now)),
+    targetFiles.map((filePath) =>
+      inspectTargetFile(filePath, resolveShopLabel(filePath, shopMap), now),
+    ),
   );
 
   const issueFiles = checkedFiles.filter(
@@ -151,32 +229,25 @@ async function checkTargetFiles(): Promise<JobE4ResultData> {
   };
 }
 
-function formatFileStatusLabel(item: TargetFileCheckResult): string {
-  if (item.existsInDirOnly) {
-    return "ファイル存在確認済・更新日時取得不可 (EPERM)";
-  }
-
-  if (item.accessErrorCode) {
-    return `アクセス不可 (${item.accessErrorCode})`;
-  }
-
-  if (!item.status || !item.status.exists) {
-    return "ファイルなし";
-  }
-
-  const timeLabel = item.status.mtime
-    ? formatDateTime(item.status.mtime)
-    : "不明";
-  return item.status.isToday
-    ? `本日更新 (${timeLabel})`
-    : `未更新 (${timeLabel})`;
+function isTargetFileUpdatedToday(item: TargetFileCheckResult): boolean {
+  return Boolean(item.status?.exists && item.status.isToday);
 }
 
 function writeResultLog(logger: JobLogger, result: JobE4ResultData): JobResult {
-  logger.section("対象ファイル");
-
+  logger.log("【対象店舗】");
   for (const item of result.checkedFiles) {
-    logger.log(`[${formatFileStatusLabel(item)}] ${item.filePath}`);
+    logger.log(item.shopLabel);
+  }
+
+  logger.log("");
+  logger.log("【対象ファイル名】");
+  logger.log(` ${CONFIG.targetFileName}`);
+
+  logger.log("");
+  logger.log("【結果】");
+  for (const item of result.checkedFiles) {
+    const mark = isTargetFileUpdatedToday(item) ? "〇" : "✕";
+    logger.log(`${item.shopLabel}：${mark}`);
   }
 
   if (result.issueFiles.length > 0) {

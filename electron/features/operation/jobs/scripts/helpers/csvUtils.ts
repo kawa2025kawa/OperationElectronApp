@@ -26,7 +26,7 @@ interface ExcelCellObject {
   richText?: Array<{ text?: unknown }>;
 }
 
-function parseCsvLine(line: string): string[] {
+export function parseCsvLine(line: string): string[] {
   const { data } = Papa.parse<string[]>(line, {
     delimiter: ",",
     quoteChar: '"',
