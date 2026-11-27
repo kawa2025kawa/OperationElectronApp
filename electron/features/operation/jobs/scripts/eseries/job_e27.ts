@@ -1,4 +1,4 @@
-﻿// electron/features/operation/jobs/scripts/eseries/job_e27.ts
+// electron/features/operation/jobs/scripts/eseries/job_e27.ts
 
 import os from "node:os";
 import path from "node:path";
@@ -10,10 +10,8 @@ import {
   resolveSingleInputFile,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import type {
-  JobResult,
-  ScriptFilePath,
-} from "@shared/types/operation/operationTypes";
+import type { ScriptFilePath } from "@electron/features/operation/runners/scriptRunner";
+import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
   recordLength: 256,
@@ -55,8 +53,8 @@ interface JobE27ResultData {
 }
 
 /**
- * ドロップされた STR_DSP ファイルをデスクトップへ出力し、
- * 256バイト単位の固定長レコード検証・日付修正（yymm20）・部門コード欠落チェックを実行する。
+- ドロップされた STR_DSP ファイルをデスクトップへ出力し、
+- 256バイト単位の固定長レコード検証・日付修正（yymm20）・部門コード欠落チェックを実行する。
  */
 export async function runJobE27(filePath?: ScriptFilePath): Promise<JobResult> {
   return runJobWithLogger("STR_DSP 処理に失敗しました", async (logger) => {
@@ -78,6 +76,31 @@ async function readFileWithRetry(filePath: string): Promise<Buffer> {
       await new Promise((resolve) => setTimeout(resolve, CONFIG.retryDelayMs));
     }
   }
+}
+
+function stripCrLf(rawBuffer: Buffer): Buffer {
+  const chunks: Buffer[] = [];
+  let start = 0;
+
+  for (let i = 0; i < rawBuffer.length; i += 1) {
+    const byte = rawBuffer[i];
+    if (byte === 0x0d || byte === 0x0a) {
+      if (i > start) {
+        chunks.push(rawBuffer.subarray(start, i));
+      }
+      start = i + 1;
+    }
+  }
+
+  if (start === 0) {
+    return Buffer.from(rawBuffer);
+  }
+
+  if (start < rawBuffer.length) {
+    chunks.push(rawBuffer.subarray(start));
+  }
+
+  return Buffer.concat(chunks);
 }
 
 function getRequiredDepts(baseDate: Date): readonly string[] {
@@ -141,9 +164,7 @@ async function processStrDspFile(
   const outputFilePath = path.join(os.homedir(), "Desktop", fileName);
 
   const rawBuffer = await readFileWithRetry(inputFilePath);
-  const cleanBuffer = Buffer.from(
-    rawBuffer.filter((byte) => byte !== 0x0d && byte !== 0x0a),
-  );
+  const cleanBuffer = stripCrLf(rawBuffer);
 
   const modifiedDetails: DateModification[] = [];
   const foundDepts = new Set<string>();

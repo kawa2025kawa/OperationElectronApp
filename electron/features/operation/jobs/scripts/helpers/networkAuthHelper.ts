@@ -3,73 +3,13 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "fs-extra";
-import { resolveResourcePath } from "@electron/features/system/systemService";
+import { getNetworkCredential } from "@electron/features/system/credentialStore";
 
 const execFileAsync = promisify(execFile);
 
-const NETWORK_CREDENTIALS_CONFIG = {
-  fileName: "network-credentials.json",
-  placeholderValue: "XXX",
+const NETWORK_AUTH_CONFIG = {
   commandTimeoutMs: 10_000,
 } as const;
-
-interface NetworkCredential {
-  username: string;
-  password: string;
-}
-
-type NetworkCredentialMap = Record<string, NetworkCredential>;
-
-function loadNetworkCredentials(): NetworkCredentialMap {
-  const filePath = resolveResourcePath(NETWORK_CREDENTIALS_CONFIG.fileName);
-
-  if (!fs.pathExistsSync(filePath)) {
-    return {};
-  }
-
-  try {
-    const parsed: unknown = fs.readJsonSync(filePath);
-
-    if (
-      typeof parsed !== "object" ||
-      parsed === null ||
-      Array.isArray(parsed)
-    ) {
-      return {};
-    }
-
-    const result: NetworkCredentialMap = {};
-
-    for (const [host, entry] of Object.entries(parsed)) {
-      if (typeof entry !== "object" || entry === null) continue;
-
-      const record = entry as Record<string, unknown>;
-      const username =
-        typeof record.username === "string" ? record.username.trim() : "";
-      const password =
-        typeof record.password === "string" ? record.password.trim() : "";
-
-      if (
-        !username ||
-        !password ||
-        username === NETWORK_CREDENTIALS_CONFIG.placeholderValue ||
-        password === NETWORK_CREDENTIALS_CONFIG.placeholderValue
-      ) {
-        continue;
-      }
-
-      result[host.trim().toLowerCase()] = { username, password };
-    }
-
-    return result;
-  } catch (error) {
-    console.warn(
-      "[networkAuthHelper] Failed to load network-credentials.json:",
-      error,
-    );
-    return {};
-  }
-}
 
 function parseUncTarget(
   targetPath: string,
@@ -108,9 +48,7 @@ async function ensureNetworkShareConnected(
     return false;
   }
 
-  const credentialsMap = loadNetworkCredentials();
-  const credential = credentialsMap[unc.host.toLowerCase()];
-
+  const credential = getNetworkCredential(unc.host);
   if (!credential) {
     return false;
   }
@@ -127,7 +65,7 @@ async function ensureNetworkShareConnected(
       ],
       {
         windowsHide: true,
-        timeout: NETWORK_CREDENTIALS_CONFIG.commandTimeoutMs,
+        timeout: NETWORK_AUTH_CONFIG.commandTimeoutMs,
       },
     );
     return true;
@@ -141,7 +79,7 @@ async function ensureNetworkShareConnected(
       try {
         await execFileAsync("net", ["use", unc.shareRoot, "/delete", "/y"], {
           windowsHide: true,
-          timeout: NETWORK_CREDENTIALS_CONFIG.commandTimeoutMs,
+          timeout: NETWORK_AUTH_CONFIG.commandTimeoutMs,
         });
         await execFileAsync(
           "net",
@@ -154,7 +92,7 @@ async function ensureNetworkShareConnected(
           ],
           {
             windowsHide: true,
-            timeout: NETWORK_CREDENTIALS_CONFIG.commandTimeoutMs,
+            timeout: NETWORK_AUTH_CONFIG.commandTimeoutMs,
           },
         );
         return true;
@@ -185,4 +123,22 @@ export async function withNetworkAuthRetry<T>(
 
     return await operation();
   }
+}
+
+/** ベースフォルダへのアクセス権限を確認しつつネットワーク認証リトライ付きで処理を実行する */
+export async function withNetworkBaseDirAuthRetry<T>(
+  baseDir: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  return withNetworkAuthRetry(baseDir, async () => {
+    try {
+      await fs.stat(baseDir);
+    } catch (error: unknown) {
+      if (isAccessDeniedError(error)) {
+        throw error;
+      }
+    }
+
+    return operation();
+  });
 }

@@ -13,10 +13,10 @@ export const content = style({
   position: "relative",
   zIndex: tokens.zIndex.base,
   display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
   gridTemplateRows: "auto auto auto auto",
   gap: tokens.space.sm,
-  minWidth: "340px",
+  minWidth: "280px",
   padding: tokens.space.md,
   borderRadius: tokens.radius.lg,
   boxSizing: "border-box",
@@ -27,7 +27,7 @@ export const content = style({
   boxShadow: tokens.shadow.contextMenu,
 });
 
-// 1段目: KanriNo + 右上 CloseButton（4列貫通）
+// 1段目: KanriNo + 右上 CloseButton（3列貫通）
 export const rowKanriNo = style({
   gridColumn: "1 / -1",
   gridRow: 1,
@@ -51,7 +51,7 @@ export const closeButtonCompact = style({
   fontSize: "1.15rem",
 });
 
-// 2段目: WorkName（4列貫通）
+// 2段目: WorkName（3列貫通）
 export const rowWorkName = style({
   gridColumn: "1 / -1",
   gridRow: 2,

@@ -1,8 +1,8 @@
-﻿// src/renderer/features/other/components/modal/contents/statusSync/StatusSyncModalContent.tsx
+// src/renderer/features/other/components/modal/contents/statusSync/StatusSyncModalContent.tsx
 
 import { memo, useEffect, useState } from "react";
 import { SegmentedControl } from "@renderer/components/ui/toggle/SegmentedControl";
-import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import type { GlobalModalComponent } from "@renderer/types/modal";
 import * as styles from "./statusSyncModal.css";
 import {
   useStatusSyncLoad,

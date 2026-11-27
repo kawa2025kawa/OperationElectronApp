@@ -58,6 +58,7 @@ export function getScriptExecutionState(
 export function getScriptInfoMessage(
   executionState: ScriptExecutionState,
   executionResult: JobResult | null,
+  idleOverride?: InfoBoxMessage | null,
 ): InfoBoxMessage {
   switch (executionState) {
     case "error":
@@ -69,6 +70,11 @@ export function getScriptInfoMessage(
         ? { text: SCRIPT_MODAL_MESSAGES.DIFFERENCE, type: "error" }
         : { text: SCRIPT_MODAL_MESSAGES.SUCCESS, type: "success" };
     case "idle":
-      return { text: SCRIPT_MODAL_MESSAGES.CONFIRM_IDLE, type: "info" };
+      return (
+        idleOverride ?? {
+          text: SCRIPT_MODAL_MESSAGES.CONFIRM_IDLE,
+          type: "info",
+        }
+      );
   }
 }

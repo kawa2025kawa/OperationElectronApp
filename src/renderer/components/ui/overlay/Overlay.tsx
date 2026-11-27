@@ -4,7 +4,7 @@ import { useMemo, type ReactNode } from "react";
 import { clsx } from "clsx";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@renderer/store";
-import type { InitStatus } from "@shared/types/initializationTypes";
+import type { InitStatus } from "@renderer/types/initializationTypes";
 import * as styles from "./overlay.css";
 
 interface OverlayProps {

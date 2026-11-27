@@ -4,31 +4,27 @@ import { randomUUID } from "node:crypto";
 import {
   WORK_TYPE,
   type IrregularMaster,
-  type OperationLink,
   type OperationMaster,
   type OperationWorkType,
 } from "@shared/types/operation/operationTypes";
+import { cleanDashCell } from "@shared/utils/sharedUtils";
 import type { SpreadsheetMasterData } from "../application/spreadsheetMasterDataManager";
+
+interface OperationLink {
+  label: string;
+  path: string;
+}
 
 const DEFAULT_LINK_LABELS = ["リンク1", "リンク2", "リンク3"] as const;
 
-function hasValidJobId(jobId: unknown): boolean {
-  if (typeof jobId !== "string") return false;
-  const trimmed = jobId.trim();
-  return Boolean(trimmed && trimmed !== "-");
-}
-
-function normalizeWorkType(
-  value: unknown,
-  jobId?: unknown,
-): OperationWorkType {
+function normalizeWorkType(value: unknown): OperationWorkType {
   if (typeof value === "string") {
     const trimmed = value.trim();
     if (trimmed === WORK_TYPE.AUTO) {
       return WORK_TYPE.AUTO;
     }
     if (trimmed === WORK_TYPE.IMMEDIATE) {
-      return hasValidJobId(jobId) ? WORK_TYPE.IMMEDIATE : WORK_TYPE.MANUAL;
+      return WORK_TYPE.IMMEDIATE;
     }
   }
 
@@ -36,12 +32,8 @@ function normalizeWorkType(
 }
 
 function normalizeScheduledTime(value: unknown): string {
-  if (typeof value !== "string") return "-";
-
-  const trimmed = value.trim();
-  if (!trimmed || /^[-‐‑–—―−ー]$/.test(trimmed)) {
-    return "-";
-  }
+  const trimmed = cleanDashCell(value);
+  if (!trimmed) return "-";
 
   const match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
   if (match) {
@@ -108,23 +100,19 @@ function normalizeLinks<T extends OperationMaster | IrregularMaster>(
   ];
 
   const links: OperationLink[] = configs.flatMap((cfg, index) => {
-    const trimmedPath = cfg.path?.trim();
-    if (!trimmedPath || trimmedPath === "-") {
+    const trimmedPath = cleanDashCell(cfg.path);
+    if (!trimmedPath) {
       return [];
     }
 
-    const trimmedLabel = cfg.label?.trim();
-    const finalLabel =
-      trimmedLabel && trimmedLabel !== "-"
-        ? trimmedLabel
-        : DEFAULT_LINK_LABELS[index];
+    const finalLabel = cleanDashCell(cfg.label) || DEFAULT_LINK_LABELS[index];
 
     return [{ label: finalLabel, path: trimmedPath }];
   });
 
   return {
     ...item,
-    workType: normalizeWorkType(item.workType, item.jobId),
+    workType: normalizeWorkType(item.workType),
     scheduledTime: normalizeScheduledTime(item.scheduledTime),
     links: links.length > 0 ? links : item.links,
   };

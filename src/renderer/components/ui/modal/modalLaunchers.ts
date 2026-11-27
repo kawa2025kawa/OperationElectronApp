@@ -4,6 +4,7 @@ import { createElement } from "react";
 
 import { LinkModalContent } from "@renderer/features/operation/components/modal/linkModal/LinkModalContent";
 import { ScriptModalContent } from "@renderer/features/operation/components/modal/scriptModal/ScriptModalContent";
+import type { LinkConfig } from "@renderer/features/operation/utils/operationActionUtils";
 import { getOperationWorkName } from "@renderer/features/operation/utils/operationDisplayUtils";
 import { GiftMdModalContent } from "@renderer/features/other/components/modal/contents/giftMd/GiftMdModalContent";
 import { GmailDraftContent } from "@renderer/features/other/components/modal/contents/gmailDraft/GmailDraftContent";
@@ -11,11 +12,8 @@ import { PdfUploadModalContent } from "@renderer/features/other/components/modal
 import { ResetStatusModalContent } from "@renderer/features/other/components/modal/contents/resetStatus/ResetStatusModalContent";
 import { StatusSyncModalContent } from "@renderer/features/other/components/modal/contents/statusSync/StatusSyncModalContent";
 import type { AppState } from "@renderer/store";
-import type {
-  LinkConfig,
-  OperationViewItem,
-} from "@shared/types/operation/operationTypes";
-import { MODAL_PRESETS, MODAL_SIZES } from "@shared/types/ui/modal";
+import type { OperationViewItem } from "@shared/types/operation/operationTypes";
+import { MODAL_PRESETS, MODAL_SIZES } from "@renderer/types/modal";
 
 export type OpenGlobalModal = AppState["openGlobalModal"];
 

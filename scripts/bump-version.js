@@ -29,7 +29,7 @@ const newVersion = `${major}.${minor}.${patch}`;
 packageJson.version = newVersion;
 fs.writeFileSync(
   packageJsonPath,
-  JSON.stringify(packageJson, null, 2),
+  `${JSON.stringify(packageJson, null, 2)}\n`,
   "utf-8",
 );
 console.log(`[BumpVersion] Updated package.json version: ${newVersion}`);

@@ -3,35 +3,53 @@
 import {
   JOB_STATUS,
   WORK_TYPE,
+  type JobStatus,
   type OperationStatusState,
   type OperationWorkType,
 } from "@shared/types/operation/operationTypes";
 import {
-  isProtectedStatus,
+  cleanDashCell,
   isRunningStatus,
-  isSuccessStatus,
   normalizeKanriNo,
 } from "@shared/utils/sharedUtils";
 
-export { isProtectedStatus, isRunningStatus, normalizeKanriNo };
+export { isRunningStatus, normalizeKanriNo };
+
+const PROTECTED_STATUSES: ReadonlySet<JobStatus> = new Set([
+  JOB_STATUS.RUNNING,
+  JOB_STATUS.SCRIPT_RUNNING,
+  JOB_STATUS.SUCCESS,
+  JOB_STATUS.NEEDS_ACTION,
+  JOB_STATUS.ERROR,
+]);
+
+export function isSuccessStatus(status?: JobStatus | null): boolean {
+  return status === JOB_STATUS.SUCCESS;
+}
+
+export function isProtectedStatus(
+  status?: JobStatus | null,
+): status is JobStatus {
+  return status != null && PROTECTED_STATUSES.has(status);
+}
 
 /** 前日日付基準で扱う管理No一覧 */
 const PREVIOUS_DAY_SET = new Set<string>(["2", "3", "4", "5", "6", "7"]);
 
 /**
- * 自動API問い合わせを行わず手動JCのみ許可し、
- * Status の確定はユーザーの手動操作のみで行う Job ID 一覧
+- 自動API問い合わせを行わず手動JCのみ許可し、
+- Status の確定はユーザーの手動操作のみで行う Job ID 一覧
  */
 const MANUAL_STATUS_DECISION_JOB_IDS = new Set<string>(["ZCM8010"]);
 
-export interface ParsedTime {
+interface ParsedTime {
   hours: number;
   minutes: number;
 }
 
 export function parseHHMM(value?: string | null): ParsedTime | null {
-  const trimmed = value?.trim();
-  if (!trimmed || trimmed === "-") return null;
+  const trimmed = cleanDashCell(value);
+  if (!trimmed) return null;
 
   const m = trimmed.match(/^(\d{1,2}):(\d{2})$/);
   if (!m) return null;
@@ -43,17 +61,9 @@ export function parseHHMM(value?: string | null): ParsedTime | null {
 
 export const isAutoWorkType = (
   workType?: OperationWorkType | string | null,
-): boolean => workType?.trim() === WORK_TYPE.AUTO;
-
-export const isImmediateWorkType = (
-  workType?: OperationWorkType | string | null,
-  jobId?: string | null,
 ): boolean => {
-  const trimmedJobId = jobId?.trim();
-  return (
-    workType?.trim() === WORK_TYPE.IMMEDIATE &&
-    Boolean(trimmedJobId && trimmedJobId !== "-")
-  );
+  const trimmed = workType?.trim();
+  return trimmed === WORK_TYPE.AUTO || trimmed === WORK_TYPE.IMMEDIATE;
 };
 
 export const isPreviousDayJob = (kanriNo: string | number): boolean =>

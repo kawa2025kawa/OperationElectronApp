@@ -1,17 +1,30 @@
 // src/renderer/features/operation/utils/operationDisplayUtils.ts
 
-import { EMPTY_VALUE_FALLBACK } from "@shared/utils/sharedUtils";
 import {
+  EMPTY_VALUE_FALLBACK,
+  formatJapanDateTime,
+  tryFormatIsoDateTime,
+} from "@renderer/utils/rendererUtils";
+import {
+  JOB_STATUS,
   JOB_STATUS_VALUES,
-  OPERATION_FIELD_LABELS,
   type JobStatus,
   type OperationViewItem,
 } from "@shared/types/operation/operationTypes";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
-import {
-  formatJapanDateTime,
-  tryFormatIsoDateTime,
-} from "@shared/utils/sharedUtils";
+
+export const OPERATION_FIELD_LABELS = {
+  kanriNo: "管理No",
+  workName: "業務名",
+  workType: "区分",
+  scheduledTime: "予定時刻",
+  jobId: "ジョブID",
+  status: "状態",
+  cycle: "サイクル",
+  startTime: "開始時刻",
+  endTime: "終了時刻",
+  comment: "備考",
+} as const;
 
 type InfoRowField =
   | "kanriNo"
@@ -81,6 +94,30 @@ const OPERATION_INFO_ROW_DEFINITIONS = {
 
 export function isJobStatus(value: unknown): value is JobStatus {
   return typeof value === "string" && JOB_STATUS_SET.has(value);
+}
+
+/** 内部ステータス（scriptRunning / waiting）を表示用の代表ステータスへ正規化する */
+export function normalizeDisplayStatus(status: JobStatus): JobStatus;
+export function normalizeDisplayStatus(
+  status?: JobStatus,
+): JobStatus | undefined;
+export function normalizeDisplayStatus(
+  status?: JobStatus,
+): JobStatus | undefined {
+  if (status === JOB_STATUS.SCRIPT_RUNNING) return JOB_STATUS.RUNNING;
+  if (status === JOB_STATUS.WAITING) return JOB_STATUS.SCHEDULED;
+  return status;
+}
+
+/** サマリーステータスフィルタと行のステータスが一致するか判定する */
+export function matchesSummaryStatusFilter(
+  rowStatus: JobStatus | undefined,
+  filterValue: unknown,
+): boolean {
+  if (!isJobStatus(filterValue)) {
+    return rowStatus === filterValue;
+  }
+  return rowStatus !== undefined && normalizeDisplayStatus(rowStatus) === filterValue;
 }
 
 export function getOperationWorkName(

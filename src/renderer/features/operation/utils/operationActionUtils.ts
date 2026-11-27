@@ -11,10 +11,12 @@ import {
 import { operationService } from "@renderer/features/operation/service/operationService";
 import type { AppState } from "@renderer/store";
 import { isRunningStatus, normalizeKanriNo } from "@shared/utils/sharedUtils";
-import type {
-  LinkConfig,
-  OperationViewItem,
-} from "@shared/types/operation/operationTypes";
+import type { OperationViewItem } from "@shared/types/operation/operationTypes";
+
+export interface LinkConfig {
+  key: string;
+  url: string;
+}
 
 export interface OperationActionItem {
   readonly key: string;
@@ -22,7 +24,7 @@ export interface OperationActionItem {
   readonly execute: (item: OperationViewItem) => void | Promise<void>;
 }
 
-export interface BuildOperationMenuActionsOptions {
+interface BuildOperationMenuActionsOptions {
   readonly openGlobalModal: AppState["openGlobalModal"];
   readonly onRefreshTable?: () => void | Promise<void>;
 }
@@ -93,7 +95,7 @@ function createManualAction(
 }
 
 /**
- * 選択中アイテムの状態に基づき、メニューに表示するアクションボタン一覧を生成する
+- 選択中アイテムの状態に基づき、メニューに表示するアクションボタン一覧を生成する
  */
 export function buildOperationMenuActions(
   item: OperationViewItem,

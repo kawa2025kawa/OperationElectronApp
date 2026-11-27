@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { AnimatedTabs } from "@renderer/components/ui/tabs/AnimatedTabs";
-import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import type { GlobalModalComponent } from "@renderer/types/modal";
 import type { Tantou } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { useTantouDetailContent } from "./useTantouDetailContent";
 import * as styles from "./tantouDetailContent.css";

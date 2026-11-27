@@ -1,10 +1,7 @@
 // src/renderer/features/operation/service/operationService.ts
 
 import { toast } from "sonner";
-import {
-  IPC_CHANNELS,
-  type IpcChannelMap,
-} from "@shared/types/electron/ipcTypes";
+import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
 import {
   WORK_TYPE,
@@ -16,12 +13,15 @@ import {
 } from "@shared/types/operation/operationTypes";
 import { normalizeKanriNo } from "@shared/utils/sharedUtils";
 import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
-import { rdpIpcService } from "@renderer/services/ipcServices";
-import { systemIpcService } from "@renderer/services/ipcServices";
+import {
+  invokeIpc,
+  rdpIpcService,
+  systemIpcService,
+} from "@renderer/services/ipcServices";
 import { runJobWithGlobalProcessing } from "@renderer/features/operation/helpers/asyncProcessor";
 import { toErrorMessage } from "@renderer/utils/rendererUtils";
 
-export interface ExecuteScriptParams {
+interface ExecuteScriptParams {
   kanriNo: string;
   scriptKey?: string;
   targetName?: string;
@@ -30,25 +30,38 @@ export interface ExecuteScriptParams {
   onSuccess?: () => void | Promise<void>;
 }
 
-export interface ExecuteJcJobOptions {
+interface ExecuteJcJobOptions {
   jobId?: string;
   workType?: OperationWorkType;
   onSuccess?: () => void | Promise<void>;
 }
 
-export interface UpdateJobStatusParams {
+interface UpdateJobStatusParams {
   kanriNo: string;
   status: JobStatus;
   comment?: string;
 }
 
 const MANUAL_DECISION_JOB_IDS = new Set<string>(["ZCM8010"]);
+const inFlightJcJobs = new Set<string>();
+const manualExecutionCounts = new Map<string, number>();
 
-function invokeOperation<K extends keyof IpcChannelMap>(
-  channel: K,
-  ...args: IpcChannelMap[K]["args"]
-): Promise<IpcChannelMap[K]["return"]> {
-  return window.electronAPI.invoke(channel, ...args);
+function beginManualExecution(kanriNo: string): void {
+  const nextCount = (manualExecutionCounts.get(kanriNo) ?? 0) + 1;
+  manualExecutionCounts.set(kanriNo, nextCount);
+  if (nextCount === 1) {
+    usePollingToastStore.getState().addManualExecuting(kanriNo);
+  }
+}
+
+function endManualExecution(kanriNo: string): void {
+  const currentCount = manualExecutionCounts.get(kanriNo) ?? 0;
+  if (currentCount <= 1) {
+    manualExecutionCounts.delete(kanriNo);
+    usePollingToastStore.getState().removeManualExecuting(kanriNo);
+  } else {
+    manualExecutionCounts.set(kanriNo, currentCount - 1);
+  }
 }
 
 /** ジョブ実行時のエラーをトースト通知し、エラーを再送出する */
@@ -65,7 +78,7 @@ async function withJobErrorToast<T>(
 }
 
 /**
- * Operation 関連の IPC 通信およびジョブ実行オーケストレーションを集約するサービス
+- Operation 関連の IPC 通信およびジョブ実行オーケストレーションを集約するサービス
  */
 export const operationService = {
   // ==========================================================================
@@ -73,47 +86,44 @@ export const operationService = {
   // ==========================================================================
 
   getTableData: (mode: ViewMode): Promise<OperationViewItem[]> =>
-    invokeOperation(IPC_CHANNELS.OPERATION.GET_TABLE_DATA, { mode }),
+    invokeIpc(IPC_CHANNELS.OPERATION.GET_TABLE_DATA, { mode }),
 
   updateJobStatus: (params: UpdateJobStatusParams): Promise<void> =>
-    invokeOperation(IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS, {
+    invokeIpc(IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS, {
       kanriNo: normalizeKanriNo(params.kanriNo),
       status: params.status,
       comment: params.comment ?? "",
     }),
 
-  resetStatuses: () => invokeOperation(IPC_CHANNELS.OPERATION.RESET_STATUSES),
+  resetStatuses: () => invokeIpc(IPC_CHANNELS.OPERATION.RESET_STATUSES),
 
-  getActiveFlags: () =>
-    invokeOperation(IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS),
+  getActiveFlags: () => invokeIpc(IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS),
 
   setActiveFlags: (flags: Partial<ActiveFlags>) =>
-    invokeOperation(IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS, flags),
+    invokeIpc(IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS, flags),
 
-  startPolling: () => invokeOperation(IPC_CHANNELS.OPERATION.START_POLLING),
+  startPolling: () => invokeIpc(IPC_CHANNELS.OPERATION.START_POLLING),
 
-  stopPolling: () => invokeOperation(IPC_CHANNELS.OPERATION.STOP_POLLING),
+  stopPolling: () => invokeIpc(IPC_CHANNELS.OPERATION.STOP_POLLING),
 
   getStatusSummary: () =>
-    invokeOperation(IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY),
+    invokeIpc(IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY),
 
-  registerTargets: () =>
-    invokeOperation(IPC_CHANNELS.OPERATION.REGISTER_TARGETS),
+  registerTargets: () => invokeIpc(IPC_CHANNELS.OPERATION.REGISTER_TARGETS),
 
   initializeStatus: () =>
-    invokeOperation(IPC_CHANNELS.OPERATION.INITIALIZE_STATUS),
+    invokeIpc(IPC_CHANNELS.OPERATION.INITIALIZE_STATUS),
 
   previewStatusSyncFromSheet: () =>
-    invokeOperation(IPC_CHANNELS.OPERATION.PREVIEW_STATUS_SYNC_FROM_SHEET),
+    invokeIpc(IPC_CHANNELS.OPERATION.PREVIEW_STATUS_SYNC_FROM_SHEET),
 
   saveStatusesToSheet: (params: {
     operatorName?: string;
     handoverNote: string;
-  }) =>
-    invokeOperation(IPC_CHANNELS.OPERATION.SAVE_STATUSES_TO_SHEET, params),
+  }) => invokeIpc(IPC_CHANNELS.OPERATION.SAVE_STATUSES_TO_SHEET, params),
 
   loadStatusesFromSheet: () =>
-    invokeOperation(IPC_CHANNELS.OPERATION.LOAD_STATUSES_FROM_SHEET),
+    invokeIpc(IPC_CHANNELS.OPERATION.LOAD_STATUSES_FROM_SHEET),
 
   // ==========================================================================
   // ジョブ実行・外部連携オーケストレーション
@@ -125,32 +135,42 @@ export const operationService = {
     options?: ExecuteJcJobOptions,
   ): Promise<void> => {
     const kanriNo = normalizeKanriNo(kanriNoInput);
+    if (!kanriNo || inFlightJcJobs.has(kanriNo)) {
+      return;
+    }
+
     const normalizedJobId = options?.jobId?.trim().toUpperCase();
     const targetLabel = options?.jobId?.trim() || kanriNo;
     const isManualDecision =
       options?.workType === WORK_TYPE.MANUAL ||
       Boolean(normalizedJobId && MANUAL_DECISION_JOB_IDS.has(normalizedJobId));
 
-    await runJobWithGlobalProcessing("JC 実行中...", targetLabel, () =>
-      withJobErrorToast("JC 実行エラー", async () => {
-        const result = await invokeOperation(
-          IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS,
-          { kanriNo },
-        );
+    inFlightJcJobs.add(kanriNo);
 
-        if (!result) {
-          throw new Error(`No.${kanriNo} のステータス取得に失敗しました`);
-        }
+    try {
+      await runJobWithGlobalProcessing("JC 実行中...", targetLabel, () =>
+        withJobErrorToast("JC 実行エラー", async () => {
+          const result = await invokeIpc(
+            IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS,
+            { kanriNo },
+          );
 
-        await options?.onSuccess?.();
+          if (!result) {
+            throw new Error(`No.${kanriNo} のステータス取得に失敗しました`);
+          }
 
-        toast.info(
-          isManualDecision
-            ? `No.${kanriNo} 実行時刻を取得しました（ステータスは手動で更新してください）`
-            : `No.${kanriNo} JCステータスを更新しました`,
-        );
-      }),
-    );
+          await options?.onSuccess?.();
+
+          toast.info(
+            isManualDecision
+              ? `No.${kanriNo} 実行時刻を取得しました（ステータスは手動で更新してください）`
+              : `No.${kanriNo} JCステータスを更新しました`,
+          );
+        }),
+      );
+    } finally {
+      inFlightJcJobs.delete(kanriNo);
+    }
   },
 
   /** スクリプトジョブを実行し、結果を返す */
@@ -158,9 +178,8 @@ export const operationService = {
     const kanriNo = normalizeKanriNo(params.kanriNo);
     const scriptKey = params.scriptKey?.trim() || kanriNo;
     const targetLabel = params.targetName?.trim() || scriptKey;
-    const toastStore = usePollingToastStore.getState();
 
-    toastStore.addManualExecuting(kanriNo);
+    beginManualExecution(kanriNo);
 
     try {
       return await runJobWithGlobalProcessing(
@@ -168,7 +187,7 @@ export const operationService = {
         targetLabel,
         () =>
           withJobErrorToast("実行エラー", async () => {
-            const result = await invokeOperation(
+            const result = await invokeIpc(
               IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT,
               {
                 kanriNo,
@@ -183,7 +202,7 @@ export const operationService = {
           }),
       );
     } finally {
-      toastStore.removeManualExecuting(kanriNo);
+      endManualExecution(kanriNo);
     }
   },
 

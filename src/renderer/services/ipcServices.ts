@@ -2,94 +2,112 @@
 
 import { toast } from "sonner";
 import { toErrorMessage } from "@renderer/utils/rendererUtils";
-import type {
-  EmailTemplateKey,
-  GmailDraftFormValues,
-} from "@renderer/features/other/types/gmailDraftUiTypes";
+import type { GmailDraftFormValues } from "@renderer/features/other/types/gmailDraftUiTypes";
 import type { AuthProfile } from "@shared/types/auth/authTypes";
 import {
   IPC_CHANNELS,
+  type GenerateDraftTemplateParams,
+  type IpcChannelMap,
+  type RdpTarget,
+  type StaffScheduleSheetId,
   type TempomaticUploadTargetFile,
+  type UpdateInfo,
 } from "@shared/types/electron/ipcTypes";
-import type { SpreadsheetMasterDataResponse } from "@shared/types/spreadsheet/spreadsheetTypes";
-import type { RdpTarget } from "@shared/types/electron/ipcTypes";
-import type { UpdateInfo } from "@shared/types/electron/ipcTypes";
+import type {
+  ShopResourceKey,
+  SpreadsheetMasterDataResponse,
+} from "@shared/types/spreadsheet/spreadsheetTypes";
 
-export interface GenerateDraftTemplateParams {
-  templateKey: EmailTemplateKey;
-  links?: Record<string, string> | null;
-}
-
-export interface UploadDocumentParams {
+interface UploadDocumentParams {
   filePaths?: string[];
   files?: TempomaticUploadTargetFile[];
   expireDate?: string;
 }
 
+/** 型安全な IPC 呼び出し共通ラッパー */
+export function invokeIpc<K extends keyof IpcChannelMap>(
+  channel: K,
+  ...args: IpcChannelMap[K]["args"]
+): Promise<IpcChannelMap[K]["return"]> {
+  return window.electronAPI.invoke(channel, ...args);
+}
+
 export const authIpcService = {
-  login: (): Promise<AuthProfile> =>
-    window.electronAPI.invoke(IPC_CHANNELS.AUTH.LOGIN),
+  login: (): Promise<AuthProfile> => invokeIpc(IPC_CHANNELS.AUTH.LOGIN),
 
   loadSession: (forceRefresh = false): Promise<AuthProfile | null> =>
-    window.electronAPI.invoke(IPC_CHANNELS.AUTH.LOAD_SESSION, forceRefresh),
+    invokeIpc(IPC_CHANNELS.AUTH.LOAD_SESSION, forceRefresh),
 
-  logout: (): Promise<void> =>
-    window.electronAPI.invoke(IPC_CHANNELS.AUTH.LOGOUT),
+  logout: (): Promise<void> => invokeIpc(IPC_CHANNELS.AUTH.LOGOUT),
 };
 
 export const spreadsheetIpcService = {
   getMasterData: (): Promise<SpreadsheetMasterDataResponse> =>
-    window.electronAPI.invoke(IPC_CHANNELS.SPREADSHEET.GET_MASTER_DATA),
+    invokeIpc(IPC_CHANNELS.SPREADSHEET.GET_MASTER_DATA),
+
+  openStaffSchedule: (
+    sheetId: StaffScheduleSheetId,
+    staffId: string,
+  ): Promise<null> =>
+    invokeIpc(IPC_CHANNELS.SPREADSHEET.OPEN_STAFF_SCHEDULE, {
+      sheetId,
+      staffId,
+    }),
+
+  openShopResource: (
+    shopCode: string,
+    resourceKey: ShopResourceKey,
+  ): Promise<null> =>
+    invokeIpc(IPC_CHANNELS.SPREADSHEET.OPEN_SHOP_RESOURCE, {
+      shopCode,
+      resourceKey,
+    }),
 };
 
 export const rdpIpcService = {
   getMasters: (): Promise<RdpTarget[]> =>
-    window.electronAPI.invoke(IPC_CHANNELS.RDP.GET_MASTERS),
+    invokeIpc(IPC_CHANNELS.RDP.GET_MASTERS),
 
   startSession: (name: string): Promise<null> =>
-    window.electronAPI.invoke(IPC_CHANNELS.RDP.START_SESSION, { name }),
+    invokeIpc(IPC_CHANNELS.RDP.START_SESSION, { name }),
 };
 
 export const otherIpcService = {
   getGmailSignature: (): Promise<string> =>
-    window.electronAPI.invoke(IPC_CHANNELS.GMAIL.GET_SIGNATURE),
+    invokeIpc(IPC_CHANNELS.GMAIL.GET_SIGNATURE),
 
   generateDraftTemplate: (
     params: GenerateDraftTemplateParams,
   ): Promise<GmailDraftFormValues> =>
-    window.electronAPI.invoke(
-      IPC_CHANNELS.GMAIL.GENERATE_DRAFT_TEMPLATE,
-      params,
-    ),
+    invokeIpc(IPC_CHANNELS.GMAIL.GENERATE_DRAFT_TEMPLATE, params),
 
   createGmailDraft: (formValues: GmailDraftFormValues): Promise<void> =>
-    window.electronAPI.invoke(IPC_CHANNELS.GMAIL.CREATE_DRAFT, formValues),
+    invokeIpc(IPC_CHANNELS.GMAIL.CREATE_DRAFT, formValues),
 
   uploadTempomaticPdf: (params: UploadDocumentParams): Promise<string> =>
-    window.electronAPI.invoke(IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT, params),
+    invokeIpc(IPC_CHANNELS.TEMPOMATIC.UPLOAD_DOCUMENT, params),
 
   processGiftMd: (filePath: string): Promise<string> =>
-    window.electronAPI.invoke(IPC_CHANNELS.OTHER.PROCESS_GIFT_MD, filePath),
+    invokeIpc(IPC_CHANNELS.OTHER.PROCESS_GIFT_MD, filePath),
 };
 
 export const systemIpcService = {
   getAppVersion: (): Promise<string> =>
-    window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.GET_APP_VERSION),
+    invokeIpc(IPC_CHANNELS.SYSTEM.GET_APP_VERSION),
 
   showMainWindow: (): Promise<null> =>
-    window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.SHOW_MAIN_WINDOW),
+    invokeIpc(IPC_CHANNELS.SYSTEM.SHOW_MAIN_WINDOW),
 
-  quitApp: (): Promise<null> =>
-    window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.QUIT_APP),
+  quitApp: (): Promise<null> => invokeIpc(IPC_CHANNELS.SYSTEM.QUIT_APP),
 
   openManual: (target: string, isAuto = false): Promise<null> =>
-    window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_MANUAL, {
+    invokeIpc(IPC_CHANNELS.SYSTEM.OPEN_MANUAL, {
       target,
       isAuto,
     }),
 
   openExternal: (urlOrPath: string): Promise<null> =>
-    window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, { urlOrPath }),
+    invokeIpc(IPC_CHANNELS.SYSTEM.OPEN_EXTERNAL, { urlOrPath }),
 
   openExternalWithToast: async (
     urlOrPath: string,
@@ -108,16 +126,16 @@ export const systemIpcService = {
   showOpenDialog: (
     options?: Record<string, unknown>,
   ): Promise<string[] | null> =>
-    window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.SHOW_OPEN_DIALOG, options),
+    invokeIpc(IPC_CHANNELS.SYSTEM.SHOW_OPEN_DIALOG, options),
 
   readUpdateInfo: (): Promise<UpdateInfo | null> =>
-    window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.READ_UPDATE_INFO),
+    invokeIpc(IPC_CHANNELS.SYSTEM.READ_UPDATE_INFO),
 
   renameFile: (
     filePath: string,
     newName: string,
   ): Promise<{ success: boolean; newPath: string }> =>
-    window.electronAPI.invoke(IPC_CHANNELS.SYSTEM.RENAME_FILE, {
+    invokeIpc(IPC_CHANNELS.SYSTEM.RENAME_FILE, {
       filePath,
       newName,
     }),

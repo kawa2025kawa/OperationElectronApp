@@ -146,17 +146,38 @@ export function formatYen(amount: number): string {
   return `${amount.toLocaleString("ja-JP")}円`;
 }
 
+export function formatSignedYen(amount: number): string {
+  const formatted = formatYen(amount);
+  return amount > 0 ? `+${formatted}` : formatted;
+}
+
+/** 店舗コードを比較用の正規化キー（先頭ゼロなしの数字文字列、例: "002:002東町店" -> "2"）に変換する */
+export function normalizeStoreCode(rawValue: string): string | null {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return null;
+
+  const head = trimmed.split(/[:：]/)[0]?.trim() ?? "";
+  const match = head.match(/^0*(\d+)$/);
+  if (!match) return null;
+
+  return String(Number(match[1]));
+}
+
 export async function aggregateCsvAmountByStore(
   filePath: string,
   encoding = "Shift_JIS",
   excludedStoreCodes?: ReadonlySet<string>,
+  normalizeKey = false,
 ) {
   const rows = (await readParsedCsv(filePath, encoding)).slice(1);
   const result = new Map<string, number>();
 
   for (const row of rows) {
-    const storeCode = row[0]?.trim() ?? "";
-    if (!storeCode || excludedStoreCodes?.has(storeCode)) continue;
+    const rawCode = row[0]?.trim() ?? "";
+    if (!rawCode || excludedStoreCodes?.has(rawCode)) continue;
+
+    const storeCode = normalizeKey ? normalizeStoreCode(rawCode) : rawCode;
+    if (!storeCode) continue;
 
     const amount = parseAmount(row[4]);
     if (amount === null) continue;

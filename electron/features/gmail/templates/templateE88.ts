@@ -3,7 +3,7 @@
 
 import { format, nextMonday } from "date-fns";
 import { ja } from "date-fns/locale";
-import type { GmailDraft } from "../gmailTypes";
+import type { GmailDraft } from "@shared/types/electron/ipcTypes";
 
 export function createTemplateE88(familyName = ""): GmailDraft {
   const deliveryDate = format(nextMonday(new Date()), "M月d日(E)", {

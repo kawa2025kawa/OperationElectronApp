@@ -39,7 +39,7 @@ export function useTableVirtualizer({
     if (virtualizerRef) {
       virtualizerRef.current = rowVirtualizer;
     }
-  });
+  }, [virtualizerRef, rowVirtualizer]);
 
   const virtualItems = rowVirtualizer.getVirtualItems();
   const totalSize = rowVirtualizer.getTotalSize();

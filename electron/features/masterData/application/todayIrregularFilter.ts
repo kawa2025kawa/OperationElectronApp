@@ -2,10 +2,8 @@
 
 import { TZDate } from "@date-fns/tz";
 import { format, getDaysInMonth, isValid } from "date-fns";
-import type {
-  IrregularMaster,
-  TodayIrregularMaster,
-} from "@shared/types/operation/operationTypes";
+import type { IrregularMaster } from "@shared/types/operation/operationTypes";
+import { cleanDashCell } from "@shared/utils/sharedUtils";
 
 const JST_TIME_ZONE = "Asia/Tokyo" as const;
 const WEEKDAY_JA = ["日", "月", "火", "水", "木", "金", "土"] as const;
@@ -77,8 +75,8 @@ function matchesCycle(cycleValue: string, today: JstDateParts): boolean {
 
 // 予定時刻（"hh:mm" もしくは "-"）を並べ替え用の数値に変換する。
 function getScheduledTimeRank(value: unknown): number {
-  const time = String(value ?? "").trim();
-  if (!time || time === "-") return 9999;
+  const time = cleanDashCell(value);
+  if (!time) return 9999;
 
   const match = time.match(/^(\d{1,2}):(\d{2})$/);
   if (match) {
@@ -96,7 +94,7 @@ function getScheduledTimeRank(value: unknown): number {
 export function buildTodayIrregulars(
   source: IrregularMaster[],
   now: Date = new Date(),
-): TodayIrregularMaster[] {
+): IrregularMaster[] {
   const today = getJstDateParts(now);
 
   return source
@@ -122,5 +120,5 @@ export function buildTodayIrregulars(
       timeRank: getScheduledTimeRank(item.scheduledTime),
     }))
     .sort((a, b) => a.timeRank - b.timeRank)
-    .map(({ item }) => item as TodayIrregularMaster);
+    .map(({ item }) => item);
 }

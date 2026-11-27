@@ -26,5 +26,6 @@ export {
   initializeStatuses,
   deleteAllStatuses,
   registerOperationTargets,
+  ensureOperationInitialized,
   resetOperationStatuses,
 } from "./statusLifecycleService";

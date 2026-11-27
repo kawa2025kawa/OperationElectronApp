@@ -3,8 +3,8 @@
 import { memo, useCallback } from "react";
 import { EmptyState } from "@renderer/components/ui/emptyState/EmptyState";
 import { operationService } from "@renderer/features/operation/service/operationService";
-import type { LinkConfig } from "@shared/types/operation/operationTypes";
-import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import type { LinkConfig } from "@renderer/features/operation/utils/operationActionUtils";
+import type { GlobalModalComponent } from "@renderer/types/modal";
 import * as styles from "./linkModalContent.css";
 
 interface LinkModalContentProps {

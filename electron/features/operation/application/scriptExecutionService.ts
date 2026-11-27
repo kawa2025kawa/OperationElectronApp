@@ -16,14 +16,15 @@ import { normalizeKanriNo } from "@electron/features/operation/domain/operationR
 import {
   executeSingleScriptJob,
   getScriptExecutionRequirement,
+  type ScriptFilePath,
 } from "@electron/features/operation/runners/scriptRunner";
 import {
   JOB_STATUS,
   type JobResult,
   type JobStatus,
   type ManualScriptExecutionInput,
-  type ScriptFilePath,
 } from "@shared/types/operation/operationTypes";
+import { toErrorMessage } from "@shared/utils/sharedUtils";
 
 export { getScriptExecutionRequirement };
 
@@ -44,7 +45,7 @@ function releaseScriptLock(kanriNo: string): void {
 }
 
 function extractZipPath(error: unknown): string | null {
-  const msg = error instanceof Error ? error.message : String(error);
+  const msg = toErrorMessage(error, "");
   const m = msg.match(
     /(?:^|\r?\n)[ \t]*(?:出力ZIP|ZIP出力先)?[ \t]*:?[ \t]*((?:[A-Z]:\\|\\\\)[^\r\n]*?\.zip)/im,
   );
@@ -155,8 +156,11 @@ export async function executeScriptAndApplyStatus(
     applyScriptExecutionResult(kanriNo, result);
     return result;
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    finalizeStatus(kanriNo, JOB_STATUS.ERROR, `実行エラー: ${msg}`);
+    finalizeStatus(
+      kanriNo,
+      JOB_STATUS.ERROR,
+      `実行エラー: ${toErrorMessage(err)}`,
+    );
     throw err;
   } finally {
     releaseScriptLock(kanriNo);

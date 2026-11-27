@@ -2,11 +2,11 @@
 
 import type { StateCreator } from "zustand";
 import { operationService } from "@renderer/features/operation/service/operationService";
-import type { ViewMode } from "@renderer/registry/appRegistry";
+import { VIEW_MODES, type ViewMode } from "@renderer/registry/appRegistry";
 import type { AppState } from "@renderer/store";
-import type { JobStatus } from "@shared/types/operation/operationTypes";
 import {
   EMPTY_STATUS_SUMMARY,
+  type JobStatus,
   type StatusSummary,
 } from "@shared/types/operation/operationTypes";
 
@@ -15,40 +15,36 @@ export interface StatusSummarySlice {
   summaryStatusFilter: JobStatus | null;
   summaryReturnMode: ViewMode | null;
   fetchStatusSummary: () => Promise<void>;
-  setStatusSummary: (summary: StatusSummary) => void;
   setSummaryStatusFilter: (status: JobStatus | null) => void;
   toggleSummaryStatusFilter: (status: JobStatus) => void;
+  resetStatusSummaryState: () => void;
 }
 
 export const createStatusSummarySlice: StateCreator<
   AppState,
-  [],
+  [["zustand/immer", never]],
   [],
   StatusSummarySlice
-> = (set, get) => {
+> = (set) => {
   let requestId = 0;
 
-  const clearFilterAndRestoreMode = (): void => {
-    const { summaryReturnMode } = get();
-    set({
-      summaryStatusFilter: null,
-      summaryReturnMode: null,
-      ...(summaryReturnMode ? { currentMode: summaryReturnMode } : {}),
-    });
+  const clearFilterAndRestoreMode = (state: AppState): void => {
+    state.summaryStatusFilter = null;
+    if (state.summaryReturnMode) {
+      state.currentMode = state.summaryReturnMode;
+      state.summaryReturnMode = null;
+    }
   };
 
-  const applyFilterStatus = (status: JobStatus): void => {
-    const { currentMode, summaryReturnMode } = get();
-    if (currentMode === "irregular") {
-      set({
-        summaryStatusFilter: status,
-        summaryReturnMode: summaryReturnMode ?? "irregular",
-        currentMode: "operation",
-      });
+  const applyFilterStatus = (state: AppState, status: JobStatus): void => {
+    if (state.currentMode === VIEW_MODES.IRREGULAR) {
+      state.summaryStatusFilter = status;
+      state.summaryReturnMode = state.summaryReturnMode ?? VIEW_MODES.IRREGULAR;
+      state.currentMode = VIEW_MODES.OPERATION;
       return;
     }
 
-    set({ summaryStatusFilter: status });
+    state.summaryStatusFilter = status;
   };
 
   return {
@@ -62,7 +58,10 @@ export const createStatusSummarySlice: StateCreator<
       try {
         const summary = await operationService.getStatusSummary();
         if (currentRequestId !== requestId) return;
-        set({ summary });
+
+        set((state) => {
+          state.summary = summary;
+        });
       } catch (error) {
         if (currentRequestId === requestId) {
           console.error(
@@ -73,25 +72,33 @@ export const createStatusSummarySlice: StateCreator<
       }
     },
 
-    setStatusSummary: (summary) => {
-      requestId += 1;
-      set({ summary });
-    },
-
     setSummaryStatusFilter: (status) => {
-      if (status === null) {
-        clearFilterAndRestoreMode();
-        return;
-      }
-      applyFilterStatus(status);
+      set((state) => {
+        if (status === null) {
+          clearFilterAndRestoreMode(state);
+        } else {
+          applyFilterStatus(state, status);
+        }
+      });
     },
 
     toggleSummaryStatusFilter: (status) => {
-      if (get().summaryStatusFilter === status) {
-        clearFilterAndRestoreMode();
-        return;
-      }
-      applyFilterStatus(status);
+      set((state) => {
+        if (state.summaryStatusFilter === status) {
+          clearFilterAndRestoreMode(state);
+        } else {
+          applyFilterStatus(state, status);
+        }
+      });
+    },
+
+    resetStatusSummaryState: () => {
+      requestId += 1;
+      set((state) => {
+        state.summary = { ...EMPTY_STATUS_SUMMARY };
+        state.summaryStatusFilter = null;
+        state.summaryReturnMode = null;
+      });
     },
   };
 };

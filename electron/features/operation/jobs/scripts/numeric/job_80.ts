@@ -3,18 +3,24 @@
 import path from "node:path";
 import fs from "fs-extra";
 import type { JobResult } from "@shared/types/operation/operationTypes";
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
-  listFilesInExistingDir,
+  listFilesInDir,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import {
   formatDateTime,
   getDateKey,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 
 const CONFIG = {
-  targetDir: "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV",
+  host: NETWORK_HOSTS.MDSYUHAI01,
+  subPaths: ["if", "MASTER", "RCV", "SV"] as const,
   requiredFiles: ["Okurikomi_toMD_JIZEN", "htsf0060_JIZEN"],
 } as const;
 
@@ -31,7 +37,7 @@ type JobResultData = {
 };
 
 /**
-- 事前連携ファイル（Okurikomi_toMD_JIZEN, htsf0060_JIZEN）の存在を確認する。
+ * 事前連携ファイル（Okurikomi_toMD_JIZEN, htsf0060_JIZEN）の存在を確認する。
  */
 export async function runJob80(): Promise<JobResult> {
   return runJobWithLogger("ファイル確認に失敗しました", async (logger) => {
@@ -41,6 +47,7 @@ export async function runJob80(): Promise<JobResult> {
 }
 
 async function findMatchedFile(
+  targetDir: string,
   fileNames: readonly string[],
   prefix: string,
 ): Promise<MatchedFile | null> {
@@ -50,7 +57,7 @@ async function findMatchedFile(
     return null;
   }
 
-  const filePath = path.join(CONFIG.targetDir, matchedName);
+  const filePath = path.join(targetDir, matchedName);
   const stat = await fs.stat(filePath);
 
   return {
@@ -61,41 +68,47 @@ async function findMatchedFile(
 }
 
 async function findRequiredFiles(
+  targetDir: string,
   fileNames: readonly string[],
   prefixes: readonly string[],
 ): Promise<(MatchedFile | null)[]> {
   return Promise.all(
-    prefixes.map((prefix) => findMatchedFile(fileNames, prefix)),
+    prefixes.map((prefix) => findMatchedFile(targetDir, fileNames, prefix)),
   );
 }
 
 async function checkRequiredFiles(): Promise<JobResultData> {
-  const fileNames = await listFilesInExistingDir(
-    CONFIG.targetDir,
-    `フォルダが存在しません: ${CONFIG.targetDir}`,
-  );
-  const fixedFiles = await findRequiredFiles(fileNames, CONFIG.requiredFiles);
+  const targetDir = getNetworkHostPath(CONFIG.host, ...CONFIG.subPaths);
+  return withNetworkAuthRetry(targetDir, async () => {
+    const fileNames = await listFilesInDir(targetDir);
+    const fixedFiles = await findRequiredFiles(
+      targetDir,
+      fileNames,
+      CONFIG.requiredFiles,
+    );
 
-  if (fixedFiles.every((file) => file !== null)) {
+    if (fixedFiles.every((file) => file !== null)) {
+      return {
+        targetDir,
+        files: fixedFiles,
+        missing: [],
+      };
+    }
+
+    const datedFiles = await findRequiredFiles(
+      targetDir,
+      fileNames,
+      CONFIG.requiredFiles.map((target) => `${target}_${getDateKey()}`),
+    );
+
     return {
-      targetDir: CONFIG.targetDir,
-      files: fixedFiles,
-      missing: [],
+      targetDir,
+      files: datedFiles,
+      missing: CONFIG.requiredFiles.filter(
+        (_, index) => datedFiles[index] === null,
+      ),
     };
-  }
-
-  const datedFiles = await findRequiredFiles(
-    fileNames,
-    CONFIG.requiredFiles.map((target) => `${target}_${getDateKey()}`),
-  );
-
-  return {
-    targetDir: CONFIG.targetDir,
-    files: datedFiles,
-    missing: CONFIG.requiredFiles.filter(
-      (_, index) => datedFiles[index] === null,
-    ),
-  };
+  });
 }
 
 function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {

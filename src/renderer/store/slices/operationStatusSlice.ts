@@ -5,8 +5,8 @@ import type { StateCreator } from "zustand";
 
 import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
 import { operationService } from "@renderer/features/operation/service/operationService";
+import { VIEW_MODES, type ViewMode } from "@shared/types/registry/viewDefinition";
 import type { AppState } from "@renderer/store";
-import type { ViewMode } from "@renderer/registry/appRegistry";
 import type {
   OperationStatusNotification,
   OperationStatusState,
@@ -18,7 +18,19 @@ type OperationStatusUpdate = Pick<
   "kanriNo" | "status" | "comment"
 >;
 
-const ALL_VIEW_MODES: readonly ViewMode[] = ["operation", "irregular", "today"];
+const ALL_VIEW_MODES: readonly ViewMode[] = [
+  VIEW_MODES.OPERATION,
+  VIEW_MODES.IRREGULAR,
+  VIEW_MODES.TODAY,
+];
+
+function createEmptyRowsByMode(): Record<ViewMode, OperationViewItem[]> {
+  return {
+    [VIEW_MODES.OPERATION]: [],
+    [VIEW_MODES.IRREGULAR]: [],
+    [VIEW_MODES.TODAY]: [],
+  };
+}
 
 /** 表示モードに対応する最新の行配列を取得する共通セレクタ */
 export function selectRowsForMode(
@@ -40,8 +52,8 @@ export function selectMergedOperationAndTodayRows(
     "tableRows" | "tableRowsMode" | "tableRowsByMode"
   >,
 ): OperationViewItem[] {
-  const operationRows = selectRowsForMode(state, "operation");
-  const todayRows = selectRowsForMode(state, "today");
+  const operationRows = selectRowsForMode(state, VIEW_MODES.OPERATION);
+  const todayRows = selectRowsForMode(state, VIEW_MODES.TODAY);
   const seenKanriNos = new Set<string>();
   const merged: OperationViewItem[] = [];
 
@@ -107,6 +119,7 @@ export interface OperationStatusSlice {
     notifications: OperationStatusNotification[],
   ) => void;
   updateOperationStatus: (update: OperationStatusUpdate) => void;
+  resetOperationRuntimeState: () => void;
   resetAllOperationStatuses: () => Promise<void>;
 }
 
@@ -118,14 +131,22 @@ export const createOperationStatusSlice: StateCreator<
 > = (set, get) => {
   let tableDataRequestId = 0;
 
+  const resetOperationRuntimeState = (): void => {
+    tableDataRequestId += 1;
+    usePollingToastStore.getState().resetToastState();
+
+    set((state) => {
+      state.isPolling = false;
+      state.tableRows = [];
+      state.tableRowsMode = null;
+      state.tableRowsByMode = createEmptyRowsByMode();
+    });
+  };
+
   return {
     tableRows: [],
     tableRowsMode: null,
-    tableRowsByMode: {
-      operation: [],
-      irregular: [],
-      today: [],
-    },
+    tableRowsByMode: createEmptyRowsByMode(),
     isTableLoading: false,
     isMergedSummaryLoading: false,
 
@@ -171,13 +192,17 @@ export const createOperationStatusSlice: StateCreator<
     },
 
     ensureOperationAndTodayData: async () => {
-      const targetModes: readonly ViewMode[] = ["operation", "today"];
+      const targetModes: readonly ViewMode[] = [
+        VIEW_MODES.OPERATION,
+        VIEW_MODES.TODAY,
+      ];
       const missingModes = targetModes.filter(
         (mode) => get().tableRowsByMode[mode].length === 0,
       );
 
       if (missingModes.length === 0) return;
 
+      const requestId = tableDataRequestId;
       set((state) => {
         state.isMergedSummaryLoading = true;
       });
@@ -189,6 +214,10 @@ export const createOperationStatusSlice: StateCreator<
             data: await operationService.getTableData(mode),
           })),
         );
+
+        if (requestId !== tableDataRequestId) {
+          return;
+        }
 
         set((state) => {
           for (const { mode, data } of results) {
@@ -262,21 +291,12 @@ export const createOperationStatusSlice: StateCreator<
         });
     },
 
+    resetOperationRuntimeState,
+
     resetAllOperationStatuses: async () => {
       try {
         await operationService.resetStatuses();
-        tableDataRequestId += 1;
-        usePollingToastStore.getState().resetToastState();
-
-        set((state) => {
-          state.isPolling = false;
-          state.tableRows = [];
-          state.tableRowsByMode = {
-            operation: [],
-            irregular: [],
-            today: [],
-          };
-        });
+        resetOperationRuntimeState();
 
         await Promise.all([
           get().fetchTableData(get().currentMode, true),

@@ -1,5 +1,9 @@
 // electron/features/operation/jobs/scripts/eseries/job_e8.ts
 
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   checkAndArchiveTodayFiles,
@@ -9,6 +13,7 @@ import {
   runJobWithLogger,
   type CheckedFileStatus,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 
 const TARGET_FILES_E8 = [
   "JCATANAWARI.TXT",
@@ -17,6 +22,7 @@ const TARGET_FILES_E8 = [
 ] as const;
 
 interface JobE8ResultData {
+  targetDir: string;
   matchedFiles: CheckedFileStatus[];
   missingFiles: string[];
   dateIssueFiles: CheckedFileStatus[];
@@ -24,13 +30,14 @@ interface JobE8ResultData {
 }
 
 const CONFIG = {
-  targetDir: "\\\\S0088003\\syn_tran\\from_ACOS\\SendData",
+  host: NETWORK_HOSTS.S0088003,
+  subPaths: ["syn_tran", "from_ACOS", "SendData"] as const,
   targetFiles: TARGET_FILES_E8,
   zipPrefix: "SendData_Shelf",
 } as const;
 
 /**
-- 棚割関連ファイル（3ファイル）の存在と更新日を確認し、ZIPアーカイブを作成する。
+ * 棚割関連ファイル（3ファイル）の存在と更新日を確認し、ZIPアーカイブを作成する。
  */
 export async function runJobE8(): Promise<string> {
   return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
@@ -40,7 +47,10 @@ export async function runJobE8(): Promise<string> {
 }
 
 async function checkAndArchiveFiles(): Promise<JobE8ResultData> {
-  const currentFileSet = new Set(await listFilesInDir(CONFIG.targetDir));
+  const targetDir = getNetworkHostPath(CONFIG.host, ...CONFIG.subPaths);
+  const currentFileSet = new Set(
+    await withNetworkAuthRetry(targetDir, () => listFilesInDir(targetDir)),
+  );
   const missingFiles = CONFIG.targetFiles.filter(
     (fileName) => !currentFileSet.has(fileName),
   );
@@ -49,13 +59,14 @@ async function checkAndArchiveFiles(): Promise<JobE8ResultData> {
   );
 
   const archived = await checkAndArchiveTodayFiles(
-    CONFIG.targetDir,
+    targetDir,
     presentFiles,
     CONFIG.zipPrefix,
     missingFiles.length === 0,
   );
 
   return {
+    targetDir,
     ...archived,
     missingFiles,
   };
@@ -63,7 +74,7 @@ async function checkAndArchiveFiles(): Promise<JobE8ResultData> {
 
 function writeResultLog(logger: JobLogger, result: JobE8ResultData): string {
   logger.section("対象フォルダ");
-  logger.log(CONFIG.targetDir);
+  logger.log(result.targetDir);
 
   logCheckedFiles(logger, result.matchedFiles);
 

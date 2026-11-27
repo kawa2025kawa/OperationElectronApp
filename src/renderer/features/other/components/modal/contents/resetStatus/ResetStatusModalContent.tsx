@@ -1,12 +1,12 @@
 // src/renderer/features/other/components/modal/contents/resetStatus/ResetStatusModalContent.tsx
 
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import { format } from "date-fns";
 import * as scriptStyles from "@renderer/features/operation/components/modal/scriptModal/scriptModalContent.css";
 import { useModalFooterSync } from "@renderer/hooks/useModalFooterSync";
 import { useAppStore } from "@renderer/store";
 import { toErrorMessage } from "@renderer/utils/rendererUtils";
-import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import type { GlobalModalComponent } from "@renderer/types/modal";
 
 type ResetExecutionState = "idle" | "completed" | "error";
 
@@ -27,6 +27,7 @@ export const ResetStatusModalContent: GlobalModalComponent = memo(
     const [resultDetailText, setResultDetailText] = useState<string | null>(
       null,
     );
+    const isExecutingRef = useRef(false);
 
     const isFinished = executionState !== "idle";
 
@@ -41,8 +42,9 @@ export const ResetStatusModalContent: GlobalModalComponent = memo(
             };
 
     const handleReset = useCallback(async () => {
-      if (isExecuting || isFinished) return;
+      if (isExecutingRef.current || isFinished) return;
 
+      isExecutingRef.current = true;
       setIsExecuting(true);
       setResultDetailText(null);
 
@@ -71,9 +73,10 @@ export const ResetStatusModalContent: GlobalModalComponent = memo(
         );
         setExecutionState("error");
       } finally {
+        isExecutingRef.current = false;
         setIsExecuting(false);
       }
-    }, [isExecuting, isFinished, resetAllOperationStatuses]);
+    }, [isFinished, resetAllOperationStatuses]);
 
     useModalFooterSync({
       message: undefined,

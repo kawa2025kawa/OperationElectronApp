@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
-import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import type { GlobalModalComponent } from "@renderer/types/modal";
 import { dayTone } from "../table/spreadSheetTable.css";
 import {
   useScheduleModalContent,

@@ -5,7 +5,6 @@ import * as styles from "./footer.css";
 import { FooterActionButton } from "./components/FooterActionButton";
 import { SearchField } from "@renderer/components/ui/searchField/SearchField";
 import { useFooterLogic } from "./useFooterLogic";
-import type { CenterId } from "@shared/types/operation/operationTypes";
 
 const APP_VERSION = import.meta.env.APP_VERSION ?? "1.0.0";
 
@@ -27,12 +26,12 @@ export const Footer = memo(function Footer() {
       </div>
 
       <div className={styles.controlsContainer}>
-        {Object.entries(logic.centers).map(([id, isActive]) => (
+        {logic.centers.map((center) => (
           <FooterActionButton
-            key={id}
-            label={id}
-            isActive={isActive}
-            onClick={() => logic.handleToggleCenter(id as CenterId)}
+            key={center.id}
+            label={center.id}
+            isActive={center.isActive}
+            onClick={() => logic.handleToggleCenter(center.id)}
           />
         ))}
       </div>

@@ -1,7 +1,7 @@
 // src/renderer/features/spreadSheet/hooks/useSpreadSheetTabData.ts
 
 import { useMemo, useState } from "react";
-import { getValueByPath } from "@shared/utils/sharedUtils";
+import { getValueByPath } from "@renderer/utils/rendererUtils";
 
 export interface TabGroupConfig<K extends string = string> {
   title: string;
@@ -16,7 +16,7 @@ interface TabDisplayItem {
   value: string;
 }
 
-export interface TabGroupDisplay {
+interface TabGroupDisplay {
   title: string;
   items: TabDisplayItem[];
 }

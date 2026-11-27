@@ -12,10 +12,17 @@ import type {
 import {
   SHEETS,
   type SheetData,
-  type SheetDataResponse,
-  type SheetDataState,
   type SheetId,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
+
+interface SheetDataResponse<TSheetId extends SheetId> {
+  sheetId: TSheetId;
+  data: SheetData<TSheetId>;
+}
+
+type SheetDataState = {
+  [TSheetId in SheetId]: SheetDataResponse<TSheetId> | null;
+};
 
 const SHEET_IDS = Object.values(SHEETS).map(
   ({ sheetName }) => sheetName,

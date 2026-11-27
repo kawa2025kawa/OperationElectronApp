@@ -8,10 +8,21 @@ import * as styles from "./fileDropZone.css";
 
 import {
   ORDER_TIME_OPTIONS,
-  type FileDropZoneProps,
+  type FileDropZoneItem,
 } from "./fileDropZoneTypes";
 
 import { useFileDropZone } from "./useFileDropZone";
+
+interface FileDropZoneProps {
+  files?: FileDropZoneItem[];
+  accept?: string;
+  label?: string;
+  disabled?: boolean;
+  onFileSelect: (files: File[]) => void;
+  onReorderFile?: (fromIndex: number, toIndex: number) => void;
+  onRemoveFile?: (index: number) => void;
+  onRenameFile?: (filePath: string, newName: string) => void | Promise<void>;
+}
 
 const stopPropagation = (event: SyntheticEvent) => {
   event.stopPropagation();
@@ -141,8 +152,6 @@ export const FileDropZone = memo<FileDropZoneProps>(
                     className="file-actions"
                     onClick={stopPropagation}
                     onDoubleClick={stopPropagation}
-                    onMouseDown={stopPropagation}
-                    onPointerDown={stopPropagation}
                   >
                     {canRename && (
                       <div className={styles.dropdownWrapper}>

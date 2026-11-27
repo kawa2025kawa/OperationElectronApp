@@ -1,6 +1,6 @@
-// src/shared/types/electron/index.d.ts
+// src/renderer/types/electron.d.ts
 
-import type { IpcChannelMap, IpcEventMap } from "./ipcTypes";
+import type { IpcChannelMap, IpcEventMap } from "@shared/types/electron/ipcTypes";
 
 export interface IElectronAPI {
   invoke<K extends keyof IpcChannelMap>(

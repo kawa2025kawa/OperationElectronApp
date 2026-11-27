@@ -12,7 +12,6 @@ import {
 } from "@electron/features/operation/application/statusManager";
 import {
   isAutoWorkType,
-  isImmediateWorkType,
   isManualStatusDecisionJobId,
   normalizeKanriNo,
 } from "@electron/features/operation/domain/operationRules";
@@ -41,10 +40,7 @@ function isTrackerPollingTarget(t: StatusTarget): t is OperationTarget {
     return false;
   }
 
-  if (
-    !isAutoWorkType(t.workType) &&
-    !isImmediateWorkType(t.workType, t.jobId)
-  ) {
+  if (!isAutoWorkType(t.workType)) {
     return false;
   }
 

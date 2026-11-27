@@ -3,11 +3,10 @@
 import { memo, useCallback } from "react";
 import { clsx } from "clsx";
 
-import type { SummaryDisplayKey } from "@shared/types/operation/operationTypes";
-
 import {
   useStatusSummary,
   type StatusSummaryItemData,
+  type SummaryDisplayKey,
 } from "./useStatusSummary";
 import * as styles from "./statusSummary.css";
 

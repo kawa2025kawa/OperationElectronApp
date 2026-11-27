@@ -10,7 +10,8 @@ import {
   INITIAL_INIT_STATUS,
   SETTLED_INIT_STATUS_VALUES,
   type InitStatus,
-} from "@shared/types/initializationTypes";
+} from "@renderer/types/initializationTypes";
+import { toErrorMessage } from "@shared/utils/sharedUtils";
 
 const APP_LOADER_DELAY_MS = 2000;
 
@@ -86,7 +87,7 @@ export const createInitSlice: StateCreator<
   const markInitializationFailed = (error: unknown): void => {
     console.error(
       "[InitSlice] Failed to initialize app:",
-      error instanceof Error ? error.message : String(error),
+      toErrorMessage(error),
     );
 
     get().settleUnsettledAsNg();

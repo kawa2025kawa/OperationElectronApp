@@ -52,21 +52,14 @@ export const usePollingToggleButton = () => {
   }, [isPolling, isInitialRunning]);
 
   const handleClick = useCallback(() => {
-    const timeStr = new Date().toLocaleTimeString("ja-JP", { hour12: false });
     if (isPolling) {
-      console.log(
-        `[PollingButton] 🔴 監視停止ボタンがクリックされました (${timeStr})`,
-      );
       setStartedAt(null);
-      stopPolling();
+      void stopPolling();
     } else {
       const clickedAt = Date.now();
-      console.log(
-        `[PollingButton] 🟢 監視開始ボタンがクリックされました (${timeStr})`,
-      );
       setStartedAt(clickedAt);
       setNow(clickedAt);
-      startPolling();
+      void startPolling();
     }
   }, [isPolling, startPolling, stopPolling]);
 

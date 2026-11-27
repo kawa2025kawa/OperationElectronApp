@@ -1,8 +1,8 @@
-// src/shared/types/initializationTypes.ts
+// src/renderer/types/initializationTypes.ts
 
 export const SETTLED_INIT_STATUS_VALUES = ["OK", "NG", "CONNECTED"] as const;
 
-export type InitStatusValue = "LOADING" | "OK" | "NG" | "PENDING" | "CONNECTED";
+type InitStatusValue = "LOADING" | "OK" | "NG" | "PENDING" | "CONNECTED";
 
 /**
 - 初期化項目のキー定義。
@@ -23,7 +23,7 @@ const INIT_STATUS_KEYS = [
   "tantou",
 ] as const;
 
-export type InitStatusKey = (typeof INIT_STATUS_KEYS)[number];
+type InitStatusKey = (typeof INIT_STATUS_KEYS)[number];
 
 export type InitStatus = Record<InitStatusKey, InitStatusValue>;
 
@@ -33,8 +33,6 @@ export type InitStatus = Record<InitStatusKey, InitStatusValue>;
  */
 export const INIT_STATUS_GROUPS = {
   operationData: ["operation", "irregular"],
-  spreadsheetData: ["store", "jugyoin", "kokyuhyo", "tantou"],
-  operationMasterData: ["operationMaster", "irregularMaster"],
 } as const satisfies Record<string, readonly InitStatusKey[]>;
 
 /** 全初期化項目に同じステータスを設定したオブジェクトを生成する */

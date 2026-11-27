@@ -1,14 +1,13 @@
-﻿// src/renderer/services/appService.ts
+// src/renderer/services/appService.ts
 
 import { operationService } from "@renderer/features/operation/service/operationService";
-import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
+import { APP_VIEW_IDS, VIEW_MODES } from "@renderer/registry/appRegistry";
 import { updateService } from "@renderer/services/updateService";
 import { useAppStore } from "@renderer/store";
 import {
   createInitStatusPatch,
   INIT_STATUS_GROUPS,
-} from "@shared/types/initializationTypes";
-import { VIEW_MODES } from "@shared/types/registry/viewDefinition";
+} from "@renderer/types/initializationTypes";
 import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 
 // 運用データおよび不定期運用データの読み込みと初期化を行う。
@@ -105,4 +104,5 @@ async function initializeAppData(): Promise<void> {
 
 export const appService = {
   initializeAppData,
+  loadOperationData,
 };

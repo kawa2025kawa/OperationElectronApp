@@ -25,7 +25,7 @@ interface ContextMenuTarget {
   menuWidth?: number;
 }
 
-export interface LaserCoordinates {
+interface LaserCoordinates {
   startX: number;
   startY: number;
   endX: number;
@@ -206,8 +206,10 @@ export function useOperationTableContextMenuLayer(
     });
   }, []);
 
+  const isOpen = target !== null;
+
   useEffect(() => {
-    if (!target) {
+    if (!isOpen) {
       return;
     }
 
@@ -215,7 +217,7 @@ export function useOperationTableContextMenuLayer(
     return () => {
       window.removeEventListener("resize", store.close);
     };
-  }, [target, store.close]);
+  }, [isOpen, store.close]);
 
   useEffect(
     () => () => {

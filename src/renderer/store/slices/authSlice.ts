@@ -2,9 +2,27 @@
 
 import type { StateCreator } from "zustand";
 import { APP_VIEW_IDS } from "@renderer/registry/appRegistry";
+import { appService } from "@renderer/services/appService";
 import { authIpcService } from "@renderer/services/ipcServices";
 import type { AppState } from "@renderer/store";
-import type { AuthProfile, AuthSlice } from "@shared/types/auth/authTypes";
+import type { AuthProfile } from "@shared/types/auth/authTypes";
+
+export type AuthState = "loading" | "loggedIn" | "loggedOut";
+
+interface AuthSliceState {
+  isAuthenticated: boolean;
+  isChecking: boolean;
+  userEmail: string | null;
+  familyName: string | null;
+}
+
+interface AuthSliceActions {
+  login: () => Promise<boolean>;
+  checkAuthStatus: (forceRefresh?: boolean) => Promise<boolean>;
+  logout: () => Promise<void>;
+}
+
+export type AuthSlice = AuthSliceState & AuthSliceActions;
 
 // 認証状態を未認証に戻す。
 function clearAuthState(state: AppState): void {
@@ -21,92 +39,106 @@ function applyAuthState(state: AppState, profile: AuthProfile): void {
   state.familyName = profile.familyName;
 }
 
-export type { AuthSlice } from "@shared/types/auth/authTypes";
-
 // 認証状態と認証操作を管理するスライス。
 export const createAuthSlice: StateCreator<
   AppState,
   [["zustand/immer", never]],
   [],
   AuthSlice
-> = (set, get) => ({
-  isAuthenticated: false,
-  isChecking: false,
-  userEmail: null,
-  familyName: null,
+> = (set, get) => {
+  let isAuthTransitioning = false;
 
-  login: async (): Promise<boolean> => {
-    try {
-      const profile = await authIpcService.login();
+  return {
+    isAuthenticated: false,
+    isChecking: false,
+    userEmail: null,
+    familyName: null,
 
+    login: async (): Promise<boolean> => {
+      if (isAuthTransitioning) return false;
+      isAuthTransitioning = true;
+
+      try {
+        const profile = await authIpcService.login();
+
+        set((state) => {
+          applyAuthState(state, profile);
+        });
+
+        get().setInitStatus({ auth: "OK" });
+        await appService.loadOperationData();
+
+        return true;
+      } catch (error) {
+        console.error("[Auth] Login failed:", error);
+
+        set((state) => {
+          clearAuthState(state);
+        });
+
+        throw error;
+      } finally {
+        isAuthTransitioning = false;
+      }
+    },
+
+    checkAuthStatus: async (forceRefresh = false): Promise<boolean> => {
       set((state) => {
-        applyAuthState(state, profile);
+        state.isChecking = true;
       });
 
-      get().setInitStatus({ auth: "OK" });
-      await get().fetchMasterData();
+      try {
+        const profile = await authIpcService.loadSession(forceRefresh);
 
-      return true;
-    } catch (error) {
-      console.error("[Auth] Login failed:", error);
+        if (!profile) {
+          set((state) => {
+            clearAuthState(state);
+          });
 
-      set((state) => {
-        clearAuthState(state);
-      });
+          return false;
+        }
 
-      throw error;
-    }
-  },
+        set((state) => {
+          applyAuthState(state, profile);
+        });
 
-  checkAuthStatus: async (forceRefresh = false): Promise<boolean> => {
-    set((state) => {
-      state.isChecking = true;
-    });
+        return true;
+      } catch (error) {
+        console.error("[Auth] Session check failed:", error);
 
-    try {
-      const profile = await authIpcService.loadSession(forceRefresh);
-
-      if (!profile) {
         set((state) => {
           clearAuthState(state);
         });
 
         return false;
+      } finally {
+        set((state) => {
+          state.isChecking = false;
+        });
       }
+    },
 
-      set((state) => {
-        applyAuthState(state, profile);
-      });
+    logout: async (): Promise<void> => {
+      if (isAuthTransitioning) return;
+      isAuthTransitioning = true;
 
-      return true;
-    } catch (error) {
-      console.error("[Auth] Session check failed:", error);
+      try {
+        await authIpcService.logout();
+      } catch (error) {
+        console.error("[Auth] Logout command failed:", error);
+        throw error;
+      } finally {
+        isAuthTransitioning = false;
 
-      set((state) => {
-        clearAuthState(state);
-      });
+        set((state) => {
+          clearAuthState(state);
+        });
 
-      return false;
-    } finally {
-      set((state) => {
-        state.isChecking = false;
-      });
-    }
-  },
-
-  logout: async (): Promise<void> => {
-    try {
-      await authIpcService.logout();
-    } catch (error) {
-      console.error("[Auth] Logout command failed:", error);
-      throw error;
-    } finally {
-      set((state) => {
-        clearAuthState(state);
-      });
-
-      get().clearMasterData();
-      get().setCurrentView(APP_VIEW_IDS.AUTH);
-    }
-  },
-});
+        get().clearMasterData();
+        get().resetOperationRuntimeState();
+        get().resetStatusSummaryState();
+        get().setCurrentView(APP_VIEW_IDS.AUTH);
+      }
+    },
+  };
+};

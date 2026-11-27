@@ -58,7 +58,7 @@ export function renderSpreadSheetDateHeader(prefix: string, date: Date) {
   );
 }
 
-export interface ScheduleColumnsShape {
+interface ScheduleColumnsShape {
   todayAmStatus: string;
   todayAmDetail: string;
   todayPmStatus: string;

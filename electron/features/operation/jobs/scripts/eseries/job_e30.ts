@@ -3,31 +3,45 @@
 import path from "node:path";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { readParsedCsv } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
+import {
+  aggregateCsvAmountByStore,
+  formatSignedYen,
+  formatYen,
+  normalizeStoreCode,
+  parseAmount,
+  readParsedCsv,
+} from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 import {
   findFilesByKeywords,
   resolveInputPaths,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import {
-  aggregateCsvAmountByStore,
-  formatYen,
-  parseAmount,
-} from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
+  formatAlignedColumns,
+  formatStoreDisplayLabel,
+} from "@electron/features/operation/jobs/scripts/helpers/logFormatHelper";
 
 const CONFIG = {
   meis0120Keyword: "MEIS0120",
   uriYosanKeyword: "売上予算確認",
+  requiredExtension: ".csv",
   csvEncoding: "Shift_JIS",
   startStoreCode: "002",
   endStoreCode: "700",
   completionMessage: "予算差異なし",
 } as const;
 
-type YosanMap = Map<string, number>;
+type UriYosanEntry = {
+  storeCode: string;
+  displayLabel: string;
+  amount: number;
+};
+
+type YosanMap = Map<string, UriYosanEntry>;
 
 type StoreComparison = {
   storeCode: string;
+  displayLabel: string;
   uriAmount: number;
   meisAmount: number;
   diff: number;
@@ -63,7 +77,7 @@ export async function runJobE30(
 async function parseUriYosan(filePath: string): Promise<YosanMap> {
   const rows = await readParsedCsv(filePath, CONFIG.csvEncoding);
   const startIndex = rows.findIndex((row) =>
-    row[0]?.includes(CONFIG.startStoreCode),
+    row[0]?.trim().startsWith(`${CONFIG.startStoreCode}:`),
   );
 
   if (startIndex === -1) {
@@ -74,21 +88,31 @@ async function parseUriYosan(filePath: string): Promise<YosanMap> {
 
   const endIndex = rows.findIndex(
     (row, index) =>
-      index >= startIndex && row[0]?.includes(CONFIG.endStoreCode),
+      index >= startIndex &&
+      row[0]?.trim().startsWith(`${CONFIG.endStoreCode}:`),
   );
   const validRows =
-    endIndex === -1 ? rows.slice(startIndex) : rows.slice(startIndex, endIndex);
+    endIndex === -1
+      ? rows.slice(startIndex)
+      : rows.slice(startIndex, endIndex + 1);
 
-  const result = new Map<string, number>();
+  const result: YosanMap = new Map();
 
   for (const row of validRows) {
-    const storeCode = row[0];
-    if (!storeCode) continue;
+    const rawCell = row[0]?.trim() ?? "";
+    if (!rawCell) continue;
+
+    const normalizedCode = normalizeStoreCode(rawCell);
+    if (!normalizedCode) continue;
 
     const amount = parseAmount(row[1]);
     if (amount === null) continue;
 
-    result.set(storeCode, amount);
+    result.set(normalizedCode, {
+      storeCode: normalizedCode,
+      displayLabel: formatStoreDisplayLabel(rawCell, normalizedCode),
+      amount,
+    });
   }
 
   return result;
@@ -99,13 +123,25 @@ async function compareBudgets(inputPaths: string[]): Promise<JobResultData> {
     throw new Error("比較対象ファイルがありません。");
   }
 
-  const { meis0120Path, uriYosanPath } = findFilesByKeywords(inputPaths, {
-    meis0120Path: CONFIG.meis0120Keyword,
-    uriYosanPath: CONFIG.uriYosanKeyword,
-  });
+  const { meis0120Path, uriYosanPath } = findFilesByKeywords(
+    inputPaths,
+    {
+      meis0120Path: CONFIG.meis0120Keyword,
+      uriYosanPath: CONFIG.uriYosanKeyword,
+    },
+    {
+      requiredExtension: CONFIG.requiredExtension,
+      exactMatchCount: true,
+    },
+  );
 
   const [meisMap, uriMap] = await Promise.all([
-    aggregateCsvAmountByStore(meis0120Path, CONFIG.csvEncoding),
+    aggregateCsvAmountByStore(
+      meis0120Path,
+      CONFIG.csvEncoding,
+      undefined,
+      true,
+    ),
     parseUriYosan(uriYosanPath),
   ]);
 
@@ -116,9 +152,12 @@ async function compareBudgets(inputPaths: string[]): Promise<JobResultData> {
   let hasDifference = false;
 
   const comparisons: StoreComparison[] = [];
+  const sortedCodes = [...uriMap.keys()].sort(
+    (a, b) => Number(a) - Number(b),
+  );
 
-  for (const storeCode of [...uriMap.keys()].sort()) {
-    const uriAmount = uriMap.get(storeCode)!;
+  for (const storeCode of sortedCodes) {
+    const uriEntry = uriMap.get(storeCode)!;
 
     if (!meisMap.has(storeCode)) {
       ignoredCount++;
@@ -126,10 +165,10 @@ async function compareBudgets(inputPaths: string[]): Promise<JobResultData> {
     }
 
     const meisAmount = meisMap.get(storeCode)!;
-    const diff = uriAmount - meisAmount;
+    const diff = uriEntry.amount - meisAmount;
 
     matchedCount++;
-    totalUriAmount += uriAmount;
+    totalUriAmount += uriEntry.amount;
     totalMeisAmount += meisAmount;
 
     if (Math.abs(diff) > 0.0001) {
@@ -138,10 +177,17 @@ async function compareBudgets(inputPaths: string[]): Promise<JobResultData> {
 
     comparisons.push({
       storeCode,
-      uriAmount,
+      displayLabel: uriEntry.displayLabel,
+      uriAmount: uriEntry.amount,
       meisAmount,
       diff,
     });
+  }
+
+  if (matchedCount === 0) {
+    throw new Error(
+      "突合可能な店舗が0件でした。CSVの店舗コード形式またはファイル内容を確認してください。",
+    );
   }
 
   const totalDiff = totalUriAmount - totalMeisAmount;
@@ -164,11 +210,6 @@ async function compareBudgets(inputPaths: string[]): Promise<JobResultData> {
   };
 }
 
-function formatSignedAmount(amount: number): string {
-  const formatted = formatYen(amount);
-  return amount > 0 ? `+${formatted}` : formatted;
-}
-
 function writeResultLog(logger: JobLogger, result: JobResultData): string {
   logger.section("入力ファイル");
   logger.log(`MEIS0120 : ${path.basename(result.meis0120Path)}`);
@@ -184,18 +225,40 @@ function writeResultLog(logger: JobLogger, result: JobResultData): string {
   logger.section("合計結果");
   logger.log(`売上予算計 : ${formatYen(result.totalUriAmount)}`);
   logger.log(`MEIS予算計 : ${formatYen(result.totalMeisAmount)}`);
-  logger.log(`差額合計   : ${formatSignedAmount(result.totalDiff)}`);
+  logger.log(`差額合計   : ${formatSignedYen(result.totalDiff)}`);
 
   logger.section("店舗別明細");
-  for (const item of result.comparisons) {
-    logger.log(
-      `店舗[${item.storeCode}] 予算:${formatYen(item.uriAmount)} | MEIS:${formatYen(item.meisAmount)} | 差:${formatSignedAmount(item.diff)}`,
-    );
+  const lines = formatAlignedColumns(result.comparisons, [
+    {
+      prefix: "店舗[",
+      getValue: (item) => item.displayLabel,
+      align: "left",
+      suffix: "]",
+    },
+    {
+      prefix: "予算: ",
+      getValue: (item) => formatYen(item.uriAmount),
+      align: "right",
+    },
+    {
+      prefix: "MEIS: ",
+      getValue: (item) => formatYen(item.meisAmount),
+      align: "right",
+    },
+    {
+      prefix: "差: ",
+      getValue: (item) => formatSignedYen(item.diff),
+      align: "right",
+    },
+  ]);
+
+  for (const line of lines) {
+    logger.log(line);
   }
 
   if (result.hasDifference) {
     return logger.needsAction(
-      `予算差異が発生しています (差額合計: ${formatSignedAmount(result.totalDiff)})`,
+      `予算差異が発生しています (差額合計: ${formatSignedYen(result.totalDiff)})`,
     );
   }
 

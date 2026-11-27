@@ -5,7 +5,8 @@ import { clsx } from "clsx";
 import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@renderer/store";
-import type { AuthState } from "@shared/types/auth/authTypes";
+import type { AuthState } from "@renderer/store/slices/authSlice";
+import { toErrorMessage } from "@shared/utils/sharedUtils";
 import * as styles from "./authView.css";
 
 const AUTH_BUTTON_TEXT: Record<AuthState, string> = {
@@ -59,11 +60,9 @@ export const AuthView = memo(() => {
         error,
       );
       toast.error(
-        isLogin && error instanceof Error
-          ? error.message
-          : isLogin
-            ? "ログインに失敗しました"
-            : "ログアウトに失敗しました",
+        isLogin
+          ? toErrorMessage(error, "ログインに失敗しました")
+          : "ログアウトに失敗しました",
       );
     } finally {
       setGlobalProcessing(null);

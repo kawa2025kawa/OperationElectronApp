@@ -1,6 +1,6 @@
 // electron/features/gmail/templates/templateE10.ts
 
-import type { GmailDraft } from "../gmailTypes";
+import type { GmailDraft } from "@shared/types/electron/ipcTypes";
 import { getPreviousYearMonth } from "../gmailUtils";
 
 export function createTemplateE10(familyName = ""): GmailDraft {

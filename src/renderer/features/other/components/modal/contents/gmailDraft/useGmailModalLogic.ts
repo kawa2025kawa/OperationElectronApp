@@ -1,6 +1,6 @@
 // src/renderer/features/other/components/modal/contents/gmailDraft/useGmailModalLogic.ts
 
-import { useCallback, useState, type ChangeEvent } from "react";
+import { useCallback, useRef, useState, type ChangeEvent } from "react";
 import { useShallow } from "zustand/shallow";
 
 import { EMAIL_TEMPLATE_OPTIONS } from "@renderer/features/other/types/gmailDraftUiTypes";
@@ -13,7 +13,7 @@ import { otherIpcService } from "@renderer/services/ipcServices";
 import { useAppStore } from "@renderer/store";
 import { toErrorMessage } from "@renderer/utils/rendererUtils";
 
-export interface GmailMessage {
+interface GmailMessage {
   text: string;
   type: "info" | "success" | "error" | "warning";
 }
@@ -51,9 +51,13 @@ export function useGmailModalLogic() {
     createInitialFormValues,
   );
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isLoadingTemplate, setIsLoadingTemplate] = useState<boolean>(false);
   const [infoMessage, setInfoMessage] = useState<GmailMessage>(
     DEFAULT_GMAIL_MESSAGE,
   );
+
+  const isProcessingRef = useRef(false);
+  const templateRequestSeqRef = useRef(0);
 
   const handleInputChange = useCallback(
     (field: keyof GmailDraftFormValues) =>
@@ -67,9 +71,13 @@ export function useGmailModalLogic() {
   );
 
   const handleTemplateChange = useCallback(async (value: unknown) => {
+    if (isProcessingRef.current) return;
+
     const nextKey = (value as EmailTemplateKey | null) ?? null;
+    const requestSeq = ++templateRequestSeqRef.current;
 
     if (!nextKey) {
+      setIsLoadingTemplate(false);
       setTemplateKey(null);
       setFormValues(createInitialFormValues());
       setInfoMessage(DEFAULT_GMAIL_MESSAGE);
@@ -80,28 +88,43 @@ export function useGmailModalLogic() {
     if (!option) return;
 
     const key: EmailTemplateKey = option.key;
+    setTemplateKey(key);
+    setIsLoadingTemplate(true);
+    setInfoMessage({
+      text: `テンプレート (${option.label}) を読み込んでいます...`,
+      type: "info",
+    });
 
     try {
       const draft = await otherIpcService.generateDraftTemplate({
         templateKey: key,
       });
 
-      setTemplateKey(key);
+      if (requestSeq !== templateRequestSeqRef.current) return;
+
       setFormValues(draft);
       setInfoMessage({
         text: `テンプレート (${option.label}) を読み込みました。`,
         type: "info",
       });
     } catch (error) {
+      if (requestSeq !== templateRequestSeqRef.current) return;
+
       console.error("[useGmailModalLogic] Failed to create template:", error);
       setInfoMessage({
         text: toErrorMessage(error, "テンプレートの生成に失敗しました。"),
         type: "error",
       });
+    } finally {
+      if (requestSeq === templateRequestSeqRef.current) {
+        setIsLoadingTemplate(false);
+      }
     }
   }, []);
 
   const handleExecute = useCallback(async () => {
+    if (isProcessingRef.current || isLoadingTemplate) return;
+
     if (!formValues.to.trim()) {
       setInfoMessage({
         text: "送信先 (To) を入力してください。",
@@ -110,6 +133,7 @@ export function useGmailModalLogic() {
       return;
     }
 
+    isProcessingRef.current = true;
     setIsProcessing(true);
     setInfoMessage({
       text: "Gmail下書きを作成しています...",
@@ -129,16 +153,19 @@ export function useGmailModalLogic() {
         type: "error",
       });
     } finally {
+      isProcessingRef.current = false;
       setIsProcessing(false);
     }
-  }, [formValues]);
+  }, [formValues, isLoadingTemplate]);
 
   useModalFooterSync({
     message: infoMessage,
+    isProcessing,
     hideActions: !isAuthenticated,
     isCancelDisabled: isProcessing,
     executeLabel: isProcessing ? "作成中..." : "下書き作成",
-    isExecuteDisabled: !formValues.to.trim() || isProcessing,
+    isExecuteDisabled:
+      !formValues.to.trim() || isProcessing || isLoadingTemplate,
     onExecute: handleExecute,
   });
 
@@ -149,6 +176,7 @@ export function useGmailModalLogic() {
     templateItems: TEMPLATE_SELECT_ITEMS,
     formValues,
     isSaving: isProcessing,
+    isLoadingTemplate,
     handleInputChange,
     handleTemplateChange,
   };

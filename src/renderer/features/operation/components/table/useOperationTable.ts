@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useDeferredValue,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -15,7 +16,7 @@ import {
   useTableVirtualizer,
   type TableRowVirtualizer,
 } from "@renderer/hooks/useTableVirtualizer";
-import { getAppViewConfig } from "@renderer/registry/appRegistry";
+import { VIEW_MODES } from "@renderer/registry/appRegistry";
 import { createRegistryGlobalFilter } from "@renderer/features/table/utils/tableSearchUtils";
 import { useAppStore } from "@renderer/store";
 import {
@@ -28,7 +29,6 @@ import {
 } from "@shared/types/operation/operationTypes";
 
 import {
-  EMPTY_OPERATION_ROWS,
   getOperationColumns,
   OPERATION_TABLE_FEATURES,
   type OperationColumnMeta,
@@ -76,8 +76,10 @@ export function useOperationTable() {
     })),
   );
 
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+
   useEffect(() => {
-    if (currentMode === "irregular" && summaryStatusFilter !== null) {
+    if (currentMode === VIEW_MODES.IRREGULAR && summaryStatusFilter !== null) {
       setSummaryStatusFilter(null);
     }
   }, [currentMode, summaryStatusFilter, setSummaryStatusFilter]);
@@ -91,7 +93,7 @@ export function useOperationTable() {
   }, [currentMode, tableRowsMode, fetchTableData]);
 
   const isSummaryFilterActive =
-    currentMode !== "irregular" && summaryStatusFilter !== null;
+    currentMode !== VIEW_MODES.IRREGULAR && summaryStatusFilter !== null;
 
   useEffect(() => {
     if (!isSummaryFilterActive) return;
@@ -126,9 +128,10 @@ export function useOperationTable() {
   );
 
   const activeStatusFilter =
-    currentMode === "irregular" ? null : summaryStatusFilter;
+    currentMode === VIEW_MODES.IRREGULAR ? null : summaryStatusFilter;
 
-  const isFiltered = Boolean(searchTerm) || activeStatusFilter !== null;
+  const isFiltered =
+    Boolean(deferredSearchTerm) || activeStatusFilter !== null;
 
   const isSwitchingMode =
     isLoading ||
@@ -180,15 +183,10 @@ export function useOperationTable() {
     () => getOperationColumns(currentMode, isSummaryFilterActive),
     [currentMode, isSummaryFilterActive],
   );
-  const searchConfig = getAppViewConfig(currentView).search;
 
   const globalFilterFn = useMemo(
-    () =>
-      createRegistryGlobalFilter<TableFeaturesType, OperationViewItem>(
-        searchConfig?.searchKeys,
-        searchConfig?.skipFilter,
-      ),
-    [searchConfig],
+    () => createRegistryGlobalFilter<TableFeaturesType, OperationViewItem>(),
+    [],
   );
 
   const columnFilters = useMemo<ColumnFiltersState>(
@@ -200,22 +198,29 @@ export function useOperationTable() {
   const table = useTable({
     features: OPERATION_TABLE_FEATURES,
     columns,
-    data: rows ?? EMPTY_OPERATION_ROWS,
+    data: rows,
     getRowId: (row, index) => row.kanriNo.trim() || String(index),
     globalFilterFn,
     state: {
-      globalFilter: searchTerm,
+      globalFilter: deferredSearchTerm,
       columnFilters,
     },
   });
 
-  const leafColumns = table.getAllLeafColumns();
-  const columnWidths = leafColumns.map((column) => {
-    const meta = column.columnDef.meta as OperationColumnMeta | undefined;
-    return { id: column.id, width: meta?.width ?? "auto" };
-  });
+  const columnWidths = useMemo(
+    () =>
+      columns.map((column, index) => {
+        const meta = column.meta as OperationColumnMeta | undefined;
+        return {
+          id: column.id ?? String(index),
+          width: meta?.width ?? "auto",
+        };
+      }),
+    [columns],
+  );
+
   const tableRowsModel = table.getRowModel().rows;
-  const colSpanCount = Math.max(leafColumns.length, 1);
+  const colSpanCount = Math.max(columns.length, 1);
 
   const { virtualItems, paddingTop, paddingBottom } = useTableVirtualizer({
     count: isSwitchingMode ? 0 : tableRowsModel.length,
@@ -235,8 +240,8 @@ export function useOperationTable() {
         const isInToday = tableRowsByMode.today.some(
           (item) => item.kanriNo.trim() === trimmed,
         );
-        if (isInOperation) setSelectedId("operation", kanriNo);
-        if (isInToday) setSelectedId("today", kanriNo);
+        if (isInOperation) setSelectedId(VIEW_MODES.OPERATION, kanriNo);
+        if (isInToday) setSelectedId(VIEW_MODES.TODAY, kanriNo);
       }
     },
     [currentMode, isSummaryFilterActive, setSelectedId, tableRowsByMode],

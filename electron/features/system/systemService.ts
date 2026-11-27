@@ -6,22 +6,20 @@ import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, shell } from "electron";
 import fs from "fs-extra";
 import type { UpdateInfo } from "@shared/types/electron/ipcTypes";
+import { toErrorMessage } from "@shared/utils/sharedUtils";
+import {
+  ensureSpreadsheetCredentialsLoaded,
+  getServiceCredential,
+  type ServiceCredentialKey,
+  type ServiceCredentialsConfig,
+} from "./credentialStore";
 
 const SYSTEM_CONFIG = {
   updateDirectory:
     "\\\\192.88.1.210\\情報システム\\チェックリスト\\05_作業マニュアル\\オペレーション関連\\ソフトウェア\\OperationApp",
   updateInfoFileName: "OperationElectronApp_update.json",
   manualBaseUrl: "https://sites.google.com/belc.co.jp",
-  credentialsFileName: "service-credentials.json",
 } as const;
-
-export interface ServiceCredentialsConfig {
-  tracker: { apiKey: string; apiBaseUrl: string };
-  tempomatic: { baseUrl: string; loginId: string; password: string };
-  belcta: { loginUrl: string; userId: string; password: string };
-  webedi: { url: string; userId: string; password: string };
-  fepFtp: { host: string; port: number; user: string; password: string };
-}
 
 const ALLOWED_EXTERNAL_PROTOCOLS = new Set(["https:", "http:"]);
 
@@ -54,92 +52,11 @@ const ALLOWED_LOCAL_BASE_DIRS: readonly string[] = [
   "\\\\s0088003\\",
 ];
 
-let cachedCredentials: ServiceCredentialsConfig | null = null;
-
-function assertNonEmptyString(value: unknown, fieldPath: string): string {
-  if (typeof value !== "string" || !value.trim()) {
-    throw new Error(
-      `設定ファイル (${SYSTEM_CONFIG.credentialsFileName}) の "${fieldPath}" が未設定または不正です`,
-    );
-  }
-  return value.trim();
-}
-
-function readRequiredSection<K extends string>(
-  root: Record<string, Record<string, unknown> | undefined>,
-  section: K,
-  keys: readonly string[],
-): Record<string, string> {
-  const sec = root[section];
-  const result: Record<string, string> = {};
-  for (const key of keys) {
-    result[key] = assertNonEmptyString(sec?.[key], `${section}.${key}`);
-  }
-  return result;
-}
-
-export function getServiceCredentials(): ServiceCredentialsConfig {
-  if (cachedCredentials) {
-    return cachedCredentials;
-  }
-
-  const filePath = resolveResourcePath(SYSTEM_CONFIG.credentialsFileName);
-  if (!fs.pathExistsSync(filePath)) {
-    throw new Error(`サービス認証情報ファイルが見つかりません: ${filePath}`);
-  }
-
-  let raw: unknown;
-  try {
-    raw = fs.readJsonSync(filePath);
-  } catch (error) {
-    throw new Error(
-      `サービス認証情報ファイルのJSON解析に失敗しました: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      { cause: error },
-    );
-  }
-
-  if (typeof raw !== "object" || raw === null) {
-    throw new Error(`サービス認証情報ファイルの形式が不正です: ${filePath}`);
-  }
-
-  const obj = raw as Record<string, Record<string, unknown> | undefined>;
-  const portRaw = obj.fepFtp?.port;
-  const port =
-    typeof portRaw === "number" && Number.isFinite(portRaw) ? portRaw : 21;
-
-  cachedCredentials = {
-    tracker: readRequiredSection(obj, "tracker", [
-      "apiKey",
-      "apiBaseUrl",
-    ]) as ServiceCredentialsConfig["tracker"],
-    tempomatic: readRequiredSection(obj, "tempomatic", [
-      "baseUrl",
-      "loginId",
-      "password",
-    ]) as ServiceCredentialsConfig["tempomatic"],
-    belcta: readRequiredSection(obj, "belcta", [
-      "loginUrl",
-      "userId",
-      "password",
-    ]) as ServiceCredentialsConfig["belcta"],
-    webedi: readRequiredSection(obj, "webedi", [
-      "url",
-      "userId",
-      "password",
-    ]) as ServiceCredentialsConfig["webedi"],
-    fepFtp: {
-      ...(readRequiredSection(obj, "fepFtp", [
-        "host",
-        "user",
-        "password",
-      ]) as Omit<ServiceCredentialsConfig["fepFtp"], "port">),
-      port,
-    },
-  };
-
-  return cachedCredentials;
+export async function getServiceCredentialAsync<K extends ServiceCredentialKey>(
+  key: K,
+): Promise<ServiceCredentialsConfig[K]> {
+  await ensureSpreadsheetCredentialsLoaded();
+  return getServiceCredential(key);
 }
 
 function normalizeWinPath(targetPath: string): string {
@@ -293,8 +210,9 @@ export async function readUpdateInfo(): Promise<UpdateInfo | null> {
     }
     return null;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(`[systemService] Failed to read update info: ${message}`);
+    console.warn(
+      `[systemService] Failed to read update info: ${toErrorMessage(error)}`,
+    );
     return null;
   }
 }

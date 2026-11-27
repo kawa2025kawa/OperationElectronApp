@@ -3,14 +3,20 @@
 import fs from "fs-extra";
 import path from "node:path";
 import { addDays, format } from "date-fns";
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   listFilesInDir,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 
 const CONFIG = {
-  targetDir: "\\\\172.25.101.51\\if\\AUTOORD\\RCV\\SV",
+  host: NETWORK_HOSTS.MDSYUHAI01,
+  subPaths: ["if", "AUTOORD", "RCV", "SV"] as const,
   targetFileKeyword: "JIDOHAT",
   maxDiffKb: 10000,
   comparisonDays: 7,
@@ -37,29 +43,30 @@ type Job20CheckResult = {
  * 本日分と先週分の対象ファイルを比較する。
  */
 export async function runJob20(): Promise<string> {
+  const targetDir = getNetworkHostPath(CONFIG.host, ...CONFIG.subPaths);
   return runJobWithLogger(
-    `対象ファイルの確認中にシステムエラーが発生しました: ${CONFIG.targetDir}`,
+    `対象ファイルの確認中にシステムエラーが発生しました: ${targetDir}`,
     async (logger) => {
-      const result = await findTargetFiles();
+      const result = await findTargetFiles(targetDir);
       return writeResultLog(logger, result);
     },
   );
 }
 
-async function findTargetFile(
+function findTargetFile(
+  targetDir: string,
   fileNames: readonly string[],
   dateKey: string,
-): Promise<string | null> {
+): string | null {
   const targetFile = fileNames.find(
-    (name) =>
-      name.includes(CONFIG.targetFileKeyword) && name.includes(dateKey),
+    (name) => name.includes(CONFIG.targetFileKeyword) && name.includes(dateKey),
   );
 
-  return targetFile ? path.join(CONFIG.targetDir, targetFile) : null;
+  return targetFile ? path.join(targetDir, targetFile) : null;
 }
 
 async function getFileInfo(filePath: string): Promise<FileInfo> {
-  const stats = await fs.stat(filePath);
+  const stats = await withNetworkAuthRetry(filePath, () => fs.stat(filePath));
 
   return {
     fileName: path.basename(filePath),
@@ -68,17 +75,19 @@ async function getFileInfo(filePath: string): Promise<FileInfo> {
   };
 }
 
-async function findTargetFiles(): Promise<Job20CheckResult> {
+async function findTargetFiles(targetDir: string): Promise<Job20CheckResult> {
   const now = new Date();
   const todayKey = format(now, "yyMMdd");
   const lastWeekKey = format(addDays(now, -CONFIG.comparisonDays), "yyMMdd");
-  const fileNames = await listFilesInDir(CONFIG.targetDir);
+  const fileNames = await withNetworkAuthRetry(targetDir, () =>
+    listFilesInDir(targetDir),
+  );
 
-  const todayPath = await findTargetFile(fileNames, todayKey);
+  const todayPath = findTargetFile(targetDir, fileNames, todayKey);
 
   if (todayPath === null) {
     return {
-      targetDir: CONFIG.targetDir,
+      targetDir,
       todayKey,
       lastWeekKey,
       todayFile: null,
@@ -91,11 +100,11 @@ async function findTargetFiles(): Promise<Job20CheckResult> {
 
   const todayFile = await getFileInfo(todayPath);
 
-  const lastWeekPath = await findTargetFile(fileNames, lastWeekKey);
+  const lastWeekPath = findTargetFile(targetDir, fileNames, lastWeekKey);
 
   if (lastWeekPath === null) {
     return {
-      targetDir: CONFIG.targetDir,
+      targetDir,
       todayKey,
       lastWeekKey,
       todayFile,
@@ -111,7 +120,7 @@ async function findTargetFiles(): Promise<Job20CheckResult> {
 
   if (diffKb > CONFIG.maxDiffKb) {
     return {
-      targetDir: CONFIG.targetDir,
+      targetDir,
       todayKey,
       lastWeekKey,
       todayFile,
@@ -123,7 +132,7 @@ async function findTargetFiles(): Promise<Job20CheckResult> {
   }
 
   return {
-    targetDir: CONFIG.targetDir,
+    targetDir,
     todayKey,
     lastWeekKey,
     todayFile,

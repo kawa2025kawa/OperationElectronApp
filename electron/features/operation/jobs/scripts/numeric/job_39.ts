@@ -1,21 +1,25 @@
 // electron/features/operation/jobs/scripts/numeric/job_39.ts
 
+import fs from "fs-extra";
 import path from "node:path";
-import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
-  directoryExists,
-  getDateKey,
-} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
+import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import {
   checkFileUpdatedToday,
   listFilesInDir,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
-  beforeNoonDir: "\\\\172.25.101.51\\if\\MASTER\\RCV",
-  afterNoonDir: "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV",
+  host: NETWORK_HOSTS.MDSYUHAI01,
+  beforeNoonSubPaths: ["if", "MASTER", "RCV"] as const,
+  afterNoonSubPaths: ["if", "MASTER", "RCV", "SV"] as const,
   targetFiles: ["Okurikomi_toMD.dat", "htsf0060"] as const,
   maxFilesPerTarget: 2,
 } as const;
@@ -36,7 +40,7 @@ type JobResultData = {
 };
 
 /**
-- 時間帯（午前・午後）に応じたフォルダの対象ファイル存在・更新日を確認する。
+ * 時間帯（午前・午後）に応じたフォルダの対象ファイル存在・更新日を確認する。
  */
 export async function runJob39(): Promise<JobResult> {
   return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
@@ -49,78 +53,84 @@ async function checkTargetFiles(): Promise<JobResultData> {
   const now = new Date();
   const isBeforeNoon = now.getHours() < 12;
   const today = getDateKey(now);
-  const targetDir = isBeforeNoon ? CONFIG.beforeNoonDir : CONFIG.afterNoonDir;
+  const subPaths = isBeforeNoon
+    ? CONFIG.beforeNoonSubPaths
+    : CONFIG.afterNoonSubPaths;
+  const targetDir = getNetworkHostPath(CONFIG.host, ...subPaths);
 
-  if (!(await directoryExists(targetDir))) {
-    throw new Error(`フォルダが存在しないかアクセスできません: ${targetDir}`);
-  }
+  return withNetworkAuthRetry(targetDir, async () => {
+    const stats = await fs.stat(targetDir);
+    if (!stats.isDirectory()) {
+      throw new Error(`フォルダが存在しないかアクセスできません: ${targetDir}`);
+    }
 
-  let results: FileCheckResult[];
+    let results: FileCheckResult[];
 
-  if (isBeforeNoon) {
-    results = await Promise.all(
-      CONFIG.targetFiles.map(async (targetName) => {
-        const status = await checkFileUpdatedToday(
-          path.join(targetDir, targetName),
-          now,
-        );
+    if (isBeforeNoon) {
+      results = await Promise.all(
+        CONFIG.targetFiles.map(async (targetName) => {
+          const status = await checkFileUpdatedToday(
+            path.join(targetDir, targetName),
+            now,
+          );
 
-        if (!status.exists) {
+          if (!status.exists) {
+            return {
+              targetName,
+              foundNames: [],
+              error: "ファイルが存在しません（配置待ち）",
+              issueType: "pending",
+            };
+          }
+
           return {
             targetName,
-            foundNames: [],
-            error: "ファイルが存在しません（配置待ち）",
+            foundNames: status.isToday ? [status.fileName] : [],
+            error: status.isToday
+              ? undefined
+              : "更新日が本日ではありません（更新待ち）",
+            issueType: status.isToday ? undefined : "pending",
+          };
+        }),
+      );
+    } else {
+      const fileNames = await listFilesInDir(targetDir);
+
+      results = CONFIG.targetFiles.map((targetName) => {
+        const prefix = `${targetName}_${today}`;
+        const foundNames = fileNames.filter((name) => name.startsWith(prefix));
+
+        if (foundNames.length === 0) {
+          return {
+            targetName,
+            foundNames,
+            error: `${prefix}* (ファイルなし・配置待ち)`,
             issueType: "pending",
+          };
+        }
+
+        if (foundNames.length > CONFIG.maxFilesPerTarget) {
+          return {
+            targetName,
+            foundNames,
+            error: `対象ファイルが上限超過 (${foundNames.length}件 / 上限${CONFIG.maxFilesPerTarget}件)`,
+            issueType: "needsAction",
           };
         }
 
         return {
           targetName,
-          foundNames: status.isToday ? [status.fileName] : [],
-          error: status.isToday
-            ? undefined
-            : "更新日が本日ではありません（更新待ち）",
-          issueType: status.isToday ? undefined : "pending",
-        };
-      }),
-    );
-  } else {
-    const fileNames = await listFilesInDir(targetDir);
-
-    results = CONFIG.targetFiles.map((targetName) => {
-      const prefix = `${targetName}_${today}`;
-      const foundNames = fileNames.filter((name) => name.startsWith(prefix));
-
-      if (foundNames.length === 0) {
-        return {
-          targetName,
           foundNames,
-          error: `${prefix}* (ファイルなし・配置待ち)`,
-          issueType: "pending",
         };
-      }
+      });
+    }
 
-      if (foundNames.length > CONFIG.maxFilesPerTarget) {
-        return {
-          targetName,
-          foundNames,
-          error: `対象ファイルが上限超過 (${foundNames.length}件 / 上限${CONFIG.maxFilesPerTarget}件)`,
-          issueType: "needsAction",
-        };
-      }
-
-      return {
-        targetName,
-        foundNames,
-      };
-    });
-  }
-
-  return {
-    targetDir,
-    isBeforeNoon,
-    results,
-  };
+    return {
+      targetDir,
+      isBeforeNoon,
+      results,
+    };
+  });
 }
 
 function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {

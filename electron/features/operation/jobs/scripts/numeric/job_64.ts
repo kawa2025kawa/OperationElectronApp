@@ -3,21 +3,25 @@
 import fs from "fs-extra";
 import path from "node:path";
 import iconv from "iconv-lite";
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   directoryExists,
   getDateKey,
-} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import {
   listFilesInDir,
   readEncodedLines,
   readEncodedText,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkBaseDirAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
-  baseDir: "\\\\172.25.101.51\\if\\LOG\\DCMMD",
+  host: NETWORK_HOSTS.MDSYUHAI01,
+  baseSubPaths: ["if", "LOG", "DCMMD"] as const,
   systemId: "C1088241",
   encoding: "Shift_JIS",
   pluEncoding: "EUC-JP",
@@ -46,6 +50,7 @@ interface CheckResult {
 }
 
 interface JobContext {
+  baseDir: string;
   targetDir: string;
   date: string;
   result: CheckResult;
@@ -62,9 +67,11 @@ interface ProcessedFileResult {
 }
 
 function createJobContext(now: Date): JobContext {
+  const baseDir = getNetworkHostPath(CONFIG.host, ...CONFIG.baseSubPaths);
   const date = getDateKey(now);
   return {
-    targetDir: path.join(CONFIG.baseDir, date),
+    baseDir,
+    targetDir: path.join(baseDir, date),
     date,
     result: {
       pluNg: false,
@@ -310,44 +317,46 @@ async function executeJob(
 ): Promise<JobResult> {
   logger.log(`対象フォルダ: ${context.targetDir}`);
 
-  if (!(await directoryExists(context.targetDir))) {
-    return createNeedsActionResult(
-      logger,
-      `本日分のDCMMDフォルダが存在しません: ${context.targetDir}`,
-    );
-  }
-
-  const filePaths = await getInputFilePaths(context.targetDir);
-  logger.log(`検出ファイル数: 計 ${filePaths.length} 件`);
-
-  if (filePaths.length === 0) {
-    return createNeedsActionResult(logger, "ファイルがありません");
-  }
-
-  const outputTargets = await createOutputTargets(
-    context.targetDir,
-    context.date,
-  );
-
-  for (const filePath of filePaths) {
-    await processFile(filePath, context, outputTargets);
-  }
-
-  for (const target of outputTargets) {
-    if (!(await fs.pathExists(path.join(context.targetDir, target.fileName)))) {
-      continue;
+  return withNetworkBaseDirAuthRetry(context.baseDir, async () => {
+    if (!(await directoryExists(context.targetDir))) {
+      return createNeedsActionResult(
+        logger,
+        `本日分のDCMMDフォルダが存在しません: ${context.targetDir}`,
+      );
     }
 
-    const targetConfig = OUTPUT_TARGET_CONFIG.find(
-      (item) => item.type === target.type,
+    const filePaths = await getInputFilePaths(context.targetDir);
+    logger.log(`検出ファイル数: 計 ${filePaths.length} 件`);
+
+    if (filePaths.length === 0) {
+      return createNeedsActionResult(logger, "ファイルがありません");
+    }
+
+    const outputTargets = await createOutputTargets(
+      context.targetDir,
+      context.date,
     );
 
-    logger.log(
-      `[${targetConfig?.label ?? target.type}] 生成完了: ${target.fileName}`,
-    );
-  }
+    for (const filePath of filePaths) {
+      await processFile(filePath, context, outputTargets);
+    }
 
-  return createFinalResult(logger, context);
+    for (const target of outputTargets) {
+      if (!(await fs.pathExists(path.join(context.targetDir, target.fileName)))) {
+        continue;
+      }
+
+      const targetConfig = OUTPUT_TARGET_CONFIG.find(
+        (item) => item.type === target.type,
+      );
+
+      logger.log(
+        `[${targetConfig?.label ?? target.type}] 生成完了: ${target.fileName}`,
+      );
+    }
+
+    return createFinalResult(logger, context);
+  });
 }
 
 export async function runJob64(): Promise<JobResult> {

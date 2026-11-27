@@ -2,9 +2,13 @@
 
 import path from "node:path";
 import fs from "fs-extra";
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
-  listFilesInExistingDir,
+  listFilesInDir,
   readEncodedText,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
@@ -12,9 +16,11 @@ import {
   formatDateTime,
   getDateKey,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 
 const CONFIG = {
-  logDir: "\\\\192.88.100.1\\diskD\\execute\\log",
+  host: NETWORK_HOSTS.LOG_192_88,
+  logSubPaths: ["diskD", "execute", "log"] as const,
   fileSuffix: "ORJH0010.log",
   keyword: "READ=",
   encoding: "Shift_JIS",
@@ -32,6 +38,7 @@ interface ReadCountResult {
 }
 
 type JobResultData = {
+  logDir: string;
   datePrefix: string;
   fileInfo: LogFileInfo | null;
   countResult: ReadCountResult | null;
@@ -46,7 +53,21 @@ export async function runJob114(): Promise<string> {
 }
 
 async function processLogFile(): Promise<JobResultData> {
-  const entries = await listFilesInExistingDir(CONFIG.logDir);
+  const logDir = getNetworkHostPath(CONFIG.host, ...CONFIG.logSubPaths);
+  let entries: string[];
+  try {
+    entries = await withNetworkAuthRetry(logDir, () => listFilesInDir(logDir));
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      (error as { code?: string }).code === "ENOENT"
+    ) {
+      throw new Error(`フォルダが存在しないかアクセスできません: ${logDir}`);
+    }
+    throw error;
+  }
+
   const datePrefix = getDateKey(new Date(), "yyMMdd");
 
   const targetFileName = entries.find(
@@ -56,6 +77,7 @@ async function processLogFile(): Promise<JobResultData> {
 
   if (!targetFileName) {
     return {
+      logDir,
       datePrefix,
       fileInfo: null,
       countResult: null,
@@ -63,7 +85,7 @@ async function processLogFile(): Promise<JobResultData> {
     };
   }
 
-  const filePath = path.join(CONFIG.logDir, targetFileName);
+  const filePath = path.join(logDir, targetFileName);
   const stats = await fs.stat(filePath);
   const fileInfo: LogFileInfo = {
     fileName: targetFileName,
@@ -76,6 +98,7 @@ async function processLogFile(): Promise<JobResultData> {
 
   if (!match?.[1]) {
     return {
+      logDir,
       datePrefix,
       fileInfo,
       countResult: null,
@@ -93,6 +116,7 @@ async function processLogFile(): Promise<JobResultData> {
   };
 
   return {
+    logDir,
     datePrefix,
     fileInfo,
     countResult,
@@ -100,7 +124,7 @@ async function processLogFile(): Promise<JobResultData> {
 }
 
 function writeResultLog(logger: JobLogger, result: JobResultData): string {
-  logger.log(`ファイルパス : ${CONFIG.logDir}`);
+  logger.log(`ファイルパス : ${result.logDir}`);
 
   if (result.businessErrorMessage) {
     logger.log(result.businessErrorMessage);

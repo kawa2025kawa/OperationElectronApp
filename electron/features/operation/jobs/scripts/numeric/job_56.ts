@@ -4,7 +4,11 @@ import fs from "fs-extra";
 import path from "node:path";
 import iconv from "iconv-lite";
 import {
-  listFilesInExistingDir,
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
+import {
+  listFilesInDir,
   readEncodedLines,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
@@ -12,9 +16,11 @@ import {
   formatDateTime,
   getDateKey,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 
 const CONFIG = {
-  targetDir: "\\\\172.25.101.51\\if\\WEB-SV\\RCV\\SV",
+  host: NETWORK_HOSTS.MDSYUHAI01,
+  subPaths: ["if", "WEB-SV", "RCV", "SV"] as const,
   encoding: "Windows-31J",
   maxByteLength: 256,
   charAByte: 0x41,
@@ -82,40 +88,43 @@ async function validateFile(filePath: string): Promise<ValidationResult> {
 
 export async function runJob56(): Promise<string> {
   return runJobWithLogger("システムエラーが発生しました", async (logger) => {
+    const targetDir = getNetworkHostPath(CONFIG.host, ...CONFIG.subPaths);
     const today = getDateKey();
     const filePrefix = `SEIKYUDT_${today}`;
 
-    logger.log(`対象フォルダ : ${CONFIG.targetDir}`);
+    logger.log(`対象フォルダ : ${targetDir}`);
 
-    const fileNames = await listFilesInExistingDir(CONFIG.targetDir);
-    const targetFiles = fileNames
-      .filter((name) => name.startsWith(filePrefix))
-      .map((name) => path.join(CONFIG.targetDir, name));
+    return withNetworkAuthRetry(targetDir, async () => {
+      const fileNames = await listFilesInDir(targetDir);
+      const targetFiles = fileNames
+        .filter((name) => name.startsWith(filePrefix))
+        .map((name) => path.join(targetDir, name));
 
-    if (targetFiles.length === 0) {
-      logger.log(`対象ファイルなし (${filePrefix}*)`);
-      return logger.complete();
-    }
+      if (targetFiles.length === 0) {
+        logger.log(`対象ファイルなし (${filePrefix}*)`);
+        return logger.complete();
+      }
 
-    logger.log(`検出ファイル数 : ${targetFiles.length} 件`);
+      logger.log(`検出ファイル数 : ${targetFiles.length} 件`);
 
-    const results = await Promise.all(targetFiles.map(validateFile));
-    const allErrors: string[] = [];
+      const results = await Promise.all(targetFiles.map(validateFile));
+      const allErrors: string[] = [];
 
-    for (const result of results) {
-      logger.log(`${result.fileName}`);
-      logger.log(`    更新日時 : ${formatDateTime(result.mtime)}`);
+      for (const result of results) {
+        logger.log(`${result.fileName}`);
+        logger.log(`    更新日時 : ${formatDateTime(result.mtime)}`);
 
-      result.errors.forEach((error) => {
-        allErrors.push(error);
-        logger.log(`      [エラー] ${error}`);
-      });
-    }
+        result.errors.forEach((error) => {
+          allErrors.push(error);
+          logger.log(`      [エラー] ${error}`);
+        });
+      }
 
-    return allErrors.length > 0
-      ? logger.needsAction(
-          `データ不正 (${allErrors.length} 件のエラー):\n${allErrors.join("\n")}`,
-        )
-      : logger.complete(`対象 ${targetFiles.length} ファイル検証完了`);
+      return allErrors.length > 0
+        ? logger.needsAction(
+            `データ不正 (${allErrors.length} 件のエラー):\n${allErrors.join("\n")}`,
+          )
+        : logger.complete(`対象 ${targetFiles.length} ファイル検証完了`);
+    });
   });
 }

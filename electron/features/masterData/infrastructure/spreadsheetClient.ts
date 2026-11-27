@@ -9,6 +9,7 @@ import {
   type SheetData,
   type SheetId,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { toErrorMessage } from "@shared/utils/sharedUtils";
 import { normalizeSpreadsheetRows } from "./spreadsheetDataNormalizer";
 
 const GOOGLE_SHEETS_API_BASE_URL =
@@ -20,7 +21,7 @@ const HEADER_MAPPINGS = {
 
 type DefaultSheetRow<TSheetId extends SheetId> = SheetData<TSheetId>[number];
 
-export interface SheetDataResult<
+interface SheetDataResult<
   TSheetId extends SheetId,
   TRow extends object = DefaultSheetRow<TSheetId>,
 > {
@@ -136,7 +137,7 @@ export async function fetchSheet<
       success: false,
       unauthorized: false,
       data: [],
-      error: error instanceof Error ? error.message : String(error),
+      error: toErrorMessage(error),
     };
   }
 }

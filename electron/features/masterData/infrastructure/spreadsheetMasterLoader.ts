@@ -1,5 +1,13 @@
 // electron/features/masterData/infrastructure/spreadsheetMasterLoader.ts
 
+import {
+  setSpreadsheetCredentials,
+  type CredentialRow,
+} from "@electron/features/system/credentialStore";
+import type {
+  IrregularMaster,
+  OperationMaster,
+} from "@shared/types/operation/operationTypes";
 import type { SpreadsheetDailyUpdateStatus } from "@shared/types/spreadsheet/spreadsheetTypes";
 import {
   SHEETS,
@@ -8,12 +16,17 @@ import {
   type SheetData,
   type SheetId,
   type Shop,
-  type UpdateMeta,
+  type Tantou,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
-import { isSameJstDay } from "../application/todayIrregularFilter";
 import type { SpreadsheetMasterData } from "../application/spreadsheetMasterDataManager";
+import { isSameJstDay } from "../application/todayIrregularFilter";
 import type { RdpMaster } from "../../rdp/rdpMasterTypes";
 import { fetchSheet } from "./spreadsheetClient";
+
+type UpdateMeta = Record<
+  "target" | "updatedAt" | "status" | "message",
+  string
+>;
 
 type DefaultSheetRow<TSheetId extends SheetId> = SheetData<TSheetId>[number];
 
@@ -156,6 +169,7 @@ export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData
     irregulars,
     rdps,
     updateMeta,
+    credentials,
   ] = await Promise.all([
     loadSheetData<typeof SHEETS.STORE.sheetName, Shop>(SHEETS.STORE.sheetName),
     loadSheetData<typeof SHEETS.KOKYUHYO.sheetName, Kokyuhyo>(
@@ -164,12 +178,27 @@ export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData
     loadSheetData<typeof SHEETS.JUGYOIN.sheetName, Jugyoin>(
       SHEETS.JUGYOIN.sheetName,
     ),
-    loadSheetData(SHEETS.KOKYUHYO_TANTOU.sheetName),
-    loadSheetData(SHEETS.OPERATION.sheetName),
-    loadSheetData(SHEETS.IRREGULAR.sheetName),
+    loadSheetData<typeof SHEETS.KOKYUHYO_TANTOU.sheetName, Tantou>(
+      SHEETS.KOKYUHYO_TANTOU.sheetName,
+    ),
+    loadSheetData<typeof SHEETS.OPERATION.sheetName, OperationMaster>(
+      SHEETS.OPERATION.sheetName,
+    ),
+    loadSheetData<typeof SHEETS.IRREGULAR.sheetName, IrregularMaster>(
+      SHEETS.IRREGULAR.sheetName,
+    ),
     loadSheetData<typeof SHEETS.RDP.sheetName, RdpMaster>(SHEETS.RDP.sheetName),
-    loadSheetData(SHEETS.UPDATE_META.sheetName),
+    loadSheetData<typeof SHEETS.UPDATE_META.sheetName, UpdateMeta>(
+      SHEETS.UPDATE_META.sheetName,
+    ),
+    loadSheetData<typeof SHEETS.CREDENTIALS.sheetName, CredentialRow>(
+      SHEETS.CREDENTIALS.sheetName,
+    ),
   ]);
+
+  if (!credentials.error) {
+    setSpreadsheetCredentials(credentials.data);
+  }
 
   const entries: ReadonlyArray<readonly [SheetId, SheetLoadResult<unknown>]> = [
     [SHEETS.STORE.sheetName, stores],
@@ -180,6 +209,7 @@ export async function loadSpreadsheetMasterData(): Promise<SpreadsheetMasterData
     [SHEETS.IRREGULAR.sheetName, irregulars],
     [SHEETS.RDP.sheetName, rdps],
     [SHEETS.UPDATE_META.sheetName, updateMeta],
+    [SHEETS.CREDENTIALS.sheetName, credentials],
   ];
 
   const errors: SpreadsheetMasterData["errors"] = {};

@@ -1,6 +1,6 @@
 // electron/features/gmail/templates/templateE9.ts
 
-import type { GmailDraft } from "../gmailTypes";
+import type { GmailDraft } from "@shared/types/electron/ipcTypes";
 
 export function createTemplateE9(): GmailDraft {
   return {

@@ -4,7 +4,7 @@ import path from "node:path";
 import { addDays, format } from "date-fns";
 import { net } from "electron";
 import fs from "fs-extra";
-import { getServiceCredentials } from "@electron/features/system/systemService";
+import { getServiceCredentialAsync } from "@electron/features/system/systemService";
 import {
   IPC_CHANNELS,
   type IpcChannelMap,
@@ -322,7 +322,7 @@ async function uploadPdfDocuments(
     }),
   );
 
-  const { baseUrl, loginId, password } = getServiceCredentials().tempomatic;
+  const { baseUrl, loginId, password } = await getServiceCredentialAsync("tempomatic");
 
   console.info("[Tempomatic] Upload started", {
     fileCount: targets.length,

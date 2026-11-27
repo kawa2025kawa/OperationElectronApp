@@ -1,14 +1,17 @@
 // src/renderer/features/operation/components/modal/scriptModal/ScriptModalContent.tsx
 
 import { memo } from "react";
-import type {
-  JobArtifact,
-  OperationViewItem,
-} from "@shared/types/operation/operationTypes";
+import type { OperationViewItem } from "@shared/types/operation/operationTypes";
 import { FileDropZone } from "@renderer/components/ui/fileDropZone/FileDropZone";
-import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import type { GlobalModalComponent } from "@renderer/types/modal";
 import { useScriptModalContent } from "./useScriptModalContent";
 import * as styles from "./scriptModalContent.css";
+
+interface JobArtifact {
+  name: string;
+  path?: string;
+  size?: number;
+}
 
 interface ScriptModalContentProps {
   item: OperationViewItem;
@@ -29,6 +32,9 @@ export const ScriptModalContent: GlobalModalComponent<ScriptModalContentProps> =
           {state.isDropZoneVisible ? (
             <FileDropZone
               files={state.selectedFiles}
+              accept={state.dropZoneAccept}
+              label={state.dropZoneLabel}
+              disabled={state.isExecuting}
               onFileSelect={actions.handleFileSelect}
               onRemoveFile={actions.handleRemoveFile}
             />

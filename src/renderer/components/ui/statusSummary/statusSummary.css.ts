@@ -1,4 +1,4 @@
-﻿// src/renderer/components/ui/statusSummary/statusSummary.css.ts
+// src/renderer/components/ui/statusSummary/statusSummary.css.ts
 
 import {
   createVar,
@@ -162,10 +162,8 @@ export const valueBadgeVariants = styleVariants({
 
   success: createStatusVariant("success"),
   running: createStatusVariant("running"),
-  scriptRunning: createStatusVariant("scriptRunning"),
-  waiting: createStatusVariant("waiting"),
-  scheduled: createStatusVariant("scheduled"),
   ready: createStatusVariant("ready"),
+  scheduled: createStatusVariant("scheduled"),
   needsAction: createStatusVariant("needsAction"),
   error: createStatusVariant("error"),
 });

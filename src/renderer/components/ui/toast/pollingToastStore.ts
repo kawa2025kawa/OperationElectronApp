@@ -151,7 +151,10 @@ export function handleStatusToastNotification(
   if (toastStore.isManualExecuting(kanriNo)) return;
 
   const row = findOperationRow(kanriNo);
-  if (row?.workType?.trim() !== WORK_TYPE.AUTO) return;
+  if (!row) return;
+
+  const workType = row.workType?.trim();
+  if (workType !== WORK_TYPE.AUTO && workType !== WORK_TYPE.IMMEDIATE) return;
 
   const prevStatus = toastStore.getPrevStatus(kanriNo);
   if (prevStatus === status) return;

@@ -7,15 +7,16 @@ import { AuthView } from "@renderer/features/auth/AuthView";
 import { useAppStore, type AppState } from "@renderer/store";
 import {
   SHEETS,
-  type PublicJugyoin,
-  type PublicKokyuhyo,
   type PublicShop,
   type SheetData,
   type SheetId,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
-import { MODAL_SIZES } from "@shared/types/ui/modal";
+import { MODAL_SIZES } from "@renderer/types/modal";
 
-import { ScheduleModalContent } from "./components/modal/ScheduleModalContent";
+import {
+  ScheduleModalContent,
+  type ScheduleModalContentProps,
+} from "./components/modal/ScheduleModalContent";
 import {
   SpreadSheetTable,
   type SpreadSheetTableProps,
@@ -33,6 +34,11 @@ import { ShopModalContent } from "./shop/modal/ShopModalContent";
 import { getShopRowId, SHOP_COLUMNS } from "./shop/table/shopTableConfig";
 import { resolveScheduleBaseDate } from "./utils/spreadsheetDateUtils";
 import * as styles from "./spreadSheetView.css";
+
+interface ModalDimension {
+  readonly width: string;
+  readonly height: string;
+}
 
 type SheetRow<T extends SheetId> = SheetData<T>[number];
 type OpenSpreadsheetModal = AppState["openGlobalModal"];
@@ -103,69 +109,84 @@ function BaseSpreadSheetView<T extends SheetId>({
   );
 }
 
-export const JugyoinView = memo(function JugyoinView() {
-  const jugyoinUpdatedAt = useAppStore(
-    (state: AppState) => state.dailyUpdateStatus?.jugyoinUpdatedAt,
-  );
-  const baseDate = useMemo(
-    () => resolveScheduleBaseDate(jugyoinUpdatedAt),
-    [jugyoinUpdatedAt],
-  );
-  const columns = useMemo(() => getJugyoinColumns(baseDate), [baseDate]);
+function createScheduleSheetView<
+  T extends typeof SHEETS.JUGYOIN.sheetName | typeof SHEETS.KOKYUHYO.sheetName,
+>(params: {
+  displayName: string;
+  sheetId: T;
+  updatedAtKey: "jugyoinUpdatedAt" | "kokyuhyoUpdatedAt";
+  getColumns: (
+    baseDate?: Date,
+  ) => SpreadSheetTableProps<SheetRow<T>>["columns"];
+  getRowId: (row: SheetRow<T>, index: number) => string;
+  modalSize: ModalDimension;
+}) {
+  const {
+    displayName,
+    sheetId,
+    updatedAtKey,
+    getColumns,
+    getRowId,
+    modalSize,
+  } = params;
 
-  const handleOpenModal = useCallback(
-    (row: PublicJugyoin, openModal: OpenSpreadsheetModal) => {
-      openModal(createElement(ScheduleModalContent, { data: row }), {
-        title: row.name || "",
-        ...MODAL_SIZES.ULTRA_WIDE_21_9,
-      });
-    },
-    [],
-  );
+  const Component = memo(function ScheduleSheetView() {
+    const updatedAt = useAppStore(
+      (state: AppState) => state.dailyUpdateStatus?.[updatedAtKey],
+    );
+    const baseDate = useMemo(
+      () => resolveScheduleBaseDate(updatedAt),
+      [updatedAt],
+    );
+    const columns = useMemo(() => getColumns(baseDate), [baseDate]);
 
-  return (
-    <BaseSpreadSheetView
-      sheetId={SHEETS.JUGYOIN.sheetName}
-      columns={columns}
-      getRowId={getJugyoinRowId}
-      onRowClick={handleOpenModal}
-      isHolidayCell={isSpreadSheetHolidayText}
-    />
-  );
+    const handleOpenModal = useCallback(
+      (row: SheetRow<T>, openModal: OpenSpreadsheetModal) => {
+        openModal(
+          createElement(ScheduleModalContent, {
+            data: row as ScheduleModalContentProps["data"],
+          }),
+          {
+            title: row.name || "",
+            ...modalSize,
+          },
+        );
+      },
+      [],
+    );
+
+    return (
+      <BaseSpreadSheetView
+        sheetId={sheetId}
+        columns={columns}
+        getRowId={getRowId}
+        onRowClick={handleOpenModal}
+        isHolidayCell={isSpreadSheetHolidayText}
+      />
+    );
+  });
+
+  Component.displayName = displayName;
+  return Component;
+}
+
+export const JugyoinView = createScheduleSheetView({
+  displayName: "JugyoinView",
+  sheetId: SHEETS.JUGYOIN.sheetName,
+  updatedAtKey: "jugyoinUpdatedAt",
+  getColumns: getJugyoinColumns,
+  getRowId: getJugyoinRowId,
+  modalSize: MODAL_SIZES.ULTRA_WIDE_21_9,
 });
-JugyoinView.displayName = "JugyoinView";
 
-export const KokyuhyoView = memo(function KokyuhyoView() {
-  const kokyuhyoUpdatedAt = useAppStore(
-    (state: AppState) => state.dailyUpdateStatus?.kokyuhyoUpdatedAt,
-  );
-  const baseDate = useMemo(
-    () => resolveScheduleBaseDate(kokyuhyoUpdatedAt),
-    [kokyuhyoUpdatedAt],
-  );
-  const columns = useMemo(() => getKokyuhyoColumns(baseDate), [baseDate]);
-
-  const handleOpenModal = useCallback(
-    (row: PublicKokyuhyo, openModal: OpenSpreadsheetModal) => {
-      openModal(createElement(ScheduleModalContent, { data: row }), {
-        title: row.name || "",
-        ...MODAL_SIZES.KOKYUHYO,
-      });
-    },
-    [],
-  );
-
-  return (
-    <BaseSpreadSheetView
-      sheetId={SHEETS.KOKYUHYO.sheetName}
-      columns={columns}
-      getRowId={getKokyuhyoRowId}
-      onRowClick={handleOpenModal}
-      isHolidayCell={isSpreadSheetHolidayText}
-    />
-  );
+export const KokyuhyoView = createScheduleSheetView({
+  displayName: "KokyuhyoView",
+  sheetId: SHEETS.KOKYUHYO.sheetName,
+  updatedAtKey: "kokyuhyoUpdatedAt",
+  getColumns: getKokyuhyoColumns,
+  getRowId: getKokyuhyoRowId,
+  modalSize: MODAL_SIZES.KOKYUHYO,
 });
-KokyuhyoView.displayName = "KokyuhyoView";
 
 export const ShopView = memo(function ShopView() {
   const handleOpenModal = useCallback(

@@ -1,31 +1,46 @@
 // src/renderer/features/spreadSheet/components/modal/useScheduleModalContent.ts
 
 import { useCallback, useMemo } from "react";
+import { useAppStore } from "@renderer/store";
+import { EMPTY_VALUE_FALLBACK } from "@renderer/utils/rendererUtils";
 import {
   SHEETS,
   type PublicJugyoin,
   type PublicKokyuhyo,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
-import { EMPTY_VALUE_FALLBACK } from "@shared/utils/sharedUtils";
 import { spreadSheetService } from "../../service/spreadSheetService";
 import {
   formatDateWithDay,
   getOffsetDate,
+  resolveScheduleBaseDate,
 } from "../../utils/spreadsheetDateUtils";
 
 export type ScheduleModalTarget = PublicJugyoin | PublicKokyuhyo;
 
+const SCHEDULE_DAY_DEFINITIONS = [
+  { prefix: "today", label: "本日", offsetDays: 0 },
+  { prefix: "tomorrow", label: "明日", offsetDays: 1 },
+] as const;
+
 export function useScheduleModalContent(data: ScheduleModalTarget) {
+  const isJugyoin = "bumon" in data;
+  const updatedAt = useAppStore((state) =>
+    isJugyoin
+      ? state.dailyUpdateStatus?.jugyoinUpdatedAt
+      : state.dailyUpdateStatus?.kokyuhyoUpdatedAt,
+  );
+
   const hasScheduleLink = Boolean(data?.hasScheduleLink && data?.id);
 
   const handleOpenSchedule = useCallback(() => {
     if (!hasScheduleLink || !data?.id) return;
 
-    const sheetId =
-      "bumon" in data ? SHEETS.JUGYOIN.sheetName : SHEETS.KOKYUHYO.sheetName;
+    const sheetId = isJugyoin
+      ? SHEETS.JUGYOIN.sheetName
+      : SHEETS.KOKYUHYO.sheetName;
 
     void spreadSheetService.openStaffSchedule(sheetId, data.id);
-  }, [hasScheduleLink, data]);
+  }, [hasScheduleLink, data?.id, isJugyoin]);
 
   const profile = useMemo(
     () => ({
@@ -45,36 +60,17 @@ export function useScheduleModalContent(data: ScheduleModalTarget) {
   );
 
   const schedules = useMemo(() => {
-    const now = new Date();
+    const baseDate = resolveScheduleBaseDate(updatedAt);
 
-    return [
-      {
-        label: "本日",
-        date: formatDateWithDay(now),
-        amStatus: data?.todayAmStatus || EMPTY_VALUE_FALLBACK,
-        amDetail: data?.todayAmDetail || EMPTY_VALUE_FALLBACK,
-        pmStatus: data?.todayPmStatus || EMPTY_VALUE_FALLBACK,
-        pmDetail: data?.todayPmDetail || EMPTY_VALUE_FALLBACK,
-      },
-      {
-        label: "明日",
-        date: formatDateWithDay(getOffsetDate(1, now)),
-        amStatus: data?.tomorrowAmStatus || EMPTY_VALUE_FALLBACK,
-        amDetail: data?.tomorrowAmDetail || EMPTY_VALUE_FALLBACK,
-        pmStatus: data?.tomorrowPmStatus || EMPTY_VALUE_FALLBACK,
-        pmDetail: data?.tomorrowPmDetail || EMPTY_VALUE_FALLBACK,
-      },
-    ];
-  }, [
-    data?.todayAmStatus,
-    data?.todayAmDetail,
-    data?.todayPmStatus,
-    data?.todayPmDetail,
-    data?.tomorrowAmStatus,
-    data?.tomorrowAmDetail,
-    data?.tomorrowPmStatus,
-    data?.tomorrowPmDetail,
-  ]);
+    return SCHEDULE_DAY_DEFINITIONS.map(({ prefix, label, offsetDays }) => ({
+      label,
+      date: formatDateWithDay(getOffsetDate(offsetDays, baseDate)),
+      amStatus: data?.[`${prefix}AmStatus`] || EMPTY_VALUE_FALLBACK,
+      amDetail: data?.[`${prefix}AmDetail`] || EMPTY_VALUE_FALLBACK,
+      pmStatus: data?.[`${prefix}PmStatus`] || EMPTY_VALUE_FALLBACK,
+      pmDetail: data?.[`${prefix}PmDetail`] || EMPTY_VALUE_FALLBACK,
+    }));
+  }, [updatedAt, data]);
 
   return {
     state: {

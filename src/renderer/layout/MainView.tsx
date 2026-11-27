@@ -1,19 +1,27 @@
 // src/renderer/layout/MainView.tsx
 
 import { memo, useEffect, useState } from "react";
-import { motion } from "motion/react";
-
-import { useAppStore } from "@renderer/store";
-import { APP_REGISTRY, type AppViewId } from "@renderer/registry/appRegistry";
 
 import { Footer } from "@renderer/components/layout/footer/Footer";
 import { Navbar } from "@renderer/components/layout/navbar/Navbar";
 import { Sidebar } from "@renderer/components/layout/sidebar/Sidebar";
-import { UnknownView } from "./UnknownView";
+import { APP_REGISTRY, type AppViewId } from "@renderer/registry/appRegistry";
+import { useAppStore } from "@renderer/store";
 
 import * as styles from "./mainView.css";
 
-export const MainView = memo(() => {
+export const UnknownView = ({ view }: { readonly view: string }) => (
+  <div className={styles.unknownViewContainer}>
+    <h2>⚠️ SYSTEM ERROR: Unknown View</h2>
+    <p>
+      レジストリに登録されていない、または指定された画面 ID（{view}
+      ）の実体コンポーネントをバインドできませんでした。
+    </p>
+    <span>src/renderer/registry/appRegistry.ts の定義を確認してください。</span>
+  </div>
+);
+
+export const MainView = memo(function MainView() {
   const currentView = useAppStore((state) => state.currentView);
   const [visitedViews, setVisitedViews] = useState<AppViewId[]>(() =>
     currentView ? [currentView] : [],
@@ -21,7 +29,6 @@ export const MainView = memo(() => {
 
   useEffect(() => {
     if (!currentView) return;
-
     setVisitedViews((prev) =>
       prev.includes(currentView) ? prev : [...prev, currentView],
     );
@@ -43,23 +50,13 @@ export const MainView = memo(() => {
               const isActive = viewId === currentView;
 
               return (
-                <motion.div
+                <div
                   key={viewId}
-                  initial={false}
-                  animate={{ opacity: isActive ? 1 : 0 }}
-                  transition={{
-                    duration: 0.12,
-                    ease: "easeOut",
-                  }}
                   aria-hidden={!isActive}
-                  style={{
-                    display: isActive ? "block" : "none",
-                    width: "100%",
-                    height: "100%",
-                  }}
+                  className={styles.viewPane[isActive ? "active" : "hidden"]}
                 >
                   <ViewComponent />
-                </motion.div>
+                </div>
               );
             })}
 

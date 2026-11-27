@@ -2,11 +2,13 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { UnknownView } from "@renderer/layout/UnknownView";
+import { UnknownView } from "@renderer/layout/MainView";
 import { rdpIpcService } from "@renderer/services/ipcServices";
 import { toErrorMessage } from "@renderer/utils/rendererUtils";
 import type { RdpTarget } from "@shared/types/electron/ipcTypes";
 import * as styles from "./rdpView.css";
+
+const RDP_LAUNCH_COOLDOWN_MS = 1500;
 
 interface RdpCardProps {
   readonly name: string;
@@ -35,6 +37,15 @@ export const RdpView = memo(function RdpView() {
   const [rdpTargets, setRdpTargets] = useState<readonly RdpTarget[]>([]);
   const [isRdpLoading, setIsRdpLoading] = useState(false);
   const isFetchingRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const launchingNamesRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const fetchRdpTargets = useCallback(async () => {
     if (isFetchingRef.current) return;
@@ -43,20 +54,36 @@ export const RdpView = memo(function RdpView() {
 
     try {
       const targets = await rdpIpcService.getMasters();
-      setRdpTargets(targets);
+      if (isMountedRef.current) {
+        setRdpTargets(targets);
+      }
     } catch (error: unknown) {
-      toast.error(`RDP取得エラー: ${toErrorMessage(error)}`);
+      if (isMountedRef.current) {
+        toast.error(`RDP取得エラー: ${toErrorMessage(error)}`);
+      }
     } finally {
       isFetchingRef.current = false;
-      setIsRdpLoading(false);
+      if (isMountedRef.current) {
+        setIsRdpLoading(false);
+      }
     }
   }, []);
 
   const runRdp = useCallback(async (name: string) => {
+    const normalized = name.trim();
+    if (!normalized || launchingNamesRef.current.has(normalized)) {
+      return;
+    }
+
+    launchingNamesRef.current.add(normalized);
     try {
-      await rdpIpcService.startSession(name);
+      await rdpIpcService.startSession(normalized);
     } catch (error: unknown) {
       toast.error(`RDP起動エラー: ${toErrorMessage(error)}`);
+    } finally {
+      window.setTimeout(() => {
+        launchingNamesRef.current.delete(normalized);
+      }, RDP_LAUNCH_COOLDOWN_MS);
     }
   }, []);
 

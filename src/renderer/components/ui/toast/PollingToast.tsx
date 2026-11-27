@@ -28,11 +28,7 @@ export const PollingToast = memo(() => {
       <header className={styles.header}>
         <span className={styles.title}>System Notifications</span>
 
-        <CloseButton
-          variant="ghost"
-          onClick={clearAllToasts}
-          title="すべて閉じる"
-        />
+        <CloseButton onClick={clearAllToasts} title="すべて閉じる" />
       </header>
 
       <div className={styles.list}>

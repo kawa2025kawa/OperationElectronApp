@@ -3,8 +3,13 @@
 import path from "node:path";
 import fs from "fs-extra";
 
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 import { getStatus } from "@electron/features/operation/application/statusManager";
 import {
   JOB_STATUS,
@@ -19,8 +24,9 @@ const TARGET_KEYWORDS = [
 ] as const;
 
 const CONFIG = {
-  targetDirSv: "\\\\172.25.101.51\\if\\WMSSLIP\\RCV\\SV",
-  targetDirRcv: "\\\\172.25.101.51\\if\\WMSSLIP\\RCV",
+  host: NETWORK_HOSTS.MDSYUHAI01,
+  subPathsSv: ["if", "WMSSLIP", "RCV", "SV"] as const,
+  subPathsRcv: ["if", "WMSSLIP", "RCV"] as const,
   refKanriNo: "49",
   keywords: TARGET_KEYWORDS,
 } as const;
@@ -55,9 +61,12 @@ function resolveTargetDir(): string {
     status,
   });
 
-  return status === JOB_STATUS.READY || status === JOB_STATUS.WAITING
-    ? CONFIG.targetDirRcv
-    : CONFIG.targetDirSv;
+  const subPaths =
+    status === JOB_STATUS.READY || status === JOB_STATUS.WAITING
+      ? CONFIG.subPathsRcv
+      : CONFIG.subPathsSv;
+
+  return getNetworkHostPath(CONFIG.host, ...subPaths);
 }
 
 async function findLatestFile(
@@ -89,29 +98,27 @@ async function findLatestFile(
 async function checkTargetFiles(): Promise<JobResultData> {
   const targetDir = resolveTargetDir();
 
-  if (!(await fs.pathExists(targetDir))) {
-    throw new Error(`フォルダが存在しません: ${targetDir}`);
-  }
+  return withNetworkAuthRetry(targetDir, async () => {
+    const files = await fs.readdir(targetDir);
+    const matchedFiles: MatchedFile[] = [];
+    const missingKeywords: string[] = [];
 
-  const files = await fs.readdir(targetDir);
-  const matchedFiles: MatchedFile[] = [];
-  const missingKeywords: string[] = [];
+    for (const keyword of CONFIG.keywords) {
+      const latest = await findLatestFile(targetDir, files, keyword);
 
-  for (const keyword of CONFIG.keywords) {
-    const latest = await findLatestFile(targetDir, files, keyword);
-
-    if (latest) {
-      matchedFiles.push(latest);
-    } else {
-      missingKeywords.push(keyword);
+      if (latest) {
+        matchedFiles.push(latest);
+      } else {
+        missingKeywords.push(keyword);
+      }
     }
-  }
 
-  return {
-    targetDir,
-    matchedFiles,
-    missingKeywords,
-  };
+    return {
+      targetDir,
+      matchedFiles,
+      missingKeywords,
+    };
+  });
 }
 
 function writeResultLog(logger: JobLogger, result: JobResultData): JobResult {

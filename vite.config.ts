@@ -52,7 +52,7 @@ export default defineConfig({
         vite: {
           build: {
             outDir: resolvePath("dist-electron"),
-            target: "node22",
+            target: "node24",
 
             rolldownOptions: {
               external: isElectronExternal,
@@ -83,7 +83,7 @@ export default defineConfig({
         vite: {
           build: {
             outDir: resolvePath("dist-electron"),
-            target: "node22",
+            target: "node24",
 
             rollupOptions: {
               output: {
@@ -127,7 +127,6 @@ export default defineConfig({
   // ================================================================
   build: {
     target: "esnext",
-    cssTarget: "chrome120",
     outDir: resolvePath("dist"),
     emptyOutDir: true,
     chunkSizeWarningLimit: 1000,
@@ -140,11 +139,14 @@ export default defineConfig({
               return "vendor-react";
             }
 
-            if (id.includes("framer-motion") || id.includes("@radix-ui")) {
+            if (id.includes("/motion/") || id.includes("@base-ui")) {
               return "vendor-ui";
             }
 
-            if (id.includes("@tanstack/react-virtual")) {
+            if (
+              id.includes("@tanstack/react-table") ||
+              id.includes("@tanstack/react-virtual")
+            ) {
               return "vendor-table";
             }
           }

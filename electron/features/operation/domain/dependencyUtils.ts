@@ -2,24 +2,25 @@
 
 import {
   type ActiveFlags,
-  type JobStatus,
-  type OperationStatusState,
-  type OperationMaster,
   type IrregularMaster,
-  type TodayIrregularMaster,
+  type JobStatus,
+  type OperationMaster,
+  type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
-import { isSuccessStatus } from "@shared/utils/sharedUtils";
-import { isSpecialDependencySatisfied } from "./operationRules";
+import {
+  isSpecialDependencySatisfied,
+  isSuccessStatus,
+} from "./operationRules";
 
-type MasterItem = OperationMaster | IrregularMaster | TodayIrregularMaster;
+type MasterItem = OperationMaster | IrregularMaster;
 
-export interface MissingDependency {
+interface MissingDependency {
   kanriNo: string;
   status: JobStatus | null;
   comment: string;
 }
 
-export interface DependencyCheckResult {
+interface DependencyCheckResult {
   ok: boolean;
   dependencies: string[];
   missingDependencies: MissingDependency[];
@@ -28,7 +29,7 @@ export interface DependencyCheckResult {
 export interface DependencyMasters {
   operationMasters: OperationMaster[];
   irregularMasters: IrregularMaster[];
-  todayIrregularMasters: TodayIrregularMaster[];
+  todayIrregularMasters: IrregularMaster[];
 }
 
 export interface DependencyStatuses {

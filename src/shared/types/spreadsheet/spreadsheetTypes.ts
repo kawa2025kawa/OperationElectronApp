@@ -3,7 +3,6 @@
 import type {
   IrregularMaster,
   OperationMaster,
-  TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
 
 // ============================================================
@@ -86,11 +85,9 @@ type StaffScheduleBaseKey =
   | "position"
   | "email";
 
-export type StaffHiddenKey = "nameKana" | "scheduleLink";
-
 export type Kokyuhyo = Record<StaffScheduleBaseKey, string>;
 
-export type PublicKokyuhyo = Omit<Kokyuhyo, StaffHiddenKey> & {
+export type PublicKokyuhyo = Omit<Kokyuhyo, "nameKana" | "scheduleLink"> & {
   hasScheduleLink: boolean;
 };
 
@@ -99,7 +96,10 @@ export type Jugyoin = Record<
   string
 >;
 
-export type PublicJugyoin = Omit<Jugyoin, StaffHiddenKey | "bumonKana"> & {
+export type PublicJugyoin = Omit<
+  Jugyoin,
+  "nameKana" | "scheduleLink" | "bumonKana"
+> & {
   hasScheduleLink: boolean;
 };
 
@@ -125,11 +125,6 @@ export type Tantou = Record<
   | "tomorrowTensou"
   | "tomorrowAmAttendanceRate"
   | "tomorrowPmAttendanceRate",
-  string
->;
-
-export type UpdateMeta = Record<
-  "target" | "updatedAt" | "status" | "message",
   string
 >;
 
@@ -179,6 +174,14 @@ export const SHEETS = {
     sheetName: "UpdateMetaData",
     spreadsheetId: SPREADSHEET_ID.MASTER,
   },
+  CREDENTIALS: {
+    sheetName: "Credentials",
+    spreadsheetId: SPREADSHEET_ID.MASTER,
+  },
+  STATUS_SYNC: {
+    sheetName: "OperationStatusSync",
+    spreadsheetId: SPREADSHEET_ID.MASTER,
+  },
 } as const;
 
 // ============================================================
@@ -197,7 +200,22 @@ type SheetRowMap = {
   [SHEETS.OPERATION.sheetName]: OperationMaster;
   [SHEETS.IRREGULAR.sheetName]: IrregularMaster;
   [SHEETS.RDP.sheetName]: RdpTarget;
-  [SHEETS.UPDATE_META.sheetName]: UpdateMeta;
+  [SHEETS.UPDATE_META.sheetName]: Record<
+    "target" | "updatedAt" | "status" | "message",
+    string
+  >;
+  [SHEETS.CREDENTIALS.sheetName]: Record<
+    | "key"
+    | "category"
+    | "hostOrUrl"
+    | "port"
+    | "username"
+    | "password"
+    | "apiKey"
+    | "note",
+    string
+  >;
+  [SHEETS.STATUS_SYNC.sheetName]: Record<string, string>;
 };
 
 type SheetRow<TSheetId extends SheetId> = SheetRowMap[TSheetId];
@@ -205,17 +223,8 @@ type SheetRow<TSheetId extends SheetId> = SheetRowMap[TSheetId];
 export type SheetData<TSheetId extends SheetId> = SheetRow<TSheetId>[];
 
 // ============================================================
-// Renderer Sheet & Master Data State
+// Master Data Response
 // ============================================================
-
-export interface SheetDataResponse<TSheetId extends SheetId> {
-  sheetId: TSheetId;
-  data: SheetData<TSheetId>;
-}
-
-export type SheetDataState = {
-  [TSheetId in SheetId]: SheetDataResponse<TSheetId> | null;
-};
 
 export interface SpreadsheetDailyUpdateStatus {
   isUpdatedToday: boolean;
@@ -235,7 +244,7 @@ export interface SpreadsheetMasterDataResponse {
 
   operations: OperationMaster[];
   irregulars: IrregularMaster[];
-  todayIrregulars: TodayIrregularMaster[];
+  todayIrregulars: IrregularMaster[];
 
   dailyUpdateStatus: SpreadsheetDailyUpdateStatus;
 

@@ -5,15 +5,19 @@ import { addDays, addHours, addMinutes, startOfDay } from "date-fns";
 import {
   isPreviousDayJob,
   parseHHMM,
-  type ParsedTime,
 } from "@electron/features/operation/domain/operationRules";
-import { getServiceCredentials } from "@electron/features/system/systemService";
+import { getServiceCredentialAsync } from "@electron/features/system/systemService";
 import {
   JOB_STATUS,
   type JobStatus,
   type OperationMaster,
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
+
+interface ParsedTime {
+  hours: number;
+  minutes: number;
+}
 
 interface TrackerApiResponseItem {
   start_time: string | null;
@@ -271,8 +275,8 @@ function selectLatestTrackerItem(
   );
 }
 
-function buildTrackerUrl(jobId: string, from?: string, to?: string): string {
-  const { apiKey, apiBaseUrl } = getServiceCredentials().tracker;
+async function buildTrackerUrl(jobId: string, from?: string, to?: string): Promise<string> {
+  const { apiKey, apiBaseUrl } = await getServiceCredentialAsync("tracker");
   const params = new URLSearchParams({
     api_key: apiKey,
     jobnetwork_name: jobId.trim(),
@@ -348,7 +352,7 @@ async function findTrackerItem(
       scheduledTime,
       nowMs,
     );
-    const rangeItems = await fetchTrackerData(buildTrackerUrl(jobId, from, to));
+    const rangeItems = await fetchTrackerData(await buildTrackerUrl(jobId, from, to));
     if (rangeItems.length > 0) {
       return (
         selectLatestTrackerItem(rangeItems, earliestValidMs, nowMs, toMs) ??
@@ -356,7 +360,7 @@ async function findTrackerItem(
       );
     }
 
-    const fallbackItems = await fetchTrackerData(buildTrackerUrl(jobId));
+    const fallbackItems = await fetchTrackerData(await buildTrackerUrl(jobId));
     return selectLatestTrackerItem(
       fallbackItems,
       earliestValidMs,
@@ -365,7 +369,7 @@ async function findTrackerItem(
     );
   }
 
-  const allItems = await fetchTrackerData(buildTrackerUrl(jobId));
+  const allItems = await fetchTrackerData(await buildTrackerUrl(jobId));
   return selectLatestTrackerItem(allItems, earliestValidMs, nowMs);
 }
 

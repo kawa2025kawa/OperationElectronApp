@@ -4,9 +4,7 @@ import type { ButtonHTMLAttributes } from "react";
 import { clsx } from "clsx";
 import { closeButton } from "./closeButton.css";
 
-export interface CloseButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "ghost";
-}
+export type CloseButtonProps = ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const CloseButton = ({
   className,

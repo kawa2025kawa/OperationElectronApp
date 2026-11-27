@@ -3,9 +3,10 @@
 import { memo } from "react";
 import { clsx } from "clsx";
 
+import { normalizeDisplayStatus } from "@renderer/features/operation/utils/operationDisplayUtils";
+import { JOB_STATUS_LABEL } from "@renderer/styles/tokens/statusTheme";
 import {
   JOB_STATUS,
-  JOB_STATUS_LABEL,
   type JobStatus,
 } from "@shared/types/operation/operationTypes";
 
@@ -17,8 +18,9 @@ interface StatusBadgeProps {
 
 export const StatusBadge = memo<StatusBadgeProps>(
   ({ status = JOB_STATUS.SCHEDULED }) => {
-    const toneClass = styles.tone[status] ?? styles.tone.scheduled;
-    const label = JOB_STATUS_LABEL[status] ?? status;
+    const displayStatus = normalizeDisplayStatus(status);
+    const toneClass = styles.tone[displayStatus] ?? styles.tone.scheduled;
+    const label = JOB_STATUS_LABEL[displayStatus] ?? displayStatus;
 
     return <div className={clsx(styles.badge, toneClass)}>{label}</div>;
   },

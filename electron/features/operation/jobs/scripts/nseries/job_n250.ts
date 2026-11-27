@@ -5,7 +5,7 @@ import { addDays, format } from "date-fns";
 
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import { getServiceCredentials } from "@electron/features/system/systemService";
+import { getServiceCredentialAsync } from "@electron/features/system/systemService";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 interface JobN250ResultData {
@@ -35,7 +35,7 @@ export async function runJobN250(): Promise<JobResult> {
   return runJobWithLogger(
     "業務日付の取得・検証に失敗しました",
     async (logger) => {
-      const { loginUrl, userId, password } = getServiceCredentials().belcta;
+      const { loginUrl, userId, password } = await getServiceCredentialAsync("belcta");
 
       const expectedDate = format(addDays(new Date(), 1), "yyyy/MM/dd");
       const result = await fetchAndValidateBusinessDate(
@@ -68,6 +68,7 @@ async function fetchAndValidateBusinessDate(
   try {
     browser = await chromium.launch({
       headless: true,
+      channel: "chrome",
     });
 
     const page = await browser.newPage();

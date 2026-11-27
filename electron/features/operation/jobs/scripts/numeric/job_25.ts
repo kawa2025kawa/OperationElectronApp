@@ -1,15 +1,21 @@
 // electron/features/operation/jobs/scripts/numeric/job_25.ts
 
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   listFilesInDir,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
-  targetDir: "\\\\172.25.101.51\\if\\MASTER\\RCV\\SV",
+  host: NETWORK_HOSTS.MDSYUHAI01,
+  subPaths: ["if", "MASTER", "RCV", "SV"] as const,
   keywords: ["htsf0060", "Okurikomi"],
   minFilesPerKeyword: 1,
   maxFilesPerKeyword: 2,
@@ -28,21 +34,24 @@ type Job25CheckResult = {
 };
 
 /**
-- 当日分の対象ファイルを確認する。
+ * 当日分の対象ファイルを確認する。
  */
 export async function runJob25(): Promise<JobResult> {
+  const targetDir = getNetworkHostPath(CONFIG.host, ...CONFIG.subPaths);
   return runJobWithLogger(
-    `フォルダにアクセスできません: ${CONFIG.targetDir}`,
+    `フォルダにアクセスできません: ${targetDir}`,
     async (logger) => {
-      const result = await findTargetFiles();
+      const result = await findTargetFiles(targetDir);
       return writeResultLog(logger, result);
     },
   );
 }
 
-async function findTargetFiles(): Promise<Job25CheckResult> {
+async function findTargetFiles(targetDir: string): Promise<Job25CheckResult> {
   const today = getDateKey();
-  const fileNames = await listFilesInDir(CONFIG.targetDir);
+  const fileNames = await withNetworkAuthRetry(targetDir, () =>
+    listFilesInDir(targetDir),
+  );
 
   const todayFiles = fileNames
     .filter((name) => name.includes(today))
@@ -62,7 +71,7 @@ async function findTargetFiles(): Promise<Job25CheckResult> {
   );
 
   return {
-    targetDir: CONFIG.targetDir,
+    targetDir,
     results,
     missingKeywords,
     excessKeywords,

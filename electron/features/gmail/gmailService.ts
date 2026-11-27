@@ -2,10 +2,7 @@
 
 import { authService } from "@electron/features/auth/authService";
 import { googleApiGetJson } from "@electron/features/auth/googleApiClient";
-import type {
-  GenerateDraftTemplateParams,
-  GmailSendAsResponse,
-} from "./gmailTypes";
+import type { GenerateDraftTemplateParams } from "@shared/types/electron/ipcTypes";
 import { createEmailTemplate } from "./templates/templateFactory";
 import {
   buildRawMessage,
@@ -13,13 +10,22 @@ import {
   stripHtmlTags,
 } from "./gmailUtils";
 
+interface GmailSendAs {
+  isPrimary?: boolean;
+  signature?: string;
+}
+
+interface GmailSendAsResponse {
+  sendAs?: GmailSendAs[];
+}
+
 const GMAIL_SIGNATURE_URL =
   "https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs";
 
 const GMAIL_DRAFT_URL = "https://gmail.googleapis.com/gmail/v1/users/me/drafts";
 
 /**
- * Gmail のプライマリ署名を取得する
+- Gmail のプライマリ署名を取得する
  */
 export async function fetchPrimarySignature(): Promise<string> {
   try {
@@ -35,7 +41,7 @@ export async function fetchPrimarySignature(): Promise<string> {
 }
 
 /**
- * メールテンプレートから下書きデータを生成する（担当者姓はMain側セッションから解決）
+- メールテンプレートから下書きデータを生成する（担当者姓はMain側セッションから解決）
  */
 export async function generateDraftTemplate(
   params: GenerateDraftTemplateParams,
@@ -64,7 +70,7 @@ export async function generateDraftTemplate(
 }
 
 /**
- * Gmail に下書きを登録する
+- Gmail に下書きを登録する
  */
 export async function createGmailDraft(params: {
   to?: string;

@@ -24,6 +24,42 @@ export interface SpreadSheetTableProps<TData extends RowData> {
   readonly isHolidayCell?: (value: unknown) => boolean;
 }
 
+function TableColGroup({
+  columnWidths,
+}: {
+  readonly columnWidths: ReadonlyArray<{
+    readonly id: string;
+    readonly width: string;
+  }>;
+}) {
+  return (
+    <colgroup>
+      {columnWidths.map((column) => (
+        <col key={column.id} style={{ width: column.width }} />
+      ))}
+    </colgroup>
+  );
+}
+
+function VirtualSpacerRow({
+  colSpan,
+  height,
+}: {
+  readonly colSpan: number;
+  readonly height: number;
+}) {
+  if (height <= 0) return null;
+
+  return (
+    <tr aria-hidden="true">
+      <td
+        colSpan={colSpan}
+        style={{ height: `${height}px`, padding: 0, border: 0 }}
+      />
+    </tr>
+  );
+}
+
 export function SpreadSheetTable<TData extends RowData>({
   rows,
   columns,
@@ -52,19 +88,11 @@ export function SpreadSheetTable<TData extends RowData>({
 
   if (isEmpty) return <EmptyState />;
 
-  const renderColGroup = () => (
-    <colgroup>
-      {columnWidths.map((column) => (
-        <col key={column.id} style={{ width: column.width }} />
-      ))}
-    </colgroup>
-  );
-
   return (
     <div className={styles.container}>
       <div ref={headerWrapperRef} className={styles.headerWrapper}>
         <table className={styles.headerTable}>
-          {renderColGroup()}
+          <TableColGroup columnWidths={columnWidths} />
           <SpreadSheetTableHeader
             table={table}
             variant={headerVariant}
@@ -80,16 +108,9 @@ export function SpreadSheetTable<TData extends RowData>({
         onScroll={handleScroll}
       >
         <table className={styles.table}>
-          {renderColGroup()}
+          <TableColGroup columnWidths={columnWidths} />
           <tbody>
-            {paddingTop > 0 && (
-              <tr aria-hidden="true">
-                <td
-                  colSpan={colSpanCount}
-                  style={{ height: `${paddingTop}px`, padding: 0, border: 0 }}
-                />
-              </tr>
-            )}
+            <VirtualSpacerRow colSpan={colSpanCount} height={paddingTop} />
 
             {virtualItems.map((virtualRow) => {
               const row = tableRows[virtualRow.index];
@@ -132,18 +153,7 @@ export function SpreadSheetTable<TData extends RowData>({
               );
             })}
 
-            {paddingBottom > 0 && (
-              <tr aria-hidden="true">
-                <td
-                  colSpan={colSpanCount}
-                  style={{
-                    height: `${paddingBottom}px`,
-                    padding: 0,
-                    border: 0,
-                  }}
-                />
-              </tr>
-            )}
+            <VirtualSpacerRow colSpan={colSpanCount} height={paddingBottom} />
           </tbody>
         </table>
       </div>

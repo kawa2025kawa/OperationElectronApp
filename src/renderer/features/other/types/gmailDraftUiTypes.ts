@@ -1,9 +1,14 @@
 // src/renderer/features/other/types/gmailDraftUiTypes.ts
 
-import type { EmailTemplateOption } from "@shared/types/electron/ipcTypes";
+import type { EmailTemplateKey } from "@shared/types/electron/ipcTypes";
 
 export type { EmailTemplateKey } from "@shared/types/electron/ipcTypes";
 export type { GmailDraftFormValues } from "@shared/types/electron/ipcTypes";
+
+interface EmailTemplateOption {
+  key: EmailTemplateKey;
+  label: string;
+}
 
 export const EMAIL_TEMPLATE_OPTIONS = [
   { key: "E8", label: "シェルフラベル発注" },

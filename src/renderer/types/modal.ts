@@ -1,11 +1,6 @@
-// src/shared/types/ui/modal.ts
+// src/renderer/types/modal.ts
 
 import type { ComponentType, ReactNode } from "react";
-
-export interface ModalDimension {
-  readonly width: string;
-  readonly height: string;
-}
 
 export const MODAL_SIZES = {
   DEFAULT: {
@@ -32,10 +27,10 @@ export const MODAL_SIZES = {
     width: "80vw",
     height: "80vh",
   },
-} as const satisfies Record<string, ModalDimension>;
+} as const satisfies Record<string, { readonly width: string; readonly height: string }>;
 
 /**
- * モーダルタイトルの定義（一元管理）
+- モーダルタイトルの定義（一元管理）
  */
 export const MODAL_TITLES = {
   PDF_UPLOAD: "Tempomatic PDF",
@@ -43,7 +38,7 @@ export const MODAL_TITLES = {
 } as const;
 
 /**
- * モーダルメタ情報・基本構成プリセット
+- モーダルメタ情報・基本構成プリセット
  */
 export const MODAL_PRESETS = {
   PDF_UPLOAD: {
@@ -95,11 +90,6 @@ export interface ModalConfig {
   onCancel?: () => void;
 }
 
-export interface ModalState {
-  isOpen: boolean;
-  content: ReactNode | null;
-  config: ModalConfig | null;
-}
 interface ModalMeta {
   id: string;
   name: string;

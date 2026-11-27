@@ -8,7 +8,7 @@ import { useShallow } from "zustand/shallow";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
 import { useAppStore } from "@renderer/store";
-import { MODAL_SIZES, type ModalAction } from "@shared/types/ui/modal";
+import { MODAL_SIZES, type ModalAction } from "@renderer/types/modal";
 
 import * as styles from "./globalModalManager.css";
 
@@ -22,16 +22,21 @@ export const GlobalModalManager = memo(function GlobalModalManager() {
     })),
   );
 
+  const isProcessing = config?.isProcessing ?? false;
+
   const handleCancel = useCallback(() => {
+    if (isProcessing) return;
     config?.onCancel?.();
     closeModal();
-  }, [config, closeModal]);
+  }, [isProcessing, config, closeModal]);
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
-      if (!open) handleCancel();
+      if (!open && !isProcessing) {
+        handleCancel();
+      }
     },
-    [handleCancel],
+    [isProcessing, handleCancel],
   );
 
   const modalRoot =
@@ -61,7 +66,6 @@ export const GlobalModalManager = memo(function GlobalModalManager() {
     return null;
   }
 
-  const isProcessing = config?.isProcessing ?? false;
   const message = config?.message ?? null;
   const messageType = message?.type ?? "info";
   const messageClass =
@@ -70,6 +74,7 @@ export const GlobalModalManager = memo(function GlobalModalManager() {
   return (
     <Dialog.Root
       open={isOpen && Boolean(content)}
+      disablePointerDismissal={isProcessing}
       onOpenChange={handleOpenChange}
     >
       <Dialog.Portal container={modalRoot}>

@@ -4,11 +4,20 @@ import type { ReactNode } from "react";
 import type { StateCreator } from "zustand";
 import { operationService } from "@renderer/features/operation/service/operationService";
 import type { AppState } from "@renderer/store";
-import type {
-  ActiveFlags,
-  CenterId,
-} from "@shared/types/operation/operationTypes";
-import type { ModalConfig, ModalState } from "@shared/types/ui/modal";
+import type { ActiveFlags } from "@shared/types/operation/operationTypes";
+import type { ModalConfig } from "@renderer/types/modal";
+
+export const CenterId = {
+  VALUES: ["1C", "2C", "3C"] as const,
+} as const;
+
+export type CenterId = (typeof CenterId.VALUES)[number];
+
+interface ModalState {
+  isOpen: boolean;
+  content: ReactNode | null;
+  config: ModalConfig | null;
+}
 
 interface GlobalProcessingState {
   message: string;
@@ -51,6 +60,15 @@ export const createUiStateSlice: StateCreator<
   UiStateSlice
 > = (set, get) => {
   let centerUpdateRevision = 0;
+  let pollingTransitionQueue: Promise<void> = Promise.resolve();
+
+  const enqueuePollingTransition = (
+    task: () => Promise<void>,
+  ): Promise<void> => {
+    const next = pollingTransitionQueue.then(task, task);
+    pollingTransitionQueue = next.catch(() => undefined);
+    return next;
+  };
 
   return {
     // Overlay
@@ -94,34 +112,36 @@ export const createUiStateSlice: StateCreator<
       set((state) => {
         state.lastPollTime = Date.now();
       }),
-    startPolling: async () => {
-      if (get().isPolling) return;
+    startPolling: () =>
+      enqueuePollingTransition(async () => {
+        if (get().isPolling) return;
 
-      set((state) => {
-        state.isPolling = true;
-      });
-
-      try {
-        await operationService.startPolling();
-      } catch (error: unknown) {
         set((state) => {
-          state.isPolling = false;
+          state.isPolling = true;
         });
-        console.error("[PollingSlice] startPolling failed:", error);
-      }
-    },
-    stopPolling: async () => {
-      if (!get().isPolling) return;
 
-      try {
-        await operationService.stopPolling();
-        set((state) => {
-          state.isPolling = false;
-        });
-      } catch (error: unknown) {
-        console.error("[PollingSlice] stopPolling failed:", error);
-      }
-    },
+        try {
+          await operationService.startPolling();
+        } catch (error: unknown) {
+          set((state) => {
+            state.isPolling = false;
+          });
+          console.error("[PollingSlice] startPolling failed:", error);
+        }
+      }),
+    stopPolling: () =>
+      enqueuePollingTransition(async () => {
+        if (!get().isPolling) return;
+
+        try {
+          await operationService.stopPolling();
+          set((state) => {
+            state.isPolling = false;
+          });
+        } catch (error: unknown) {
+          console.error("[PollingSlice] stopPolling failed:", error);
+        }
+      }),
 
     // Center Flags
     is1CActive: false,

@@ -4,16 +4,22 @@ import fs from "fs-extra";
 import path from "node:path";
 import iconv from "iconv-lite";
 
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import { readParsedCsv } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   resolveInputPaths,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 
 const CONFIG = {
   inputFileName: "TENF0140.csv",
-  outputDir: "\\\\C0088150\\nec\\ftp",
+  host: NETWORK_HOSTS.C0088150,
+  outputSubPaths: ["nec", "ftp"] as const,
   outputFiles: ["TENF0140.dat", "TENF0140.dmy"] as const,
   encoding: "Windows-31J",
   completionMessage: "JACOS端末で「140」を送信して下さい",
@@ -104,13 +110,14 @@ function transformRows(parsedRows: string[][]): {
 }
 
 async function writeOutputFiles(rows: string[][]): Promise<string[]> {
+  const outputDir = getNetworkHostPath(CONFIG.host, ...CONFIG.outputSubPaths);
   const outputText = `${rows.map((row) => row.join(",")).join("\r\n")}\r\n`;
   const outputBuffer = iconv.encode(outputText, CONFIG.encoding);
 
-  await fs.ensureDir(CONFIG.outputDir);
+  await withNetworkAuthRetry(outputDir, () => fs.ensureDir(outputDir));
 
   const outputPaths = CONFIG.outputFiles.map((fileName) =>
-    path.join(CONFIG.outputDir, fileName),
+    path.join(outputDir, fileName),
   );
 
   await Promise.all(

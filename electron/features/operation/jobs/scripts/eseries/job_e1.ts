@@ -1,28 +1,21 @@
 // electron/features/operation/jobs/scripts/eseries/job_e1.ts
 
 import path from "node:path";
-import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import {
   checkFileUpdatedToday,
   listFilesInDir,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-
-const TARGET_KEYWORDS_E1 = ["EOB_DSP_001"] as const;
-
-interface MatchedFileE1 {
-  keyword: string;
-  fileName: string;
-}
-
-interface JobE1ResultData {
-  matchedFiles: MatchedFileE1[];
-  missingKeywords: string[];
-}
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 
 const CONFIG = {
-  targetDir: "\\\\mdsyuhai01.BELC01.belc.local\\IF\\EOB棚割\\SND",
-  keywords: TARGET_KEYWORDS_E1,
+  host: NETWORK_HOSTS.MDSYUHAI01,
+  subPaths: ["IF", "EOB棚割", "SND"] as const,
+  keyword: "EOB_DSP_001",
 } as const;
 
 /**
@@ -30,68 +23,39 @@ const CONFIG = {
  */
 export async function runJobE1(): Promise<string> {
   return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
-    const result = await checkTargetFiles();
-    return writeResultLog(logger, result);
+    const targetDir = getNetworkHostPath(CONFIG.host, ...CONFIG.subPaths);
+    const isReceivedToday = await checkReceivedToday(targetDir);
+
+    logger.section("対象フォルダ");
+    logger.log(targetDir);
+
+    if (!isReceivedToday) {
+      logger.section("未検出ファイル");
+      logger.log(CONFIG.keyword);
+      return logger.needsAction();
+    }
+
+    logger.section("検出ファイル");
+    logger.log(CONFIG.keyword);
+    return logger.complete();
   });
 }
 
-async function checkTargetFiles(): Promise<JobE1ResultData> {
+async function checkReceivedToday(targetDir: string): Promise<boolean> {
   const now = new Date();
-  const fileNames = await listFilesInDir(CONFIG.targetDir);
+  const fileNames = await withNetworkAuthRetry(targetDir, () =>
+    listFilesInDir(targetDir),
+  );
 
-  const matchedFiles: MatchedFileE1[] = [];
-  const missingKeywords: string[] = [];
+  for (const fileName of fileNames) {
+    if (!fileName.includes(CONFIG.keyword)) continue;
 
-  for (const keyword of CONFIG.keywords) {
-    let foundFileName: string | null = null;
-
-    for (const fileName of fileNames) {
-      if (!fileName.includes(keyword)) continue;
-
-      const status = await checkFileUpdatedToday(
-        path.join(CONFIG.targetDir, fileName),
-        now,
-      );
-      if (status.isToday) {
-        foundFileName = fileName;
-        break;
-      }
-    }
-
-    if (foundFileName) {
-      matchedFiles.push({ keyword, fileName: foundFileName });
-    } else {
-      missingKeywords.push(keyword);
-    }
-  }
-
-  return {
-    matchedFiles,
-    missingKeywords,
-  };
-}
-
-function writeResultLog(logger: JobLogger, result: JobE1ResultData): string {
-  logger.section("対象フォルダ");
-  logger.log(CONFIG.targetDir);
-
-  if (result.matchedFiles.length > 0) {
-    logger.section("検出ファイル");
-    for (const { keyword, fileName } of result.matchedFiles) {
-      logger.log(`[${keyword}] ${fileName}`);
-    }
-  }
-
-  if (result.missingKeywords.length > 0) {
-    logger.section("未受信ファイル");
-    for (const keyword of result.missingKeywords) {
-      logger.log(`[${keyword}] 本日更新されたファイルなし`);
-    }
-
-    return logger.needsAction(
-      `未受信ファイルあり (対象: ${result.missingKeywords.join(", ")})`,
+    const status = await checkFileUpdatedToday(
+      path.join(targetDir, fileName),
+      now,
     );
+    if (status.isToday) return true;
   }
 
-  return logger.complete();
+  return false;
 }

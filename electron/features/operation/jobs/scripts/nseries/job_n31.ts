@@ -1,10 +1,12 @@
 // electron/features/operation/jobs/scripts/nseries/job_n31.ts
 
-import { chromium, type Page } from "playwright";
+import { chromium, type Browser, type Page } from "playwright";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
-import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import { getServiceCredentials } from "@electron/features/system/systemService";
+import {
+  getDateKey,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { getServiceCredentialAsync } from "@electron/features/system/systemService";
 
 interface JobN31ResultData {
   url: string;
@@ -40,6 +42,7 @@ const SELECTORS: JobN31Selectors = {
 } as const;
 
 const CONFIG = {
+  timeout: 30_000,
   supplierCode: "029560:",
   departmentCode: "3",
   selectors: SELECTORS,
@@ -78,39 +81,49 @@ async function selectSupplier(page: Page): Promise<void> {
 }
 
 async function executeWebEdiOrder(): Promise<JobN31ResultData> {
-  const { url, userId, password } = getServiceCredentials().webedi;
+  const { url, userId, password } = await getServiceCredentialAsync("webedi");
   const orderDate = getDateKey(new Date(), "yyyy/MM/dd");
-  const browser = await chromium.launch({
-    headless: false,
-    channel: "chrome",
-  });
+  let browser: Browser | undefined;
 
-  const page = await browser.newPage();
-  const { selectors } = CONFIG;
+  try {
+    browser = await chromium.launch({
+      headless: false,
+      channel: "chrome",
+    });
 
-  await page.goto(url);
-  await page.locator(selectors.entry).click();
-  await page.locator(selectors.userId).fill(userId);
-  await page.locator(selectors.password).fill(password);
-  await page.locator(selectors.login).click();
-  await page.waitForLoadState("networkidle");
+    const page = await browser.newPage();
+    page.setDefaultTimeout(CONFIG.timeout);
+    const { selectors } = CONFIG;
 
-  await page.locator(selectors.orderMenu).click();
-  await page.locator(selectors.orderList).click();
-  await page.locator(selectors.orderDate).fill(orderDate);
-  await page.locator(selectors.departmentCode).fill(CONFIG.departmentCode);
+    await page.goto(url, { waitUntil: "domcontentloaded" });
+    await page.locator(selectors.entry).click();
+    await page.locator(selectors.userId).fill(userId);
+    await page.locator(selectors.password).fill(password);
+    await page.locator(selectors.login).click();
+    await page.waitForLoadState("networkidle");
 
-  await selectSupplier(page);
+    await page.locator(selectors.orderMenu).click();
+    await page.locator(selectors.orderList).click();
+    await page.locator(selectors.orderDate).fill(orderDate);
+    await page.locator(selectors.departmentCode).fill(CONFIG.departmentCode);
 
-  await page.locator(selectors.execute).click();
-  await page.waitForLoadState("networkidle");
+    await selectSupplier(page);
 
-  return {
-    url,
-    orderDate,
-    departmentCode: CONFIG.departmentCode,
-    supplierCode: CONFIG.supplierCode,
-  };
+    await page.locator(selectors.execute).click();
+    await page.waitForLoadState("networkidle");
+
+    return {
+      url,
+      orderDate,
+      departmentCode: CONFIG.departmentCode,
+      supplierCode: CONFIG.supplierCode,
+    };
+  } catch (error) {
+    if (browser) {
+      await browser.close().catch(() => undefined);
+    }
+    throw error;
+  }
 }
 
 function writeResultLog(logger: JobLogger, result: JobN31ResultData): string {

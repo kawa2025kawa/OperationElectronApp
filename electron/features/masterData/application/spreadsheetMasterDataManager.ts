@@ -1,10 +1,10 @@
 // electron/features/masterData/application/spreadsheetMasterDataManager.ts
 
+import { clearSpreadsheetCredentialsCache } from "@electron/features/system/credentialStore";
 import type { SpreadsheetDailyUpdateStatus } from "@shared/types/spreadsheet/spreadsheetTypes";
 import type {
   IrregularMaster,
   OperationMaster,
-  TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
 import {
   SHEETS,
@@ -29,7 +29,7 @@ export interface SpreadsheetMasterData {
   kokyuhyoTantous: SheetData<typeof SHEETS.KOKYUHYO_TANTOU.sheetName>;
   operations: OperationMaster[];
   irregulars: IrregularMaster[];
-  todayIrregulars: TodayIrregularMaster[];
+  todayIrregulars: IrregularMaster[];
   rdps: RdpMaster[];
   dailyUpdateStatus: SpreadsheetDailyUpdateStatus;
   errors: Partial<Record<SheetId, string>>;
@@ -129,6 +129,7 @@ export async function clearSpreadsheetMasterDataCache(): Promise<void> {
       }
     }
     memoryCache = null;
+    clearSpreadsheetCredentialsCache();
   })();
 
   clearPromise = currentClear;

@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { ActionButton } from "@renderer/components/ui/button/actionButton/ActionButton";
 import { AnimatedTabs } from "@renderer/components/ui/tabs/AnimatedTabs";
-import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import type { GlobalModalComponent } from "@renderer/types/modal";
 import type { PublicShop } from "@shared/types/spreadsheet/spreadsheetTypes";
 import { useShopModalContent } from "./useShopModalContent";
 import * as styles from "./shopModalContent.css";

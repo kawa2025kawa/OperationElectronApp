@@ -1,13 +1,14 @@
 // src/renderer/features/other/components/modal/contents/statusSync/useStatusSyncModalContent.ts
 
-import { useCallback, useEffect, useState } from "react";
-import { usePollingToastStore } from "@renderer/components/ui/toast/pollingToastStore";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { operationService } from "@renderer/features/operation/service/operationService";
 import { useModalFooterSync } from "@renderer/hooks/useModalFooterSync";
 import { useAppStore } from "@renderer/store";
-import { toErrorMessage } from "@renderer/utils/rendererUtils";
+import {
+  formatJapanDateTime,
+  toErrorMessage,
+} from "@renderer/utils/rendererUtils";
 import type { StatusSyncPreviewResult } from "@shared/types/electron/ipcTypes";
-import { formatJapanDateTime } from "@shared/utils/sharedUtils";
 
 export type StatusSyncMode = "save" | "load";
 
@@ -41,22 +42,26 @@ function useSyncRunner(params: {
     text: initialText,
     type: "info",
   });
+  const isExecutingRef = useRef(false);
 
   const execute = useCallback(async () => {
-    if (isExecuting || isFinished) return;
+    if (isExecutingRef.current || isFinished) return;
+    isExecutingRef.current = true;
     setIsExecuting(true);
     try {
-      setInfoMessage({ text: await action(), type: "success" });
+      const successText = await action();
+      setInfoMessage({ text: successText, type: "success" });
+      setIsFinished(true);
     } catch (error) {
       setInfoMessage({
         text: toErrorMessage(error, errorFallback),
         type: "error",
       });
     } finally {
+      isExecutingRef.current = false;
       setIsExecuting(false);
-      setIsFinished(true);
     }
-  }, [isExecuting, isFinished, action, errorFallback]);
+  }, [isFinished, action, errorFallback]);
 
   useModalFooterSync({
     message: undefined,
@@ -122,8 +127,7 @@ export function useStatusSyncLoad() {
     action: async () => {
       const res = await operationService.loadStatusesFromSheet();
       const store = useAppStore.getState();
-      usePollingToastStore.getState().resetToastState();
-      useAppStore.setState({ isPolling: false });
+      store.resetOperationRuntimeState();
       if (res.metadata?.activeFlags) {
         store.applyCenterFlags(res.metadata.activeFlags);
       }

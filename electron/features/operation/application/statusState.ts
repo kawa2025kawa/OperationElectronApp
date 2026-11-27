@@ -2,13 +2,12 @@
 
 import { BrowserWindow } from "electron";
 import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
-import {
-  DEFAULT_ACTIVE_FLAGS,
-  type ActiveFlags,
-  type OperationMaster,
-  type OperationStatusNotification,
-  type OperationStatusState,
-  type TodayIrregularMaster,
+import type {
+  ActiveFlags,
+  IrregularMaster,
+  OperationMaster,
+  OperationStatusNotification,
+  OperationStatusState,
 } from "@shared/types/operation/operationTypes";
 import { normalizeKanriNo } from "@electron/features/operation/domain/operationRules";
 import type {
@@ -21,16 +20,17 @@ import {
 } from "@electron/features/operation/infrastructure/operationStorage";
 import { DependencyPropagator } from "./dependencyPropagator";
 
+export const DEFAULT_ACTIVE_FLAGS: ActiveFlags = {
+  is1CActive: false,
+  is2CActive: false,
+  is3CActive: false,
+};
+
 export type StatusTarget =
   | (OperationMaster & { targetType: "operation" })
-  | (TodayIrregularMaster & { targetType: "today" });
+  | (IrregularMaster & { targetType: "today" });
 
-export type ReadyStatusListener = (target: StatusTarget) => void;
-
-export interface ApplyStatusOptions {
-  propagate?: boolean;
-  flags?: ActiveFlags;
-}
+type ReadyStatusListener = (target: StatusTarget) => void;
 
 export const statusState = {
   targets: new Map<string, StatusTarget>(),

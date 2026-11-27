@@ -1,4 +1,4 @@
-﻿// src/renderer/components/ui/toggle/SegmentedControl.tsx
+// src/renderer/components/ui/toggle/SegmentedControl.tsx
 
 import { memo, useMemo } from "react";
 import { Toggle } from "@base-ui/react/toggle";
@@ -13,13 +13,14 @@ interface SegmentedControlItem<T extends string | number> {
 
 export interface SegmentedControlProps<T extends string | number> {
   /** 識別用プレフィックス */
-  readonly id: string;
+  readonly id?: string;
   readonly items: readonly SegmentedControlItem<T>[];
   readonly value: T;
   readonly onChange: (value: T) => void;
   readonly size?: "sm" | "md" | "lg";
   readonly fullWidth?: boolean;
   readonly className?: string;
+  readonly ariaLabel?: string;
 }
 
 function getItemValue<T extends string | number>(value: T): string {
@@ -33,6 +34,7 @@ function SegmentedControlInner<T extends string | number>({
   size = "md",
   fullWidth = true,
   className,
+  ariaLabel = "表示モード",
 }: SegmentedControlProps<T>) {
   const containerClasses = [
     styles.containerBase,
@@ -86,7 +88,7 @@ function SegmentedControlInner<T extends string | number>({
       className={containerClasses}
       value={selectedItem ? [getItemValue(selectedItem.id)] : []}
       onValueChange={handleValueChange}
-      aria-label="表示モード"
+      aria-label={ariaLabel}
       orientation="horizontal"
     >
       <div className={styles.track}>

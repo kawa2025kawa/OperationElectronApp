@@ -6,15 +6,11 @@ import * as styles from "./hamburgerButton.css";
 export const HamburgerButton = () => {
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
 
-  const handleClick = () => {
-    toggleSidebar();
-  };
-
   return (
     <button
       type="button"
       className={styles.button}
-      onClick={handleClick}
+      onClick={toggleSidebar}
       aria-label="メニューを開く"
     >
       <div className={styles.line} />

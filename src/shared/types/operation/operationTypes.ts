@@ -14,14 +14,9 @@ export type OperationStatusNotification =
   | StatusUpdatedEvent
   | StatusClearedEvent;
 
-export interface OperationLink {
-  label: string;
-  path: string;
-}
-
 /* =========================
- * Operation Master Types
- * ========================= */
+- Operation Master Types
+- ========================= */
 
 export const WORK_TYPE = {
   AUTO: "自動",
@@ -42,8 +37,15 @@ interface BaseOperationMaster {
   manualUrl?: string;
   autoManualUrl?: string;
   ScriptKeys?: OperationScriptKey[];
-  RdpKeys?: OperationRdpKey[];
-  links?: OperationLink[];
+  RdpKeys?: {
+    key: string;
+    label?: string;
+    executionTypes?: ("manual" | "auto")[];
+  }[];
+  links?: {
+    label: string;
+    path: string;
+  }[];
 
   link1?: string;
   link2?: string;
@@ -63,24 +65,12 @@ export interface IrregularMaster extends BaseOperationMaster {
   cycle2?: string;
 }
 
-export type TodayIrregularMaster = IrregularMaster;
-
-export type ScriptExecutionType = "manual" | "auto";
-
 export interface OperationScriptKey {
   key: string;
   label?: string;
-  executionTypes?: ScriptExecutionType[];
+  executionTypes?: ("manual" | "auto")[];
   requiresFileSelection?: boolean;
 }
-
-export interface OperationRdpKey {
-  key: string;
-  label?: string;
-  executionTypes?: ScriptExecutionType[];
-}
-
-export type ScriptFilePath = string | string[];
 
 export interface ScriptExecutionRequirement {
   requiresFileSelection: boolean;
@@ -89,31 +79,19 @@ export interface ScriptExecutionRequirement {
 export interface ManualScriptExecutionInput {
   kanriNo: string;
   scriptKey?: string;
-  filePath?: ScriptFilePath;
+  filePath?: string | string[];
   ignoreDependencies?: boolean;
 }
 
 /* =========================
- * Center
- * ========================= */
+- Center
+- ========================= */
 
-export const CenterId = {
-  VALUES: ["1C", "2C", "3C"] as const,
-} as const;
-
-export type CenterId = (typeof CenterId.VALUES)[number];
-
-export type ActiveFlags = Record<`is${CenterId}Active`, boolean>;
-
-export const DEFAULT_ACTIVE_FLAGS: ActiveFlags = {
-  is1CActive: false,
-  is2CActive: false,
-  is3CActive: false,
-};
+export type ActiveFlags = Record<"is1CActive" | "is2CActive" | "is3CActive", boolean>;
 
 /* =========================
- * Job Status
- * ========================= */
+- Job Status
+- ========================= */
 
 export const JOB_STATUS = {
   SCHEDULED: "scheduled",
@@ -139,51 +117,31 @@ export const JOB_STATUS_VALUES = [
   JOB_STATUS.ERROR,
 ] as const satisfies readonly JobStatus[];
 
-export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
-  [JOB_STATUS.SCHEDULED]: "予定",
-  [JOB_STATUS.RUNNING]: "実行中",
-  [JOB_STATUS.SCRIPT_RUNNING]: "処理中",
-  [JOB_STATUS.SUCCESS]: "完了",
-  [JOB_STATUS.READY]: "実行可能",
-  [JOB_STATUS.WAITING]: "待機",
-  [JOB_STATUS.NEEDS_ACTION]: "要対応",
-  [JOB_STATUS.ERROR]: "エラー",
-};
-
 /* =========================
- * Common
- * ========================= */
-
-export interface JobArtifact {
-  name: string;
-  path?: string;
-  size?: number;
-}
-
-export type JobResultKind =
-  | "success"
-  | "difference"
-  | "needsAction"
-  | "error"
-  | "retrying"
-  | "running";
+- Common
+- ========================= */
 
 export interface JobResult {
   message: string;
   success?: boolean;
-  kind?: JobResultKind;
+  kind?:
+    | "success"
+    | "difference"
+    | "needsAction"
+    | "error"
+    | "retrying"
+    | "running";
   data?: unknown;
-  artifacts?: JobArtifact[];
-}
-
-export interface LinkConfig {
-  key: string;
-  url: string;
+  artifacts?: {
+    name: string;
+    path?: string;
+    size?: number;
+  }[];
 }
 
 /* =========================
- * Operation Status
- * ========================= */
+- Operation Status
+- ========================= */
 
 type OperationErrorSource = "script" | "tracker";
 
@@ -201,14 +159,10 @@ export interface OperationStatusState {
 }
 
 /* =========================
- * Operation View
- * ========================= */
+- Operation View
+- ========================= */
 
-export type OperationViewItem = (
-  | OperationMaster
-  | IrregularMaster
-  | TodayIrregularMaster
-) & {
+export type OperationViewItem = (OperationMaster | IrregularMaster) & {
   isPdfUpload?: boolean;
   status?: JobStatus;
   comment?: string | null;
@@ -217,28 +171,13 @@ export type OperationViewItem = (
 };
 
 /* =========================
- * Field Labels & Summary
- * ========================= */
+- Summary
+- ========================= */
 
-export const OPERATION_FIELD_LABELS = {
-  kanriNo: "管理No",
-  workName: "業務名",
-  workType: "区分",
-  scheduledTime: "予定時刻",
-  jobId: "ジョブID",
-  status: "状態",
-  cycle: "サイクル",
-  startTime: "開始時刻",
-  endTime: "終了時刻",
-  comment: "備考",
-} as const;
-
-export type SummaryDisplayKey =
-  | "total"
-  | "progress"
-  | (typeof JOB_STATUS_VALUES)[number];
-
-export type StatusSummary = Record<SummaryDisplayKey, number>;
+export type StatusSummary = Record<
+  "total" | "progress" | (typeof JOB_STATUS_VALUES)[number],
+  number
+>;
 
 export const EMPTY_STATUS_SUMMARY: StatusSummary = {
   total: 0,

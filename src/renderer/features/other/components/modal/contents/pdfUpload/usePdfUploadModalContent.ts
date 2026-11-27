@@ -11,7 +11,7 @@ import {
   toErrorMessage,
   toResolvedFileItem,
 } from "@renderer/utils/rendererUtils";
-import { MODAL_TITLES } from "@shared/types/ui/modal";
+import { MODAL_TITLES } from "@renderer/types/modal";
 
 interface PdfMessage {
   text: string;
@@ -113,10 +113,12 @@ export function usePdfUploadModalContent() {
       setInfoMessage(
         errorMessages.length > 0
           ? { text: errorMessages.join(" / "), type: "error" }
-          : {
-              text: PDF_UPLOAD_MESSAGES.selectedCount(nextFiles.length),
-              type: "info",
-            },
+          : nextFiles.length === 0
+            ? INITIAL_MESSAGE
+            : {
+                text: PDF_UPLOAD_MESSAGES.selectedCount(nextFiles.length),
+                type: "info",
+              },
       );
 
       return nextFiles;
@@ -184,10 +186,14 @@ export function usePdfUploadModalContent() {
         (_, fileIndex) => fileIndex !== index,
       );
 
-      setInfoMessage({
-        text: PDF_UPLOAD_MESSAGES.selectedCount(nextFiles.length),
-        type: "info",
-      });
+      setInfoMessage(
+        nextFiles.length === 0
+          ? INITIAL_MESSAGE
+          : {
+              text: PDF_UPLOAD_MESSAGES.selectedCount(nextFiles.length),
+              type: "info",
+            },
+      );
 
       return nextFiles;
     });
@@ -234,7 +240,9 @@ export function usePdfUploadModalContent() {
 
   useModalFooterSync({
     message: infoMessage,
-    executeLabel: "アップロード実行",
+    isProcessing: isBusy,
+    isCancelDisabled: isBusy,
+    executeLabel: isBusy ? "アップロード中..." : "アップロード実行",
     isExecuteDisabled: files.length === 0 || isBusy,
     onExecute: handleExecuteUpload,
   });

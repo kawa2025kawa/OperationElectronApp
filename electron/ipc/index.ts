@@ -24,6 +24,25 @@ import {
 import { registerOperationIpc } from "./operationIpc";
 import { registerServiceIpc } from "./serviceIpc";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const INVALID_WINDOWS_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1f]/;
+
+function assertSafeFileName(fileName: string): string {
+  const trimmed = fileName?.trim() ?? "";
+  if (
+    !trimmed ||
+    trimmed === "." ||
+    trimmed === ".." ||
+    path.basename(trimmed) !== trimmed ||
+    INVALID_WINDOWS_FILENAME_CHARS.test(trimmed)
+  ) {
+    throw new Error(`不正なファイル名が指定されました: ${fileName}`);
+  }
+  return trimmed;
+}
+
 function isAllowedSenderFrame(event: IpcMainInvokeEvent): boolean {
   const frameUrl = event.senderFrame?.url;
   if (!frameUrl) return false;
@@ -41,7 +60,7 @@ function isAllowedSenderFrame(event: IpcMainInvokeEvent): boolean {
     const parsed = new URL(frameUrl);
     if (parsed.protocol !== "file:") return false;
 
-    const distPath = path.resolve(app.getAppPath(), "dist");
+    const distPath = path.resolve(__dirname, "../dist");
     const expectedIndexPath = path.join(distPath, "index.html");
     const actualPath = path.resolve(fileURLToPath(parsed));
     return (
@@ -125,17 +144,19 @@ function registerSystemIpc(): void {
   registerIpcHandler(
     IPC_CHANNELS.SYSTEM.RENAME_FILE,
     async ({ filePath, newName }) => {
+      const safeNewName = assertSafeFileName(newName);
+
       if (!filePath || !(await fs.pathExists(filePath))) {
         throw new Error(`対象ファイルが存在しません: ${filePath}`);
       }
 
-      const targetPath = path.join(path.dirname(filePath), newName);
+      const targetPath = path.join(path.dirname(filePath), safeNewName);
       if (filePath === targetPath) {
         return { success: true, newPath: targetPath };
       }
 
       if (await fs.pathExists(targetPath)) {
-        throw new Error(`同名のファイルが既に存在します: ${newName}`);
+        throw new Error(`同名のファイルが既に存在します: ${safeNewName}`);
       }
 
       await fs.rename(filePath, targetPath);

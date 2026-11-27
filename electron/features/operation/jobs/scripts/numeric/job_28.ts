@@ -2,7 +2,14 @@
 
 import fs from "fs-extra";
 import path from "node:path";
-import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
+import {
+  getDateKey,
+  runJobWithLogger,
+} from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import {
   readCsv,
   groupCsvRowsBy,
@@ -10,11 +17,12 @@ import {
   type CsvRow,
   type ParsedCsv,
 } from "@electron/features/operation/jobs/scripts/helpers/csvUtils";
-import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkBaseDirAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
-  baseDir: "\\\\172.25.101.51\\if\\LOG\\DCMEOB1",
+  host: NETWORK_HOSTS.MDSYUHAI01,
+  baseSubPaths: ["if", "LOG", "DCMEOB1"] as const,
   targetPrefix: "ＥＯＢ特売送込エラー-",
   targetExtension: ".csv",
   encoding: "Shift_JIS",
@@ -176,119 +184,122 @@ async function writeRequestFiles(
 
 export async function runJob28(): Promise<JobResult> {
   return runJobWithLogger("システムエラーが発生しました", async (logger) => {
+    const baseDir = getNetworkHostPath(CONFIG.host, ...CONFIG.baseSubPaths);
     const today = getDateKey();
-    const todayDir = path.join(CONFIG.baseDir, today);
+    const todayDir = path.join(baseDir, today);
     const requestDir = path.join(todayDir, CONFIG.directories.request);
     const ignoreDir = path.join(todayDir, CONFIG.directories.ignore);
     const completedDir = path.join(todayDir, CONFIG.directories.completed);
 
     logger.log(`対象フォルダ : ${todayDir}`);
 
-    if (!(await fs.pathExists(todayDir))) {
-      logger.log(`当日フォルダが存在しません (${today})`);
-      return {
-        success: true,
-        kind: "success",
-        message: logger.complete("処理対象なしで終了"),
-      };
-    }
-
-    const files = await findCsvFiles(todayDir);
-
-    if (files.length === 0) {
-      logger.log("検出対象の CSV ファイルはありませんでした");
-      return {
-        success: true,
-        kind: "success",
-        message: logger.complete("完了 (処理件数: 0)"),
-      };
-    }
-
-    logger.log(`対象CSVファイル : ${files.length}件`);
-
-    const requestGroups = new Map<string, RequestGroup>();
-    const sourceFiles: SourceFile[] = [];
-    let unknownCount = 0;
-
-    for (const filePath of files) {
-      const relative = path.relative(
-        path.resolve(requestDir),
-        path.resolve(filePath),
-      );
-      const isRequestFile =
-        relative === "" ||
-        (relative !== ".." &&
-          !relative.startsWith(`..${path.sep}`) &&
-          !path.isAbsolute(relative));
-
-      const csv = await readCsv(filePath, CONFIG.encoding);
-      const problemRows = csv.rows.filter((row) => isProblemRow(row, today));
-
-      if (!isRequestFile) {
-        sourceFiles.push({ filePath, hasProblemRows: problemRows.length > 0 });
-      }
-
-      if (problemRows.length === 0) continue;
-
-      aggregateRows(
-        requestGroups,
-        csv,
-        problemRows,
-        getOriginalFileName(filePath, isRequestFile),
-      );
-
-      if (problemRows.some((row) => getDepartmentName(row) === "不明")) {
-        unknownCount++;
-      }
-
-      logger.log(`ファイル名 : ${path.basename(filePath)}`);
-    }
-
-    const createdFiles = await writeRequestFiles(requestDir, requestGroups);
-    let completedCount = 0;
-    let ignoredCount = 0;
-
-    for (const file of sourceFiles) {
-      const destinationDir = file.hasProblemRows ? completedDir : ignoreDir;
-
-      await fs.ensureDir(destinationDir);
-      await fs.move(
-        file.filePath,
-        path.join(destinationDir, path.basename(file.filePath)),
-        { overwrite: true },
-      );
-
-      completedCount += Number(file.hasProblemRows);
-      ignoredCount += Number(!file.hasProblemRows);
-    }
-
-    logger.log(`対応不要（移動） : ${ignoredCount}件`);
-    logger.log(`対応要（分割処理・移動完了） : ${completedCount}件`);
-
-    if (createdFiles.length > 0) {
-      logger.section("作成された対応依頼ファイル");
-      createdFiles.forEach((fileName) => logger.log(fileName));
-    }
-
-    const summaries = [
-      ...(createdFiles.length > 0
-        ? [`対応依頼ファイル作成: ${createdFiles.length}件`]
-        : []),
-      ...(unknownCount > 0
-        ? [`未定義の部門コードが含まれるファイル: ${unknownCount}件`]
-        : []),
-    ];
-
-    return summaries.length > 0
-      ? {
-          success: true,
-          kind: "needsAction",
-          message: logger.needsAction(summaries.join("、")),
-        }
-      : {
+    return withNetworkBaseDirAuthRetry(baseDir, async () => {
+      if (!(await fs.pathExists(todayDir))) {
+        logger.log(`当日フォルダが存在しません (${today})`);
+        return {
           success: true,
           kind: "success",
-          message: logger.complete("正常終了"),
+          message: logger.complete("処理対象なしで終了"),
         };
+      }
+
+      const files = await findCsvFiles(todayDir);
+
+      if (files.length === 0) {
+        logger.log("検出対象の CSV ファイルはありませんでした");
+        return {
+          success: true,
+          kind: "success",
+          message: logger.complete("完了 (処理件数: 0)"),
+        };
+      }
+
+      logger.log(`対象CSVファイル : ${files.length}件`);
+
+      const requestGroups = new Map<string, RequestGroup>();
+      const sourceFiles: SourceFile[] = [];
+      let unknownCount = 0;
+
+      for (const filePath of files) {
+        const relative = path.relative(
+          path.resolve(requestDir),
+          path.resolve(filePath),
+        );
+        const isRequestFile =
+          relative === "" ||
+          (relative !== ".." &&
+            !relative.startsWith(`..${path.sep}`) &&
+            !path.isAbsolute(relative));
+
+        const csv = await readCsv(filePath, CONFIG.encoding);
+        const problemRows = csv.rows.filter((row) => isProblemRow(row, today));
+
+        if (!isRequestFile) {
+          sourceFiles.push({ filePath, hasProblemRows: problemRows.length > 0 });
+        }
+
+        if (problemRows.length === 0) continue;
+
+        aggregateRows(
+          requestGroups,
+          csv,
+          problemRows,
+          getOriginalFileName(filePath, isRequestFile),
+        );
+
+        if (problemRows.some((row) => getDepartmentName(row) === "不明")) {
+          unknownCount++;
+        }
+
+        logger.log(`ファイル名 : ${path.basename(filePath)}`);
+      }
+
+      const createdFiles = await writeRequestFiles(requestDir, requestGroups);
+      let completedCount = 0;
+      let ignoredCount = 0;
+
+      for (const file of sourceFiles) {
+        const destinationDir = file.hasProblemRows ? completedDir : ignoreDir;
+
+        await fs.ensureDir(destinationDir);
+        await fs.move(
+          file.filePath,
+          path.join(destinationDir, path.basename(file.filePath)),
+          { overwrite: true },
+        );
+
+        completedCount += Number(file.hasProblemRows);
+        ignoredCount += Number(!file.hasProblemRows);
+      }
+
+      logger.log(`対応不要（移動） : ${ignoredCount}件`);
+      logger.log(`対応要（分割処理・移動完了） : ${completedCount}件`);
+
+      if (createdFiles.length > 0) {
+        logger.section("作成された対応依頼ファイル");
+        createdFiles.forEach((fileName) => logger.log(fileName));
+      }
+
+      const summaries = [
+        ...(createdFiles.length > 0
+          ? [`対応依頼ファイル作成: ${createdFiles.length}件`]
+          : []),
+        ...(unknownCount > 0
+          ? [`未定義の部門コードが含まれるファイル: ${unknownCount}件`]
+          : []),
+      ];
+
+      return summaries.length > 0
+        ? {
+            success: true,
+            kind: "needsAction",
+            message: logger.needsAction(summaries.join("、")),
+          }
+        : {
+            success: true,
+            kind: "success",
+            message: logger.complete("正常終了"),
+          };
+    });
   });
 }

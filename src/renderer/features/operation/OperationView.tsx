@@ -1,17 +1,16 @@
 // src/renderer/features/operation/OperationView.tsx
 
 import { memo, useCallback, useMemo, useTransition } from "react";
-import { motion } from "motion/react";
 import { useShallow } from "zustand/shallow";
 
 import { OperationTable } from "@renderer/features/operation/components/table/OperationTable";
+import { VIEW_MODES, type ViewMode } from "@renderer/registry/appRegistry";
 import { useAppStore } from "@renderer/store";
 import {
   selectMergedOperationAndTodayRows,
   selectRowsForMode,
 } from "@renderer/store/slices/operationStatusSlice";
 import { JOB_STATUS } from "@shared/types/operation/operationTypes";
-import type { ViewMode } from "@shared/types/registry/viewDefinition";
 
 import { OperationActionMenu } from "./components/operationActionMenu/OperationActionMenu";
 import { OperationInfoRow } from "./components/operationInfoRow/OperationInfoRow";
@@ -43,7 +42,7 @@ export const OperationView = memo(function OperationView() {
   const [, startTransition] = useTransition();
 
   const isSummaryFilterActive =
-    currentMode !== "irregular" && summaryStatusFilter !== null;
+    currentMode !== VIEW_MODES.IRREGULAR && summaryStatusFilter !== null;
 
   const rows = useMemo(
     () =>
@@ -78,7 +77,7 @@ export const OperationView = memo(function OperationView() {
   const infoRows = useMemo(
     () =>
       createInfoRows(
-        isSummaryFilterActive ? "today" : currentMode,
+        isSummaryFilterActive ? VIEW_MODES.TODAY : currentMode,
         selectedItem,
         status,
       ),
@@ -113,21 +112,15 @@ export const OperationView = memo(function OperationView() {
             <OperationActionMenu selectedItem={selectedItem} />
           </div>
 
-          <motion.div
+          <div
             key={selectedId || "empty"}
             data-operation-info-list="true"
             className={styles.infoList}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{
-              duration: 0.2,
-              ease: "easeOut",
-            }}
           >
             {infoRows.map((row) => (
               <OperationInfoRow key={row.field} {...row} />
             ))}
-          </motion.div>
+          </div>
         </div>
       </aside>
     </div>

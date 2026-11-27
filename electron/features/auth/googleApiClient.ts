@@ -1,9 +1,14 @@
 // electron/features/auth/googleApiClient.ts
 
-import type { AuthProfile, GoogleUserInfo } from "@shared/types/auth/authTypes";
+import type { AuthProfile } from "@shared/types/auth/authTypes";
 import { authService } from "./authService";
 
 const USER_INFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
+
+interface GoogleUserInfo {
+  email?: string;
+  family_name?: string;
+}
 
 // Google認証に関するエラーを表す
 export class GoogleAuthError extends Error {
@@ -13,7 +18,7 @@ export class GoogleAuthError extends Error {
   }
 }
 
-export interface GoogleApiRequestOptions extends RequestInit {
+interface GoogleApiRequestOptions extends RequestInit {
   retryOnUnauthorized?: boolean;
 }
 

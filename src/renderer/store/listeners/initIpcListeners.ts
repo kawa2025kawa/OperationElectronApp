@@ -33,7 +33,7 @@ export function setupInitIpcListeners(getState: GetAppState): void {
   const unbindPolling = window.electronAPI.on(
     IPC_CHANNELS.OPERATION.POLLING_CYCLE_COMPLETE,
     () => {
-      getState().updateLastPollTime?.();
+      getState().updateLastPollTime();
       usePollingToastStore.getState().markPollingCycleCompleted();
     },
   );

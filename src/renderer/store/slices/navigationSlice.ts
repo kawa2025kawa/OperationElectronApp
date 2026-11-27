@@ -1,8 +1,13 @@
 // src/renderer/store/slices/navigationSlice.ts
 
 import type { StateCreator } from "zustand";
+import {
+  APP_VIEW_IDS,
+  VIEW_MODES,
+  type AppViewId,
+  type ViewMode,
+} from "@renderer/registry/appRegistry";
 import type { AppState } from "@renderer/store";
-import type { AppViewId, ViewMode } from "@renderer/registry/appRegistry";
 
 type SelectedIds = Record<ViewMode, string | null>;
 
@@ -34,58 +39,58 @@ export const createNavigationSlice: StateCreator<
   [],
   NavigationSlice
 > = (set) => ({
-  currentView: "operation",
-  currentMode: "operation",
+  currentView: APP_VIEW_IDS.OPERATION,
+  currentMode: VIEW_MODES.OPERATION,
   searchTerms: {},
   searchTerm: "",
   isSidebarOpen: false,
   selectedIds: {
-    operation: null,
-    irregular: null,
-    today: null,
+    [VIEW_MODES.OPERATION]: null,
+    [VIEW_MODES.IRREGULAR]: null,
+    [VIEW_MODES.TODAY]: null,
   },
   scrollPositions: {},
 
   setCurrentView: (view) =>
-    set((state: AppState) => {
+    set((state) => {
       state.currentView = view;
       state.searchTerm = state.searchTerms[view] ?? "";
-      if (view !== "operation") {
+      if (view !== APP_VIEW_IDS.OPERATION) {
         state.summaryStatusFilter = null;
         state.summaryReturnMode = null;
       }
     }),
 
   setMode: (mode) =>
-    set((state: AppState) => {
+    set((state) => {
       state.currentMode = mode;
       state.summaryStatusFilter = null;
       state.summaryReturnMode = null;
     }),
 
   setSearchTerm: (term) =>
-    set((state: AppState) => {
+    set((state) => {
       state.searchTerms[state.currentView] = term;
       state.searchTerm = term;
     }),
 
   toggleSidebar: () =>
-    set((state: AppState) => {
+    set((state) => {
       state.isSidebarOpen = !state.isSidebarOpen;
     }),
 
   setSidebarOpen: (open) =>
-    set((state: AppState) => {
+    set((state) => {
       state.isSidebarOpen = open;
     }),
 
   setSelectedId: (mode, id) =>
-    set((state: AppState) => {
+    set((state) => {
       state.selectedIds[mode] = id;
     }),
 
   setScrollPosition: (key, position) =>
-    set((state: AppState) => {
+    set((state) => {
       const current = state.scrollPositions[key];
 
       if (current?.top === position.top && current?.left === position.left) {

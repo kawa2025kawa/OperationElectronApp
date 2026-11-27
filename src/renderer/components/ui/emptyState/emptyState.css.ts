@@ -1,5 +1,12 @@
-﻿import { style } from "@vanilla-extract/css";
+// src/renderer/components/ui/emptyState/emptyState.css.ts
+
+import { keyframes, style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
+
+const fadeIn = keyframes({
+  from: { opacity: 0 },
+  to: { opacity: 1 },
+});
 
 export const emptyWrapper = style({
   display: "flex",
@@ -10,6 +17,7 @@ export const emptyWrapper = style({
   height: "100%",
   padding: tokens.space.xl,
   boxSizing: "border-box",
+  animation: `${fadeIn} 0.2s ease-out`,
 });
 
 export const emptyText = style({
@@ -36,20 +44,16 @@ export const retryButton = style({
   fontWeight: tokens.font.weight.bold,
   fontSize: tokens.font.size.sm,
   border: `1px solid ${tokens.color.border.default}`,
-
-  // トークンの立体凸影（Neumorphism Raised）
   boxShadow: tokens.shadow.raised.low,
   outline: "none",
   transition: `all ${tokens.transition.fast}`,
 
   selectors: {
-    // ホバー時：アクセント色のネオングロー発光
     "&:hover": {
       borderColor: tokens.color.accent.base,
       color: tokens.color.text.hover,
       boxShadow: tokens.shadow.glow.brand,
     },
-    // 押し込み時：凹影（Pressed）
     "&:active": {
       boxShadow: tokens.shadow.pressed.low,
       borderColor: tokens.color.border.subtle,
@@ -57,4 +61,3 @@ export const retryButton = style({
     },
   },
 });
-

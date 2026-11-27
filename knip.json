@@ -2,5 +2,5 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "entry": ["electron/main.ts!", "electron/preload.ts!"],
   "project": ["src/**/*.{ts,tsx}", "electron/**/*.{ts,tsx}"],
-  "ignore": ["src/shared/types/electron/index.d.ts"]
+  "ignore": ["src/renderer/types/electron.d.ts"]
 }

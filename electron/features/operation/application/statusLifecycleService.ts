@@ -22,11 +22,15 @@ import type { OperationStatusState } from "@shared/types/operation/operationType
 import type { DependencyMasters } from "@electron/features/operation/domain/dependencyUtils";
 import { stopPolling } from "./operationScheduler";
 import {
+  initializeActiveFlags,
   notifyStatusCleared,
   statusState,
   type StatusTarget,
 } from "./statusState";
 import { recalculateAllStatuses } from "./statusUpdater";
+
+let isOperationInitialized = false;
+let ensureInitializedPromise: Promise<void> | null = null;
 
 function createOperationTargetList(
   masterData: SpreadsheetMasterData,
@@ -137,6 +141,7 @@ export async function deleteAllStatuses(): Promise<void> {
 
   statusState.propagator.clearQueue();
   statusState.statuses.clear();
+  isOperationInitialized = false;
 
   await deleteStatusFile();
 
@@ -158,12 +163,43 @@ export async function registerOperationTargets(): Promise<void> {
     masterData,
   );
   applyTargets(nextTargets, nextDependencyMasters);
+  isOperationInitialized = true;
+}
+
+/** ターゲット・ステータス・アクティブフラグが未ロードの場合にオンデマンドで自動初期化する */
+export async function ensureOperationInitialized(): Promise<void> {
+  if (isOperationInitialized && statusState.targets.size > 0) {
+    return;
+  }
+
+  if (ensureInitializedPromise) {
+    return ensureInitializedPromise;
+  }
+
+  const currentInit = (async () => {
+    await initializeActiveFlags();
+    if (statusState.statuses.size === 0) {
+      await initializeStatuses();
+    }
+    await registerOperationTargets();
+  })();
+
+  ensureInitializedPromise = currentInit;
+
+  try {
+    await currentInit;
+  } finally {
+    if (ensureInitializedPromise === currentInit) {
+      ensureInitializedPromise = null;
+    }
+  }
 }
 
 export async function resetOperationStatuses(): Promise<
   Record<string, OperationStatusState>
 > {
   stopPolling();
+  isOperationInitialized = false;
 
   await clearSpreadsheetMasterDataCache();
 
@@ -185,6 +221,7 @@ export async function resetOperationStatuses(): Promise<
   statusState.statuses.clear();
 
   applyTargets(nextTargets, nextDependencyMasters);
+  isOperationInitialized = true;
   void persistStatusesImmediately(statusState.statuses);
 
   return Object.fromEntries(statusState.statuses);

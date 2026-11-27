@@ -4,6 +4,10 @@ import path from "node:path";
 import fs from "fs-extra";
 import { isSameDay } from "date-fns";
 
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 import { formatDateTime } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
@@ -15,10 +19,8 @@ import {
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
-  targetFiles: [
-    "\\\\192.2.2.1\\d$\\BELC\\ftp\\ORDERBOOK.pdf",
-    "\\\\192.161.2.1\\d$\\BELC\\ftp\\ORDERBOOK.pdf",
-  ],
+  targetHosts: [NETWORK_HOSTS.FTP_192_2, NETWORK_HOSTS.FTP_192_161] as const,
+  subPaths: ["d$", "BELC", "ftp", "ORDERBOOK.pdf"] as const,
 } as const;
 
 interface TargetFileCheckResult {
@@ -132,8 +134,11 @@ async function inspectTargetFile(
 
 async function checkTargetFiles(): Promise<JobE4ResultData> {
   const now = new Date();
+  const targetFiles = CONFIG.targetHosts.map((host) =>
+    getNetworkHostPath(host, ...CONFIG.subPaths),
+  );
   const checkedFiles = await Promise.all(
-    CONFIG.targetFiles.map((filePath) => inspectTargetFile(filePath, now)),
+    targetFiles.map((filePath) => inspectTargetFile(filePath, now)),
   );
 
   const issueFiles = checkedFiles.filter(

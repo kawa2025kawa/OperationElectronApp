@@ -1,6 +1,6 @@
-﻿// src/renderer/layout/mainView.css.ts
+// src/renderer/layout/mainView.css.ts
 
-import { style } from "@vanilla-extract/css";
+import { style, styleVariants } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 export const appContainer = style({
@@ -41,4 +41,24 @@ export const viewWrapper = style({
   position: "relative",
   isolation: "isolate",
   overflow: "hidden",
+});
+
+export const viewPane = styleVariants({
+  active: {
+    display: "block",
+    width: "100%",
+    height: "100%",
+  },
+  hidden: {
+    display: "none",
+    width: "100%",
+    height: "100%",
+  },
+});
+
+export const unknownViewContainer = style({
+  padding: tokens.space.xl,
+  display: "flex",
+  flexDirection: "column",
+  gap: tokens.space.md,
 });

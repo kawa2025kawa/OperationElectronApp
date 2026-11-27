@@ -5,14 +5,13 @@ import { clsx } from "clsx";
 import { useShallow } from "zustand/shallow";
 
 import { CloseButton } from "@renderer/components/ui/button/closeButton/CloseButton";
-import { APP_REGISTRY, type AppViewId } from "@renderer/registry/appRegistry";
+import {
+  SIDEBAR_VIEW_ITEMS,
+  type AppViewId,
+} from "@renderer/registry/appRegistry";
 import { useAppStore } from "@renderer/store";
 
 import * as styles from "./sidebar.css";
-
-const ORDERED_MENU_ITEMS = Object.values(APP_REGISTRY)
-  .filter((item) => item.sidebarMenu?.show)
-  .sort((a, b) => (a.sidebarMenu?.order ?? 0) - (b.sidebarMenu?.order ?? 0));
 
 export const Sidebar = memo(function Sidebar() {
   const {
@@ -53,7 +52,7 @@ export const Sidebar = memo(function Sidebar() {
       </div>
 
       <ul className={styles.menuList}>
-        {ORDERED_MENU_ITEMS.map((item) => (
+        {SIDEBAR_VIEW_ITEMS.map((item) => (
           <li key={item.id} className={styles.menuItem}>
             <button
               type="button"

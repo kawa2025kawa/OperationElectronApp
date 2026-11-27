@@ -21,7 +21,6 @@ interface OperationTableRowProps {
   readonly table: ReturnType<
     typeof useTable<TableFeaturesType, OperationViewItem>
   >;
-  readonly isContextOpen: boolean;
   readonly onRowClick: (kanriNo: string) => void;
   readonly onMarkSuccess: (kanriNo: string) => void;
   readonly onStatusContextMenu: (
@@ -33,7 +32,6 @@ interface OperationTableRowProps {
 export const OperationTableRow = memo(function OperationTableRow({
   row,
   table,
-  isContextOpen,
   onRowClick,
   onMarkSuccess,
   onStatusContextMenu,
@@ -68,7 +66,6 @@ export const OperationTableRow = memo(function OperationTableRow({
   return (
     <tr
       tabIndex={0}
-      data-context-open={isContextOpen}
       className={clsx(
         styles.tableRowBase,
         isSelected
@@ -94,7 +91,6 @@ export const OperationTableRow = memo(function OperationTableRow({
               <div className={styles.statusCellWrapper}>
                 <div
                   className={styles.statusBadgeAnchor}
-                  data-context-open={isContextOpen}
                   onContextMenu={handleContextMenu}
                 >
                   <StatusBadge status={row.original.status} />

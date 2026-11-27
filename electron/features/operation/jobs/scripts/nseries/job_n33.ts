@@ -8,7 +8,7 @@ import readline from "node:readline";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import { runJobWithLogger } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
-import { getServiceCredentials } from "@electron/features/system/systemService";
+import { getServiceCredentialAsync } from "@electron/features/system/systemService";
 
 const TARGET_CODES = ["S330", "S332"] as const;
 
@@ -120,7 +120,7 @@ async function processCsvStream(stream: Readable): Promise<UnassignedDetail[]> {
 }
 
 async function checkFtpCsvFiles(): Promise<JobN33ResultData> {
-  const ftpConfig = getServiceCredentials().fepFtp;
+  const ftpConfig = await getServiceCredentialAsync("fepFtp");
   const client = new Client();
   const today = getDateKey();
 

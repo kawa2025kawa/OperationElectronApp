@@ -1,11 +1,9 @@
 // src/renderer/features/spreadSheet/utils/spreadsheetDateUtils.ts
 
-import { TZDate } from "@date-fns/tz";
 import holidayJp from "@holiday-jp/holiday_jp";
 import { addDays, format, getDay, isValid } from "date-fns";
 import { ja } from "date-fns/locale/ja";
-
-const JST_TIME_ZONE = "Asia/Tokyo" as const;
+import { toJstDate } from "@renderer/utils/rendererUtils";
 
 type DayTone = "weekday" | "saturday" | "holiday";
 
@@ -24,7 +22,7 @@ export function resolveScheduleBaseDate(updatedAt?: string | null): Date {
   if (updatedAt) {
     const parsed = new Date(updatedAt);
     if (isValid(parsed)) {
-      const jst = new TZDate(parsed, JST_TIME_ZONE);
+      const jst = toJstDate(parsed);
       return new Date(jst.getFullYear(), jst.getMonth(), jst.getDate());
     }
   }

@@ -1,6 +1,6 @@
-﻿// src/renderer/features/operation/operationView.css.ts
+// src/renderer/features/operation/operationView.css.ts
 
-import { style } from "@vanilla-extract/css";
+import { keyframes, style } from "@vanilla-extract/css";
 import { tokens } from "@renderer/styles/tokens/semantic.contract";
 
 // ============================================================
@@ -11,6 +11,11 @@ const baseFlexCol = style({
   display: "flex",
   flexDirection: "column",
   height: "100%",
+});
+
+const infoFadeIn = keyframes({
+  from: { opacity: 0 },
+  to: { opacity: 1 },
 });
 
 // ============================================================
@@ -125,4 +130,5 @@ export const infoList = style({
   paddingTop: tokens.space.xs,
   paddingBottom: tokens.space.xs,
   gap: tokens.space.md,
+  animation: `${infoFadeIn} 0.2s ease-out`,
 });

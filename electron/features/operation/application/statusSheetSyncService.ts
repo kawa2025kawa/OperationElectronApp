@@ -23,13 +23,14 @@ import type {
   StatusSyncPreviewResult,
 } from "@shared/types/electron/ipcTypes";
 import {
-  DEFAULT_ACTIVE_FLAGS,
   JOB_STATUS_VALUES,
   type ActiveFlags,
   type JobStatus,
   type OperationStatusState,
 } from "@shared/types/operation/operationTypes";
+import { SHEETS } from "@shared/types/spreadsheet/spreadsheetTypes";
 import {
+  DEFAULT_ACTIVE_FLAGS,
   getActiveFlags,
   notifyStatusUpdated,
   statusState,
@@ -37,8 +38,7 @@ import {
 import { recalculateAllStatuses } from "./statusUpdater";
 
 const STATUS_SYNC_SHEET_CONFIG = {
-  spreadsheetId: "1VdlHfI2Z3eker8vvqTNEeO0rI5kqV-d_6UlRZOHNV2Q",
-  sheetName: "OperationStatusSync",
+  ...SHEETS.STATUS_SYNC,
   dateTimeFormat: "yyyy/MM/dd HH:mm:ss",
 } as const;
 

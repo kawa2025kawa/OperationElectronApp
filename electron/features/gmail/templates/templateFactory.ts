@@ -1,6 +1,6 @@
-﻿// electron/features/gmail/templates/templateFactory.ts
+// electron/features/gmail/templates/templateFactory.ts
 
-import type { EmailTemplateKey, GmailDraft } from "../gmailTypes";
+import type { EmailTemplateKey, GmailDraft } from "@shared/types/electron/ipcTypes";
 
 import { createTemplateE8 } from "./templateE8";
 import { createTemplateE9 } from "./templateE9";

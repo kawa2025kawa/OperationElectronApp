@@ -1,5 +1,9 @@
 // electron/features/operation/jobs/scripts/eseries/job_e55.ts
 
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
@@ -7,6 +11,7 @@ import {
   readEncodedLines,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 
 type JobE55CheckStatus =
   | "SUCCESS"
@@ -26,13 +31,17 @@ interface TargetLineDetailE55 {
 
 interface JobE55ResultData {
   status: JobE55CheckStatus;
+  sourcePath: string;
+  targetPath: string;
   invalidFilePath?: string;
   detail?: TargetLineDetailE55;
 }
 
 const CONFIG = {
-  sourcePath: "\\\\192.12.2.1\\d$\\BELC\\ftp\\PC0140.dat",
-  targetPath: "\\\\C0088150\\nec\\ftp\\TENF0140.dat",
+  sourceHost: NETWORK_HOSTS.FTP_192_12,
+  sourceSubPaths: ["d$", "BELC", "ftp", "PC0140.dat"] as const,
+  targetHost: NETWORK_HOSTS.C0088150,
+  targetSubPaths: ["nec", "ftp", "TENF0140.dat"] as const,
   encoding: "Windows-31J",
   targetLinePrefix: "01,012,",
   targetStoreName: "12.すねおり店",
@@ -40,7 +49,7 @@ const CONFIG = {
 } as const;
 
 /**
-- e5 仕入原価リストデータ作成完了後の整合性チェックを行う（対象: 12.すねおり店）
+ * e5 仕入原価リストデータ作成完了後の整合性チェックを行う（対象: 12.すねおり店）
  */
 export async function runJobE55(): Promise<JobResult> {
   return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
@@ -51,19 +60,36 @@ export async function runJobE55(): Promise<JobResult> {
 
 async function checkCostListData(): Promise<JobE55ResultData> {
   const now = new Date();
-  for (const filePath of [CONFIG.sourcePath, CONFIG.targetPath]) {
-    const status = await checkFileUpdatedToday(filePath, now);
+  const sourcePath = getNetworkHostPath(
+    CONFIG.sourceHost,
+    ...CONFIG.sourceSubPaths,
+  );
+  const targetPath = getNetworkHostPath(
+    CONFIG.targetHost,
+    ...CONFIG.targetSubPaths,
+  );
+
+  for (const filePath of [sourcePath, targetPath]) {
+    const status = await withNetworkAuthRetry(filePath, () =>
+      checkFileUpdatedToday(filePath, now),
+    );
     if (!status.isToday) {
       return {
         status: "NOT_UPDATED_TODAY",
+        sourcePath,
+        targetPath,
         invalidFilePath: filePath,
       };
     }
   }
 
   const [sourceLines, targetLines] = await Promise.all([
-    readEncodedLines(CONFIG.sourcePath, CONFIG.encoding),
-    readEncodedLines(CONFIG.targetPath, CONFIG.encoding),
+    withNetworkAuthRetry(sourcePath, () =>
+      readEncodedLines(sourcePath, CONFIG.encoding),
+    ),
+    withNetworkAuthRetry(targetPath, () =>
+      readEncodedLines(targetPath, CONFIG.encoding),
+    ),
   ]);
 
   const targetLine = sourceLines.find((line) =>
@@ -73,6 +99,8 @@ async function checkCostListData(): Promise<JobE55ResultData> {
   if (!targetLine) {
     return {
       status: "LINE_NOT_FOUND",
+      sourcePath,
+      targetPath,
     };
   }
 
@@ -92,12 +120,16 @@ async function checkCostListData(): Promise<JobE55ResultData> {
   if (!targetLines.includes(targetLine)) {
     return {
       status: "LINE_MISMATCH",
+      sourcePath,
+      targetPath,
       detail,
     };
   }
 
   return {
     status: "SUCCESS",
+    sourcePath,
+    targetPath,
     detail,
   };
 }
@@ -107,8 +139,8 @@ function writeResultLog(
   result: JobE55ResultData,
 ): JobResult {
   logger.section("確認対象ファイル");
-  logger.log(`元データ   : ${CONFIG.sourcePath}`);
-  logger.log(`送信データ : ${CONFIG.targetPath}`);
+  logger.log(`元データ   : ${result.sourcePath}`);
+  logger.log(`送信データ : ${result.targetPath}`);
 
   if (result.status === "NOT_UPDATED_TODAY") {
     return {

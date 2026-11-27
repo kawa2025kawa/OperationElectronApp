@@ -2,17 +2,23 @@
 
 import path from "node:path";
 import fs from "fs-extra";
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   listFilesInDir,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
 import { getDateKey } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 
 const CONFIG = {
-  normalErrorPath: "\\\\192.88.1.3\\syn_tran",
-  farmersErrorPath: "\\\\192.88.1.3\\syn_tran\\ファーマーズエラー",
-  confirmedPath: "\\\\192.88.1.3\\syn_tran\\ファーマーズエラー\\確認済",
+  host: NETWORK_HOSTS.SYN_TRAN_192_88,
+  normalErrorSubPaths: ["syn_tran"] as const,
+  farmersErrorSubPaths: ["syn_tran", "ファーマーズエラー"] as const,
+  confirmedSubPaths: ["syn_tran", "ファーマーズエラー", "確認済"] as const,
   targetPrefix: "SANSAN_ERROR_",
   cutoffHour: 8,
   cutoffMinute: 30,
@@ -35,7 +41,9 @@ function selectDirectoryByTime(now: Date): string {
   const cutoff = new Date(now);
   cutoff.setHours(CONFIG.cutoffHour, CONFIG.cutoffMinute, 0, 0);
 
-  return now <= cutoff ? CONFIG.normalErrorPath : CONFIG.farmersErrorPath;
+  const subPaths =
+    now <= cutoff ? CONFIG.normalErrorSubPaths : CONFIG.farmersErrorSubPaths;
+  return getNetworkHostPath(CONFIG.host, ...subPaths);
 }
 
 async function findTargetFile(): Promise<JobResultData> {
@@ -44,7 +52,9 @@ async function findTargetFile(): Promise<JobResultData> {
   const searchPattern = `${CONFIG.targetPrefix}${today}`;
   const targetDir = selectDirectoryByTime(now);
 
-  const fileNames = await listFilesInDir(targetDir);
+  const fileNames = await withNetworkAuthRetry(targetDir, () =>
+    listFilesInDir(targetDir),
+  );
   const targetFile = fileNames.find((name) => name.includes(searchPattern));
 
   return {
@@ -58,10 +68,16 @@ async function moveTargetFile(result: JobResultData): Promise<void> {
     return;
   }
 
-  await fs.ensureDir(CONFIG.confirmedPath);
+  const confirmedPath = getNetworkHostPath(
+    CONFIG.host,
+    ...CONFIG.confirmedSubPaths,
+  );
+  await withNetworkAuthRetry(confirmedPath, () =>
+    fs.ensureDir(confirmedPath),
+  );
 
   const destinationPath = path.join(
-    CONFIG.confirmedPath,
+    confirmedPath,
     path.basename(result.targetFile),
   );
 

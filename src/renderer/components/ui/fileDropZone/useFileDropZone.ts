@@ -37,14 +37,20 @@ export function useFileDropZone({
   const [rawOpenMenuPath, setRawOpenMenuPath] = useState<string | null>(null);
   const mainInputRef = useRef<HTMLInputElement>(null);
 
-  const openMenuPath = disabled ? null : rawOpenMenuPath;
+  const openMenuPath =
+    disabled || files.length === 0 ? null : rawOpenMenuPath;
 
   const resetFileDrag = useCallback(() => {
     setDraggedFileIndex(null);
     setDragOverFileIndex(null);
   }, []);
 
-  useEffect(() => resetFileDrag, [resetFileDrag]);
+  useEffect(() => {
+    if (files.length === 0) {
+      setRawOpenMenuPath(null);
+      resetFileDrag();
+    }
+  }, [files.length, resetFileDrag]);
 
   const handleMenuOpenChange = useCallback(
     (path: string, open: boolean) => {
@@ -63,11 +69,11 @@ export function useFileDropZone({
       event.preventDefault();
       event.stopPropagation();
 
-      if (!disabled) {
+      if (!disabled && draggedFileIndex === null) {
         setIsDragOverMain(true);
       }
     },
-    [disabled],
+    [disabled, draggedFileIndex],
   );
 
   const handleMainDragLeave = useCallback(
@@ -87,7 +93,7 @@ export function useFileDropZone({
 
       setIsDragOverMain(false);
 
-      if (disabled) return;
+      if (disabled || draggedFileIndex !== null) return;
 
       const droppedFiles = Array.from(event.dataTransfer.files);
 
@@ -95,7 +101,7 @@ export function useFileDropZone({
         onFileSelect(droppedFiles);
       }
     },
-    [disabled, onFileSelect],
+    [disabled, draggedFileIndex, onFileSelect],
   );
 
   const handleMainInputChange = useCallback(
@@ -126,6 +132,7 @@ export function useFileDropZone({
       if (disabled || !onReorderFile || draggedFileIndex === null) return;
 
       event.preventDefault();
+      event.stopPropagation();
       event.dataTransfer.dropEffect = "move";
 
       setDragOverFileIndex(index);

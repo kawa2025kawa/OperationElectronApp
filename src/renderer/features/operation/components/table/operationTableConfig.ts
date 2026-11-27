@@ -9,12 +9,13 @@ import {
 import type { ColumnDef } from "@tanstack/react-table";
 
 import type { ViewMode } from "@shared/types/registry/viewDefinition";
-import { EMPTY_VALUE_FALLBACK } from "@shared/utils/sharedUtils";
-import { toDisplayValue } from "@renderer/features/operation/utils/operationDisplayUtils";
+import { EMPTY_VALUE_FALLBACK } from "@renderer/utils/rendererUtils";
 import {
+  matchesSummaryStatusFilter,
   OPERATION_FIELD_LABELS,
-  type OperationViewItem,
-} from "@shared/types/operation/operationTypes";
+  toDisplayValue,
+} from "@renderer/features/operation/utils/operationDisplayUtils";
+import type { OperationViewItem } from "@shared/types/operation/operationTypes";
 import * as styles from "./operationTable.css";
 
 export const OPERATION_TABLE_FEATURES = tableFeatures({
@@ -102,8 +103,6 @@ const VISIBLE_OPERATION_COLUMNS = {
   today: COMMON_OPERATION_TODAY_COLUMNS,
 } as const satisfies Record<ViewMode, readonly OperationColumn[]>;
 
-export const EMPTY_OPERATION_ROWS: OperationViewItem[] = [];
-
 function getCellValue(row: OperationViewItem, column: OperationColumn): string {
   if (!Object.prototype.hasOwnProperty.call(row, column)) {
     return EMPTY_VALUE_FALLBACK;
@@ -123,7 +122,7 @@ function buildColumnsFromIds(
       ? {
           filterFn: (row, _columnId, filterValue) => {
             if (!filterValue) return true;
-            return row.original.status === filterValue;
+            return matchesSummaryStatusFilter(row.original.status, filterValue);
           },
         }
       : {}),

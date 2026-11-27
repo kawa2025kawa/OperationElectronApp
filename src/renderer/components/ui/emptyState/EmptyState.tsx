@@ -1,7 +1,6 @@
 // src/renderer/components/ui/emptyState/EmptyState.tsx
 
 import { clsx } from "clsx";
-import { motion } from "motion/react";
 import * as styles from "./emptyState.css";
 
 interface EmptyStateProps {
@@ -18,12 +17,7 @@ export const EmptyState = ({
   retryText = "再試行",
 }: EmptyStateProps) => {
   return (
-    <motion.div
-      className={clsx(styles.emptyWrapper, className)}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-    >
+    <div className={clsx(styles.emptyWrapper, className)}>
       {message ? (
         <div className={styles.messageText}>{message}</div>
       ) : (
@@ -35,6 +29,6 @@ export const EmptyState = ({
           {retryText}
         </button>
       )}
-    </motion.div>
+    </div>
   );
 };

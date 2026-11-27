@@ -1,19 +1,17 @@
 // src/renderer/components/layout/footer/useFooterLogic.ts
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useTransition,
-} from "react";
+import { useCallback, useMemo } from "react";
 import type { ChangeEvent } from "react";
 import { useShallow } from "zustand/shallow";
 
-import { useOptimisticValue } from "@renderer/hooks/useOptimisticValue";
 import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { useAppStore } from "@renderer/store";
-import type { CenterId } from "@shared/types/operation/operationTypes";
+import { CenterId } from "@renderer/store/slices/uiStateSlice";
+
+interface FooterCenterItem {
+  readonly id: CenterId;
+  readonly isActive: boolean;
+}
 
 export const useFooterLogic = () => {
   const {
@@ -36,59 +34,37 @@ export const useFooterLogic = () => {
     })),
   );
 
-  const [localSearchTerm, setLocalSearchTerm] = useOptimisticValue(searchTerm);
-  const [, startTransition] = useTransition();
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, []);
-
   const handleSearchChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
-      const value = event.target.value;
-
-      setLocalSearchTerm(value);
-
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-      }
-
-      timerRef.current = setTimeout(() => {
-        startTransition(() => {
-          setSearchTerm(value);
-        });
-      }, 200);
+      setSearchTerm(event.target.value);
     },
-    [setLocalSearchTerm, setSearchTerm],
+    [setSearchTerm],
   );
 
   const handleToggleCenter = useCallback(
     (id: CenterId) => {
-      toggleCenter(id);
+      void toggleCenter(id);
     },
     [toggleCenter],
   );
 
-  const currentViewDef = getAppViewConfig(currentView);
-
-  const centers = useMemo<Record<string, boolean>>(
-    () => ({
+  const centers = useMemo<readonly FooterCenterItem[]>(() => {
+    const activeMap: Record<CenterId, boolean> = {
       "1C": is1CActive,
       "2C": is2CActive,
       "3C": is3CActive,
-    }),
-    [is1CActive, is2CActive, is3CActive],
-  );
+    };
+
+    return CenterId.VALUES.map((id) => ({
+      id,
+      isActive: activeMap[id],
+    }));
+  }, [is1CActive, is2CActive, is3CActive]);
 
   return {
     centers,
-    searchTerm: localSearchTerm,
-    searchPlaceholder: currentViewDef?.search?.placeholder ?? null,
+    searchTerm,
+    searchPlaceholder: getAppViewConfig(currentView).searchPlaceholder ?? null,
     handleSearchChange,
     handleToggleCenter,
   };

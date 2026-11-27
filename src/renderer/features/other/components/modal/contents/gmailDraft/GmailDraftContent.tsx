@@ -4,7 +4,7 @@ import { memo } from "react";
 import { Select } from "@base-ui/react/select";
 
 import { AuthView } from "@renderer/features/auth/AuthView";
-import type { GlobalModalComponent } from "@shared/types/ui/modal";
+import type { GlobalModalComponent } from "@renderer/types/modal";
 
 import * as styles from "./gmailDraftContent.css";
 import { useGmailModalLogic } from "./useGmailModalLogic";
@@ -17,6 +17,7 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
     templateItems,
     formValues,
     isSaving,
+    isLoadingTemplate,
     handleInputChange,
     handleTemplateChange,
   } = useGmailModalLogic();
@@ -24,6 +25,8 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
   if (!isAuthenticated) {
     return <AuthView />;
   }
+
+  const isFieldDisabled = isSaving || isLoadingTemplate;
 
   return (
     <div className={styles.formContainer}>
@@ -90,7 +93,7 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
           placeholder="example@domain.com"
           value={formValues.to}
           onChange={handleInputChange("to")}
-          disabled={isSaving}
+          disabled={isFieldDisabled}
         />
       </div>
 
@@ -105,7 +108,7 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
           placeholder="cc@domain.com"
           value={formValues.cc}
           onChange={handleInputChange("cc")}
-          disabled={isSaving}
+          disabled={isFieldDisabled}
         />
       </div>
 
@@ -119,7 +122,7 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
           className={styles.input}
           value={formValues.subject}
           onChange={handleInputChange("subject")}
-          disabled={isSaving}
+          disabled={isFieldDisabled}
         />
       </div>
 
@@ -132,7 +135,7 @@ export const GmailDraftContent: GlobalModalComponent = memo(() => {
           className={styles.bodyTextarea}
           value={formValues.body}
           onChange={handleInputChange("body")}
-          disabled={isSaving}
+          disabled={isFieldDisabled}
         />
       </div>
     </div>

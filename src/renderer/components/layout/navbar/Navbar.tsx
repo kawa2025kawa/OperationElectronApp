@@ -7,9 +7,12 @@ import { HamburgerButton } from "@renderer/components/ui/button/hamburgerButton/
 import { PollingToggleButton } from "@renderer/components/ui/button/pollingToggleButton/PollingToggleButton";
 import { TantouButton } from "@renderer/components/ui/button/tantouButton/TantouButton";
 import { StatusSummary } from "@renderer/components/ui/statusSummary/StatusSummary";
-import { getAppViewConfig } from "@renderer/registry/appRegistry";
+import {
+  APP_VIEW_IDS,
+  getAppViewConfig,
+  VIEW_MODES,
+} from "@renderer/registry/appRegistry";
 import { useAppStore, type AppState } from "@renderer/store";
-import { APP_VIEW_IDS } from "@shared/types/registry/viewDefinition";
 
 import * as styles from "./navbar.css";
 
@@ -24,9 +27,9 @@ export const Navbar = memo(function Navbar() {
       })),
     );
 
-  const navbarTitle = getAppViewConfig(currentView)?.title ?? "Unknown View";
+  const navbarTitle = getAppViewConfig(currentView).title;
   const isOperation = currentView === APP_VIEW_IDS.OPERATION;
-  const isIrregular = currentMode === "irregular";
+  const isIrregular = currentMode === VIEW_MODES.IRREGULAR;
 
   const summaryDisplayType: "none" | "summary" | "placeholder" =
     !isOperation || isIrregular

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useAppStore } from "@renderer/store";
-import type { ModalAction, ModalConfig } from "@shared/types/ui/modal";
+import type { ModalAction, ModalConfig } from "@renderer/types/modal";
 
 interface UseModalFooterSyncOptions {
   /** モーダル上部に表示するメッセージ（undefined を渡すと既存値を維持、null でクリア） */

@@ -15,6 +15,7 @@ import {
 } from "@electron/features/operation/application/scriptExecutionService";
 import {
   deleteAllStatuses,
+  ensureOperationInitialized,
   getActiveFlags,
   initializeStatuses,
   registerOperationTargets,
@@ -32,14 +33,20 @@ import { registerIpcHandler } from "./index";
 
 export function registerOperationIpc(): void {
   // Query / Master
-  registerIpcHandler(IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS, () =>
-    getActiveFlags(),
-  );
-  registerIpcHandler(IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY, () =>
-    getStatusSummary(),
-  );
-  registerIpcHandler(IPC_CHANNELS.OPERATION.GET_TABLE_DATA, ({ mode }) =>
-    getOperationTableData(mode),
+  registerIpcHandler(IPC_CHANNELS.OPERATION.GET_ACTIVE_FLAGS, async () => {
+    await ensureOperationInitialized();
+    return getActiveFlags();
+  });
+  registerIpcHandler(IPC_CHANNELS.OPERATION.GET_STATUS_SUMMARY, async () => {
+    await ensureOperationInitialized();
+    return getStatusSummary();
+  });
+  registerIpcHandler(
+    IPC_CHANNELS.OPERATION.GET_TABLE_DATA,
+    async ({ mode }) => {
+      await ensureOperationInitialized();
+      return getOperationTableData(mode);
+    },
   );
   registerIpcHandler(
     IPC_CHANNELS.OPERATION.GET_SCRIPT_EXECUTION_REQUIREMENT,
@@ -59,30 +66,47 @@ export function registerOperationIpc(): void {
   registerIpcHandler(IPC_CHANNELS.OPERATION.DELETE_ALL_STATUSES, () =>
     deleteAllStatuses(),
   );
-  registerIpcHandler(IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS, (input) => {
-    const flags = "flags" in input ? input.flags : input;
-    updateOperationActiveFlags(flags);
-  });
-  registerIpcHandler(IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS, (input) => {
-    updateManualStatus(input.kanriNo, input.status, input.comment ?? "");
-  });
-
-  // Polling / Execution
-  registerIpcHandler(IPC_CHANNELS.OPERATION.START_POLLING, () =>
-    startPolling(),
-  );
-  registerIpcHandler(IPC_CHANNELS.OPERATION.STOP_POLLING, () => stopPolling());
-  registerIpcHandler(IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT, (input) =>
-    executeManualScript(input),
+  registerIpcHandler(
+    IPC_CHANNELS.OPERATION.SET_ACTIVE_FLAGS,
+    async (input) => {
+      await ensureOperationInitialized();
+      const flags = "flags" in input ? input.flags : input;
+      updateOperationActiveFlags(flags);
+    },
   );
   registerIpcHandler(
+    IPC_CHANNELS.OPERATION.UPDATE_JOB_STATUS,
+    async (input) => {
+      await ensureOperationInitialized();
+      updateManualStatus(input.kanriNo, input.status, input.comment ?? "");
+    },
+  );
+
+  // Polling / Execution
+  registerIpcHandler(IPC_CHANNELS.OPERATION.START_POLLING, async () => {
+    await ensureOperationInitialized();
+    startPolling();
+  });
+  registerIpcHandler(IPC_CHANNELS.OPERATION.STOP_POLLING, () => stopPolling());
+  registerIpcHandler(IPC_CHANNELS.OPERATION.EXECUTE_SCRIPT, async (input) => {
+    await ensureOperationInitialized();
+    return executeManualScript(input);
+  });
+  registerIpcHandler(
     IPC_CHANNELS.OPERATION.FETCH_SINGLE_STATUS,
-    ({ kanriNo }) => fetchSingleTrackerStatus(kanriNo),
+    async ({ kanriNo }) => {
+      await ensureOperationInitialized();
+      return fetchSingleTrackerStatus(kanriNo);
+    },
   );
 
   // Spreadsheet Status Sync (Save / Load)
-  registerIpcHandler(IPC_CHANNELS.OPERATION.SAVE_STATUSES_TO_SHEET, (input) =>
-    saveStatusesToSpreadsheet(input),
+  registerIpcHandler(
+    IPC_CHANNELS.OPERATION.SAVE_STATUSES_TO_SHEET,
+    async (input) => {
+      await ensureOperationInitialized();
+      return saveStatusesToSpreadsheet(input);
+    },
   );
   registerIpcHandler(
     IPC_CHANNELS.OPERATION.PREVIEW_STATUS_SYNC_FROM_SHEET,
@@ -92,6 +116,7 @@ export function registerOperationIpc(): void {
     IPC_CHANNELS.OPERATION.LOAD_STATUSES_FROM_SHEET,
     async () => {
       stopPolling();
+      await ensureOperationInitialized();
       return loadStatusesFromSpreadsheet();
     },
   );

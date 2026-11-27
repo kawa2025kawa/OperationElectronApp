@@ -8,14 +8,28 @@ import {
 import { startRdpSession } from "@electron/features/rdp/rdpService";
 import type {
   JobResult,
-  JobResultKind,
-  OperationRdpKey,
   OperationScriptKey,
   OperationWorkType,
   ScriptExecutionRequirement,
-  ScriptExecutionType,
-  ScriptFilePath,
 } from "@shared/types/operation/operationTypes";
+
+export type ScriptFilePath = string | string[];
+
+type ScriptExecutionType = "manual" | "auto";
+
+interface OperationRdpKey {
+  key: string;
+  label?: string;
+  executionTypes?: ScriptExecutionType[];
+}
+
+type JobResultKind =
+  | "success"
+  | "difference"
+  | "needsAction"
+  | "error"
+  | "retrying"
+  | "running";
 
 type ScriptRunnerFn = (
   kanriNo: string,

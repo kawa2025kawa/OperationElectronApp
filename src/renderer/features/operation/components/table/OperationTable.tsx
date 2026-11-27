@@ -208,7 +208,6 @@ export const OperationTable = memo(function OperationTable() {
                       key={row.id}
                       row={row}
                       table={table}
-                      isContextOpen={false}
                       onRowClick={handleRowClick}
                       onMarkSuccess={handleMarkSuccess}
                       onStatusContextMenu={contextMenuStore.open}

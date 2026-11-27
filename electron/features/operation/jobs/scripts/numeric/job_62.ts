@@ -1,14 +1,20 @@
 // electron/features/operation/jobs/scripts/numeric/job_62.ts
 
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   listFilesInDir,
   runJobWithLogger,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 import type { JobResult } from "@shared/types/operation/operationTypes";
 
 const CONFIG = {
-  targetDir: "\\\\172.25.101.51\\if\\MASTER\\RCV",
+  host: NETWORK_HOSTS.MDSYUHAI01,
+  subPaths: ["if", "MASTER", "RCV"] as const,
   expectedFiles: [
     { keyword: "htsf0060", count: 1 },
     { keyword: "Syohin_toMD_N", count: 4 },
@@ -41,7 +47,10 @@ export async function runJob62(): Promise<JobResult> {
 }
 
 async function checkExpectedFiles(): Promise<JobResultData> {
-  const fileNames = await listFilesInDir(CONFIG.targetDir);
+  const targetDir = getNetworkHostPath(CONFIG.host, ...CONFIG.subPaths);
+  const fileNames = await withNetworkAuthRetry(targetDir, () =>
+    listFilesInDir(targetDir),
+  );
 
   const results: FileMatchResult[] = CONFIG.expectedFiles.map(
     ({ keyword, count }) => {
@@ -66,7 +75,7 @@ async function checkExpectedFiles(): Promise<JobResultData> {
   );
 
   return {
-    targetDir: CONFIG.targetDir,
+    targetDir,
     results,
     hasMismatch,
   };

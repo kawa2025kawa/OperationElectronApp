@@ -22,8 +22,12 @@ import {
   notifyStatusUpdated,
   setActiveFlagsState,
   statusState,
-  type ApplyStatusOptions,
 } from "./statusState";
+
+interface ApplyStatusOptions {
+  propagate?: boolean;
+  flags?: ActiveFlags;
+}
 
 function processPropagation(flags = statusState.activeFlags): void {
   statusState.propagator.processPropagation((kanriNo) => {

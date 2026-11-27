@@ -1,12 +1,12 @@
 // src/renderer/features/spreadSheet/shop/modal/useShopModalContent.ts
 
 import { useMemo, useCallback } from "react";
-import { EMPTY_VALUE_FALLBACK } from "@shared/utils/sharedUtils";
+import { EMPTY_VALUE_FALLBACK } from "@renderer/utils/rendererUtils";
 import type {
   PublicShop,
   ShopResourceKey,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
-import type { ModalAction } from "@shared/types/ui/modal";
+import type { ModalAction } from "@renderer/types/modal";
 import { useSpreadSheetTabData } from "../../hooks/useSpreadSheetTabData";
 import { spreadSheetService } from "../../service/spreadSheetService";
 import {

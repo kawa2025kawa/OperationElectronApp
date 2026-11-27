@@ -11,10 +11,12 @@ import {
   type SheetId,
   type Shop,
   type ShopResourceKey,
-  type StaffHiddenKey,
   type Tantou,
 } from "@shared/types/spreadsheet/spreadsheetTypes";
+import { cleanDashCell } from "@shared/utils/sharedUtils";
 import { getSpreadsheetMasterData } from "./spreadsheetMasterDataManager";
+
+type StaffHiddenKey = "nameKana" | "scheduleLink";
 
 const SHOP_RESOURCE_KEYS = [
   "tr1ImageUrl",
@@ -143,16 +145,10 @@ function pickAllowedFields<T extends object, K extends keyof T>(
   return result;
 }
 
-function isValidTarget(value: unknown): boolean {
-  if (typeof value !== "string") return false;
-  const trimmed = value.trim();
-  return Boolean(trimmed && trimmed !== "-");
-}
-
 function toPublicShop(shop: Shop): PublicShop {
   const availableResources: Partial<Record<ShopResourceKey, boolean>> = {};
   for (const key of SHOP_RESOURCE_KEYS) {
-    if (isValidTarget(shop[key])) {
+    if (cleanDashCell(shop[key])) {
       availableResources[key] = true;
     }
   }
@@ -166,14 +162,14 @@ function toPublicShop(shop: Shop): PublicShop {
 function toPublicKokyuhyo(row: Kokyuhyo): PublicKokyuhyo {
   return {
     ...pickAllowedFields(row, ALLOWED_STAFF_KEYS),
-    hasScheduleLink: isValidTarget(row.scheduleLink),
+    hasScheduleLink: Boolean(cleanDashCell(row.scheduleLink)),
   };
 }
 
 function toPublicJugyoin(row: Jugyoin): PublicJugyoin {
   return {
     ...pickAllowedFields(row, ALLOWED_JUGYOIN_KEYS),
-    hasScheduleLink: isValidTarget(row.scheduleLink),
+    hasScheduleLink: Boolean(cleanDashCell(row.scheduleLink)),
   };
 }
 
@@ -210,11 +206,11 @@ export async function resolveStaffScheduleLink(
     sheetId === SHEETS.JUGYOIN.sheetName
       ? masterData.jugyoin
       : masterData.kokyuhyos;
-  const link = list
-    .find((item) => item.id?.trim() === cleanId)
-    ?.scheduleLink?.trim();
+  const link = cleanDashCell(
+    list.find((item) => item.id?.trim() === cleanId)?.scheduleLink,
+  );
 
-  if (!link || link === "-") {
+  if (!link) {
     throw new Error("スケジュールリンクが登録されていません");
   }
 
@@ -232,11 +228,13 @@ export async function resolveShopResourcePath(
   }
 
   const masterData = await getSpreadsheetMasterData();
-  const resourcePath = masterData.stores
-    .find((item) => item.shopCode?.trim() === cleanCode)
-    ?.[resourceKey]?.trim();
+  const resourcePath = cleanDashCell(
+    masterData.stores.find((item) => item.shopCode?.trim() === cleanCode)?.[
+      resourceKey
+    ],
+  );
 
-  if (!resourcePath || resourcePath === "-") {
+  if (!resourcePath) {
     throw new Error("対象のファイルまたは画像が登録されていません");
   }
 

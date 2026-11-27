@@ -23,7 +23,7 @@ import type {
 export type { RdpTarget };
 
 /**
- * Gmail 下書き関連型定義
+- Gmail 下書き関連型定義
  */
 export type EmailTemplateKey = "E8" | "E9" | "E10" | "E88";
 
@@ -36,13 +36,15 @@ export interface GmailDraft {
 
 export type GmailDraftFormValues = GmailDraft;
 
-export interface EmailTemplateOption {
-  key: EmailTemplateKey;
-  label: string;
+export interface GenerateDraftTemplateParams {
+  templateKey: EmailTemplateKey;
+  familyName?: string;
+  targetData?: Record<string, unknown>;
+  links?: Record<string, string> | null;
 }
 
 /**
- * アプリ更新情報型定義
+- アプリ更新情報型定義
  */
 export interface UpdateInfo {
   version: string;
@@ -56,7 +58,7 @@ export interface UpdateInfo {
 }
 
 /**
- * Electron IPC チャンネル名定数
+- Electron IPC チャンネル名定数
  */
 export const IPC_CHANNELS = {
   AUTH: {
@@ -196,11 +198,9 @@ interface IpcChannelDefinitions {
 
   // Gmail
   [IPC_CHANNELS.GMAIL.GET_SIGNATURE]: () => string;
-  [IPC_CHANNELS.GMAIL.GENERATE_DRAFT_TEMPLATE]: (input: {
-    templateKey: EmailTemplateKey;
-    targetData?: Record<string, unknown>;
-    links?: Record<string, string> | null;
-  }) => GmailDraftFormValues;
+  [IPC_CHANNELS.GMAIL.GENERATE_DRAFT_TEMPLATE]: (
+    input: GenerateDraftTemplateParams,
+  ) => GmailDraftFormValues;
   [IPC_CHANNELS.GMAIL.CREATE_DRAFT]: (input: GmailDraftFormValues) => void;
 
   // Spreadsheet

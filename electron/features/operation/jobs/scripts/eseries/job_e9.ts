@@ -1,5 +1,9 @@
 // electron/features/operation/jobs/scripts/eseries/job_e9.ts
 
+import {
+  NETWORK_HOSTS,
+  getNetworkHostPath,
+} from "@electron/features/system/credentialStore";
 import { JobLogger } from "@electron/features/operation/jobs/scripts/helpers/jobLogger";
 import {
   checkAndArchiveTodayFiles,
@@ -9,15 +13,18 @@ import {
   runJobWithLogger,
   type CheckedFileStatus,
 } from "@electron/features/operation/jobs/scripts/helpers/jobRunnerHelper";
+import { withNetworkAuthRetry } from "@electron/features/operation/jobs/scripts/helpers/networkAuthHelper";
 
 interface JobE9ResultData {
+  targetDir: string;
   matchedFiles: CheckedFileStatus[];
   dateIssueFiles: CheckedFileStatus[];
   zipFilePath?: string | null;
 }
 
 const CONFIG = {
-  targetDir: "\\\\S0088003\\syn_tran\\from_ACOS\\SendData",
+  host: NETWORK_HOSTS.S0088003,
+  subPaths: ["syn_tran", "from_ACOS", "SendData"] as const,
   expectedFileCount: 16,
   filePrefix: "FPOPHAT",
   fileExtension: ".TXT",
@@ -25,7 +32,7 @@ const CONFIG = {
 } as const;
 
 /**
-- POP関連ファイル（FPOPHAT*.TXT 16件）の存在と更新日を確認し、ZIPアーカイブを作成する。
+ * POP関連ファイル（FPOPHAT*.TXT 16件）の存在と更新日を確認し、ZIPアーカイブを作成する。
  */
 export async function runJobE9(): Promise<string> {
   return runJobWithLogger("ファイル処理に失敗しました", async (logger) => {
@@ -35,7 +42,10 @@ export async function runJobE9(): Promise<string> {
 }
 
 async function checkAndArchiveFiles(): Promise<JobE9ResultData> {
-  const fileNames = await listFilesInDir(CONFIG.targetDir);
+  const targetDir = getNetworkHostPath(CONFIG.host, ...CONFIG.subPaths);
+  const fileNames = await withNetworkAuthRetry(targetDir, () =>
+    listFilesInDir(targetDir),
+  );
 
   const matchedNames = fileNames.filter((name) => {
     const upperName = name.toUpperCase();
@@ -45,17 +55,22 @@ async function checkAndArchiveFiles(): Promise<JobE9ResultData> {
     );
   });
 
-  return checkAndArchiveTodayFiles(
-    CONFIG.targetDir,
+  const archived = await checkAndArchiveTodayFiles(
+    targetDir,
     matchedNames,
     CONFIG.zipPrefix,
     matchedNames.length === CONFIG.expectedFileCount,
   );
+
+  return {
+    targetDir,
+    ...archived,
+  };
 }
 
 function writeResultLog(logger: JobLogger, result: JobE9ResultData): string {
   logger.section("対象フォルダ");
-  logger.log(CONFIG.targetDir);
+  logger.log(result.targetDir);
 
   logCheckedFiles(logger, result.matchedFiles);
 

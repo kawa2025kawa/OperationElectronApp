@@ -5,7 +5,15 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { app, BrowserWindow, Menu, session, shell } from "electron";
 import windowStateKeeper from "electron-window-state";
 import { stopPolling } from "@electron/features/operation/application/operationScheduler";
-import { initializeActiveFlags } from "@electron/features/operation/application/statusManager";
+import {
+  getStatuses,
+  initializeActiveFlags,
+} from "@electron/features/operation/application/statusManager";
+import {
+  flushPendingStatuses,
+  persistStatusesImmediately,
+} from "@electron/features/operation/infrastructure/operationStorage";
+import { getMainWindow } from "@electron/features/system/systemService";
 import { registerIpcHandlers } from "./ipc";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -164,7 +172,7 @@ app
     createWindow();
 
     app.on("activate", () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
+      if (!getMainWindow()) {
         createWindow();
       }
     });
@@ -176,6 +184,11 @@ app
 
 app.on("before-quit", () => {
   stopPolling();
+  void flushPendingStatuses();
+  const currentStatuses = getStatuses();
+  if (currentStatuses.size > 0) {
+    void persistStatusesImmediately(currentStatuses);
+  }
 });
 
 app.on("window-all-closed", () => {

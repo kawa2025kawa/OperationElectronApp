@@ -5,11 +5,8 @@ import path from "node:path";
 import { app, safeStorage, shell } from "electron";
 import fs from "fs-extra";
 import { CodeChallengeMethod } from "google-auth-library";
-import type {
-  AuthProfile,
-  AuthSession,
-  OAuthToken,
-} from "@shared/types/auth/authTypes";
+import type { AuthProfile } from "@shared/types/auth/authTypes";
+import type { AuthSession, OAuthToken } from "./authTypes";
 import { fetchGoogleUserInfo } from "./googleApiClient";
 import {
   createOAuthClient,
@@ -60,31 +57,31 @@ class AuthService {
     );
   }
 
-  private writeSession(session: AuthSession): AuthSession {
-    if (!safeStorage.isEncryptionAvailable()) {
+  private async writeSession(session: AuthSession): Promise<AuthSession> {
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) {
       throw new Error("Electron safeStorage encryption is not available");
     }
 
-    fs.outputFileSync(
-      this.getSessionFilePath(),
-      safeStorage.encryptString(JSON.stringify(session)),
+    const encrypted = await safeStorage.encryptStringAsync(
+      JSON.stringify(session),
     );
+    await fs.outputFile(this.getSessionFilePath(), encrypted);
 
     this.cachedSession = session;
     this.isSessionLoaded = true;
     return { ...session };
   }
 
-  private saveToken(
+  private async saveToken(
     token: OAuthToken,
     profile: AuthProfile,
     expectedGeneration: number,
-  ): AuthSession {
+  ): Promise<AuthSession> {
     if (expectedGeneration !== this.generation) {
       throw new Error("認証状態が変更されたため、セッションを保存できません");
     }
 
-    const session = this.writeSession({
+    const session = await this.writeSession({
       accessToken: token.accessToken,
       refreshToken: token.refreshToken,
       expiresAt:
@@ -99,19 +96,19 @@ class AuthService {
     return session;
   }
 
-  private readStoredSession(): AuthSession | null {
+  private async readStoredSession(): Promise<AuthSession | null> {
     if (this.isSessionLoaded) {
       return this.cachedSession ? { ...this.cachedSession } : null;
     }
 
     const filePath = this.getSessionFilePath();
-    if (!fs.pathExistsSync(filePath)) {
+    if (!(await fs.pathExists(filePath))) {
       this.cachedSession = null;
       this.isSessionLoaded = true;
       return null;
     }
 
-    if (!safeStorage.isEncryptionAvailable()) {
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) {
       console.error(
         "[GoogleOAuth] Electron safeStorage encryption is not available",
       );
@@ -119,9 +116,10 @@ class AuthService {
     }
 
     try {
-      const parsed = JSON.parse(
-        safeStorage.decryptString(fs.readFileSync(filePath)),
-      ) as Partial<AuthSession>;
+      const encrypted = await fs.readFile(filePath);
+      const { result: decrypted } =
+        await safeStorage.decryptStringAsync(encrypted);
+      const parsed = JSON.parse(decrypted) as Partial<AuthSession>;
 
       if (
         typeof parsed.accessToken !== "string" ||
@@ -149,12 +147,12 @@ class AuthService {
       return { ...session };
     } catch (error) {
       console.error("[GoogleOAuth] Failed to load stored session:", error);
-      this.deleteSessionFile();
+      await this.deleteSessionFile();
       return null;
     }
   }
 
-  private deleteSessionFile(expectedGeneration?: number): void {
+  private async deleteSessionFile(expectedGeneration?: number): Promise<void> {
     if (
       expectedGeneration !== undefined &&
       expectedGeneration !== this.generation
@@ -162,7 +160,7 @@ class AuthService {
       throw new Error("認証状態が変更されたため、セッションを保存できません");
     }
 
-    fs.removeSync(this.getSessionFilePath());
+    await fs.remove(this.getSessionFilePath());
 
     this.generation++;
     this.cachedSession = null;
@@ -207,7 +205,7 @@ class AuthService {
   }
 
   async loadSession(forceRefresh = false): Promise<AuthSession | null> {
-    const stored = this.readStoredSession();
+    const stored = await this.readStoredSession();
     if (!stored) {
       return null;
     }
@@ -224,15 +222,15 @@ class AuthService {
     return this.restoreProfile(session);
   }
 
-  clearSession(): void {
-    this.deleteSessionFile();
+  async clearSession(): Promise<void> {
+    await this.deleteSessionFile();
     this.refreshRequest = null;
     this.profileRequest = null;
   }
 
   async refreshSessionFor(session: AuthSession): Promise<AuthSession | null> {
     const generation = this.generation;
-    const current = this.readStoredSession();
+    const current = await this.readStoredSession();
 
     if (!current) {
       return null;
@@ -243,7 +241,7 @@ class AuthService {
 
     const { refreshToken } = current;
     if (!refreshToken) {
-      this.deleteSessionFile(generation);
+      await this.deleteSessionFile(generation);
       return null;
     }
 
@@ -298,7 +296,7 @@ class AuthService {
 
       if (isInvalidGrantError(error)) {
         console.warn("[AuthService] Refresh token is no longer valid");
-        this.deleteSessionFile(generation);
+        await this.deleteSessionFile(generation);
         return null;
       }
 
@@ -340,7 +338,7 @@ class AuthService {
           return session;
         }
 
-        const current = this.readStoredSession();
+        const current = await this.readStoredSession();
         if (
           !current ||
           generation !== this.generation ||

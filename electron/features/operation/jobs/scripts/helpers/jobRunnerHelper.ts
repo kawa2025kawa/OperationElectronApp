@@ -2,14 +2,14 @@
 
 import os from "node:os";
 import path from "node:path";
-import archiver from "archiver";
+import { ZipArchive } from "archiver";
 import { format, isSameDay } from "date-fns";
 import fs from "fs-extra";
 import iconv from "iconv-lite";
-import type { ScriptFilePath } from "@shared/types/operation/operationTypes";
+import type { ScriptFilePath } from "@electron/features/operation/runners/scriptRunner";
 import { JobLogger } from "./jobLogger";
 
-export interface CreateZipOptions {
+interface CreateZipOptions {
   filePaths: string[];
   outputDir: string;
   zipPrefix: string;
@@ -21,6 +21,11 @@ export interface CheckedFileStatus {
   exists: boolean;
   mtime: Date | null;
   isToday: boolean;
+}
+
+interface FindFilesByKeywordsOptions {
+  requiredExtension?: string;
+  exactMatchCount?: boolean;
 }
 
 interface ZipSourceFile {
@@ -77,7 +82,7 @@ async function compressFiles(
 
   await new Promise<void>((resolve, reject) => {
     const output = fs.createWriteStream(outputZipPath);
-    const archive = archiver("zip", { zlib: { level: 9 } });
+    const archive = new ZipArchive({ zlib: { level: 9 } });
     let settled = false;
 
     const fail = (error: Error): void => {
@@ -196,23 +201,67 @@ export async function resolveSingleInputFile(
 export function findFilesByKeywords<TKey extends string>(
   inputPaths: readonly string[],
   keywords: Record<TKey, string>,
+  options?: FindFilesByKeywordsOptions,
 ): Record<TKey, string> {
   const found = {} as Record<TKey, string>;
   const missing: string[] = [];
+  const normalizedExt = options?.requiredExtension
+    ? (options.requiredExtension.startsWith(".")
+        ? options.requiredExtension
+        : `.${options.requiredExtension}`
+      ).toLowerCase()
+    : null;
+
+  if (normalizedExt) {
+    const invalidExtFiles = inputPaths
+      .filter((filePath) => path.extname(filePath).toLowerCase() !== normalizedExt)
+      .map((filePath) => path.basename(filePath));
+
+    if (invalidExtFiles.length > 0) {
+      throw new Error(
+        `${normalizedExt} 以外のファイルが含まれています: ${invalidExtFiles.join(", ")}`,
+      );
+    }
+  }
+
+  const matchedPaths = new Set<string>();
 
   for (const [key, keyword] of Object.entries(keywords) as [TKey, string][]) {
-    const matched = inputPaths.find((filePath) =>
+    const matches = inputPaths.filter((filePath) =>
       path.basename(filePath).includes(keyword),
     );
-    if (matched) {
-      found[key] = matched;
-    } else {
-      missing.push(keyword);
+
+    if (matches.length === 0) {
+      missing.push(
+        normalizedExt ? `${keyword} (${normalizedExt})` : keyword,
+      );
+      continue;
     }
+
+    if (matches.length > 1) {
+      throw new Error(
+        `キーワード '${keyword}' に該当するファイルが複数あります: ${matches.map((p) => path.basename(p)).join(", ")}`,
+      );
+    }
+
+    found[key] = matches[0];
+    matchedPaths.add(matches[0]);
   }
 
   if (missing.length > 0) {
     throw new Error(`必要なファイルが不足しています: ${missing.join(", ")}`);
+  }
+
+  if (options?.exactMatchCount) {
+    const unexpectedFiles = inputPaths
+      .filter((filePath) => !matchedPaths.has(filePath))
+      .map((filePath) => path.basename(filePath));
+
+    if (unexpectedFiles.length > 0) {
+      throw new Error(
+        `対象外のファイルが含まれています: ${unexpectedFiles.join(", ")}`,
+      );
+    }
   }
 
   return found;
@@ -238,16 +287,6 @@ export async function readEncodedLines(
 export async function listFilesInDir(dirPath: string): Promise<string[]> {
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
   return entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
-}
-
-export async function listFilesInExistingDir(
-  dirPath: string,
-  missingMessage = `フォルダが存在しないかアクセスできません: ${dirPath}`,
-): Promise<string[]> {
-  if (!(await directoryExists(dirPath))) {
-    throw new Error(missingMessage);
-  }
-  return listFilesInDir(dirPath);
 }
 
 export async function assertPathNotExists(

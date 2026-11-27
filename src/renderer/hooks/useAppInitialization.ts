@@ -8,7 +8,7 @@ import { darkThemeClass } from "@renderer/styles/tokens/theme.css";
 export function useAppInitialization() {
   const { isSidebarOpen, initializeApp, setSidebarOpen } = useAppStore(
     useShallow((state) => ({
-      isSidebarOpen: state.isSidebarOpen ?? false,
+      isSidebarOpen: state.isSidebarOpen,
       initializeApp: state.initializeApp,
       setSidebarOpen: state.setSidebarOpen,
     })),

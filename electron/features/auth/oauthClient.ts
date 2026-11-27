@@ -4,7 +4,8 @@ import * as http from "node:http";
 import fs from "fs-extra";
 import { OAuth2Client } from "google-auth-library";
 import { resolveResourcePath } from "@electron/features/system/systemService";
-import type { OAuthToken } from "@shared/types/auth/authTypes";
+import { toErrorMessage } from "@shared/utils/sharedUtils";
+import type { OAuthToken } from "./authTypes";
 
 export const OAUTH_CONFIG = {
   host: "127.0.0.1",
@@ -40,9 +41,7 @@ function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function formatErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
+export { toErrorMessage as formatErrorMessage };
 
 function getGoogleCredentials(): GoogleCredentials {
   if (cachedCredentials) {
@@ -81,7 +80,7 @@ function getGoogleCredentials(): GoogleCredentials {
     return cachedCredentials;
   } catch (error) {
     throw new Error(
-      `Failed to load Google OAuth credentials: ${formatErrorMessage(error)}`,
+      `Failed to load Google OAuth credentials: ${toErrorMessage(error)}`,
       { cause: error },
     );
   }

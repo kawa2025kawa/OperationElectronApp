@@ -3,7 +3,8 @@
 import path from "node:path";
 import fs from "fs-extra";
 import { IPC_CHANNELS } from "@shared/types/electron/ipcTypes";
-import type { AuthProfile, AuthSession } from "@shared/types/auth/authTypes";
+import type { AuthProfile } from "@shared/types/auth/authTypes";
+import type { AuthSession } from "@electron/features/auth/authTypes";
 import { authService } from "@electron/features/auth/authService";
 import {
   getPublicSpreadsheetMasterData,
@@ -42,7 +43,7 @@ export function registerServiceIpc(): void {
     return session ? toPublicProfile(session) : null;
   });
   registerIpcHandler(IPC_CHANNELS.AUTH.LOGOUT, async () => {
-    authService.clearSession();
+    await authService.clearSession();
     await clearSpreadsheetMasterDataCache();
   });
 

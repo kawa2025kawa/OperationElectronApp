@@ -8,9 +8,9 @@ import {
 import {
   JOB_STATUS,
   type ActiveFlags,
+  type IrregularMaster,
   type OperationMaster,
   type OperationStatusState,
-  type TodayIrregularMaster,
 } from "@shared/types/operation/operationTypes";
 import {
   checkJobDependencies,
@@ -19,7 +19,7 @@ import {
   type DependencyStatuses,
 } from "@electron/features/operation/domain/dependencyUtils";
 
-export type StatusCalculationTarget = OperationMaster | TodayIrregularMaster;
+type StatusCalculationTarget = OperationMaster | IrregularMaster;
 
 function isBeforeScheduledTime(
   target: StatusCalculationTarget,

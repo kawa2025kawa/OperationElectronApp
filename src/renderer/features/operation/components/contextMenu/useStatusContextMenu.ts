@@ -1,23 +1,22 @@
 // src/renderer/features/operation/components/contextMenu/useStatusContextMenu.ts
 
 import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import { normalizeDisplayStatus } from "@renderer/features/operation/utils/operationDisplayUtils";
 import { useAppStore } from "@renderer/store";
+import { JOB_STATUS_LABEL } from "@renderer/styles/tokens/statusTheme";
 import {
   JOB_STATUS,
-  JOB_STATUS_LABEL,
   type JobStatus,
 } from "@shared/types/operation/operationTypes";
 
 const PRIMARY_ROW_STATUSES = [
-  JOB_STATUS.SCHEDULED,
-  JOB_STATUS.RUNNING,
-  JOB_STATUS.SCRIPT_RUNNING,
   JOB_STATUS.SUCCESS,
+  JOB_STATUS.RUNNING,
+  JOB_STATUS.READY,
 ] as const satisfies readonly JobStatus[];
 
 const SECONDARY_ROW_STATUSES = [
-  JOB_STATUS.READY,
-  JOB_STATUS.WAITING,
+  JOB_STATUS.SCHEDULED,
   JOB_STATUS.NEEDS_ACTION,
   JOB_STATUS.ERROR,
 ] as const satisfies readonly JobStatus[];
@@ -26,6 +25,18 @@ export interface StatusMenuOption {
   readonly status: JobStatus;
   readonly label: string;
   readonly isCurrent: boolean;
+}
+
+function toStatusMenuOptions(
+  statuses: readonly JobStatus[],
+  currentStatus?: JobStatus,
+): StatusMenuOption[] {
+  const normalizedCurrent = normalizeDisplayStatus(currentStatus);
+  return statuses.map((status) => ({
+    status,
+    label: JOB_STATUS_LABEL[status],
+    isCurrent: normalizedCurrent === status,
+  }));
 }
 
 export function useStatusContextMenu(
@@ -56,23 +67,13 @@ export function useStatusContextMenu(
     [updateOperationStatus],
   );
 
-  const primaryItems = useMemo<StatusMenuOption[]>(
-    () =>
-      PRIMARY_ROW_STATUSES.map((status) => ({
-        status,
-        label: JOB_STATUS_LABEL[status],
-        isCurrent: currentStatus === status,
-      })),
+  const primaryItems = useMemo(
+    () => toStatusMenuOptions(PRIMARY_ROW_STATUSES, currentStatus),
     [currentStatus],
   );
 
-  const secondaryItems = useMemo<StatusMenuOption[]>(
-    () =>
-      SECONDARY_ROW_STATUSES.map((status) => ({
-        status,
-        label: JOB_STATUS_LABEL[status],
-        isCurrent: currentStatus === status,
-      })),
+  const secondaryItems = useMemo(
+    () => toStatusMenuOptions(SECONDARY_ROW_STATUSES, currentStatus),
     [currentStatus],
   );
 

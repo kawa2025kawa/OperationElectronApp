@@ -1,6 +1,12 @@
 // src/renderer/features/spreadSheet/components/table/useSpreadSheetTable.ts
 
-import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import {
   useTable,
   type RowData,
@@ -10,7 +16,6 @@ import {
 import { usePersistentScroll } from "@renderer/hooks/usePersistentScroll";
 import { useTableVirtualizer } from "@renderer/hooks/useTableVirtualizer";
 import { useAppStore } from "@renderer/store";
-import { getAppViewConfig } from "@renderer/registry/appRegistry";
 import { createRegistryGlobalFilter } from "@renderer/features/table/utils/tableSearchUtils";
 import {
   getSpreadSheetCellText,
@@ -31,20 +36,13 @@ export function useSpreadSheetTable<TData extends RowData>(
   const headerWrapperRef = useRef<HTMLDivElement | null>(null);
   const currentView = useAppStore((state) => state.currentView);
   const searchTerm = useAppStore((state) => state.searchTerm);
+  const deferredSearchTerm = useDeferredValue(searchTerm);
 
   const safeRows = rows ?? (EMPTY_ROWS as readonly TData[]);
-  const searchConfig = useMemo(
-    () => getAppViewConfig(currentView).search,
-    [currentView],
-  );
 
   const globalFilterFn = useMemo(
-    () =>
-      createRegistryGlobalFilter<SpreadSheetTableFeatures, TData>(
-        searchConfig?.searchKeys,
-        searchConfig?.skipFilter,
-      ),
-    [searchConfig],
+    () => createRegistryGlobalFilter<SpreadSheetTableFeatures, TData>(),
+    [],
   );
 
   const table = useTable({
@@ -58,7 +56,7 @@ export function useSpreadSheetTable<TData extends RowData>(
     },
     globalFilterFn,
     state: {
-      globalFilter: searchTerm,
+      globalFilter: deferredSearchTerm,
     },
   });
 
@@ -73,7 +71,7 @@ export function useSpreadSheetTable<TData extends RowData>(
   const { containerRef, handleScroll } = usePersistentScroll<HTMLDivElement>({
     scrollKey: currentView,
     canRestore: safeRows.length > 0,
-    isFiltered: Boolean(searchTerm.trim()),
+    isFiltered: Boolean(deferredSearchTerm.trim()),
     restoreTrigger: safeRows,
     onHorizontalSync: syncHeaderScrollLeft,
   });

@@ -5,10 +5,10 @@ import { app } from "electron";
 import { format } from "date-fns";
 import fs from "fs-extra";
 import Store, { type Options as StoreOptions, type Schema } from "electron-store";
-import {
-  DEFAULT_ACTIVE_FLAGS,
-  type ActiveFlags,
-  type OperationStatusState,
+import { DEFAULT_ACTIVE_FLAGS } from "@electron/features/operation/application/statusState";
+import type {
+  ActiveFlags,
+  OperationStatusState,
 } from "@shared/types/operation/operationTypes";
 
 const ACTIVE_FLAGS_PREFIX = "activeFlags_";
@@ -123,6 +123,20 @@ export function persistStatusesDebounced(
       void persistStatusesImmediately(target);
     }
   }, PERSIST_DEBOUNCE_MS);
+}
+
+/** 保留中のデバウンス書き込みを即座にフラッシュし、タイマーを破棄する */
+export async function flushPendingStatuses(): Promise<void> {
+  if (persistTimer !== null) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+
+  if (pendingStatuses !== null) {
+    const target = pendingStatuses;
+    pendingStatuses = null;
+    await persistStatusesImmediately(target);
+  }
 }
 
 export async function loadStatusesFromFile(): Promise<
